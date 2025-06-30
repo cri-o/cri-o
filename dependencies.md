@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 30 Jun 2025 06:33:08 UTC for commit [4caef2f][0]._
+_Generated on Mon, 30 Jun 2025 11:51:22 UTC for commit [f3374ad][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4caef2f874a8624b99562a9e8189abe835c2beb6
+[0]: https://github.com/cri-o/cri-o/commit/f3374adc5f8190b990359f0391ecf4007b9e78fb
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250630060515-e66baf503b99 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250630080514-f04bb3f34c87 | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.60.0                            | v0.62.0                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20241210054802-24370beab758 | v0.0.0-20250604170112-4c0f3b243397 | true   | true             |
 
@@ -462,7 +462,7 @@ _Generated on Mon, 30 Jun 2025 06:33:08 UTC for commit [4caef2f][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250630060515-e66baf503b99  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250630080514-f04bb3f34c87  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -543,7 +543,7 @@ _Generated on Mon, 30 Jun 2025 06:33:08 UTC for commit [4caef2f][0]._
 | github.com/olekukonko/tablewriter                                                   | v0.0.5                                | v1.0.7                              | false  | true             |
 | github.com/onsi/ginkgo/v2                                                           | v2.23.4                               |                                     | true   | true             |
 | github.com/onsi/gomega                                                              | v1.37.0                               |                                     | true   | true             |
-| github.com/open-policy-agent/opa                                                    | v1.4.0                                | v1.5.1                              | false  | true             |
+| github.com/open-policy-agent/opa                                                    | v1.4.0                                | v1.6.0                              | false  | true             |
 | github.com/opencontainers/cgroups                                                   | v0.0.3                                |                                     | true   | true             |
 | github.com/opencontainers/go-digest                                                 | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                | v1.1.1                                |                                     | true   | true             |
