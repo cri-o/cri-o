@@ -185,5 +185,5 @@ function check_networking() {
 
 	# be able to remove the sandbox
 	crictl rmp -f "$POD"
-	grep -q "Removed invalid netns path $NETNS_PATH$NS from pod sandbox" "$CRIO_LOG"
+	grep -q "Removed netns path $NETNS_PATH$NS from pod sandbox" "$CRIO_LOG"
 }

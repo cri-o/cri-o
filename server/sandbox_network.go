@@ -181,23 +181,42 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 
 	podNetwork, err := s.newPodNetwork(ctx, sb)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create pod network for sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+	}
+
+	// Check if the network namespace file exists and is valid before attempting CNI teardown.
+	// If the file doesn't exist or is invalid, skip CNI teardown and mark network as stopped.
+	if podNetwork.NetNS != "" {
+		if _, statErr := os.Stat(podNetwork.NetNS); statErr != nil {
+			// Network namespace file doesn't exist, mark network as stopped and return success
+			log.Debugf(ctx, "Network namespace file %s does not exist for pod sandbox %s(%s), skipping CNI teardown",
+				podNetwork.NetNS, sb.Name(), sb.ID())
+
+			return sb.SetNetworkStopped(ctx, true)
+		}
+
+		if validateErr := s.validateNetworkNamespace(podNetwork.NetNS); validateErr != nil {
+			// Network namespace file exists but is invalid (e.g., corrupted or fake file)
+			log.Warnf(ctx, "Network namespace file %s is invalid for pod sandbox %s(%s): %v, removing and skipping CNI teardown",
+				podNetwork.NetNS, sb.Name(), sb.ID(), validateErr)
+			s.cleanupNetns(ctx, podNetwork.NetNS, sb)
+
+			return sb.SetNetworkStopped(ctx, true)
+		}
 	}
 
 	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
-		retErr := fmt.Errorf("failed to destroy network for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		log.Warnf(ctx, "Failed to destroy network for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 
-		if _, statErr := os.Stat(podNetwork.NetNS); statErr != nil {
-			return fmt.Errorf("%w: stat netns path %q: %w", retErr, podNetwork.NetNS, statErr)
+		// If the network namespace exists but CNI teardown failed, try to clean it up.
+		if podNetwork.NetNS != "" {
+			if _, statErr := os.Stat(podNetwork.NetNS); statErr == nil {
+				// Clean up the netns file since CNI teardown failed.
+				s.cleanupNetns(ctx, podNetwork.NetNS, sb)
+			}
 		}
 
-		// The netns file may still exists, which means that it's likely
-		// corrupted. Remove it to allow cleanup of the network namespace:
-		if rmErr := os.RemoveAll(podNetwork.NetNS); rmErr != nil {
-			return fmt.Errorf("%w: failed to remove netns path: %w", retErr, rmErr)
-		}
-
-		log.Warnf(ctx, "Removed invalid netns path %s from pod sandbox %s(%s)", podNetwork.NetNS, sb.Name(), sb.ID())
+		return fmt.Errorf("network teardown failed for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
 	}
 
 	return sb.SetNetworkStopped(ctx, true)
