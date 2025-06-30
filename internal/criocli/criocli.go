@@ -1327,7 +1327,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.StringSliceFlag{
 			Name:    "included-pod-metrics",
 			Usage:   "A list of pod metrics to include. Specify the names of the metrics to include in this list.",
-			EnvVars: []string{"CONTAINER_INCLUDED_POD_METRCIS"},
+			EnvVars: []string{"CONTAINER_INCLUDED_POD_METRICS"},
 			Value:   cli.NewStringSlice(defConf.IncludedPodMetrics...),
 		},
 		&cli.BoolFlag{
