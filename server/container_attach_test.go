@@ -22,6 +22,8 @@ var _ = t.Describe("ContainerAttach", func() {
 	t.Describe("ContainerAttach", func() {
 		It("should succeed", func() {
 			// Given
+			addContainerAndSandbox()
+
 			// When
 			response, err := sut.Attach(context.Background(),
 				&types.AttachRequest{

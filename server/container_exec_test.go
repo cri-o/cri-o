@@ -10,7 +10,7 @@ import (
 )
 
 // The actual test suite.
-var _ = t.Describe("ContainerStart", func() {
+var _ = t.Describe("ContainerExec", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
@@ -19,9 +19,11 @@ var _ = t.Describe("ContainerStart", func() {
 
 	AfterEach(afterEach)
 
-	t.Describe("ContainerStart", func() {
+	t.Describe("ContainerExec", func() {
 		It("should succeed", func() {
 			// Given
+			addContainerAndSandbox()
+
 			// When
 			response, err := sut.Exec(context.Background(),
 				&types.ExecRequest{

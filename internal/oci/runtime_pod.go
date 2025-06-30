@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/containers/common/pkg/resize"
@@ -310,4 +311,48 @@ func (r *runtimePod) ReopenContainerLog(ctx context.Context, c *Container) error
 
 func (r *runtimePod) IsContainerAlive(c *Container) bool {
 	return c.Living() == nil
+}
+
+func (r *runtimePod) ServeExecContainer(ctx context.Context, c *Container, cmd []string, tty, stdin, stdout, stderr bool) (string, error) {
+	res, err := r.client.ServeExecContainer(ctx, &conmonClient.ServeExecContainerConfig{
+		ID:      c.ID(),
+		Command: cmd,
+		Tty:     tty,
+		Stdin:   stdin,
+		Stdout:  stdout,
+		Stderr:  stderr,
+	})
+	if err != nil {
+		if isUnimplementedRPCErr(err) {
+			return "", nil
+		}
+
+		return "", fmt.Errorf("call ServeExecContainer RPC: %w", err)
+	}
+
+	return res.URL, nil
+}
+
+func (r *runtimePod) ServeAttachContainer(ctx context.Context, c *Container, stdin, stdout, stderr bool) (string, error) {
+	res, err := r.client.ServeAttachContainer(ctx, &conmonClient.ServeAttachContainerConfig{
+		ID:     c.ID(),
+		Stdin:  stdin,
+		Stdout: stdout,
+		Stderr: stderr,
+	})
+	if err != nil {
+		if isUnimplementedRPCErr(err) {
+			return "", nil
+		}
+
+		return "", fmt.Errorf("call ServeAttachContainer RPC: %w", err)
+	}
+
+	return res.URL, nil
+}
+
+func isUnimplementedRPCErr(err error) bool {
+	const errUnimplementedString = "Method not implemented."
+
+	return strings.Contains(err.Error(), errUnimplementedString)
 }
