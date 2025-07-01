@@ -21,6 +21,19 @@ it later with **--config**. Global options will modify the output.`,
 		},
 	},
 	Action: func(c *cli.Context) error {
+
+		if val, ok := os.LookupEnv("CONTAINER_INCLUDED_POD_METRCIS") ; ok {
+
+			logrus.Warn("Environment variable CONTAINER_INCLUDED_POD_METRCIS is deprecated (typo). Use CONTAINER_INCLUDED_POD_METRICS instead.")
+
+			if _, exists := os.LookupEnv("CONTAINER_INCLUDED_POD_METRICS") ; !exists {
+				os.Setenv("CONTAINER_INCLUDED_POD_METRICS", val)
+			}
+
+		}
+
+
+
 		logrus.SetFormatter(&logrus.TextFormatter{
 			DisableTimestamp: true,
 		})
