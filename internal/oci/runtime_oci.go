@@ -907,7 +907,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	if c.SetAsStopping() {
 		// The API is due to be deprecated. However, the replacement is completely broken, see:
 		//   https://github.com/kubernetes/kubernetes/issues/118638
-		go r.StopLoopForContainer(c,
+		go r.StopLoopForContainer(context.WithoutCancel(ctx), c,
 			kwait.NewExponentialBackoffManager( //nolint:staticcheck // Ignore deprecated function warning.
 				stopInitialBackoff,
 				stopMaximumBackoff,
@@ -924,9 +924,7 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	return nil
 }
 
-func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager) {
-	ctx := context.Background()
-
+func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm kwait.BackoffManager) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
