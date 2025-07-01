@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 30 Jun 2025 15:54:37 UTC for commit [2edb23f][0]._
+_Generated on Tue, 01 Jul 2025 11:55:00 UTC for commit [25069a9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2edb23fd542e943cc8bdaed61f911030e83e51ea
+[0]: https://github.com/cri-o/cri-o/commit/25069a97536983c4b9cb8af0d281239f4c0accf3
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250630080514-f04bb3f34c87 | true   | true             |
+| github.com/intel/goresctrl                                                  | v0.8.0                             | v0.9.0                             | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250701034019-8784cebb8426 | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.60.0                            | v0.62.0                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20241210054802-24370beab758 | v0.0.0-20250604170112-4c0f3b243397 | true   | true             |
 
@@ -142,7 +143,7 @@ _Generated on Mon, 30 Jun 2025 15:54:37 UTC for commit [2edb23f][0]._
 | cloud.google.com/go/webrisk                                                         | v1.10.3                               | v1.11.1                             | false  | true             |
 | cloud.google.com/go/websecurityscanner                                              | v1.7.3                                | v1.7.6                              | false  | true             |
 | cloud.google.com/go/workflows                                                       | v1.13.3                               | v1.14.2                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                       | v0.0.0-20211005130812-5bb3c17173e5    | v0.42.0                             | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                       | v0.0.0-20211005130812-5bb3c17173e5    | v0.43.0                             | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                      | v0.0.0-20250224124241-b27552d3e05c    | v0.0.0-20250530080122-d0efc28a5723  | false  | true             |
 | cuelang.org/go                                                                      | v0.12.1                               | v0.13.2                             | false  | true             |
 | dario.cat/mergo                                                                     | v1.0.1                                | v1.0.2                              | false  | true             |
@@ -411,7 +412,7 @@ _Generated on Mon, 30 Jun 2025 15:54:37 UTC for commit [2edb23f][0]._
 | github.com/google/go-intervals                                                      | v0.0.2                                |                                     | false  | true             |
 | github.com/google/go-querystring                                                    | v1.1.0                                |                                     | false  | true             |
 | github.com/google/gofuzz                                                            | v1.2.0                                |                                     | false  | true             |
-| github.com/google/pprof                                                             | v0.0.0-20250403155104-27863c87afa6    | v0.0.0-20250629210550-e611ec304b22  | false  | true             |
+| github.com/google/pprof                                                             | v0.0.0-20250403155104-27863c87afa6    | v0.0.0-20250630185457-6e76a2b096b5  | false  | true             |
 | github.com/google/renameio                                                          | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                           | v0.6.0                                | v0.7.0                              | false  | true             |
 | github.com/google/s2a-go                                                            | v0.1.9                                |                                     | false  | true             |
@@ -447,7 +448,7 @@ _Generated on Mon, 30 Jun 2025 15:54:37 UTC for commit [2edb23f][0]._
 | github.com/inconshreveable/mousetrap                                                | v1.1.0                                |                                     | false  | true             |
 | github.com/insomniacslk/dhcp                                                        | v0.0.0-20240829085014-a3a4c1f04475    | v0.0.0-20250417080101-5f8cf70e8c5f  | false  | true             |
 | github.com/intel-go/cpuid                                                           | v0.0.0-20210602155658-5747e5cec0d9    | v0.0.0-20240823053301-6c0fd109086b  | false  | true             |
-| github.com/intel/goresctrl                                                          | v0.8.0                                |                                     | true   | true             |
+| github.com/intel/goresctrl                                                          | v0.8.0                                | v0.9.0                              | true   | true             |
 | github.com/jbenet/go-context                                                        | v0.0.0-20150711004518-d14ea06fba99    |                                     | false  | true             |
 | github.com/jedisct1/go-minisign                                                     | v0.0.0-20241212093149-d2f9f49435c7    |                                     | false  | true             |
 | github.com/jellydator/ttlcache/v3                                                   | v3.3.0                                | v3.4.0                              | false  | true             |
@@ -462,7 +463,7 @@ _Generated on Mon, 30 Jun 2025 15:54:37 UTC for commit [2edb23f][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250630080514-f04bb3f34c87  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250701034019-8784cebb8426  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -485,7 +486,7 @@ _Generated on Mon, 30 Jun 2025 15:54:37 UTC for commit [2edb23f][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.31                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20240620175310-a78493c6e2bd    |                                     | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20250303232957-28b49a82d48a    | v0.0.0-20250626214302-8aafb3134745  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20250303232957-28b49a82d48a    | v0.20250630.0                       | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.3                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -630,7 +631,7 @@ _Generated on Mon, 30 Jun 2025 15:54:37 UTC for commit [2edb23f][0]._
 | github.com/sylabs/sif/v2                                                            | v2.21.1                               |                                     | false  | true             |
 | github.com/syndtr/gocapability                                                      | v0.0.0-20200815063812-42c35b437635    |                                     | false  | true             |
 | github.com/syndtr/goleveldb                                                         | v1.0.1-0.20220721030215-126854af5e6d  |                                     | false  | true             |
-| github.com/tchap/go-patricia/v2                                                     | v2.3.2                                |                                     | false  | true             |
+| github.com/tchap/go-patricia/v2                                                     | v2.3.2                                | v2.3.3                              | false  | true             |
 | github.com/tetratelabs/wazero                                                       | v1.8.2                                | v1.9.0                              | false  | true             |
 | github.com/thales-e-security/pool                                                   | v0.0.2                                |                                     | false  | true             |
 | github.com/theupdateframework/go-tuf                                                | v0.7.0                                |                                     | false  | true             |
@@ -679,7 +680,7 @@ _Generated on Mon, 30 Jun 2025 15:54:37 UTC for commit [2edb23f][0]._
 | github.com/yuin/goldmark                                                            | v1.4.13                               | v1.7.12                             | false  | true             |
 | github.com/zalando/go-keyring                                                       | v0.2.3                                | v0.2.6                              | false  | true             |
 | github.com/zeebo/errs                                                               | v1.4.0                                |                                     | false  | true             |
-| github.com/zmap/zcrypto                                                             | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20250627161936-38850a079d72  | false  | true             |
+| github.com/zmap/zcrypto                                                             | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20250630201916-3e2e710901d6  | false  | true             |
 | github.com/zmap/zlint/v3                                                            | v3.6.4                                | v3.6.6                              | false  | true             |
 | gitlab.com/gitlab-org/api/client-go                                                 | v0.127.0                              | v0.130.1                            | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                             | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
