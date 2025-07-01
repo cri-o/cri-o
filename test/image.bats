@@ -104,7 +104,9 @@ function teardown() {
 	mkdir -p "$TESTDIR/imagestore"
 	CONTAINER_IMAGESTORE="$TESTDIR/imagestore" start_crio
 
-	FEDORA="registry.fedoraproject.org/fedora"
+	# registry.fedoraproject.org is pretty flaky
+	# Moving to the stable quay.io
+	FEDORA="quay.io/fedora/fedora"
 	crictl pull $FEDORA
 	imageid=$(crictl images --quiet "$FEDORA")
 	[ "$imageid" != "" ]
