@@ -114,6 +114,7 @@ var _ = t.Describe("Sandbox", func() {
 
 			// Then
 			Expect(testSandbox.Stopped()).To(BeTrue())
+			Expect(testSandbox.Ready()).To(BeFalse())
 		})
 	})
 
@@ -159,6 +160,7 @@ var _ = t.Describe("Sandbox", func() {
 
 			// Then
 			Expect(testSandbox.Created()).To(BeTrue())
+			Expect(testSandbox.Ready()).To(BeTrue())
 		})
 	})
 
