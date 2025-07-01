@@ -1082,6 +1082,10 @@ func GetImageService(ctx context.Context, store storage.Store, storageTransport 
 		regexForPinnedImages: CompileRegexpsForPinnedImages(serverConfig.PinnedImages),
 	}
 
+	if len(serverConfig.InsecureRegistries) > 0 {
+		log.Warnf(ctx, "Insecure registries option is deprecated and will not have any effect in a future release")
+	}
+
 	serverConfig.InsecureRegistries = append(serverConfig.InsecureRegistries, "127.0.0.0/8")
 	// Split --insecure-registry into CIDR and registry-specific settings.
 	for _, r := range serverConfig.InsecureRegistries {
