@@ -124,6 +124,7 @@ install_cni_plugins() {
 install_crun() {
     git clone https://github.com/containers/crun
     pushd crun
+    git checkout 3dd26565eb7e9a6b9d212010846c31f76feb4712
     ./autogen.sh
     ./configure
     sudo make -j "$(nproc)" install prefix=/usr
