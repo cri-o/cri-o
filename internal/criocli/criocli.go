@@ -574,6 +574,15 @@ func GetFlagsAndMetadata() ([]cli.Flag, map[string]any, error) {
 		return nil, nil, fmt.Errorf("error loading server config: %w", err)
 	}
 
+	if val, ok := os.LookupEnv("CONTAINER_INCLUDED_POD_METRCIS") ; ok {
+		logrus.Warn("Environment variable CONTAINER_INCLUDED_POD_METRCIS is deprecated (typo). Use CONTAINER_INCLUDED_POD_METRICS instead.")
+
+		if _, exists := os.LookupEnv("CONTAINER_INCLUDED_POD_METRICS") ; !exists {
+			os.Setenv("CONTAINER_INCLUDED_POD_METRICS", val)
+		}
+
+	}
+
 	// TODO FIXME should be crio wipe flags
 	flags := getCrioFlags(config)
 
