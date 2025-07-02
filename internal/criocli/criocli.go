@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"log"
 
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -575,7 +576,7 @@ func GetFlagsAndMetadata() ([]cli.Flag, map[string]any, error) {
 	}
 
 	if val, ok := os.LookupEnv("CONTAINER_INCLUDED_POD_METRCIS") ; ok {
-		logrus.Warn("Environment variable CONTAINER_INCLUDED_POD_METRCIS is deprecated (typo). Use CONTAINER_INCLUDED_POD_METRICS instead.")
+		log.Warnf("Environment variable CONTAINER_INCLUDED_POD_METRCIS is deprecated (typo). Use CONTAINER_INCLUDED_POD_METRICS instead.")
 
 		if _, exists := os.LookupEnv("CONTAINER_INCLUDED_POD_METRICS") ; !exists {
 			os.Setenv("CONTAINER_INCLUDED_POD_METRICS", val)
