@@ -9,6 +9,7 @@ import (
 type CgroupStats struct {
 	Memory     *MemoryStats
 	CPU        *CPUStats
+	Hugetlb    map[string]HugetlbStats
 	Pid        *PidsStats
 	SystemNano int64
 }
@@ -42,6 +43,11 @@ type CPUStats struct {
 	ThrottledPeriods uint64
 	// Aggregate time the container was throttled for in nanoseconds.
 	ThrottledTime uint64
+}
+
+type HugetlbStats struct {
+	Usage uint64
+	Max   uint64
 }
 
 type PidsStats struct {

@@ -45,8 +45,8 @@ func statHugeTlb(dirPath string, stats *cgroups.Stats) error {
 	rsvd := ".rsvd"
 	for _, pagesize := range cgroups.HugePageSizes() {
 	again:
-		prefix := "hugetlb." + pagesize + rsvd
-		value, err := fscommon.GetCgroupParamUint(dirPath, prefix+".current")
+		prefix := "hugetlb." + pagesize
+		value, err := fscommon.GetCgroupParamUint(dirPath, prefix+rsvd+".current")
 		if err != nil {
 			if rsvd != "" && errors.Is(err, os.ErrNotExist) {
 				rsvd = ""
