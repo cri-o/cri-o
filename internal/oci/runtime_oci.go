@@ -1766,3 +1766,11 @@ func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
 
 	return nil
 }
+
+func (r *runtimeOCI) ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error) {
+	return "", nil
+}
+
+func (r *runtimeOCI) ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error) {
+	return "", nil
+}
