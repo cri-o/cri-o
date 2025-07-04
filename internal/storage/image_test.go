@@ -29,7 +29,6 @@ var _ = t.Describe("Image", func() {
 		testDockerRegistry                  = "docker.io"
 		testQuayRegistry                    = "quay.io"
 		testRedHatRegistry                  = "registry.access.redhat.com"
-		testFedoraRegistry                  = "registry.fedoraproject.org"
 		testImageName                       = "image"
 		testImageAlias                      = "image-for-testing"
 		testImageAliasResolved              = "registry.crio.test.com/repo"
@@ -193,7 +192,6 @@ var _ = t.Describe("Image", func() {
 			Expect(refsToNames(refs)).To(Equal([]string{
 				testQuayRegistry + "/" + testImageName + ":latest",
 				testRedHatRegistry + "/" + testImageName + ":latest",
-				testFedoraRegistry + "/" + testImageName + ":latest",
 				testDockerRegistry + "/library/" + testImageName + ":latest",
 			}))
 		})
@@ -247,7 +245,6 @@ var _ = t.Describe("Image", func() {
 			Expect(refsToNames(refs)).To(Equal([]string{
 				testQuayRegistry + "/" + testImageName + "@sha256:" + testSHA256,
 				testRedHatRegistry + "/" + testImageName + "@sha256:" + testSHA256,
-				testFedoraRegistry + "/" + testImageName + "@sha256:" + testSHA256,
 				testDockerRegistry + "/library/" + testImageName + "@sha256:" + testSHA256,
 			}))
 		})
