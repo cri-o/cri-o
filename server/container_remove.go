@@ -56,6 +56,18 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
+	// Track if we need to ensure cleanup runs even on failure
+	cleanupEnsured := false
+	defer func() {
+		if !cleanupEnsured {
+			// Only log and cleanup if the container has cleanup functions
+			if c.HasCleanups() {
+				log.Warnf(ctx, "Container removal failed, ensuring artifact cleanup functions run for container %s", c.ID())
+				c.Cleanup()
+			}
+		}
+	}()
+
 	if !sb.Stopped() {
 		if err := s.stopContainer(ctx, c, stopTimeoutFromContext(ctx)); err != nil {
 			return fmt.Errorf("failed to stop container for removal %w", err)
@@ -94,6 +106,14 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	}
 
 	sb.RemoveContainer(ctx, c)
+
+	// Call container cleanup to ensure artifact mounts and other resources are properly cleaned up
+	// Only run cleanup if the container has cleanup functions
+	if c.HasCleanups() {
+		c.Cleanup()
+	}
+
+	cleanupEnsured = true
 
 	return nil
 }

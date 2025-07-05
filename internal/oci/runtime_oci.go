@@ -275,6 +275,11 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	// We will delete all container resources if creation fails
 	defer func() {
 		if retErr != nil {
+			// Ensure container cleanup runs to clean up artifacts (only if container has cleanups)
+			if c.HasCleanups() {
+				c.Cleanup()
+			}
+
 			if err := r.DeleteContainer(ctx, c); err != nil {
 				log.Warnf(ctx, "Unable to delete container %s: %v", c.ID(), err)
 			}
@@ -1333,19 +1338,6 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 
 	defer controlFile.Close()
 
-	if tty {
-		// Get current terminal size from stdin/stdout.
-		if terminalSize, err := getTerminalSize(); err == nil {
-			log.Debugf(ctx, "Setting initial terminal size: %dx%d", terminalSize.Height, terminalSize.Width)
-
-			if _, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, terminalSize.Height, terminalSize.Width); err != nil {
-				log.Debugf(ctx, "Failed to write initial terminal size to control file: %v", err)
-			}
-		} else {
-			log.Debugf(ctx, "Failed to get initial terminal size: %v", err)
-		}
-	}
-
 	utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
 		log.Debugf(ctx, "Got a resize event: %+v", size)
 
@@ -1414,46 +1406,6 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 
 		return <-receiveStdout
 	}
-}
-
-func getTerminalSize() (*remotecommand.TerminalSize, error) {
-	candidates := []struct {
-		name string
-		fd   int
-	}{
-		{"stdin", int(os.Stdin.Fd())},
-		{"stdout", int(os.Stdout.Fd())},
-		{"stderr", int(os.Stderr.Fd())},
-	}
-
-	for _, candidate := range candidates {
-		if size, err := getTerminalSizeFromFd(candidate.fd); err == nil {
-			return size, nil
-		}
-	}
-
-	return nil, errors.New("no valid terminal found")
-}
-
-func getTerminalSizeFromFd(fd int) (*remotecommand.TerminalSize, error) {
-	// Fast TTY check before expensive ioctl.
-	if _, err := unix.IoctlGetTermios(fd, termiosIoctl); err != nil {
-		return nil, fmt.Errorf("fd %d is not a tty: %w", fd, err)
-	}
-
-	ws, err := unix.IoctlGetWinsize(fd, unix.TIOCGWINSZ)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get window size: %w", err)
-	}
-
-	if ws.Row == 0 || ws.Col == 0 {
-		return nil, fmt.Errorf("invalid terminal size: %dx%d", ws.Row, ws.Col)
-	}
-
-	return &remotecommand.TerminalSize{
-		Width:  ws.Col,
-		Height: ws.Row,
-	}, nil
 }
 
 // ReopenContainerLog reopens the log file of a container.

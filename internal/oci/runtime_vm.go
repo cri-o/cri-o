@@ -184,6 +184,11 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		if retErr != nil {
 			log.Warnf(ctx, "Cleaning up container %s: %v", c.ID(), retErr)
 
+			// Ensure container cleanup runs to clean up artifacts (only if container has cleanups)
+			if c.HasCleanups() {
+				c.Cleanup()
+			}
+
 			if cleanupErr := r.deleteContainer(c, true); cleanupErr != nil {
 				log.Infof(ctx, "DeleteContainer failed for container %s: %v", c.ID(), cleanupErr)
 			}
@@ -691,6 +696,10 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	if err := r.waitCtrTerminate(sig, stopCh, killContainerTimeout); err != nil {
 		log.Errorf(ctx, "%v", err)
 
+		// Ensure cleanup runs even if container stop fails (only if container has cleanups)
+		if c.HasCleanups() {
+			c.Cleanup()
+		}
 		return err
 	}
 
