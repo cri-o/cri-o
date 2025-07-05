@@ -956,8 +956,15 @@ func (c *Container) SetMonitorProcess(ctx context.Context) {
 		c.state.ContainerMonitorProcess = nil
 		log.Errorf(ctx, "Failed to load conmon process for container %s: %q", c.ID(), err)
 	}
+}
+
 func (c *Container) AddCleanup(cleanup func()) {
 	c.cleanups = append(c.cleanups, cleanup)
+}
+
+// HasCleanups returns true if the container has any cleanup functions registered
+func (c *Container) HasCleanups() bool {
+	return len(c.cleanups) > 0
 }
 
 func (c *Container) Cleanup() {
