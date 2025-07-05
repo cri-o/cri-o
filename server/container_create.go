@@ -1365,9 +1365,24 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		ociContainer.AddVolume(cv)
 	}
 
+	// Track registered cleanups for potential failure cleanup
+	var registeredCleanups []func()
+
 	for _, cleanup := range cleanups {
 		ociContainer.AddCleanup(cleanup)
+		registeredCleanups = append(registeredCleanups, cleanup)
 	}
+
+	// Ensure cleanup runs if container creation fails after this point
+	// Only run cleanup if we actually have artifact cleanup functions
+	defer func() {
+		if retErr != nil && len(registeredCleanups) > 0 {
+			log.Warnf(ctx, "Container creation failed, cleaning up %d artifact cleanup functions", len(registeredCleanups))
+			for _, cleanup := range registeredCleanups {
+				cleanup()
+			}
+		}
+	}()
 
 	return ociContainer, nil
 }

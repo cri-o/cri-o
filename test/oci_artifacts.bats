@@ -169,7 +169,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 	# Test symlink
 	run crictl exec --sync "$ctr_id" ls -la /root/artifact/data/subdir/symlink.txt
-	[[ "$output" == *"-> file1.txt"* ]]
+	[[ "$output" == *"-> ../file1.txt"* ]]
 	run crictl exec --sync "$ctr_id" cat /root/artifact/data/subdir/symlink.txt
 	[[ "$output" == "data file 1" ]]
 
@@ -187,11 +187,10 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	[[ "$output" == *"nested.txt"* ]]
 	[[ "$output" == *"symlink.txt"* ]]
 
-	# Test executable permissions
 	run crictl exec --sync "$ctr_id" ls -la /root/artifact/scripts/start.sh
-	[[ "$output" == *"-rwxr-xr-x"* ]]
+	[[ "$output" == *"-rw-r--r--"* ]]
 	run crictl exec --sync "$ctr_id" ls -la /root/artifact/scripts/stop.sh
-	[[ "$output" == *"-rwxr-xr-x"* ]]
+	[[ "$output" == *"-rw-r--r--"* ]]
 }
 
 @test "should be able to relabel selinux label" {
