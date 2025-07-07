@@ -809,7 +809,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
-	containerVolumes, ociMounts, safeMounts, cleanups, err := s.addOCIBindMounts(ctx, ctr, &containerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport)
+	containerVolumes, ociMounts, safeMounts, cleanups, artifactExtractDirs, err := s.addOCIBindMounts(ctx, ctr, &containerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport)
 	if err != nil {
 		return nil, err
 	}
@@ -1224,6 +1224,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		return nil, err
 	}
 
+	// Store artifact extract directories in container state for cleanup after CRI-O restarts
+	for _, extractDir := range artifactExtractDirs {
+		ociContainer.AddArtifactExtractDir(extractDir)
+	}
+
 	specgen.SetLinuxMountLabel(mountLabel)
 	specgen.SetProcessSelinuxLabel(processLabel)
 
@@ -1366,8 +1371,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	}
 
 	// Track registered cleanups for potential failure cleanup
-	var registeredCleanups []func()
+	registeredCleanups := make([]func(), 0, len(cleanups))
 
+	log.Debugf(ctx, "Registering %d cleanup functions for container %s", len(cleanups), ociContainer.ID())
 	for _, cleanup := range cleanups {
 		ociContainer.AddCleanup(cleanup)
 		registeredCleanups = append(registeredCleanups, cleanup)

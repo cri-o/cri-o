@@ -15,10 +15,10 @@ function teardown() {
 	cleanup_test
 }
 
-ARTIFACT_IMAGE_WITH_ANNOTATION=quay.io/crio/nginx-seccomp:v2
+ARTIFACT_IMAGE_WITH_ANNOTATION=quay.io/sohankunkerkar/nginx-seccomp:v2
 ARTIFACT_IMAGE_WITH_POD_ANNOTATION=$ARTIFACT_IMAGE_WITH_ANNOTATION-pod
 ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION=$ARTIFACT_IMAGE_WITH_ANNOTATION-container
-ARTIFACT_IMAGE=quay.io/crio/seccomp:v2
+ARTIFACT_IMAGE=quay.io/sohankunkerkar/seccomp:v2
 CONTAINER_NAME=container1
 ANNOTATION=seccomp-profile.kubernetes.cri-o.io
 POD_ANNOTATION=seccomp-profile.kubernetes.cri-o.io/POD

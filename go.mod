@@ -43,8 +43,8 @@ require (
 	github.com/intel/goresctrl v0.9.0
 	github.com/json-iterator/go v1.1.12
 	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20240208092920-b99f57452225
-	github.com/moby/sys/capability v0.4.0
 	github.com/klauspost/compress v1.18.0
+	github.com/moby/sys/capability v0.4.0
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/moby/sys/user v0.4.0
 	github.com/moby/sys/userns v0.1.0

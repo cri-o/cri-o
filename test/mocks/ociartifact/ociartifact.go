@@ -386,3 +386,130 @@ func (mr *MockImplMockRecorder) ToJSON(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToJSON", reflect.TypeOf((*MockImpl)(nil).ToJSON), arg0)
 }
+
+// MockImageSource is a mock of ImageSource interface.
+type MockImageSource struct {
+	ctrl     *gomock.Controller
+	recorder *MockImageSourceMockRecorder
+}
+
+// MockImageSourceMockRecorder is the mock recorder for MockImageSource.
+type MockImageSourceMockRecorder struct {
+	mock *MockImageSource
+}
+
+// NewMockImageSource creates a new mock instance.
+func NewMockImageSource(ctrl *gomock.Controller) *MockImageSource {
+	mock := &MockImageSource{ctrl: ctrl}
+	mock.recorder = &MockImageSourceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockImageSource) EXPECT() *MockImageSourceMockRecorder {
+	return m.recorder
+}
+
+// Close mocks base method.
+func (m *MockImageSource) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockImageSourceMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockImageSource)(nil).Close))
+}
+
+// GetBlob mocks base method.
+func (m *MockImageSource) GetBlob(arg0 context.Context, arg1 types.BlobInfo, arg2 types.BlobInfoCache) (io.ReadCloser, int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlob", arg0, arg1, arg2)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(int64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetBlob indicates an expected call of GetBlob.
+func (mr *MockImageSourceMockRecorder) GetBlob(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlob", reflect.TypeOf((*MockImageSource)(nil).GetBlob), arg0, arg1, arg2)
+}
+
+// GetManifest mocks base method.
+func (m *MockImageSource) GetManifest(arg0 context.Context, arg1 *digest.Digest) ([]byte, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetManifest", arg0, arg1)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetManifest indicates an expected call of GetManifest.
+func (mr *MockImageSourceMockRecorder) GetManifest(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetManifest", reflect.TypeOf((*MockImageSource)(nil).GetManifest), arg0, arg1)
+}
+
+// GetSignatures mocks base method.
+func (m *MockImageSource) GetSignatures(arg0 context.Context, arg1 *digest.Digest) ([][]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSignatures", arg0, arg1)
+	ret0, _ := ret[0].([][]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSignatures indicates an expected call of GetSignatures.
+func (mr *MockImageSourceMockRecorder) GetSignatures(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSignatures", reflect.TypeOf((*MockImageSource)(nil).GetSignatures), arg0, arg1)
+}
+
+// HasThreadSafeGetBlob mocks base method.
+func (m *MockImageSource) HasThreadSafeGetBlob() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasThreadSafeGetBlob")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasThreadSafeGetBlob indicates an expected call of HasThreadSafeGetBlob.
+func (mr *MockImageSourceMockRecorder) HasThreadSafeGetBlob() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasThreadSafeGetBlob", reflect.TypeOf((*MockImageSource)(nil).HasThreadSafeGetBlob))
+}
+
+// LayerInfosForCopy mocks base method.
+func (m *MockImageSource) LayerInfosForCopy(arg0 context.Context, arg1 *digest.Digest) ([]types.BlobInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LayerInfosForCopy", arg0, arg1)
+	ret0, _ := ret[0].([]types.BlobInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LayerInfosForCopy indicates an expected call of LayerInfosForCopy.
+func (mr *MockImageSourceMockRecorder) LayerInfosForCopy(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerInfosForCopy", reflect.TypeOf((*MockImageSource)(nil).LayerInfosForCopy), arg0, arg1)
+}
+
+// Reference mocks base method.
+func (m *MockImageSource) Reference() types.ImageReference {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Reference")
+	ret0, _ := ret[0].(types.ImageReference)
+	return ret0
+}
+
+// Reference indicates an expected call of Reference.
+func (mr *MockImageSourceMockRecorder) Reference() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reference", reflect.TypeOf((*MockImageSource)(nil).Reference))
+}
