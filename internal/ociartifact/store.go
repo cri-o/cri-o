@@ -69,7 +69,7 @@ func (u unknownRef) Name() string {
 	return u.String()
 }
 
-func (s *Store) getArtifactExtractDir(artifact *Artifact) (string, error) {
+func (s *Store) GetArtifactExtractDir(artifact *Artifact) (string, error) {
 	// Parse manifest from artifact
 	manifestBytes, err := s.impl.ToJSON(artifact.Manifest())
 	if err != nil {
@@ -563,7 +563,7 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
 	}
 
-	extractDir, err := s.getArtifactExtractDir(artifact)
+	extractDir, err := s.GetArtifactExtractDir(artifact)
 	if err != nil {
 		return nil, fmt.Errorf("get artifact extract dir: %w", err)
 	}
@@ -614,12 +614,13 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 			name = artifactName(l.Annotations)
 			if name == "" {
 				log.Warnf(ctx, "Unable to find name for artifact layer which makes it not mountable")
+
 				continue
 			}
 		}
 
 		// Sanitize the name to prevent path traversal attacks
-		safeName, err := sanitizePath("", name)
+		safeName, err := sanitizePath(name)
 		if err != nil {
 			log.Warnf(ctx, "Skipping layer with invalid name %s: %v", name, err)
 
@@ -642,6 +643,7 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 		// Check if this is a single-file artifact (directory containing a file with the same name)
 		sourcePath := filePath
 		mountName := safeName
+
 		if info, err := os.Stat(filePath); err == nil && info.IsDir() {
 			if entries, err := os.ReadDir(filePath); err == nil && len(entries) == 1 {
 				entry := entries[0]
@@ -730,6 +732,7 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 
 				for filePath, fileInfo := range files {
 					if strings.HasPrefix(filePath, "SYMLINK:") {
+
 						continue
 					}
 
@@ -742,7 +745,7 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 					// Single-file tar: use the file name and extract at root
 					name = topFiles[0]
 					// Double-check that the name is safe (should already be sanitized)
-					safeName, err := sanitizePath("", name)
+					safeName, err := sanitizePath(name)
 					if err != nil {
 						return fmt.Errorf("invalid file name in tar: %w", err)
 					}
@@ -830,7 +833,7 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 			} else {
 				// Non-tar layer - treat as single file
 				// Sanitize the name to prevent path traversal attacks
-				safeName, err := sanitizePath("", name)
+				safeName, err := sanitizePath(name)
 				if err != nil {
 					return fmt.Errorf("invalid file name: %w", err)
 				}
@@ -844,6 +847,7 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 				if err := os.WriteFile(filePath, content, 0o644); err != nil {
 					log.Errorf(ctx, "Failed to write file: %v", err)
 					os.Remove(filePath)
+
 					return err
 				}
 			}
@@ -862,7 +866,6 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 	// Save layer mapping
 	mapPath := filepath.Join(s.extractArtifactDir, "layer-map.json")
 	data, err := json.Marshal(layerMap)
-
 	if err != nil {
 		return fmt.Errorf("failed to marshal layer map: %w", err)
 	}
@@ -1010,9 +1013,10 @@ func (s *Store) extractAllFromTar(ctx context.Context, r io.Reader) (files map[s
 		}
 
 		// Validate path is safe
-		safePath, err := sanitizePath("", hdr.Name)
+		safePath, err := sanitizePath(hdr.Name)
 		if err != nil {
 			log.Warnf(ctx, "Skipping file with invalid path %s: %v", hdr.Name, err)
+
 			continue
 		}
 
@@ -1047,8 +1051,9 @@ func (s *Store) extractAllFromTar(ctx context.Context, r io.Reader) (files map[s
 		case tar.TypeSymlink:
 			// Symlink - store the link target
 			linkTarget := hdr.Linkname
-			if _, err := sanitizePath("", linkTarget); err != nil {
+			if _, err := sanitizePath(linkTarget); err != nil {
 				log.Warnf(ctx, "Skipping symlink with invalid target %s: %v", linkTarget, err)
+
 				continue
 			}
 			// Use a special key format to distinguish symlinks
@@ -1090,9 +1095,9 @@ func artifactName(annotations map[string]string) string {
 }
 
 // sanitizePath prevents path traversal attacks by ensuring the path is safe.
-func sanitizePath(base, path string) (string, error) {
+func sanitizePath(path string) (string, error) {
 	if path == "" {
-		return "", fmt.Errorf("empty path")
+		return "", errors.New("empty path")
 	}
 
 	// Normalize the path
@@ -1106,16 +1111,6 @@ func sanitizePath(base, path string) (string, error) {
 	// Check for absolute paths
 	if filepath.IsAbs(cleanedPath) {
 		return "", fmt.Errorf("absolute path not allowed: %s", path)
-	}
-
-	// Join with base directory if provided
-	if base != "" {
-		target := filepath.Join(base, cleanedPath)
-		// Verify the path stays within the base directory
-		if !strings.HasPrefix(target, base) {
-			return "", fmt.Errorf("path escapes base directory: %s", path)
-		}
-		return target, nil
 	}
 
 	return cleanedPath, nil
