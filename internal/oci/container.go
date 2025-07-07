@@ -131,6 +131,9 @@ type ContainerState struct {
 	// ContainerMonitorProcess is used to check the liveness of the container monitor.
 	// This is supposed to be immutable once set.
 	ContainerMonitorProcess *ContainerMonitorProcess `json:"containerMonitorProcess,omitempty"`
+	// ArtifactExtractDirs contains paths to artifact extraction directories that need cleanup
+	// when the container is removed. This is persisted to survive CRI-O restarts.
+	ArtifactExtractDirs []string `json:"artifactExtractDirs,omitempty"`
 }
 
 // ContainerMonitorProcess represents a process of conmon, conmon-rs, etc.
@@ -973,7 +976,7 @@ func (c *Container) AddCleanup(cleanup func()) {
 	c.cleanups = append(c.cleanups, cleanup)
 }
 
-// HasCleanups returns true if the container has any cleanup functions registered
+// HasCleanups returns true if the container has any cleanup functions registered.
 func (c *Container) HasCleanups() bool {
 	return len(c.cleanups) > 0
 }
@@ -988,4 +991,44 @@ func (c *Container) Cleanup() {
 			cleanup()
 		}
 	})
+}
+
+// AddArtifactExtractDir adds an artifact extraction directory path to the container state
+// for cleanup when the container is removed.
+func (c *Container) AddArtifactExtractDir(dir string) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	// Check if the directory is already in the list to avoid duplicates
+	for _, existingDir := range c.state.ArtifactExtractDirs {
+		if existingDir == dir {
+			return
+		}
+	}
+
+	c.state.ArtifactExtractDirs = append(c.state.ArtifactExtractDirs, dir)
+}
+
+// GetArtifactExtractDirs returns the list of artifact extraction directory paths
+// that need cleanup when the container is removed.
+func (c *Container) GetArtifactExtractDirs() []string {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	if c.state.ArtifactExtractDirs == nil {
+		return []string{}
+	}
+
+	// Return a copy to avoid race conditions
+	result := make([]string, len(c.state.ArtifactExtractDirs))
+	copy(result, c.state.ArtifactExtractDirs)
+	return result
+}
+
+// ClearArtifactExtractDirs clears the list of artifact extraction directory paths.
+// This is called after cleanup to prevent double cleanup.
+func (c *Container) ClearArtifactExtractDirs() {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	c.state.ArtifactExtractDirs = nil
 }

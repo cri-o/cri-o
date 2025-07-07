@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,7 +46,7 @@ func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerCo
 func setOCIBindMountsPrivileged(g *generate.Generator) {
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, []func(), error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, []func(), []string, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -88,15 +89,13 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	for _, m := range mounts {
 		dest := m.ContainerPath
 		if dest == "" {
-			return nil, nil, nil, nil, fmt.Errorf("mount.ContainerPath is empty")
+			return nil, nil, nil, nil, nil, errors.New("mount.ContainerPath is empty")
 		}
-		// TODO: add support for image mounts here
+
 		if m.HostPath == "" {
-			return nil, nil, nil, nil, fmt.Errorf("mount.HostPath is empty")
+			return nil, nil, nil, nil, nil, errors.New("mount.HostPath is empty")
 		}
-		if m.HostPath == "/" && dest == "/" {
-			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
-		}
+
 		src := filepath.Join(s.config.BindMountPrefix, m.HostPath)
 
 		resolvedSrc, err := resolveSymbolicLink(s.config.BindMountPrefix, src)
@@ -104,32 +103,35 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			src = resolvedSrc
 		} else {
 			if !os.IsNotExist(err) {
-				return nil, nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
+				return nil, nil, nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
 			}
-			for _, toReject := range s.config.AbsentMountSourcesToReject {
-				if filepath.Clean(src) == toReject {
-					// special-case /etc/hostname, as we don't want it to be created as a directory
-					// This can cause issues with node reboot.
-					return nil, nil, nil, nil, fmt.Errorf("cannot mount %s: path does not exist and will cause issues as a directory", toReject)
-				}
-			}
+
 			if !ctr.Restore() {
-				// Although this would also be really helpful for restoring containers
-				// it is problematic as during restore external bind mounts need to be
-				// a file if the destination is a file. Unfortunately it is not easy
-				// to tell if the destination is a file or a directory. Especially if
-				// the destination is a nested bind mount. For now we will just not
-				// create the missing bind mount source for restore and return an
-				// error to the user.
 				if err = os.MkdirAll(src, 0o755); err != nil {
-					return nil, nil, nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
+					return nil, nil, nil, nil, nil, fmt.Errorf("failed to mkdir %s: %w", src, err)
 				}
 			}
 		}
 
-		options := []string{"rw"}
+		options := []string{"rbind"}
+
+		// mount propagation
+		switch m.Propagation {
+		case types.MountPropagation_PROPAGATION_PRIVATE:
+			options = append(options, "rprivate")
+		case types.MountPropagation_PROPAGATION_BIDIRECTIONAL:
+			options = append(options, "rshared")
+		case types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER:
+			options = append(options, "rslave")
+		default:
+			log.Warnf(ctx, "Unknown propagation mode for hostPath %q", m.HostPath)
+			options = append(options, "rprivate")
+		}
+
 		if m.Readonly {
-			options = []string{"ro"}
+			options = append(options, "ro")
+		} else {
+			options = append(options, "rw")
 		}
 
 		volumes = append(volumes, oci.ContainerVolume{
@@ -147,7 +149,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		})
 	}
 
-	return volumes, ociMounts, nil, nil, nil
+	return volumes, ociMounts, nil, nil, nil, nil
 }
 
 func addShmMount(ctr ctrfactory.Container, sb *sandbox.Sandbox) {

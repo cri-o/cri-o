@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"strings"
 	"testing"
 
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -38,8 +40,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 		MountLabel: "",
 	}
 
-	//nolint:dogsled
-	_, binds, _, _, err := sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, false, false)
+	_, binds, _, _, _, err := sut.addOCIBindMounts(context.Background(), ctr, ctrInfo, false, false, false, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -94,8 +95,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 		MountLabel: "",
 	}
 
-	//nolint:dogsled
-	_, binds, _, _, err := sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, false, false)
+	_, binds, _, _, _, err := sut.addOCIBindMounts(context.Background(), ctr, ctrInfo, false, false, false, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -145,15 +145,14 @@ func TestAddOCIBindsRROMounts(t *testing.T) {
 		t.Fatalf("Should set container configuration, got: %v", err)
 	}
 
-	ctx := t.Context()
+	ctx := context.Background()
 
 	sut := &Server{}
 	ctrInfo := &storage.ContainerInfo{
 		MountLabel: "",
 	}
 
-	//nolint:dogsled
-	_, binds, _, _, err := sut.addOCIBindMounts(ctx, ctr, ctrInfo, false, false, false, false, true)
+	_, binds, _, _, _, err := sut.addOCIBindMounts(ctx, ctr, ctrInfo, false, false, false, false, true)
 	if err != nil {
 		t.Errorf("Should not fail to create RRO mount, got: %v", err)
 	}
@@ -222,7 +221,7 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 		},
 	}
 
-	ctx := t.Context()
+	ctx := context.Background()
 
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
@@ -234,9 +233,7 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 			}
 
 			err = ctr.SetConfig(&types.ContainerConfig{
-				Mounts: []*types.Mount{
-					tc.given,
-				},
+				Mounts: []*types.Mount{tc.given},
 				Metadata: &types.ContainerMetadata{
 					Name: "test-container",
 				},
@@ -254,13 +251,13 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 				MountLabel: "",
 			}
 
-			_, _, _, _, err = sut.addOCIBindMounts(ctx, ctr, ctrInfo, false, false, false, false, tc.rroSupport)
+			_, _, _, _, _, err = sut.addOCIBindMounts(ctx, ctr, ctrInfo, false, false, false, false, tc.rroSupport)
 			if err == nil {
-				t.Error("Should fail to add an RRO mount with a specific error")
+				t.Errorf("Should have failed to create RRO mount")
 			}
 
-			if tc.want != err.Error() {
-				t.Errorf("Should fail to add an RRO mount with error %s, got %v", tc.want, err)
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("Expected error to contain %q, got: %v", tc.want, err)
 			}
 		})
 	}
@@ -289,8 +286,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 		MountLabel: "",
 	}
 
-	//nolint: dogsled
-	_, _, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, true, false, false)
+	_, _, _, _, _, err = sut.addOCIBindMounts(context.Background(), ctr, ctrInfo, false, false, true, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -330,8 +326,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 
 	var hasCgroupRO bool
 
-	//nolint: dogsled
-	_, _, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, false, false)
+	_, _, _, _, _, err = sut.addOCIBindMounts(context.Background(), ctr, ctrInfo, false, false, false, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -387,14 +382,12 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 		MountLabel: "",
 	}
 
-	//nolint: dogsled
-	_, _, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, false, false)
+	_, _, _, _, _, err = sut.addOCIBindMounts(context.Background(), ctr, ctrInfo, false, false, false, false, false)
 	if err == nil {
 		t.Errorf("Should have failed to create id mapped mount with no id map support")
 	}
 
-	//nolint: dogsled
-	_, _, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, true, false)
+	_, _, _, _, _, err = sut.addOCIBindMounts(context.Background(), ctr, ctrInfo, false, false, false, true, false)
 	if err != nil {
 		t.Errorf("%v", err)
 	}

@@ -69,7 +69,7 @@ func (u unknownRef) Name() string {
 	return u.String()
 }
 
-func (s *Store) getArtifactExtractDir(artifact *Artifact) (string, error) {
+func (s *Store) GetArtifactExtractDir(artifact *Artifact) (string, error) {
 	// Parse manifest from artifact
 	manifestBytes, err := s.impl.ToJSON(artifact.Manifest())
 	if err != nil {
@@ -186,6 +186,10 @@ func (s *Store) PullManifest(
 	parsedManifest, err := s.impl.ManifestFromBlob(manifestBytes, mimeType)
 	if err != nil {
 		return nil, fmt.Errorf("parse manifest from blob: %w", err)
+	}
+
+	if parsedManifest == nil {
+		return nil, errors.New("parsed manifest is nil")
 	}
 
 	mediaType := s.impl.ManifestConfigMediaType(parsedManifest)
@@ -563,7 +567,7 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
 	}
 
-	extractDir, err := s.getArtifactExtractDir(artifact)
+	extractDir, err := s.GetArtifactExtractDir(artifact)
 	if err != nil {
 		return nil, fmt.Errorf("get artifact extract dir: %w", err)
 	}
@@ -579,6 +583,7 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 
 	// Cleanup on function exit if we encounter an error.
 	cleanup := true
+
 	defer func() {
 		if cleanup {
 			if err := os.RemoveAll(extractDir); err != nil {
@@ -589,7 +594,7 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 		}
 	}()
 
-	src, err := ref.NewImageSource(ctx, sys)
+	src, err := s.impl.NewImageSource(ctx, ref, sys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image source: %w", err)
 	}
@@ -614,19 +619,12 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 			name = artifactName(l.Annotations)
 			if name == "" {
 				log.Warnf(ctx, "Unable to find name for artifact layer which makes it not mountable")
+
 				continue
 			}
 		}
 
-		// Sanitize the name to prevent path traversal attacks
-		safeName, err := sanitizePath("", name)
-		if err != nil {
-			log.Warnf(ctx, "Skipping layer with invalid name %s: %v", name, err)
-
-			continue
-		}
-
-		if safeName == "" {
+		if exists && name == "" {
 			// Multi-file/folder artifact: mount the extraction directory as the artifact root
 			mountPaths = append(mountPaths, BlobMountPath{
 				SourcePath:  extractDir,
@@ -638,10 +636,19 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 			continue
 		}
 
+		// Sanitize the name to prevent path traversal attacks.
+		safeName, err := sanitizePath(name)
+		if err != nil {
+			log.Warnf(ctx, "Skipping layer with invalid name %s: %v", name, err)
+
+			continue
+		}
+
 		filePath := filepath.Join(extractDir, safeName)
 		// Check if this is a single-file artifact (directory containing a file with the same name)
 		sourcePath := filePath
 		mountName := safeName
+
 		if info, err := os.Stat(filePath); err == nil && info.IsDir() {
 			if entries, err := os.ReadDir(filePath); err == nil && len(entries) == 1 {
 				entry := entries[0]
@@ -681,6 +688,7 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 
 	// Cleanup directory if extraction fails
 	var success bool
+
 	defer func() {
 		if !success {
 			if err := os.RemoveAll(extractDir); err != nil {
@@ -691,7 +699,7 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 		}
 	}()
 
-	src, err := ref.NewImageSource(ctx, s.systemContext)
+	src, err := s.impl.NewImageSource(ctx, ref, s.systemContext)
 	if err != nil {
 		return fmt.Errorf("failed to get an image source: %w", err)
 	}
@@ -742,10 +750,11 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 					// Single-file tar: use the file name and extract at root
 					name = topFiles[0]
 					// Double-check that the name is safe (should already be sanitized)
-					safeName, err := sanitizePath("", name)
+					safeName, err := sanitizePath(name)
 					if err != nil {
 						return fmt.Errorf("invalid file name in tar: %w", err)
 					}
+
 					name = safeName
 					layerMap[layer.Digest.String()] = name
 					fileInfo := files[name]
@@ -801,11 +810,13 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 						if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 							return fmt.Errorf("failed to create parent directories for %s: %w", fullPath, err)
 						}
+
 						if fileInfo.IsDir {
 							mode := fileInfo.Mode
 							if mode == 0 {
 								mode = 0o755
 							}
+
 							if err := os.MkdirAll(fullPath, os.FileMode(mode)); err != nil {
 								return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
 							}
@@ -830,10 +841,11 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 			} else {
 				// Non-tar layer - treat as single file
 				// Sanitize the name to prevent path traversal attacks
-				safeName, err := sanitizePath("", name)
+				safeName, err := sanitizePath(name)
 				if err != nil {
 					return fmt.Errorf("invalid file name: %w", err)
 				}
+
 				name = safeName
 				layerMap[layer.Digest.String()] = name
 				filePath := filepath.Join(extractDir, name)
@@ -841,9 +853,11 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 				if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 					return fmt.Errorf("failed to create parent directories for %s: %w", filePath, err)
 				}
+
 				if err := os.WriteFile(filePath, content, 0o644); err != nil {
 					log.Errorf(ctx, "Failed to write file: %v", err)
 					os.Remove(filePath)
+
 					return err
 				}
 			}
@@ -861,8 +875,8 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 
 	// Save layer mapping
 	mapPath := filepath.Join(s.extractArtifactDir, "layer-map.json")
-	data, err := json.Marshal(layerMap)
 
+	data, err := s.impl.ToJSON(layerMap)
 	if err != nil {
 		return fmt.Errorf("failed to marshal layer map: %w", err)
 	}
@@ -894,7 +908,7 @@ func (s *Store) processLayerContent(ctx context.Context, mediaType string, r io.
 		}
 
 		// Serialize the files map to JSON for storage
-		jsonData, err := json.Marshal(files)
+		jsonData, err := s.impl.ToJSON(files)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to marshal files: %w", err)
 		}
@@ -915,7 +929,7 @@ func (s *Store) processLayerContent(ctx context.Context, mediaType string, r io.
 		}
 
 		// Serialize the files map to JSON for storage
-		jsonData, err := json.Marshal(files)
+		jsonData, err := s.impl.ToJSON(files)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to marshal files: %w", err)
 		}
@@ -926,7 +940,7 @@ func (s *Store) processLayerContent(ctx context.Context, mediaType string, r io.
 		// This media type can be either compressed or uncompressed
 		// Try to detect compression by peeking at the first few bytes
 		peekReader := io.LimitReader(r, 2)
-		peekBytes, err := io.ReadAll(peekReader)
+		peekBytes, err := s.impl.ReadAll(peekReader)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to peek at layer content: %w", err)
 		}
@@ -947,7 +961,7 @@ func (s *Store) processLayerContent(ctx context.Context, mediaType string, r io.
 			}
 
 			// Serialize the files map to JSON for storage
-			jsonData, err := json.Marshal(files)
+			jsonData, err := s.impl.ToJSON(files)
 			if err != nil {
 				return nil, "", fmt.Errorf("failed to marshal files: %w", err)
 			}
@@ -956,13 +970,14 @@ func (s *Store) processLayerContent(ctx context.Context, mediaType string, r io.
 		} else {
 			// Create a new reader that includes the peeked bytes
 			fullReader := io.MultiReader(bytes.NewReader(peekBytes), r)
+
 			files, baseDir, err := s.extractAllFromTar(ctx, fullReader)
 			if err != nil {
 				return nil, "", err
 			}
 
 			// Serialize the files map to JSON for storage
-			jsonData, err := json.Marshal(files)
+			jsonData, err := s.impl.ToJSON(files)
 			if err != nil {
 				return nil, "", fmt.Errorf("failed to marshal files: %w", err)
 			}
@@ -971,7 +986,7 @@ func (s *Store) processLayerContent(ctx context.Context, mediaType string, r io.
 		}
 
 	default:
-		data, err := io.ReadAll(r)
+		data, err := s.impl.ReadAll(r)
 		if err != nil {
 			return nil, "", fmt.Errorf("reading blob content: %w", err)
 		}
@@ -1006,20 +1021,22 @@ func (s *Store) extractAllFromTar(ctx context.Context, r io.Reader) (files map[s
 
 		if err != nil {
 			log.Errorf(ctx, "Error reading tar header: %v", err)
+
 			return nil, "", fmt.Errorf("reading tar header: %w", err)
 		}
 
 		// Validate path is safe
-		safePath, err := sanitizePath("", hdr.Name)
+		safePath, err := sanitizePath(hdr.Name)
 		if err != nil {
 			log.Warnf(ctx, "Skipping file with invalid path %s: %v", hdr.Name, err)
+
 			continue
 		}
 
 		switch hdr.Typeflag {
 		case tar.TypeReg:
 			// Regular file
-			content, err := io.ReadAll(tr)
+			content, err := s.impl.ReadAll(tr)
 			if err != nil {
 				return nil, "", fmt.Errorf("reading file content from tar: %w", err)
 			}
@@ -1047,8 +1064,9 @@ func (s *Store) extractAllFromTar(ctx context.Context, r io.Reader) (files map[s
 		case tar.TypeSymlink:
 			// Symlink - store the link target
 			linkTarget := hdr.Linkname
-			if _, err := sanitizePath("", linkTarget); err != nil {
+			if _, err := sanitizePath(linkTarget); err != nil {
 				log.Warnf(ctx, "Skipping symlink with invalid target %s: %v", linkTarget, err)
+
 				continue
 			}
 			// Use a special key format to distinguish symlinks
@@ -1090,9 +1108,9 @@ func artifactName(annotations map[string]string) string {
 }
 
 // sanitizePath prevents path traversal attacks by ensuring the path is safe.
-func sanitizePath(base, path string) (string, error) {
+func sanitizePath(path string) (string, error) {
 	if path == "" {
-		return "", fmt.Errorf("empty path")
+		return "", errors.New("empty path")
 	}
 
 	// Normalize the path
@@ -1106,16 +1124,6 @@ func sanitizePath(base, path string) (string, error) {
 	// Check for absolute paths
 	if filepath.IsAbs(cleanedPath) {
 		return "", fmt.Errorf("absolute path not allowed: %s", path)
-	}
-
-	// Join with base directory if provided
-	if base != "" {
-		target := filepath.Join(base, cleanedPath)
-		// Verify the path stays within the base directory
-		if !strings.HasPrefix(target, base) {
-			return "", fmt.Errorf("path escapes base directory: %s", path)
-		}
-		return target, nil
 	}
 
 	return cleanedPath, nil

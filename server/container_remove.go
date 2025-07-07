@@ -65,6 +65,15 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 				log.Warnf(ctx, "Container removal failed, ensuring artifact cleanup functions run for container %s", c.ID())
 				c.Cleanup()
 			}
+			// Also clean up artifact extract directories from container state
+			if extractDirs := c.GetArtifactExtractDirs(); len(extractDirs) > 0 {
+				log.Warnf(ctx, "Container removal failed, cleaning up %d artifact extract directories for container %s", len(extractDirs), c.ID())
+				for _, extractDir := range extractDirs {
+					if err := os.RemoveAll(extractDir); err != nil {
+						log.Warnf(ctx, "Failed to clean up artifact extract directory %s for container %s: %v", extractDir, c.ID(), err)
+					}
+				}
+			}
 		}
 	}()
 
@@ -111,6 +120,21 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	// Only run cleanup if the container has cleanup functions
 	if c.HasCleanups() {
 		c.Cleanup()
+	} else {
+		log.Debugf(ctx, "Container %s has no cleanup functions", c.ID())
+	}
+
+	// Clean up artifact extract directories stored in container state
+	// This ensures cleanup happens even after CRI-O restarts
+	if extractDirs := c.GetArtifactExtractDirs(); len(extractDirs) > 0 {
+		log.Debugf(ctx, "Cleaning up %d artifact extract directories for container %s", len(extractDirs), c.ID())
+		for _, extractDir := range extractDirs {
+			if err := os.RemoveAll(extractDir); err != nil {
+				log.Warnf(ctx, "Failed to clean up artifact extract directory %s for container %s: %v", extractDir, c.ID(), err)
+			} else {
+				log.Debugf(ctx, "Successfully cleaned up artifact extract directory %s for container %s", extractDir, c.ID())
+			}
+		}
 	}
 
 	cleanupEnsured = true
