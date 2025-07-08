@@ -14,6 +14,10 @@ type (
 	Name struct{}
 )
 
+func Tracef(ctx context.Context, format string, args ...any) {
+	entry(ctx).Tracef(format, args...)
+}
+
 func Debugf(ctx context.Context, format string, args ...any) {
 	entry(ctx).Debugf(format, args...)
 }
