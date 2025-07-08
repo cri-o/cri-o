@@ -1010,7 +1010,7 @@ func (c *ContainerServer) probeMonitorProcesses(ctx context.Context) {
 			return
 		case <-timer.C:
 		}
-		log.Debugf(ctx, "Probe monitor processes")
+		log.Tracef(ctx, "Probe monitor processes")
 
 		for _, ctr := range c.listContainers() {
 			err := c.runtime.ProbeMonitor(ctx, ctr)
