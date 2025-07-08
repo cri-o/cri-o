@@ -31,13 +31,9 @@ func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.A
 			return nil, fmt.Errorf("could not serve attach for container %q: %w", req.ContainerId, err)
 		}
 
-		if url != "" {
-			log.Infof(ctx, "Using attach URL from container monitor")
+		log.Infof(ctx, "Using attach URL from container monitor")
 
-			return &types.AttachResponse{Url: url}, nil
-		}
-
-		log.Debugf(ctx, "Runtime %q does not support websocket streaming, falling back to SPDY", runtimeHandler)
+		return &types.AttachResponse{Url: url}, nil
 	}
 
 	resp, err := s.getAttach(req)

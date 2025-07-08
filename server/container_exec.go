@@ -31,13 +31,9 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 			return nil, fmt.Errorf("could not serve exec for container %q: %w", req.ContainerId, err)
 		}
 
-		if url != "" {
-			log.Infof(ctx, "Using exec URL from container monitor")
+		log.Infof(ctx, "Using exec URL from container monitor")
 
-			return &types.ExecResponse{Url: url}, nil
-		}
-
-		log.Debugf(ctx, "Runtime %q does not support websocket streaming, falling back to SPDY", runtimeHandler)
+		return &types.ExecResponse{Url: url}, nil
 	}
 
 	resp, err := s.getExec(req)

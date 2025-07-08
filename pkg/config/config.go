@@ -17,6 +17,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/hooks"
+	conmonrsClient "github.com/containers/conmon-rs/pkg/client"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
@@ -1733,7 +1734,15 @@ func (r *RuntimeHandler) Validate(name string) error {
 		logrus.Errorf("Unable to set minimum container memory for runtime handler %q: %v", name, err)
 	}
 
-	return r.ValidateNoSyncLog()
+	if err := r.ValidateNoSyncLog(); err != nil {
+		return fmt.Errorf("no sync log: %w", err)
+	}
+
+	if err := r.ValidateWebsocketStreaming(name); err != nil {
+		return fmt.Errorf("websocket streaming: %w", err)
+	}
+
+	return nil
 }
 
 func (r *RuntimeHandler) ValidateRuntimeVMBinaryPattern() bool {
@@ -1855,6 +1864,47 @@ func (r *RuntimeHandler) ValidateContainerMinMemory(name string) error {
 	}
 
 	logrus.Debugf("Runtime handler %q container minimum memory set to %d bytes", name, memorySize)
+
+	return nil
+}
+
+// ValidateWebsocketStreaming can be used to verify if the runtime supports WebSocket streaming.
+func (r *RuntimeHandler) ValidateWebsocketStreaming(name string) error {
+	if r.RuntimeType != RuntimeTypePod {
+		if r.StreamWebsockets {
+			return fmt.Errorf(`only the 'runtime_type = "pod"' supports websocket streaming, not %q (runtime %q)`, r.RuntimeType, name)
+		}
+
+		return nil
+	}
+
+	// Requires at least conmon-rs v0.7.0
+	v, err := conmonrsClient.Version(r.MonitorPath)
+	if err != nil {
+		if errors.Is(err, conmonrsClient.ErrUnsupported) {
+			logrus.Debugf("Unable to verify pod runtime version: %v", err)
+
+			// Streaming server support got introduced in v0.7.0
+			if r.StreamWebsockets {
+				logrus.Warnf("Disabling streaming over websockets, it requires conmon-rs >= v0.7.0")
+
+				r.StreamWebsockets = false
+			}
+
+			return nil
+		}
+
+		return fmt.Errorf("get conmon-rs version: %w", err)
+	}
+
+	if v.Tag == "" {
+		v.Tag = "none"
+	}
+
+	logrus.Infof(
+		"Runtime handler %q is using conmon-rs version: %s, tag: %s, commit: %s, build: %s, target: %s, %s, %s",
+		name, v.Version, v.Tag, v.Commit, v.BuildDate, v.Target, v.RustVersion, v.CargoVersion,
+	)
 
 	return nil
 }

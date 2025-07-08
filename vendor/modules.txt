@@ -285,7 +285,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.6.7-0.20250626143653-25c2ef8b3da5
+# github.com/containers/conmon-rs v0.6.7-0.20250708125850-5449cc50f844
 ## explicit; go 1.24.0
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
