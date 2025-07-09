@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 09 Jul 2025 08:49:45 UTC for commit [5e12be1][0]._
+_Generated on Wed, 09 Jul 2025 17:02:59 UTC for commit [c926682][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5e12be1810924565e1b387c40bd5bbd0f76bd4fb
+[0]: https://github.com/cri-o/cri-o/commit/c9266820abfeb8aaf160651d8255ba0a2145227e
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/intel/goresctrl                                                  | v0.8.0                             | v0.9.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250709080938-990c4e68ee58 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250709163008-09297b795540 | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.60.0                            | v0.62.0                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20241210054802-24370beab758 | v0.0.0-20250604170112-4c0f3b243397 | true   | true             |
 
@@ -304,7 +304,7 @@ _Generated on Wed, 09 Jul 2025 08:49:45 UTC for commit [5e12be1][0]._
 | github.com/containernetworking/plugins                                              | v1.7.1                                |                                     | true   | true             |
 | github.com/containers/common                                                        | v0.63.1                               |                                     | true   | true             |
 | github.com/containers/conmon                                                        | v2.0.20+incompatible                  |                                     | true   | true             |
-| github.com/containers/conmon-rs                                                     | v0.6.7-0.20250626143653-25c2ef8b3da5  |                                     | true   | true             |
+| github.com/containers/conmon-rs                                                     | v0.6.7-0.20250708125850-5449cc50f844  |                                     | true   | true             |
 | github.com/containers/image/v5                                                      | v5.35.0                               |                                     | true   | true             |
 | github.com/containers/kubensmnt                                                     | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/libtrust                                                      | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
@@ -463,7 +463,7 @@ _Generated on Wed, 09 Jul 2025 08:49:45 UTC for commit [5e12be1][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250709080938-990c4e68ee58  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250709163008-09297b795540  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -506,7 +506,7 @@ _Generated on Wed, 09 Jul 2025 08:49:45 UTC for commit [5e12be1][0]._
 | github.com/mdlayher/packet                                                          | v1.1.2                                |                                     | false  | true             |
 | github.com/mdlayher/socket                                                          | v0.5.1                                |                                     | false  | true             |
 | github.com/mdlayher/vsock                                                           | v1.1.0                                | v1.2.1                              | false  | true             |
-| github.com/miekg/dns                                                                | v1.1.61                               | v1.1.66                             | false  | true             |
+| github.com/miekg/dns                                                                | v1.1.61                               | v1.1.67                             | false  | true             |
 | github.com/miekg/pkcs11                                                             | v1.1.1                                |                                     | false  | true             |
 | github.com/minio/sha256-simd                                                        | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/mistifyio/go-zfs/v3                                                      | v3.0.1                                |                                     | false  | true             |
@@ -594,7 +594,7 @@ _Generated on Wed, 09 Jul 2025 08:49:45 UTC for commit [5e12be1][0]._
 | github.com/santhosh-tekuri/jsonschema/v6                                            | v6.0.1                                | v6.0.2                              | false  | true             |
 | github.com/sassoftware/relic                                                        | v7.2.1+incompatible                   |                                     | false  | true             |
 | github.com/sassoftware/relic/v7                                                     | v7.6.2                                |                                     | false  | true             |
-| github.com/sebdah/goldie/v2                                                         | v2.5.5                                | v2.6.0                              | false  | true             |
+| github.com/sebdah/goldie/v2                                                         | v2.5.5                                | v2.7.1                              | false  | true             |
 | github.com/seccomp/libseccomp-golang                                                | v0.11.0                               |                                     | true   | true             |
 | github.com/secure-systems-lab/go-securesystemslib                                   | v0.9.0                                |                                     | false  | true             |
 | github.com/segmentio/ksuid                                                          | v1.0.4                                |                                     | false  | true             |
@@ -729,7 +729,7 @@ _Generated on Wed, 09 Jul 2025 08:49:45 UTC for commit [5e12be1][0]._
 | golang.org/x/oauth2                                                                 | v0.30.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                   | v0.15.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                                    | v0.33.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250708141652-5a6bbb13955f  | false  | true             |
+| golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250709142815-9926bab995cd  | false  | true             |
 | golang.org/x/term                                                                   | v0.32.0                               |                                     | false  | true             |
 | golang.org/x/text                                                                   | v0.26.0                               |                                     | false  | true             |
 | golang.org/x/time                                                                   | v0.11.0                               | v0.12.0                             | false  | true             |
