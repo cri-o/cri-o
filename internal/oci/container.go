@@ -68,6 +68,7 @@ type Container struct {
 	stopLock              sync.Mutex
 	stopTimeoutChan       chan int64
 	stopWatchers          []chan struct{}
+	stopKillLoopBegun     bool
 	pidns                 nsmgr.Namespace
 	restore               bool
 	restoreArchivePath    string
@@ -145,22 +146,23 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			},
 			ImageRef: externalImageRef,
 		},
-		name:            name,
-		bundlePath:      bundlePath,
-		logPath:         logPath,
-		terminal:        terminal,
-		stdin:           stdin,
-		stdinOnce:       stdinOnce,
-		runtimeHandler:  runtimeHandler,
-		crioAnnotations: crioAnnotations,
-		imageName:       imageName,
-		imageID:         imageID,
-		dir:             dir,
-		state:           state,
-		stopSignal:      stopSignal,
-		stopTimeoutChan: make(chan int64, 10),
-		stopWatchers:    []chan struct{}{},
-		execPIDs:        map[int]bool{},
+		name:              name,
+		bundlePath:        bundlePath,
+		logPath:           logPath,
+		terminal:          terminal,
+		stdin:             stdin,
+		stdinOnce:         stdinOnce,
+		runtimeHandler:    runtimeHandler,
+		crioAnnotations:   crioAnnotations,
+		imageName:         imageName,
+		imageID:           imageID,
+		dir:               dir,
+		state:             state,
+		stopSignal:        stopSignal,
+		stopTimeoutChan:   make(chan int64, 10),
+		stopWatchers:      []chan struct{}{},
+		stopKillLoopBegun: false,
+		execPIDs:          map[int]bool{},
 	}
 	return c, nil
 }
@@ -600,6 +602,13 @@ func (c *Container) SetAsStopping() (setToStopping bool) {
 	return false
 }
 
+// SetStopKillLoopBegun sets the stopKillLoopBegun flag to true.
+func (c *Container) SetStopKillLoopBegun() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	c.stopKillLoopBegun = true
+}
+
 func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 	c.stopLock.Lock()
 	if !c.stopping {
@@ -607,7 +616,16 @@ func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 		return
 	}
 
-	c.stopTimeoutChan <- timeout
+	// Don't use the stopTimeoutChan when the container is in kill loop
+	// because values in the channel are no longer consumed.
+	if !c.stopKillLoopBegun {
+		// Use select and default not to block when the stopTimeoutChan is full.
+		// The channel is very unlikely to be full, but it could happen in theory.
+		select {
+		case c.stopTimeoutChan <- timeout:
+		default:
+		}
+	}
 
 	watcher := make(chan struct{}, 1)
 	c.stopWatchers = append(c.stopWatchers, watcher)
