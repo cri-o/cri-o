@@ -1,8 +1,8 @@
 package statsserver
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -21,7 +21,7 @@ func generateSandboxProcessMetrics(sb *sandbox.Sandbox, pid int) []*types.Metric
 				}
 
 				return metricValues{{
-					value: uint64(len(entries)),
+					value:      uint64(len(entries)),
 					metricType: types.MetricType_GAUGE,
 				}}
 			},

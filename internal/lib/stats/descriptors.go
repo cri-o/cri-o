@@ -150,7 +150,7 @@ var (
 	}
 )
 
-// Process metrics
+// Process metrics.
 var (
 	containerFileDescriptors = &types.MetricDescriptor{
 		Name:      "container_file_descriptors",

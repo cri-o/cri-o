@@ -270,6 +270,7 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 
 				continue
 			}
+			
 			if processMetrics := generateSandboxProcessMetrics(sb, pid); processMetrics != nil {
 				metrics = append(metrics, processMetrics...)
 			}
