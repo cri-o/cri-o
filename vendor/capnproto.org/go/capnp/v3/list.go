@@ -100,7 +100,7 @@ func (p List) Message() *Message {
 	if p.seg == nil {
 		return nil
 	}
-	return p.seg.msg
+	return p.seg.Message()
 }
 
 // IsValid returns whether the list is valid.
