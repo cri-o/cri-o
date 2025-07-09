@@ -779,6 +779,95 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError("no_sync_log is only allowed with runtime type 'oci', runtime type is 'vm'"))
 		})
+
+		It("should disallow stream_websockets for the 'oci' runtime", func() {
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:      validFilePath,
+				RuntimeType:      config.DefaultRuntimeType,
+				StreamWebsockets: true,
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`only the 'runtime_type = "pod"' supports websocket streaming, not "oci" (runtime "crun")`))
+		})
+
+		It("should allow 'stream_websockets == false' for the 'oci' runtime", func() {
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:      validFilePath,
+				RuntimeType:      config.DefaultRuntimeType,
+				StreamWebsockets: false,
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		conmonrsFakeBinary := func(command string) (name string) {
+			file, err := os.CreateTemp("", "conmonrs-fake-*")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = file.Chmod(0o755)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = file.WriteString("#!/bin/sh\n" + command)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = file.Close()
+			Expect(err).NotTo(HaveOccurred())
+
+			return file.Name()
+		}
+
+		It("should support streaming websockets if conmon-rs is >= v0.7.0", func() {
+			fileName := conmonrsFakeBinary("echo '{ \"version\": \"0.7.0\" }'")
+			defer os.RemoveAll(fileName)
+
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:      validFilePath,
+				RuntimeType:      config.RuntimeTypePod,
+				StreamWebsockets: true,
+				MonitorPath:      fileName,
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
+		})
+
+		It("should disable streaming websockets if conmon-rs is < v0.7.0", func() {
+			fileName := conmonrsFakeBinary("echo 'error: unexpected argument' && exit 1")
+			defer os.RemoveAll(fileName)
+
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:      validFilePath,
+				RuntimeType:      config.RuntimeTypePod,
+				StreamWebsockets: true,
+				MonitorPath:      fileName,
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeFalse())
+		})
+
+		It("should not disable streaming websockets if conmon-rs is version is not retrievable", func() {
+			fileName := conmonrsFakeBinary("exit 1")
+			defer os.RemoveAll(fileName)
+
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:      validFilePath,
+				RuntimeType:      config.RuntimeTypePod,
+				StreamWebsockets: true,
+				MonitorPath:      fileName,
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+			Expect(err).To(HaveOccurred())
+			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
+		})
 	})
 
 	t.Describe("ValidateConmonPath", func() {

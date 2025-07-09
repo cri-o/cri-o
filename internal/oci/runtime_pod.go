@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/containers/common/pkg/resize"
@@ -328,10 +327,6 @@ func (r *runtimePod) ServeExecContainer(ctx context.Context, c *Container, cmd [
 		Stderr:  stderr,
 	})
 	if err != nil {
-		if isUnimplementedRPCErr(err) {
-			return "", nil
-		}
-
 		return "", fmt.Errorf("call ServeExecContainer RPC: %w", err)
 	}
 
@@ -346,18 +341,8 @@ func (r *runtimePod) ServeAttachContainer(ctx context.Context, c *Container, std
 		Stderr: stderr,
 	})
 	if err != nil {
-		if isUnimplementedRPCErr(err) {
-			return "", nil
-		}
-
 		return "", fmt.Errorf("call ServeAttachContainer RPC: %w", err)
 	}
 
 	return res.URL, nil
-}
-
-func isUnimplementedRPCErr(err error) bool {
-	const errUnimplementedString = "Method not implemented."
-
-	return strings.Contains(err.Error(), errUnimplementedString)
 }

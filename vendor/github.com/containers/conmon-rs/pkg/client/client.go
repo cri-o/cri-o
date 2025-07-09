@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -208,6 +209,61 @@ func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 	}
 
 	return cl, nil
+}
+
+// ServerVersion contains the version data of the server instance.
+type ServerVersion struct {
+	// The current version.
+	Version string `json:"version"`
+
+	// The tag of the build, empty if not available.
+	Tag string `json:"tag"`
+
+	// The git commit SHA of the build.
+	Commit string `json:"commit"`
+
+	// The build date string.
+	BuildDate string `json:"build_date"` //nolint:tagliatelle // Rust's serde will use that format.
+
+	// The target triple string.
+	Target string `json:"target"`
+
+	// The used Rust version.
+	RustVersion string `json:"rust_version"` //nolint:tagliatelle // Rust's serde will use that format.
+
+	// The used Cargo version.
+	CargoVersion string `json:"cargo_version"` //nolint:tagliatelle // Rust's serde will use that format.
+
+	// The cargo dependency tree, only available in verbose output.
+	CargoTree string `json:"cargo_tree"` //nolint:tagliatelle // Rust's serde will use that format.
+}
+
+// Version can be used to retrieve the server version without requiring a
+// running Server.
+//
+// If binaryPath is empty, then the default binary will be used.
+// If the server doesn't support it, then an ErrUnsupported error is returned.
+func Version(binaryPath string) (res *ServerVersion, err error) {
+	if binaryPath == "" {
+		binaryPath = binaryName
+	}
+
+	const arg = "--version-json"
+
+	data, err := exec.Command(binaryPath, arg).CombinedOutput()
+	if err != nil {
+		if bytes.Contains(data, []byte("error: unexpected argument")) {
+			return nil, ErrUnsupported
+		}
+
+		return nil, fmt.Errorf("run `%s %s`: %s: %w", binaryPath, arg, string(data), err)
+	}
+
+	if err := json.Unmarshal(data, &res); err != nil {
+		return nil, fmt.Errorf("unmarshal result: %w", err)
+	}
+
+	return res, nil
 }
 
 func (c *ConmonServerConfig) toClient() (*ConmonClient, error) {
