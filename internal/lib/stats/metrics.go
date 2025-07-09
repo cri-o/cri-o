@@ -15,6 +15,7 @@ const (
 	MemoryMetrics  = "memory"
 	NetworkMetrics = "network"
 	OOMMetrics     = "oom"
+	ProcessMetrics = "process"
 )
 
 type metricValue struct {
@@ -84,6 +85,9 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 		},
 		OOMMetrics: {
 			containerOomEventsTotal,
+		},
+		ProcessMetrics: {
+			containerFileDescriptors,
 		},
 	}
 
