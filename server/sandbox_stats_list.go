@@ -10,10 +10,10 @@ import (
 func (s *Server) ListPodSandboxStats(ctx context.Context, req *types.ListPodSandboxStatsRequest) (*types.ListPodSandboxStatsResponse, error) {
 	sboxList := s.ListSandboxes()
 
-	if req.Filter != nil {
+	if req.GetFilter() != nil {
 		sbFilter := &types.PodSandboxFilter{
-			Id:            req.Filter.Id,
-			LabelSelector: req.Filter.LabelSelector,
+			Id:            req.GetFilter().GetId(),
+			LabelSelector: req.GetFilter().GetLabelSelector(),
 		}
 		sboxList = s.filterSandboxList(ctx, sbFilter, sboxList)
 	}

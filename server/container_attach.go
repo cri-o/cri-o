@@ -17,18 +17,18 @@ import (
 
 // Attach prepares a streaming endpoint to attach to a running container.
 func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.AttachResponse, error) {
-	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
-		return nil, fmt.Errorf("could not find container %q: %w", req.ContainerId, err)
+		return nil, fmt.Errorf("could not find container %q: %w", req.GetContainerId(), err)
 	}
 
 	runtimeHandler := s.getSandbox(ctx, c.Sandbox()).RuntimeHandler()
 	if streamWebsocket, err := s.Runtime().RuntimeStreamWebsockets(runtimeHandler); err == nil && streamWebsocket {
 		log.Debugf(ctx, "Runtime handler %q is configured to use websockets", runtimeHandler)
 
-		url, err := s.Runtime().ServeAttachContainer(ctx, c, req.Stdin, req.Stdout, req.Stderr)
+		url, err := s.Runtime().ServeAttachContainer(ctx, c, req.GetStdin(), req.GetStdout(), req.GetStderr())
 		if err != nil {
-			return nil, fmt.Errorf("could not serve attach for container %q: %w", req.ContainerId, err)
+			return nil, fmt.Errorf("could not serve attach for container %q: %w", req.GetContainerId(), err)
 		}
 
 		log.Infof(ctx, "Using attach URL from container monitor")

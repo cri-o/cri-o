@@ -28,13 +28,13 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
 	}
 
 	containerID := c.ID()
-	imageRef := c.CRIContainer().ImageRef
+	imageRef := c.CRIContainer().GetImageRef()
 
 	imageNameInSpec := ""
 	if someNameOfTheImage := c.SomeNameOfTheImage(); someNameOfTheImage != nil {
@@ -123,7 +123,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 		case cState.SeccompKilled:
 			resp.Status.Reason = seccompKilledReason
 			resp.Status.Message = cState.Error
-		case resp.Status.ExitCode == 0:
+		case resp.GetStatus().GetExitCode() == 0:
 			resp.Status.Reason = completedReason
 		default:
 			resp.Status.Reason = errorReason
@@ -134,7 +134,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	resp.Status.State = rStatus
 	resp.Status.LogPath = c.LogPath()
 
-	if req.Verbose {
+	if req.GetVerbose() {
 		info, err := s.createContainerInfo(c)
 		if err != nil {
 			return nil, fmt.Errorf("creating container info: %w", err)

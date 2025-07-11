@@ -92,13 +92,13 @@ func (ss *StatsServer) update() {
 // updateUsageNanoCores calculates the usage nano cores by averaging the CPU usage between the timestamps
 // of the old usage and the recently gathered usage.
 func updateUsageNanoCores(old, current *types.CpuUsage) {
-	if old == nil || current == nil || old.UsageCoreNanoSeconds == nil || current.UsageCoreNanoSeconds == nil {
+	if old == nil || current == nil || old.GetUsageCoreNanoSeconds() == nil || current.GetUsageCoreNanoSeconds() == nil {
 		return
 	}
 
-	nanoSeconds := current.Timestamp - old.Timestamp
+	nanoSeconds := current.GetTimestamp() - old.GetTimestamp()
 
-	usageNanoCores := uint64(float64(current.UsageCoreNanoSeconds.Value-old.UsageCoreNanoSeconds.Value) /
+	usageNanoCores := uint64(float64(current.GetUsageCoreNanoSeconds().GetValue()-old.GetUsageCoreNanoSeconds().GetValue()) /
 		float64(nanoSeconds) * float64(time.Second/time.Nanosecond))
 
 	current.UsageNanoCores = &types.UInt64Value{

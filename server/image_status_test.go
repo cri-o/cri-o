@@ -92,8 +92,8 @@ var _ = t.Describe("ImageStatus", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Info).To(HaveKey("info"))
-			Expect(response.Info["info"]).To(ContainSubstring(
+			Expect(response.GetInfo()).To(HaveKey("info"))
+			Expect(response.GetInfo()["info"]).To(ContainSubstring(
 				`{"imageSpec":{"architecture":"arch","os":"os","config":{}`,
 			))
 		})

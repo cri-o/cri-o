@@ -85,7 +85,7 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(sandbox.Annotations()).To(ConsistOf([]string{"annotA", "annotB"}))
 			Expect(sandbox.ProcessLabel()).To(Equal(processLabel))
 			Expect(sandbox.MountLabel()).To(Equal(mountLabel))
-			Expect(sandbox.Metadata().Name).To(Equal(name))
+			Expect(sandbox.Metadata().GetName()).To(Equal(name))
 			Expect(sandbox.ShmPath()).To(Equal(shmPath))
 			Expect(sandbox.CgroupParent()).To(Equal(cgroupParent))
 			Expect(sandbox.Privileged()).To(Equal(privileged))
@@ -217,12 +217,12 @@ var _ = t.Describe("Sandbox", func() {
 			testSandbox.SetNamespaceOptions(newNamespaceOption)
 
 			// Then
-			Expect(testSandbox.NamespaceOptions().Network).
-				To(Equal(newNamespaceOption.Network))
-			Expect(testSandbox.NamespaceOptions().Pid).
-				To(Equal(newNamespaceOption.Pid))
-			Expect(testSandbox.NamespaceOptions().Ipc).
-				To(Equal(newNamespaceOption.Ipc))
+			Expect(testSandbox.NamespaceOptions().GetNetwork()).
+				To(Equal(newNamespaceOption.GetNetwork()))
+			Expect(testSandbox.NamespaceOptions().GetPid()).
+				To(Equal(newNamespaceOption.GetPid()))
+			Expect(testSandbox.NamespaceOptions().GetIpc()).
+				To(Equal(newNamespaceOption.GetIpc()))
 		})
 	})
 

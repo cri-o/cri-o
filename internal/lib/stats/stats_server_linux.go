@@ -78,7 +78,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		ss.populateWritableLayer(cStats, c)
 
 		if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
-			updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
+			updateUsageNanoCores(oldcStats.GetCpu(), cStats.GetCpu())
 		}
 
 		containerStats = append(containerStats, cStats)
@@ -92,7 +92,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	sandboxMetrics.metric.ContainerMetrics = containerMetrics
 
 	if old, ok := ss.sboxStats[sb.ID()]; ok {
-		updateUsageNanoCores(old.Linux.Cpu, sandboxStats.Linux.Cpu)
+		updateUsageNanoCores(old.GetLinux().GetCpu(), sandboxStats.GetLinux().GetCpu())
 	}
 
 	ss.sboxStats[sb.ID()] = sandboxStats
@@ -124,7 +124,7 @@ func (ss *StatsServer) updateContainerStats(c *oci.Container, sb *sandbox.Sandbo
 	ss.populateWritableLayer(cStats, c)
 
 	if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
-		updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
+		updateUsageNanoCores(oldcStats.GetCpu(), cStats.GetCpu())
 	}
 
 	ss.ctrStats[c.ID()] = cStats

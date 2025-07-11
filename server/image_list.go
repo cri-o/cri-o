@@ -16,13 +16,13 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
-	if reqFilter := req.Filter; reqFilter != nil {
-		if filterImage := reqFilter.Image; filterImage != nil && filterImage.Image != "" {
+	if reqFilter := req.GetFilter(); reqFilter != nil {
+		if filterImage := reqFilter.GetImage(); filterImage != nil && filterImage.GetImage() != "" {
 			// Historically CRI-O has interpreted the “filter” as a single image to look up.
 			// Also, the type of the value is types.ImageSpec, the value used to refer to a single image.
 			// And, ultimately, Kubelet never uses the filter.
 			// So, fall back to existing code instead of having an extra code path doing some kind of filtering.
-			status, err := s.storageImageStatus(ctx, *filterImage)
+			status, err := s.storageImageStatus(ctx, filterImage)
 			if err != nil {
 				return nil, err
 			}
@@ -33,7 +33,7 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 				return &types.ListImagesResponse{Images: []*types.Image{ConvertImage(status)}}, nil
 			}
 
-			if artifact, err := s.ArtifactStore().Status(ctx, filterImage.Image); err == nil {
+			if artifact, err := s.ArtifactStore().Status(ctx, filterImage.GetImage()); err == nil {
 				resp.Images = append(resp.Images, artifact.CRIImage())
 			} else if !errors.Is(err, ociartifact.ErrNotFound) {
 				log.Errorf(ctx, "Unable to get filtered artifact: %v", err)
@@ -103,7 +103,7 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	}
 
 	if from.Size != nil {
-		to.Size_ = *from.Size
+		to.Size = *from.Size
 	}
 
 	return to

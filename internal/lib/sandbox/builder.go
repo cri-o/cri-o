@@ -267,19 +267,19 @@ func (b *sandboxBuilder) SetConfig(config *types.PodSandboxConfig) error {
 		return errors.New("config is nil")
 	}
 
-	if config.Metadata == nil {
+	if config.GetMetadata() == nil {
 		return errors.New("metadata is nil")
 	}
 
-	if config.Metadata.Name == "" {
+	if config.GetMetadata().GetName() == "" {
 		return errors.New("metadata.Name should not be empty")
 	}
 
-	if config.Linux == nil {
+	if config.GetLinux() == nil {
 		config.Linux = &types.LinuxPodSandboxConfig{}
 	}
 
-	if config.Linux.SecurityContext == nil {
+	if config.GetLinux().GetSecurityContext() == nil {
 		config.Linux.SecurityContext = &types.LinuxSandboxSecurityContext{
 			NamespaceOptions: &types.NamespaceOption{},
 			SelinuxOptions:   &types.SELinuxOption{},
@@ -303,15 +303,15 @@ func (b *sandboxBuilder) GenerateNameAndID() error {
 		return errors.New("config is nil")
 	}
 
-	if b.config.Metadata.Namespace == "" {
+	if b.config.GetMetadata().GetNamespace() == "" {
 		return errors.New("cannot generate pod name without namespace")
 	}
 
-	if b.config.Metadata.Name == "" {
+	if b.config.GetMetadata().GetName() == "" {
 		return errors.New("cannot generate pod name without name in metadata")
 	}
 
-	if b.config.Metadata.Uid == "" {
+	if b.config.GetMetadata().GetUid() == "" {
 		return errors.New("cannot generate pod name without uid in metadata")
 	}
 
@@ -319,10 +319,10 @@ func (b *sandboxBuilder) GenerateNameAndID() error {
 	b.SetID(id)
 	name := strings.Join([]string{
 		"k8s",
-		b.config.Metadata.Name,
-		b.config.Metadata.Namespace,
-		b.config.Metadata.Uid,
-		strconv.FormatUint(uint64(b.config.Metadata.Attempt), 10),
+		b.config.GetMetadata().GetName(),
+		b.config.GetMetadata().GetNamespace(),
+		b.config.GetMetadata().GetUid(),
+		strconv.FormatUint(uint64(b.config.GetMetadata().GetAttempt()), 10),
 	}, "_")
 	b.SetName(name)
 
@@ -340,7 +340,7 @@ func (b *sandboxBuilder) ID() string {
 		return ""
 	}
 
-	return b.sandboxRef.criSandbox.Id
+	return b.sandboxRef.criSandbox.GetId()
 }
 
 // Name returns the name of the pod sandbox.

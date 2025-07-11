@@ -84,7 +84,7 @@ func LinkContainerLogs(ctx context.Context, kubePodUID, emptyDirVolName, id stri
 	}
 
 	// Symlink a relative path so the location is legitimate inside and outside the container.
-	from := fmt.Sprintf("%s/%d.log", metadata.Name, metadata.Attempt)
+	from := fmt.Sprintf("%s/%d.log", metadata.GetName(), metadata.GetAttempt())
 
 	to, err := securejoin.SecureJoin(emptyDirLoggingVolumePath, id+".log")
 	if err != nil {
