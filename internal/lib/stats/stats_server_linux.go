@@ -263,6 +263,9 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 			metrics = append(metrics, oomMetrics...)
 		case NetworkMetrics:
 			continue // Network metrics are collected at the pod level only.
+		case OtherMetrics:
+			otherMetrics := generateSandboxOtherMetrics(sb, c.State())
+			metrics = append(metrics, otherMetrics...)
 		default:
 			log.Warnf(ss.ctx, "Unknown metric: %s", m)
 		}
