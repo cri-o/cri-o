@@ -71,6 +71,7 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			containerMemoryMaxUsageBytes,
 			containerMemoryWorkingSetBytes,
 			containerMemoryFailuresTotal,
+			containerSpecMemoryReservationLimitBytes,
 		},
 		NetworkMetrics: {
 			containerNetworkReceiveBytesTotal,

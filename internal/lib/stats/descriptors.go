@@ -93,6 +93,11 @@ var (
 		Help:      "Cumulative count of memory allocation failures.",
 		LabelKeys: append(baseLabelKeys, "failure_type", "scope"),
 	}
+	containerSpecMemoryReservationLimitBytes = &types.MetricDescriptor{
+		Name:      "container_spec_memory_reservation_limit_bytes",
+		Help:      "Memory reservation limit for the container in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
 )
 
 var networkLabelKeys = append(baseLabelKeys, "interface")
