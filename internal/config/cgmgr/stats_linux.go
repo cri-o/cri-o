@@ -19,6 +19,7 @@ import (
 type CgroupStats struct {
 	Memory     *MemoryStats
 	CPU        *CPUStats
+	Hugetlb    map[string]HugetlbStats
 	Pid        *PidsStats
 	SystemNano int64
 }
@@ -56,6 +57,11 @@ type CPUStats struct {
 	ThrottledPeriods uint64
 	// Aggregate time the container was throttled for in nanoseconds.
 	ThrottledTime uint64
+}
+
+type HugetlbStats struct {
+	Usage uint64
+	Max   uint64
 }
 
 type PidsStats struct {
@@ -115,8 +121,9 @@ func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 
 func libctrStatsToCgroupStats(stats *cgroups.Stats) *CgroupStats {
 	return &CgroupStats{
-		Memory: cgroupMemStats(&stats.MemoryStats),
-		CPU:    cgroupCPUStats(&stats.CpuStats),
+		Memory:  cgroupMemStats(&stats.MemoryStats),
+		CPU:     cgroupCPUStats(&stats.CpuStats),
+		Hugetlb: cgroupHugetlbStats(stats.HugetlbStats),
 		Pid: &PidsStats{
 			Current: stats.PidsStats.Current,
 			Limit:   stats.PidsStats.Limit,
@@ -210,6 +217,19 @@ func cgroupCPUStats(cpuStats *cgroups.CpuStats) *CPUStats {
 		ThrottledPeriods:        cpuStats.ThrottlingData.ThrottledPeriods,
 		ThrottledTime:           cpuStats.ThrottlingData.ThrottledTime,
 	}
+}
+
+func cgroupHugetlbStats(cgHugetlbStats map[string]cgroups.HugetlbStats) map[string]HugetlbStats {
+	hugetlbStats := map[string]HugetlbStats{}
+
+	for pagesize, hugetlb := range cgHugetlbStats {
+		hugetlbStats[pagesize] = HugetlbStats{
+			Usage: hugetlb.Usage,
+			Max:   hugetlb.MaxUsage,
+		}
+	}
+
+	return hugetlbStats
 }
 
 func isMemoryUnlimited(v uint64) bool {
