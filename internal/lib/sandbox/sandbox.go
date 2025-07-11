@@ -281,6 +281,7 @@ func (s *Sandbox) PodLinuxResources() *types.LinuxContainerResources {
 func (s *Sandbox) AddContainer(ctx context.Context, c *oci.Container) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	s.containers.Add(c.Name(), c)
 }
 
@@ -296,6 +297,7 @@ func (s *Sandbox) GetContainer(ctx context.Context, name string) *oci.Container 
 func (s *Sandbox) RemoveContainer(ctx context.Context, c *oci.Container) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	s.containers.Delete(c.Name())
 }
 
@@ -360,6 +362,7 @@ func (s *Sandbox) Stopped() bool {
 func (s *Sandbox) SetCreated() {
 	s.stateMutex.Lock()
 	defer s.stateMutex.Unlock()
+
 	s.created = true
 }
 

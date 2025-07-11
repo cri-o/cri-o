@@ -86,6 +86,7 @@ func (r *Registrar) Release(name string) {
 // All names reserved to this key are released.
 func (r *Registrar) Delete(key string) {
 	r.mu.Lock()
+
 	for _, name := range r.idx[key] {
 		delete(r.names, name)
 	}
@@ -129,6 +130,7 @@ func (r *Registrar) GetAll() map[string][]string {
 	for id, names := range r.idx {
 		out[id] = names
 	}
+
 	r.mu.Unlock()
 
 	return out

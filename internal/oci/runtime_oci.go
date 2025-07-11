@@ -298,10 +298,12 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 			return
 		}
+
 		ch <- syncStruct{si: si}
 	}()
 
 	var pid int
+
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
@@ -371,6 +373,7 @@ func (r *runtimeOCI) getConmonProcess(c *Container) (*ContainerMonitorProcess, e
 func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -599,6 +602,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	logFile.Close()
 
 	logPath := logFile.Name()
+
 	defer func() {
 		os.RemoveAll(logPath)
 	}()
@@ -663,6 +667,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	}
 
 	var stdoutBuf, stderrBuf bytes.Buffer
+
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 
@@ -935,6 +940,7 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 
 	c.opLock.Lock()
+
 	defer func() {
 		// Kill the exec PIDs after the main container to avoid pod lifecycle regressions:
 		// Ref: https://github.com/kubernetes/kubernetes/issues/124743
@@ -1037,6 +1043,7 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 			return
 		}
 	}
+
 killContainer:
 	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
 	kwait.BackoffUntil(func() {
@@ -1054,6 +1061,7 @@ killContainer:
 
 			return
 		}
+
 		log.Debugf(ctx, "Killing failed for some reasons, retrying...")
 		// Reschedule the timer so that the periodic reminder can continue.
 		blockedTimer.Reset(stopProcessBlockedInterval)
@@ -1064,6 +1072,7 @@ killContainer:
 func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -1116,6 +1125,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -1265,6 +1275,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -1275,6 +1286,7 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -1340,12 +1352,15 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 	defer conn.Close()
 
 	receiveStdout := make(chan error)
+
 	go func() {
 		receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
+
 		close(receiveStdout)
 	}()
 
 	stdinDone := make(chan error)
+
 	go func() {
 		var err, closeErr error
 		if inputStream != nil {
@@ -1427,6 +1442,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 
 					if event.Name == c.LogPath() {
 						log.Debugf(ctx, "Expected log file created")
+
 						done <- struct{}{}
 
 						return
@@ -1434,6 +1450,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 				}
 			case err := <-watcher.Errors:
 				errorCh <- fmt.Errorf("watch error for container log reopen %v: %w", c.ID(), err)
+
 				close(errorCh)
 
 				return

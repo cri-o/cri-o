@@ -78,7 +78,6 @@ func retry(ctx context.Context, description string, fn func() error) error {
 
 		return true, nil
 	})
-
 	if waitErr != nil {
 		return fmt.Errorf("wait on retry: %w", waitErr)
 	}

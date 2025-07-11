@@ -742,12 +742,14 @@ func (s *Server) removeSandbox(ctx context.Context, id string) error {
 func (s *Server) addContainer(ctx context.Context, c *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	s.AddContainer(ctx, c)
 }
 
 func (s *Server) addInfraContainer(ctx context.Context, c *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	s.AddInfraContainer(ctx, c)
 }
 
@@ -761,12 +763,14 @@ func (s *Server) getInfraContainer(ctx context.Context, id string) *oci.Containe
 func (s *Server) removeContainer(ctx context.Context, c *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	s.ContainerServer.RemoveContainer(ctx, c)
 }
 
 func (s *Server) removeInfraContainer(ctx context.Context, c *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	s.RemoveInfraContainer(ctx, c)
 }
 
@@ -845,6 +849,7 @@ func (s *Server) monitorExits(ctx context.Context, watcher *fsnotify.Watcher, do
 func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	log.Debugf(ctx, "Event: %v", event)
 
 	if event.Op&fsnotify.Create != fsnotify.Create {
@@ -903,8 +908,8 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 
 func (s *Server) getSandboxStatuses(ctx context.Context, sandboxID string) (*types.PodSandboxStatus, error) {
 	sandboxStatusRequest := &types.PodSandboxStatusRequest{PodSandboxId: sandboxID}
-	sandboxStatus, err := s.PodSandboxStatus(ctx, sandboxStatusRequest)
 
+	sandboxStatus, err := s.PodSandboxStatus(ctx, sandboxStatusRequest)
 	if isNotFound(err) {
 		return nil, err
 	}
@@ -989,7 +994,6 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	}
 
 	sandboxStatuses, err := s.getSandboxStatuses(ctx, s.ContainerServer.GetSandbox(container.Sandbox()).ID())
-
 	if isNotFound(err) {
 		return
 	}

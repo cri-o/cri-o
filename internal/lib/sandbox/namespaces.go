@@ -222,6 +222,7 @@ func infraPid(infra *oci.Container) int {
 
 	if infra != nil && !infra.Spoofed() {
 		var err error
+
 		pid, err = infra.Pid()
 		// There are some cases where ErrNotInitialized is expected.
 		// For instance, when we're creating a pod sandbox while managing namespace lifecycle,

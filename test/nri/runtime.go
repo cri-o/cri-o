@@ -312,6 +312,7 @@ func (r *runtime) RemovePod(pod string) error {
 
 	r.Lock()
 	defer r.Unlock()
+
 	delete(r.pods, pod)
 	delete(r.pods, id)
 
@@ -557,6 +558,7 @@ func (r *runtime) RemoveContainer(container string) error {
 
 	r.Lock()
 	defer r.Unlock()
+
 	delete(r.containers, container)
 	delete(r.containers, id)
 

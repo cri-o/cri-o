@@ -16,6 +16,7 @@ import (
 func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	log.Infof(ctx,
 		"Starting port forward for %s in network namespace %s", c.ID(), netNsPath,
 	)

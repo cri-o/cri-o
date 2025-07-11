@@ -23,6 +23,7 @@ import (
 func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainerRequest) (*types.RemoveContainerResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	log.Infof(ctx, "Removing container: %s", req.ContainerId)
 	// save container description to print
 	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)

@@ -189,6 +189,7 @@ func (s *Server) CRImportCheckpoint(
 	}
 
 	stopMutex := sb.StopMutex()
+
 	stopMutex.RLock()
 	defer stopMutex.RUnlock()
 
@@ -360,6 +361,7 @@ func (s *Server) CRImportCheckpoint(
 			s.ReleaseContainerName(ctx, ctr.Name())
 		}
 	}()
+
 	ctr.SetRestore(true)
 
 	newContainer, err := s.createSandboxContainer(ctx, ctr, sb)

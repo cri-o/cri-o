@@ -246,11 +246,13 @@ func waitOnContainerTimeout(sut *oci.Container, stopTimeout, waitTimeout int64, 
 	case <-time.After(time.Second * time.Duration(waitTimeout)):
 		Fail("did not timeout quickly enough")
 	}
+
 	verifyContainerStopped(sut, sleepProcess)
 }
 
 func stopTimeoutWithChannel(ctx context.Context, sut *oci.Container, timeout int64) chan struct{} {
 	stoppedChan := make(chan struct{}, 1)
+
 	go func() {
 		sut.WaitOnStopTimeout(ctx, timeout)
 		close(stoppedChan)

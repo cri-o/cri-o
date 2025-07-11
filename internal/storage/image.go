@@ -606,7 +606,6 @@ func WrapSignatureCRIErrorIfNeeded(err error) error {
 		policyErr    signature.PolicyRequirementError
 		signatureErr signature.InvalidSignatureError
 	)
-
 	if errors.As(err, &policyErr) || errors.As(err, &signatureErr) {
 		return fmt.Errorf("%w: %w", crierrors.ErrSignatureValidationFailed, err)
 	}
@@ -680,6 +679,7 @@ func pullImageChild() {
 	go formatPullImageOutputItemGoroutine(os.Stdout, output, outputWritten)
 
 	progress := make(chan types.ProgressProperties)
+
 	go func() {
 		for p := range progress {
 			output <- pullImageOutputItem{Progress: &p}

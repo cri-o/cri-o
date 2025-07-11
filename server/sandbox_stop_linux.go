@@ -22,6 +22,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	defer span.End()
 
 	stopMutex := sb.StopMutex()
+
 	stopMutex.Lock()
 	defer stopMutex.Unlock()
 

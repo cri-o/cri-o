@@ -97,6 +97,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 
 	if !pullInProcess {
 		pullOp.err = errors.New("pullImage was aborted by a Go panic")
+
 		defer func() {
 			s.pullOperationsLock.Lock()
 			delete(s.pullOperationsInProgress, pullArgs)
@@ -265,6 +266,7 @@ func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, pu
 			cancel()
 		}
 	})
+
 	timer.Stop()       // don't start the timer immediately
 	defer timer.Stop() // ensure that the timer is stopped when we exit the progress loop
 
@@ -304,6 +306,7 @@ func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, pu
 func tryIncrementImagePullFailureMetric(img storage.RegistryImageReference, err error) {
 	// We try to cover some basic use-cases
 	const labelUnknown = "UNKNOWN"
+
 	label := labelUnknown
 
 	// Docker registry errors

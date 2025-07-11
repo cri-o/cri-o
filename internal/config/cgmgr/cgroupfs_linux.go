@@ -114,6 +114,7 @@ func (m *CgroupfsManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
+
 		delete(m.v1CtrCgMgr, containerID)
 	}
 }
@@ -185,6 +186,7 @@ func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
+
 		delete(m.v1SbCgMgr, sbID)
 	}
 }

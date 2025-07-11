@@ -105,6 +105,7 @@ func (rc *ResourceStore) cleanupStaleResources() {
 		resourcesToReap := []*Resource{}
 
 		rc.mutex.Lock()
+
 		for name, r := range rc.resources {
 			// this resource shouldn't be marked as stale if it
 			// hasn't yet been added to the store.

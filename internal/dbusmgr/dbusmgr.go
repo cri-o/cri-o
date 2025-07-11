@@ -45,11 +45,13 @@ func (d *DbusConnManager) GetConnection() (*systemdDbus.Conn, error) {
 	// Use the read lock the first time to ensure
 	// that Conn can be acquired at the same time.
 	dbusMu.RLock()
+
 	if conn := dbusC; conn != nil {
 		dbusMu.RUnlock()
 
 		return conn, nil
 	}
+
 	dbusMu.RUnlock()
 
 	// In the case where dbusC == nil

@@ -54,6 +54,7 @@ func TestPluginSynchronization(stdT *testing.T) {
 	}
 
 	const containerCount = 3
+
 	pods := make([]string, 0, containerCount)
 	ctrs := make([]string, 0, containerCount)
 
@@ -150,6 +151,7 @@ func TestMountInjection(stdT *testing.T) {
 			if err := os.Chmod(testDir, 0o777); err != nil {
 				return nil, nil, fmt.Errorf("failed to change permissions: %w", err)
 			}
+
 			adjust := &api.ContainerAdjustment{}
 			adjust.AddMount(
 				&api.Mount{

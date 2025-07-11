@@ -116,7 +116,6 @@ _Generated on %s for commit [%s][0]._
 		outdated.OutputTrimNL(),
 		all.OutputTrimNL(),
 	)
-
 	if err := os.WriteFile(outputFile, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("writing report: %w", err)
 	}
