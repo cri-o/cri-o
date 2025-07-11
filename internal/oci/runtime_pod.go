@@ -261,7 +261,9 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 
 	utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
 		var libpodEvent resize.TerminalSize
+
 		libpodEvent.Height = size.Height
+
 		libpodEvent.Width = size.Width
 		libpodResize <- libpodEvent
 	})

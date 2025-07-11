@@ -146,6 +146,7 @@ func (m *SystemdManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
+
 		delete(m.v1CtrCgMgr, containerID)
 	}
 }
@@ -296,6 +297,7 @@ func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
+
 		delete(m.v1SbCgMgr, sbID)
 	}
 }

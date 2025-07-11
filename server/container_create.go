@@ -462,6 +462,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	}
 
 	stopMutex := sb.StopMutex()
+
 	stopMutex.RLock()
 	defer stopMutex.RUnlock()
 
@@ -485,6 +486,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	resourceCleaner := resourcestore.NewResourceCleaner()
 	// in some cases, it is still necessary to reserve container resources when an error occurs (such as just a request context timeout error)
 	storeResource := false
+
 	defer func() {
 		// No errors or resource need to be stored, no need to cleanup
 		if retErr == nil || storeResource {

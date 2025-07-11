@@ -153,8 +153,8 @@ func (cc *Config) reload(ctx context.Context) error {
 
 func GenerateSelfSignedCertKey(ctx context.Context, certPath, keyPath string) error {
 	_, errCertPath := os.Stat(certPath)
-	_, errKeyPath := os.Stat(keyPath)
 
+	_, errKeyPath := os.Stat(keyPath)
 	if errCertPath != nil && os.IsNotExist(errCertPath) && errKeyPath != nil && os.IsNotExist(errKeyPath) {
 		log.Infof(ctx, "Metrics key and cert path does not exist, generating self-signed")
 

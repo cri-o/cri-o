@@ -35,6 +35,7 @@ func selinuxEnabled() bool {
 
 func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
 	var err error
+
 	c.PinnsPath, err = validateExecutablePath(executable, c.PinnsPath)
 
 	return err

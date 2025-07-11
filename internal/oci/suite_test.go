@@ -38,6 +38,7 @@ const (
 
 func beforeEach() {
 	var err error
+
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", nil, nil, "",

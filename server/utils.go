@@ -101,6 +101,7 @@ func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 	}
 
 	base64Keys := []string{}
+
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -125,7 +126,6 @@ func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 
 		return nil
 	}
-
 	if err := filepath.Walk(keysPath, walkFn); err != nil {
 		return nil, err
 	}
@@ -190,6 +190,7 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 	metrics.Instance().MetricResourcesStalledAtStage(stage)
 
 	var err error
+
 	select {
 	// We should wait as long as we can (within reason), thus stalling the kubelet's sync loop.
 	// This will prevent "name is reserved" errors popping up every two seconds.

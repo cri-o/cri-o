@@ -16,6 +16,7 @@ import (
 func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandboxRequest) (*types.RemovePodSandboxResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	log.Infof(ctx, "Removing pod sandbox: %s", req.PodSandboxId)
 
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)

@@ -14,6 +14,7 @@ run:
 linters:
   default: none
   enable:
+    - arangolint
     - asasalint
     - asciicheck
     - bidichk
@@ -81,11 +82,12 @@ linters:
     - usestdlibvars
     - usetesting
     - wastedassign
-    - wsl
+    - wsl_v5
     # - containedctx
     # - contextcheck
     # - cyclop
     # - depguard
+    # - embeddedstructfieldcheck
     # - err113
     # - errname
     # - exhaustive
@@ -106,6 +108,7 @@ linters:
     # - nestif
     # - nilerr
     # - nilnil
+    # - noinlineerr
     # - nonamedreturns
     # - paralleltest
     # - predeclared
@@ -139,6 +142,10 @@ linters:
           arguments:
             - 22
           disabled: false
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
   exclusions:
     generated: strict
     presets:

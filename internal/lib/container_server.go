@@ -609,6 +609,7 @@ func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Con
 	}
 
 	defer jsonSource.Close()
+
 	enc := json.NewEncoder(jsonSource)
 
 	return enc.Encode(ctr.State())
@@ -636,6 +637,7 @@ func (c *ContainerServer) ContainerIDForName(name string) (string, error) {
 func (c *ContainerServer) ReleaseContainerName(ctx context.Context, name string) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c.ctrNameIndex.Release(name)
 }
 
@@ -757,6 +759,7 @@ func (c *ContainerServer) RemoveContainer(ctx context.Context, ctr *oci.Containe
 func (c *ContainerServer) RemoveInfraContainer(ctx context.Context, ctr *oci.Container) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c.state.infraContainers.Delete(ctr.ID())
 }
 
@@ -792,6 +795,7 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 func (c *ContainerServer) AddSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c.state.sandboxes.Add(sb.ID(), sb)
 
 	c.stateLock.Lock()
@@ -1010,6 +1014,7 @@ func (c *ContainerServer) probeMonitorProcesses(ctx context.Context) {
 			return
 		case <-timer.C:
 		}
+
 		log.Tracef(ctx, "Probe monitor processes")
 
 		for _, ctr := range c.listContainers() {

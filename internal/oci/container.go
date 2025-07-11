@@ -665,11 +665,13 @@ func (c *Container) SetAsStopping() (setToStopping bool) {
 func (c *Container) SetStopKillLoopBegun() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+
 	c.stopKillLoopBegun = true
 }
 
 func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 	c.stopLock.Lock()
+
 	if !c.stopping {
 		c.stopLock.Unlock()
 
@@ -699,6 +701,7 @@ func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 
 func (c *Container) SetAsDoneStopping() {
 	c.stopLock.Lock()
+
 	for _, watcher := range c.stopWatchers {
 		close(watcher)
 	}
@@ -869,6 +872,7 @@ func (c *Container) AddExecPID(pid int, shouldKill bool) error {
 func (c *Container) DeleteExecPID(pid int) {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+
 	delete(c.execPIDs, pid)
 }
 
