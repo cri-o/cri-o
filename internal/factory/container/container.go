@@ -180,9 +180,9 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
 	const podTerminationGracePeriodLabel = "io.kubernetes.pod.terminationGracePeriod"
 
-	kubeAnnotations := c.Config().Annotations
+	kubeAnnotations := c.Config().GetAnnotations()
 	created := time.Now()
-	labels := c.Config().Labels
+	labels := c.Config().GetLabels()
 
 	userRequestedImage, err := c.UserRequestedImage()
 	if err != nil {
@@ -199,7 +199,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	// The sandbox annotations are already filtered for the allowed
 	// annotations, there is no need to check it additionally here.
 	for k, v := range sb.Annotations() {
-		if k == annotations.OCISeccompBPFHookAnnotation+"/"+c.config.Metadata.Name {
+		if k == annotations.OCISeccompBPFHookAnnotation+"/"+c.config.GetMetadata().GetName() {
 			// The OCI seccomp BPF hook
 			// (https://github.com/containers/oci-seccomp-bpf-hook)
 			// uses the annotation io.containers.trace-syscall as indicator
@@ -215,7 +215,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 			// distinguishable files.
 			log.Debugf(ctx,
 				"Annotation key for container %q rewritten to %q (value is: %q)",
-				c.config.Metadata.Name, annotations.OCISeccompBPFHookAnnotation, v,
+				c.config.GetMetadata().GetName(), annotations.OCISeccompBPFHookAnnotation, v,
 			)
 
 			c.config.Annotations[annotations.OCISeccompBPFHookAnnotation] = v
@@ -240,9 +240,9 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	c.spec.AddAnnotation(annotations.SandboxName, sb.Name())
 	c.spec.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeContainer)
 	c.spec.AddAnnotation(annotations.LogPath, logPath)
-	c.spec.AddAnnotation(annotations.TTY, strconv.FormatBool(c.Config().Tty))
-	c.spec.AddAnnotation(annotations.Stdin, strconv.FormatBool(c.Config().Stdin))
-	c.spec.AddAnnotation(annotations.StdinOnce, strconv.FormatBool(c.Config().StdinOnce))
+	c.spec.AddAnnotation(annotations.TTY, strconv.FormatBool(c.Config().GetTty()))
+	c.spec.AddAnnotation(annotations.Stdin, strconv.FormatBool(c.Config().GetStdin()))
+	c.spec.AddAnnotation(annotations.StdinOnce, strconv.FormatBool(c.Config().GetStdinOnce()))
 	c.spec.AddAnnotation(annotations.ResolvPath, sb.ResolvPath())
 	c.spec.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
 	c.spec.AddAnnotation(annotations.MountPoint, mountPoint)
@@ -251,7 +251,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	// for retrieving the runtime path for a given platform.
 	c.spec.AddAnnotation(annotations.PlatformRuntimePath, platformRuntimePath)
 
-	metadataJSON, err := json.Marshal(c.Config().Metadata)
+	metadataJSON, err := json.Marshal(c.Config().GetMetadata())
 	if err != nil {
 		return err
 	}
@@ -324,11 +324,11 @@ func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodS
 		return errors.New("config is nil")
 	}
 
-	if cfg.Metadata == nil {
+	if cfg.GetMetadata() == nil {
 		return errors.New("metadata is nil")
 	}
 
-	if cfg.Metadata.Name == "" {
+	if cfg.GetMetadata().GetName() == "" {
 		return errors.New("name is empty")
 	}
 
@@ -356,7 +356,7 @@ func (c *container) SetNameAndID(oldID string) error {
 		return errors.New("sandbox config is nil")
 	}
 
-	if c.sboxConfig.Metadata == nil {
+	if c.sboxConfig.GetMetadata() == nil {
 		return errors.New("sandbox metadata is nil")
 	}
 
@@ -369,11 +369,11 @@ func (c *container) SetNameAndID(oldID string) error {
 
 	name := strings.Join([]string{
 		"k8s",
-		c.config.Metadata.Name,
-		c.sboxConfig.Metadata.Name,
-		c.sboxConfig.Metadata.Namespace,
-		c.sboxConfig.Metadata.Uid,
-		strconv.FormatUint(uint64(c.config.Metadata.Attempt), 10),
+		c.config.GetMetadata().GetName(),
+		c.sboxConfig.GetMetadata().GetName(),
+		c.sboxConfig.GetMetadata().GetNamespace(),
+		c.sboxConfig.GetMetadata().GetUid(),
+		strconv.FormatUint(uint64(c.config.GetMetadata().GetAttempt()), 10),
 	}, "_")
 
 	c.id = id
@@ -419,11 +419,11 @@ func (c *container) SetPrivileged() error {
 		return nil
 	}
 
-	if c.config.Linux == nil {
+	if c.config.GetLinux() == nil {
 		return nil
 	}
 
-	if c.config.Linux.SecurityContext == nil {
+	if c.config.GetLinux().GetSecurityContext() == nil {
 		return nil
 	}
 
@@ -431,16 +431,16 @@ func (c *container) SetPrivileged() error {
 		return nil
 	}
 
-	if c.sboxConfig.Linux == nil {
+	if c.sboxConfig.GetLinux() == nil {
 		return nil
 	}
 
-	if c.sboxConfig.Linux.SecurityContext == nil {
+	if c.sboxConfig.GetLinux().GetSecurityContext() == nil {
 		return nil
 	}
 
-	if c.config.Linux.SecurityContext.Privileged {
-		if !c.sboxConfig.Linux.SecurityContext.Privileged {
+	if c.config.GetLinux().GetSecurityContext().GetPrivileged() {
+		if !c.sboxConfig.GetLinux().GetSecurityContext().GetPrivileged() {
 			return errors.New("no privileged container allowed in sandbox")
 		}
 
@@ -459,7 +459,7 @@ func (c *container) Privileged() bool {
 // It takes as input the LogDir of the sandbox, which is used
 // if there is no LogDir configured in the sandbox CRI config.
 func (c *container) LogPath(sboxLogDir string) (string, error) {
-	sboxLogDirConfig := c.sboxConfig.LogDirectory
+	sboxLogDirConfig := c.sboxConfig.GetLogDirectory()
 	if sboxLogDirConfig != "" {
 		sboxLogDir = sboxLogDirConfig
 	}
@@ -468,7 +468,7 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 		return "", fmt.Errorf("container %s has a sandbox with an empty log path", sboxLogDir)
 	}
 
-	logPath := c.config.LogPath
+	logPath := c.config.GetLogPath()
 	if logPath == "" {
 		logPath = filepath.Join(sboxLogDir, c.ID()+".log")
 	} else {
@@ -481,7 +481,7 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 	}
 
 	logrus.Debugf("Setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
-		sboxLogDir, c.config.LogPath, logPath,
+		sboxLogDir, c.config.GetLogPath(), logPath,
 	)
 
 	return logPath, nil
@@ -489,7 +489,7 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 
 // DisableFips returns whether the container should disable fips mode.
 func (c *container) DisableFips() bool {
-	if value, ok := c.sboxConfig.Labels["FIPS_DISABLE"]; ok && value == "true" {
+	if value, ok := c.sboxConfig.GetLabels()["FIPS_DISABLE"]; ok && value == "true" {
 		return true
 	}
 
@@ -499,12 +499,12 @@ func (c *container) DisableFips() bool {
 // UserRequestedImage returns the image specified in the container spec and used to look up the image when creating the container, or an error.
 // The value might evaluate to a different image (or to a different kind of reference!) at any future time.
 func (c *container) UserRequestedImage() (string, error) {
-	imageSpec := c.config.Image
+	imageSpec := c.config.GetImage()
 	if imageSpec == nil {
 		return "", errors.New("CreateContainerRequest.ContainerConfig.Image is nil")
 	}
 
-	image := imageSpec.Image
+	image := imageSpec.GetImage()
 	if image == "" {
 		return "", errors.New("CreateContainerRequest.ContainerConfig.Image.Image is empty")
 	}
@@ -517,7 +517,7 @@ func (c *container) UserRequestedImage() (string, error) {
 // be readonly, which it defaults to if the container wasn't
 // specifically asked to be read only.
 func (c *container) ReadOnly(serverIsReadOnly bool) bool {
-	if c.config.Linux != nil && c.config.Linux.SecurityContext.ReadonlyRootfs {
+	if c.config.GetLinux() != nil && c.config.GetLinux().GetSecurityContext().GetReadonlyRootfs() {
 		return true
 	}
 
@@ -530,7 +530,7 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 		return nil
 	}
 
-	containerName := c.config.Labels[kubeletTypes.KubernetesContainerNameLabel]
+	containerName := c.config.GetLabels()[kubeletTypes.KubernetesContainerNameLabel]
 	if containerName == "" {
 		return nil
 	}
@@ -575,8 +575,8 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 // SpecSetProcessArgs sets the process args in the spec,
 // given the image information and passed-in container config.
 func (c *container) SpecSetProcessArgs(imageOCIConfig *v1.Image) error {
-	kubeCommands := c.config.Command
-	kubeArgs := c.config.Args
+	kubeCommands := c.config.GetCommand()
+	kubeArgs := c.config.GetArgs()
 
 	// merge image config and kube config
 	// same as docker does today...
@@ -646,8 +646,8 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		return cap
 	}
 
-	addAll := inStringSlice(caps.AddCapabilities, "ALL")
-	dropAll := inStringSlice(caps.DropCapabilities, "ALL")
+	addAll := inStringSlice(caps.GetAddCapabilities(), "ALL")
+	dropAll := inStringSlice(caps.GetDropCapabilities(), "ALL")
 
 	// Only add the default capabilities to the AddCapabilities list
 	// if neither add or drop are set to "ALL". If add is set to "ALL" it
@@ -712,7 +712,7 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		}
 	}
 
-	for _, cap := range caps.AddCapabilities {
+	for _, cap := range caps.GetAddCapabilities() {
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
@@ -742,7 +742,7 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		}
 	}
 
-	for _, cap := range caps.DropCapabilities {
+	for _, cap := range caps.GetDropCapabilities() {
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
@@ -807,13 +807,13 @@ func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *type
 	if c.Privileged() {
 		specgen.SetupPrivileged(true)
 	} else {
-		caps := securityContext.Capabilities
+		caps := securityContext.GetCapabilities()
 		if err := c.SpecSetupCapabilities(caps, cfg.DefaultCapabilities, cfg.AddInheritableCapabilities); err != nil {
 			return err
 		}
 	}
 
-	if securityContext.NoNewPrivs {
+	if securityContext.GetNoNewPrivs() {
 		const sysAdminCap = "CAP_SYS_ADMIN"
 		for _, cap := range specgen.Config.Process.Capabilities.Bounding {
 			if cap == sysAdminCap {
@@ -826,17 +826,17 @@ func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *type
 		}
 	}
 
-	specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
+	specgen.SetProcessNoNewPrivileges(securityContext.GetNoNewPrivs())
 
 	if !c.Privileged() {
 		if securityContext.MaskedPaths != nil {
-			for _, path := range securityContext.MaskedPaths {
+			for _, path := range securityContext.GetMaskedPaths() {
 				specgen.AddLinuxMaskedPaths(path)
 			}
 		}
 
 		if securityContext.ReadonlyPaths != nil {
-			for _, path := range securityContext.ReadonlyPaths {
+			for _, path := range securityContext.GetReadonlyPaths() {
 				specgen.AddLinuxReadonlyPaths(path)
 			}
 		}
@@ -847,11 +847,11 @@ func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *type
 
 func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContainerResources, containerMinMemory int64) error {
 	specgen := c.Spec()
-	specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
-	specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
-	specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
+	specgen.SetLinuxResourcesCPUPeriod(uint64(resources.GetCpuPeriod()))
+	specgen.SetLinuxResourcesCPUQuota(resources.GetCpuQuota())
+	specgen.SetLinuxResourcesCPUShares(uint64(resources.GetCpuShares()))
 
-	memoryLimit := resources.MemoryLimitInBytes
+	memoryLimit := resources.GetMemoryLimitInBytes()
 	if memoryLimit != 0 {
 		if err := cgmgr.VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
 			return err
@@ -859,17 +859,17 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 
 		specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
 
-		if resources.MemorySwapLimitInBytes != 0 {
-			if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
+		if resources.GetMemorySwapLimitInBytes() != 0 {
+			if resources.GetMemorySwapLimitInBytes() > 0 && resources.GetMemorySwapLimitInBytes() < resources.GetMemoryLimitInBytes() {
 				return fmt.Errorf(
 					"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
 					c.ID(),
-					resources.MemorySwapLimitInBytes,
-					resources.MemoryLimitInBytes,
+					resources.GetMemorySwapLimitInBytes(),
+					resources.GetMemoryLimitInBytes(),
 				)
 			}
 
-			memoryLimit = resources.MemorySwapLimitInBytes
+			memoryLimit = resources.GetMemorySwapLimitInBytes()
 		}
 		// If node doesn't have memory swap, then skip setting
 		// otherwise the container creation fails.
@@ -878,24 +878,24 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 		}
 	}
 
-	specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
-	specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
-	specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
+	specgen.SetProcessOOMScoreAdj(int(resources.GetOomScoreAdj()))
+	specgen.SetLinuxResourcesCPUCpus(resources.GetCpusetCpus())
+	specgen.SetLinuxResourcesCPUMems(resources.GetCpusetMems())
 
 	// If the kernel has no support for hugetlb, silently ignore the limits
 	if node.CgroupHasHugetlb() {
-		hugepageLimits := resources.HugepageLimits
+		hugepageLimits := resources.GetHugepageLimits()
 		for _, limit := range hugepageLimits {
-			specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
+			specgen.AddLinuxResourcesHugepageLimit(limit.GetPageSize(), limit.GetLimit())
 		}
 	}
 
-	if node.CgroupIsV2() && len(resources.Unified) != 0 {
+	if node.CgroupIsV2() && len(resources.GetUnified()) != 0 {
 		if specgen.Config.Linux.Resources.Unified == nil {
-			specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
+			specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.GetUnified()))
 		}
 
-		for key, value := range resources.Unified {
+		for key, value := range resources.GetUnified() {
 			specgen.Config.Linux.Resources.Unified[key] = value
 		}
 	}

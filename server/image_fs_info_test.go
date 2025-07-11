@@ -37,8 +37,8 @@ var _ = t.Describe("ImageFsInfo", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.ImageFilesystems)).To(BeEquivalentTo(1))
-			Expect(len(response.ContainerFilesystems)).To(BeEquivalentTo(1))
+			Expect(len(response.GetImageFilesystems())).To(BeEquivalentTo(1))
+			Expect(len(response.GetContainerFilesystems())).To(BeEquivalentTo(1))
 		})
 
 		It("should fail on invalid image dir", func() {

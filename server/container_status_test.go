@@ -54,9 +54,9 @@ var _ = t.Describe("ContainerStatus", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.Status.Mounts)).To(BeEquivalentTo(1))
-			Expect(response.Status.State).To(Equal(expectedState))
-			Expect(response.Info["info"]).To(ContainSubstring(`"ociVersion":"1.0.0"`))
+			Expect(len(response.GetStatus().GetMounts())).To(BeEquivalentTo(1))
+			Expect(response.GetStatus().GetState()).To(Equal(expectedState))
+			Expect(response.GetInfo()["info"]).To(ContainSubstring(`"ociVersion":"1.0.0"`))
 			if checkpointingEnabled {
 				Expect(response).To(ContainSubstring(`checkpointedAt`))
 			}

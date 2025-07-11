@@ -137,16 +137,16 @@ var _ = t.Describe("Container", func() {
 			logpath, err := sut.LogPath(sb.LogDir())
 			Expect(err).ToNot(HaveOccurred())
 
-			metadataJSON, err := json.Marshal(sut.Config().Metadata)
+			metadataJSON, err := json.Marshal(sut.Config().GetMetadata())
 			Expect(err).ToNot(HaveOccurred())
 
-			labelsJSON, err := json.Marshal(sut.Config().Labels)
+			labelsJSON, err := json.Marshal(sut.Config().GetLabels())
 			Expect(err).ToNot(HaveOccurred())
 
 			volumesJSON, err := json.Marshal(volumes)
 			Expect(err).ToNot(HaveOccurred())
 
-			kubeAnnotationsJSON, err := json.Marshal(sut.Config().Annotations)
+			kubeAnnotationsJSON, err := json.Marshal(sut.Config().GetAnnotations())
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(currentTime).ToNot(BeNil())
@@ -164,9 +164,9 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.Spec().Config.Annotations[annotations.SandboxName]).To(Equal(sb.Name()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerType]).To(Equal(annotations.ContainerTypeContainer))
 			Expect(sut.Spec().Config.Annotations[annotations.LogPath]).To(Equal(logpath))
-			Expect(sut.Spec().Config.Annotations[annotations.TTY]).To(Equal(strconv.FormatBool(sut.Config().Tty)))
-			Expect(sut.Spec().Config.Annotations[annotations.Stdin]).To(Equal(strconv.FormatBool(sut.Config().Stdin)))
-			Expect(sut.Spec().Config.Annotations[annotations.StdinOnce]).To(Equal(strconv.FormatBool(sut.Config().StdinOnce)))
+			Expect(sut.Spec().Config.Annotations[annotations.TTY]).To(Equal(strconv.FormatBool(sut.Config().GetTty())))
+			Expect(sut.Spec().Config.Annotations[annotations.Stdin]).To(Equal(strconv.FormatBool(sut.Config().GetStdin())))
+			Expect(sut.Spec().Config.Annotations[annotations.StdinOnce]).To(Equal(strconv.FormatBool(sut.Config().GetStdinOnce())))
 			Expect(sut.Spec().Config.Annotations[annotations.ResolvPath]).To(Equal(sb.ResolvPath()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerManager]).To(Equal(constants.ContainerManagerCRIO))
 			Expect(sut.Spec().Config.Annotations[annotations.MountPoint]).To(Equal(mountPoint))
@@ -424,7 +424,7 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(sut.SpecSetProcessArgs(nil)).To(Succeed())
-			Expect(sut.Spec().Config.Process.Args).To(Equal(config.Command))
+			Expect(sut.Spec().Config.Process.Args).To(Equal(config.GetCommand()))
 		})
 		It("should set to Args", func() {
 			// Given
@@ -436,7 +436,7 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(sut.SpecSetProcessArgs(nil)).To(Succeed())
-			Expect(sut.Spec().Config.Process.Args).To(Equal(config.Args))
+			Expect(sut.Spec().Config.Process.Args).To(Equal(config.GetArgs()))
 		})
 		It("should append args and command", func() {
 			// Given
@@ -448,7 +448,7 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(sut.SpecSetProcessArgs(nil)).To(Succeed())
-			Expect(sut.Spec().Config.Process.Args).To(Equal(append(config.Command, config.Args...)))
+			Expect(sut.Spec().Config.Process.Args).To(Equal(append(config.Command, config.GetArgs()...)))
 		})
 		It("should inherit entrypoint from image", func() {
 			// Given
@@ -465,7 +465,7 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
-			Expect(sut.Spec().Config.Process.Args).To(Equal(append(img.Config.Entrypoint, config.Args...)))
+			Expect(sut.Spec().Config.Process.Args).To(Equal(append(img.Config.Entrypoint, config.GetArgs()...)))
 		})
 		It("should always use Command if specified", func() {
 			// Given
@@ -482,7 +482,7 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
-			Expect(sut.Spec().Config.Process.Args).To(Equal(config.Command))
+			Expect(sut.Spec().Config.Process.Args).To(Equal(config.GetCommand()))
 		})
 		It("should inherit cmd from image", func() {
 			// Given
@@ -772,12 +772,12 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
 
 			// Then
-			Expect(*sut.Spec().Config.Linux.Resources.CPU.Period).To(Equal(uint64(resources.CpuPeriod)))
-			Expect(*sut.Spec().Config.Linux.Resources.CPU.Quota).To(Equal(resources.CpuQuota))
-			Expect(*sut.Spec().Config.Linux.Resources.CPU.Shares).To(Equal(uint64(resources.CpuShares)))
-			Expect(*sut.Spec().Config.Process.OOMScoreAdj).To(Equal(int(resources.OomScoreAdj)))
-			Expect(sut.Spec().Config.Linux.Resources.CPU.Cpus).To(Equal(resources.CpusetCpus))
-			Expect(sut.Spec().Config.Linux.Resources.CPU.Mems).To(Equal(resources.CpusetMems))
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Period).To(Equal(uint64(resources.GetCpuPeriod())))
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Quota).To(Equal(resources.GetCpuQuota()))
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Shares).To(Equal(uint64(resources.GetCpuShares())))
+			Expect(*sut.Spec().Config.Process.OOMScoreAdj).To(Equal(int(resources.GetOomScoreAdj())))
+			Expect(sut.Spec().Config.Linux.Resources.CPU.Cpus).To(Equal(resources.GetCpusetCpus()))
+			Expect(sut.Spec().Config.Linux.Resources.CPU.Mems).To(Equal(resources.GetCpusetMems()))
 		})
 		It("Fails to set memory limit if invalid", func() {
 			// Given
@@ -814,8 +814,8 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SpecSetLinuxContainerResources(resources, 2048)).To(Succeed())
 
 			// Then
-			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.MemoryLimitInBytes))
-			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.MemoryLimitInBytes))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.GetMemoryLimitInBytes()))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.GetMemoryLimitInBytes()))
 		})
 		It("Set memory limits appropriately when Limit and SwapLimit are set", func() {
 			// Given
@@ -828,8 +828,8 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
 
 			// Then
-			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.MemoryLimitInBytes))
-			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.MemorySwapLimitInBytes))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.GetMemoryLimitInBytes()))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.GetMemorySwapLimitInBytes()))
 		})
 		It("Set hugepage limits", func() {
 			// Given
@@ -852,8 +852,8 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			for i, pageLimit := range sut.Spec().Config.Linux.Resources.HugepageLimits {
-				Expect(pageLimit.Pagesize).To(Equal(hugepageLimits[i].PageSize))
-				Expect(pageLimit.Limit).To(Equal(hugepageLimits[i].Limit))
+				Expect(pageLimit.Pagesize).To(Equal(hugepageLimits[i].GetPageSize()))
+				Expect(pageLimit.Limit).To(Equal(hugepageLimits[i].GetLimit()))
 			}
 		})
 		It("Set Cgroupv2 resources", func() {
@@ -868,7 +868,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SpecSetLinuxContainerResources(resources, 2048)).To(Succeed())
 
 			// Then
-			Expect(sut.Spec().Config.Linux.Resources.Unified).To(HaveLen(len(resources.Unified)))
+			Expect(sut.Spec().Config.Linux.Resources.Unified).To(HaveLen(len(resources.GetUnified())))
 		})
 	})
 })

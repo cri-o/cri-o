@@ -19,17 +19,17 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 		return nil, errors.New("checkpoint/restore support not available")
 	}
 
-	_, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	_, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
 	}
 
-	log.Infof(ctx, "Checkpointing container: %s", req.ContainerId)
+	log.Infof(ctx, "Checkpointing container: %s", req.GetContainerId())
 	config := &metadata.ContainerConfig{
-		ID: req.ContainerId,
+		ID: req.GetContainerId(),
 	}
 	opts := &lib.ContainerCheckpointOptions{
-		TargetFile: req.Location,
+		TargetFile: req.GetLocation(),
 		// For the forensic container checkpointing use case we
 		// keep the container running after checkpointing it.
 		KeepRunning: true,
@@ -40,7 +40,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 		return nil, err
 	}
 
-	log.Infof(ctx, "Checkpointed container: %s", req.ContainerId)
+	log.Infof(ctx, "Checkpointed container: %s", req.GetContainerId())
 
 	return &types.CheckpointContainerResponse{}, nil
 }

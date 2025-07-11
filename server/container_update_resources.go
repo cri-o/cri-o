@@ -20,7 +20,7 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
 		return nil, err
 	}
@@ -30,18 +30,18 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 		return nil, fmt.Errorf("container %s is not running or created state: %s", c.ID(), state.Status)
 	}
 
-	if req.Linux != nil {
+	if req.GetLinux() != nil {
 		if err := reapplySharedCPUs(c, req); err != nil {
 			return nil, err
 		}
 
-		updated, err := s.nri.updateContainer(ctx, c, req.Linux)
+		updated, err := s.nri.updateContainer(ctx, c, req.GetLinux())
 		if err != nil {
 			return nil, err
 		}
 
 		if updated == nil {
-			updated = req.Linux
+			updated = req.GetLinux()
 		}
 
 		resources := toOCIResources(updated)
@@ -65,24 +65,24 @@ func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
 	update := rspec.LinuxResources{
 		// TODO(runcom): OOMScoreAdj is missing
 		CPU: &rspec.LinuxCPU{
-			Cpus: r.CpusetCpus,
-			Mems: r.CpusetMems,
+			Cpus: r.GetCpusetCpus(),
+			Mems: r.GetCpusetMems(),
 		},
 		Memory: &rspec.LinuxMemory{},
 	}
-	if r.CpuShares != 0 {
-		update.CPU.Shares = proto.Uint64(uint64(r.CpuShares))
+	if r.GetCpuShares() != 0 {
+		update.CPU.Shares = proto.Uint64(uint64(r.GetCpuShares()))
 	}
 
-	if r.CpuPeriod != 0 {
-		update.CPU.Period = proto.Uint64(uint64(r.CpuPeriod))
+	if r.GetCpuPeriod() != 0 {
+		update.CPU.Period = proto.Uint64(uint64(r.GetCpuPeriod()))
 	}
 
-	if r.CpuQuota != 0 {
-		update.CPU.Quota = proto.Int64(r.CpuQuota)
+	if r.GetCpuQuota() != 0 {
+		update.CPU.Quota = proto.Int64(r.GetCpuQuota())
 	}
 
-	memory := r.MemoryLimitInBytes
+	memory := r.GetMemoryLimitInBytes()
 	if memory != 0 {
 		update.Memory.Limit = proto.Int64(memory)
 
@@ -120,7 +120,7 @@ func reapplySharedCPUs(c *oci.Container, req *types.UpdateContainerResourcesRequ
 		return err
 	}
 
-	isolated, err := cpuset.Parse(req.Linux.CpusetCpus)
+	isolated, err := cpuset.Parse(req.GetLinux().GetCpusetCpus())
 	if err != nil {
 		return err
 	}

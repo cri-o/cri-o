@@ -57,9 +57,9 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Status.Network.Ip).To(Equal(ipv4))
-			Expect(response.Status.Network.AdditionalIps).To(HaveLen(1))
-			Expect(response.Status.Network.AdditionalIps[0].Ip).To(Equal(ipv6))
+			Expect(response.GetStatus().GetNetwork().GetIp()).To(Equal(ipv4))
+			Expect(response.GetStatus().GetNetwork().GetAdditionalIps()).To(HaveLen(1))
+			Expect(response.GetStatus().GetNetwork().GetAdditionalIps()[0].GetIp()).To(Equal(ipv6))
 		})
 
 		It("should fail with empty sandbox ID", func() {
@@ -88,9 +88,9 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Info).NotTo(BeNil())
-			Expect(response.Info["info"]).To(ContainSubstring(`"ociVersion":"1.0.0"`))
-			Expect(response.Info["info"]).To(ContainSubstring(`"image":"pauseImage"`))
+			Expect(response.GetInfo()).NotTo(BeNil())
+			Expect(response.GetInfo()["info"]).To(ContainSubstring(`"ociVersion":"1.0.0"`))
+			Expect(response.GetInfo()["info"]).To(ContainSubstring(`"image":"pauseImage"`))
 		})
 	})
 })

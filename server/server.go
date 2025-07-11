@@ -94,6 +94,9 @@ type Server struct {
 	nri *nriAPI
 	// hooksRetriever allows getting the runtime hooks for the sandboxes.
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
+
+	types.UnsafeImageServiceServer
+	types.UnsafeRuntimeServiceServer
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -927,7 +930,7 @@ func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([
 	containerStatuses := make([]*types.ContainerStatus, len(containers.GetContainers()))
 
 	for i, cc := range containers.GetContainers() {
-		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.Id}
+		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.GetId()}
 
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
 		if isNotFound(err) {
@@ -955,7 +958,7 @@ func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxI
 	containerStatuses := make([]*types.ContainerStatus, len(containers.GetContainers()))
 
 	for i, cc := range containers.GetContainers() {
-		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.Id, Verbose: false}
+		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.GetId(), Verbose: false}
 
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
 		if isNotFound(err) {
@@ -995,14 +998,14 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	}
 
 	if err != nil {
-		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get sandbox statuses of the pod %s: %v", eventType, sandboxStatuses.Metadata.Uid, err)
+		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get sandbox statuses of the pod %s: %v", eventType, sandboxStatuses.GetMetadata().GetUid(), err)
 
 		return
 	}
 
-	containerStatuses, err := s.getContainerStatuses(ctx, sandboxStatuses.Metadata.Uid)
+	containerStatuses, err := s.getContainerStatuses(ctx, sandboxStatuses.GetMetadata().GetUid())
 	if err != nil {
-		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get container statuses of the pod %s: %v", eventType, sandboxStatuses.Metadata.Uid, err)
+		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get container statuses of the pod %s: %v", eventType, sandboxStatuses.GetMetadata().GetUid(), err)
 
 		return
 	}

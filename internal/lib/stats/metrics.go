@@ -103,7 +103,7 @@ func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric, metr
 	for _, m := range metrics {
 		for _, v := range m.valueFunc() {
 			newMetric := &types.Metric{
-				Name:        m.desc.Name,
+				Name:        m.desc.GetName(),
 				Timestamp:   time.Now().UnixNano(),
 				MetricType:  v.metricType,
 				Value:       &types.UInt64Value{Value: v.value},

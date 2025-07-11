@@ -17,10 +17,10 @@ func (s *Server) ListPodSandboxMetrics(ctx context.Context, req *types.ListPodSa
 			responseMetricsList = append(responseMetricsList, current)
 		} else {
 			// Iterate over container metrics within each PodSandboxMetrics.
-			containerMetricsList := metrics.GetMetric().ContainerMetrics
+			containerMetricsList := metrics.GetMetric().GetContainerMetrics()
 			for _, containerMetrics := range containerMetricsList {
 				containerPodSandboxMetrics := &types.PodSandboxMetrics{
-					PodSandboxId:     metrics.GetMetric().PodSandboxId,
+					PodSandboxId:     metrics.GetMetric().GetPodSandboxId(),
 					ContainerMetrics: []*types.ContainerMetrics{containerMetrics},
 				}
 				responseMetricsList = append(responseMetricsList, containerPodSandboxMetrics)

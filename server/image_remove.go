@@ -19,10 +19,10 @@ func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest)
 	defer span.End()
 
 	imageRef := ""
-	img := req.Image
+	img := req.GetImage()
 
 	if img != nil {
-		imageRef = img.Image
+		imageRef = img.GetImage()
 	}
 
 	if imageRef == "" {

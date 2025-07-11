@@ -509,7 +509,7 @@ func (p *criPodSandbox) GetName() string {
 		return ""
 	}
 
-	return p.Sandbox.Metadata().Name
+	return p.Sandbox.Metadata().GetName()
 }
 
 func (p *criPodSandbox) GetUID() string {
@@ -525,7 +525,7 @@ func (p *criPodSandbox) GetNamespace() string {
 		return ""
 	}
 
-	return p.Sandbox.Metadata().Namespace
+	return p.Sandbox.Metadata().GetNamespace()
 }
 
 func (p *criPodSandbox) GetAnnotations() map[string]string {
