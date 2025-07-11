@@ -35,5 +35,5 @@ func (s *Sandbox) UnmountShm(ctx context.Context) error {
 // If the server manages the namespace lifecycles, and the Pid option on the sandbox
 // is node or container level, the infra container is not needed.
 func (s *Sandbox) NeedsInfra(serverDropsInfra bool) bool {
-	return !serverDropsInfra || s.nsOpts.Pid == types.NamespaceMode_POD
+	return !serverDropsInfra || s.nsOpts.GetPid() == types.NamespaceMode_POD
 }

@@ -20,9 +20,9 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.GetPodSandboxId())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.GetPodSandboxId(), err)
 	}
 
 	rStatus := sb.State()
@@ -42,9 +42,9 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	if s.config.EnablePodEvents {
 		timestamp = time.Now().UnixNano()
 
-		containerStatuses, err = s.getContainerStatusesFromSandboxID(ctx, req.PodSandboxId)
+		containerStatuses, err = s.getContainerStatusesFromSandboxID(ctx, req.GetPodSandboxId())
 		if err != nil {
-			return nil, status.Errorf(codes.Unknown, "could not get container statuses of the sandbox Id %q: %v", req.PodSandboxId, err)
+			return nil, status.Errorf(codes.Unknown, "could not get container statuses of the sandbox Id %q: %v", req.GetPodSandboxId(), err)
 		}
 	}
 
@@ -72,7 +72,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 		resp.Status.Network.AdditionalIps = toPodIPs(sb.IPs()[1:])
 	}
 
-	if req.Verbose {
+	if req.GetVerbose() {
 		info, err := createSandboxInfo(sb.InfraContainer())
 		if err != nil {
 			return nil, fmt.Errorf("creating sandbox info: %w", err)

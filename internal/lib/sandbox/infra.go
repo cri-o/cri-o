@@ -97,14 +97,14 @@ func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, s
 	// set DNS options
 	b.sandboxRef.resolvPath = podContainer.RunDir + "/resolv.conf"
 
-	if b.config.DnsConfig == nil {
+	if b.config.GetDnsConfig() == nil {
 		// Ref https://github.com/kubernetes/kubernetes/issues/120748#issuecomment-1922220911
 		b.config.DnsConfig = &types.DNSConfig{}
 	}
 
-	dnsServers := b.config.DnsConfig.Servers
-	dnsSearches := b.config.DnsConfig.Searches
-	dnsOptions := b.config.DnsConfig.Options
+	dnsServers := b.config.GetDnsConfig().GetServers()
+	dnsSearches := b.config.GetDnsConfig().GetSearches()
+	dnsOptions := b.config.GetDnsConfig().GetOptions()
 	err := ParseDNSOptions(dnsServers, dnsSearches, dnsOptions, b.sandboxRef.resolvPath)
 
 	defer func() {

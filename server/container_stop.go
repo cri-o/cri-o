@@ -18,9 +18,9 @@ import (
 func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequest) (*types.StopContainerResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
+	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.GetContainerId(), req.GetTimeout())
 
-	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
 		// The StopContainer RPC is idempotent, and must not return an error if
 		// the container has already been stopped. Ref:
@@ -29,10 +29,10 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 			return &types.StopContainerResponse{}, nil
 		}
 
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
 	}
 
-	if err := s.stopContainer(ctx, c, req.Timeout); err != nil {
+	if err := s.stopContainer(ctx, c, req.GetTimeout()); err != nil {
 		return nil, err
 	}
 

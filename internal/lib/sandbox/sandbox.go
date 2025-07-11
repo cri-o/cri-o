@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -84,10 +85,10 @@ func (s *Sandbox) CRISandbox() *types.PodSandbox {
 	// We would like to avoid deep copies when possible to avoid excessive garbage
 	// collection, but need to if the sandbox changes state.
 	newState := s.State()
-	if newState != s.criSandbox.State {
-		cpy := *s.criSandbox
+	if newState != s.criSandbox.GetState() {
+		cpy := proto.CloneOf(s.criSandbox)
 		cpy.State = newState
-		s.criSandbox = &cpy
+		s.criSandbox = cpy
 	}
 
 	return s.criSandbox
@@ -150,7 +151,7 @@ func (s *Sandbox) GetIPs() []string {
 
 // ID returns the id of the sandbox.
 func (s *Sandbox) ID() string {
-	return s.criSandbox.Id
+	return s.criSandbox.GetId()
 }
 
 // UsernsMode returns the mode for setting the user namespace, if any.
@@ -180,12 +181,12 @@ func (s *Sandbox) LogDir() string {
 
 // Labels returns the labels associated with the sandbox.
 func (s *Sandbox) Labels() fields.Set {
-	return s.criSandbox.Labels
+	return s.criSandbox.GetLabels()
 }
 
 // Annotations returns a list of annotations for the sandbox.
 func (s *Sandbox) Annotations() map[string]string {
-	return s.criSandbox.Annotations
+	return s.criSandbox.GetAnnotations()
 }
 
 // Containers returns the ContainerStorer that contains information on all
@@ -206,7 +207,7 @@ func (s *Sandbox) MountLabel() string {
 
 // Metadata returns a set of metadata about the sandbox.
 func (s *Sandbox) Metadata() *types.PodSandboxMetadata {
-	return s.criSandbox.Metadata
+	return s.criSandbox.GetMetadata()
 }
 
 // ShmPath returns the shm path of the sandbox.

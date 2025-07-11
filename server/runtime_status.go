@@ -63,7 +63,7 @@ func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.S
 		}
 	}
 
-	if req.Verbose {
+	if req.GetVerbose() {
 		info, err := s.createRuntimeInfo()
 		if err != nil {
 			return nil, fmt.Errorf("creating runtime info: %w", err)

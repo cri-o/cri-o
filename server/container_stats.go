@@ -15,7 +15,7 @@ func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRe
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	container, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	container, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
 		return nil, err
 	}

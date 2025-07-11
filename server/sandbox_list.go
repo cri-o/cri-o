@@ -15,7 +15,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	podList := s.filterSandboxList(ctx, req.Filter, s.ListSandboxes())
+	podList := s.filterSandboxList(ctx, req.GetFilter(), s.ListSandboxes())
 	respList := make([]*types.PodSandbox, 0, len(podList))
 
 	for _, sb := range podList {
@@ -26,7 +26,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 
 		pod := sb.CRISandbox()
 		// Filter by other criteria such as state and labels.
-		if filterSandbox(pod, req.Filter) {
+		if filterSandbox(pod, req.GetFilter()) {
 			respList = append(respList, pod)
 		}
 	}
@@ -47,13 +47,13 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 		return podList
 	}
 
-	if filter.Id != "" {
-		id, err := s.ContainerServer.PodIDIndex().Get(filter.Id)
+	if filter.GetId() != "" {
+		id, err := s.ContainerServer.PodIDIndex().Get(filter.GetId())
 		if err != nil {
 			// Not finding an ID in a filtered list should not be considered
 			// and error; it might have been deleted when stop was done.
 			// Log and return an empty struct.
-			log.Warnf(ctx, "Unable to find pod %s with filter", filter.Id)
+			log.Warnf(ctx, "Unable to find pod %s with filter", filter.GetId())
 
 			return []*sandbox.Sandbox{}
 		}
@@ -74,14 +74,14 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 			continue
 		}
 
-		if filter.State != nil {
-			if pod.State() != filter.State.State {
+		if filter.GetState() != nil {
+			if pod.State() != filter.GetState().GetState() {
 				continue
 			}
 		}
 
 		if filter.LabelSelector != nil {
-			sel := fields.SelectorFromSet(filter.LabelSelector)
+			sel := fields.SelectorFromSet(filter.GetLabelSelector())
 			if !sel.Matches(pod.Labels()) {
 				continue
 			}
@@ -96,15 +96,15 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 // filterSandbox returns whether passed container matches filtering criteria.
 func filterSandbox(p *types.PodSandbox, filter *types.PodSandboxFilter) bool {
 	if filter != nil {
-		if filter.State != nil {
-			if p.State != filter.State.State {
+		if filter.GetState() != nil {
+			if p.GetState() != filter.GetState().GetState() {
 				return false
 			}
 		}
 
 		if filter.LabelSelector != nil {
-			sel := fields.SelectorFromSet(filter.LabelSelector)
-			if !sel.Matches(fields.Set(p.Labels)) {
+			sel := fields.SelectorFromSet(filter.GetLabelSelector())
+			if !sel.Matches(fields.Set(p.GetLabels())) {
 				return false
 			}
 		}

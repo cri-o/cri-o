@@ -62,6 +62,7 @@ func (s *Server) broadcastEvents() {
 		}
 	}()
 
+	//nolint:govet // copylock is not harmful for this implementation
 	for containerEvent := range s.ContainerEventsChan {
 		for key, value := range s.containerEventClients.Range {
 			stream, ok := key.(types.RuntimeService_GetContainerEventsServer)
