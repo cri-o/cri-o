@@ -154,6 +154,7 @@ kata_skip_network_tests:
   - 'test "Connect to pod hostport from the host"'
   - 'test "Clean up network if pod sandbox fails"'
   - 'test "Clean up network if pod sandbox gets killed"'
+  - 'test "Network recovery after reboot with destroyed netns"'
 kata_skip_pod_tests:
   - 'test "pass pod sysctls to runtime"'
   - 'test "pass pod sysctls to runtime when in userns"'
