@@ -149,3 +149,12 @@ var (
 		LabelKeys: baseLabelKeys,
 	}
 )
+
+// Process metrics.
+var (
+	containerFileDescriptors = &types.MetricDescriptor{
+		Name:      "container_file_descriptors",
+		Help:      "Number of open file descriptors for the container",
+		LabelKeys: baseLabelKeys,
+	}
+)
