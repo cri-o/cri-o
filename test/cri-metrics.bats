@@ -256,3 +256,31 @@ EOF
 	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_processes") | .value.value | tonumber')
 	[[ $metrics_container_processes == "3" ]]
 }
+
+@test "container process metrics" {
+	CONTAINER_ENABLE_METRICS="true" setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+    "cpu",
+    "memory",
+    "oom",
+	"process"
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+    container_pid=$(crictl inspect "$CONTAINER_ID" | jq -r '.info.pid')
+	file_descriptors=$(ls "/proc/$container_pid/fd" | wc -l)
+	metrics_file_descriptors=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_file_descriptors") | .value.value | tonumber')
+	# assert container_file_descriptors metric == file descriptors files in /proc/$container_pid/fd
+	[[ "$file_descriptors" == "$metrics_file_descriptors" ]]
+
+	stop_crio
+}
