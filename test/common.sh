@@ -108,7 +108,7 @@ ARCH=$(uname -m)
 ARCH_X86_64=x86_64
 
 IMAGES=(
-    registry.k8s.io/pause:3.10
+    registry.k8s.io/pause:3.10.1
     quay.io/crio/fedora-crio-ci:latest
     quay.io/crio/hello-wasm:latest
 )
