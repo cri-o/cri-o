@@ -213,6 +213,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	}
 
 	createdCh := make(chan error)
+
 	go func() {
 		// Create the container
 		if resp, err := r.task.Create(r.ctx, request); err != nil {
@@ -390,6 +391,7 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 	defer log.Debugf(ctx, "RuntimeVM.ExecSyncContainer() end")
 
 	var stdoutBuf, stderrBuf bytes.Buffer
+
 	stdout := &writeCloserWrapper{limitWriter(&stdoutBuf, maxExecSyncSize)}
 	stderr := &writeCloserWrapper{limitWriter(&stderrBuf, maxExecSyncSize)}
 
@@ -474,6 +476,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 
 	// chan to notify that can call runtime's CloseIO API
 	closeIOChan := make(chan bool)
+
 	defer func() {
 		if closeIOChan != nil {
 			close(closeIOChan)
@@ -559,6 +562,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	}
 
 	execCh := make(chan error)
+
 	go func() {
 		// Wait for the process to terminate
 		exitCode, err = r.wait(c.ID(), execID)
@@ -645,6 +649,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	defer cancel()
 
 	stopCh := make(chan error)
+
 	go func() {
 		// errdefs.ErrNotFound actually comes from a closed connection, which is expected
 		// when stopping the container, with the agent and the VM going off. In such case.
@@ -887,6 +892,7 @@ func (r *runtimeVM) restoreContainerIO(ctx context.Context, c *Container, state 
 
 		return nil
 	}
+
 	r.Unlock()
 
 	cioCfg := ctrio.Config{

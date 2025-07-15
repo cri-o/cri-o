@@ -155,6 +155,7 @@ func Get(verbose bool) (*Info, error) {
 	}
 
 	const unknown = "unknown"
+
 	gitCommit := unknown
 	gitTreeState := "clean"
 	gitCommitDate := unknown
@@ -234,6 +235,7 @@ func (i *Info) String() string {
 			// Only expecting []string here; ignore other slices.
 			if s, ok := value.Interface().([]string); ok {
 				const sep = "\n  "
+
 				valueString = sep + strings.Join(s, sep)
 			}
 

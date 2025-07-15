@@ -72,6 +72,7 @@ func (ss *StatsServer) updateLoop() {
 			return
 		case <-time.After(ss.collectionPeriod):
 		}
+
 		ss.update()
 	}
 }
@@ -188,6 +189,7 @@ func (ss *StatsServer) statsForSandbox(sb *sandbox.Sandbox) *types.PodSandboxSta
 func (ss *StatsServer) RemoveStatsForSandbox(sb *sandbox.Sandbox) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	delete(ss.sboxStats, sb.ID())
 }
 
@@ -242,6 +244,7 @@ func (ss *StatsServer) statsForContainer(c *oci.Container, sb *sandbox.Sandbox) 
 func (ss *StatsServer) RemoveStatsForContainer(c *oci.Container) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	delete(ss.ctrStats, c.ID())
 }
 
@@ -284,5 +287,6 @@ func (ss *StatsServer) MetricsForPodSandboxList(sboxes []*sandbox.Sandbox) []*Sa
 func (ss *StatsServer) RemoveMetricsForPodSandbox(sb *sandbox.Sandbox) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	delete(ss.sboxMetrics, sb.ID())
 }

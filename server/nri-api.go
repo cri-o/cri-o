@@ -201,7 +201,6 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 			},
 		),
 	)
-
 	if err := wrapgen.Adjust(adjust); err != nil {
 		return fmt.Errorf("failed to adjust container %s: %w", ctr.GetID(), err)
 	}

@@ -25,8 +25,8 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 
 	// Restore or cleanup
 	notifierPath := s.config.Seccomp().NotifierPath()
-	info, err := os.Stat(notifierPath)
 
+	info, err := os.Stat(notifierPath)
 	if err == nil && info.IsDir() {
 		if err := filepath.Walk(notifierPath, func(path string, info fs.FileInfo, err error) error {
 			if err != nil {

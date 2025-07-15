@@ -189,6 +189,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	log.Infof(ctx, "Run %q runtime handler pre-stop hook for the container %q", HighPerformance, c.ID())
 
 	cSpec := c.Spec()
@@ -664,7 +665,6 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 		cgroupManager cgmgr.CgroupManager
 		err           error
 	)
-
 	if strings.HasSuffix(parentDir, ".slice") {
 		if cgroupManager, err = cgmgr.SetCgroupManager("systemd"); err != nil {
 			// Programming error, this is only possible if the manager string is invalid.

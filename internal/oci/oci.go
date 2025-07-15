@@ -383,6 +383,7 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
 	r.runtimeImplMapMutex.RUnlock()

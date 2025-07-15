@@ -775,6 +775,7 @@ func (c *Config) UpdateFromDropInFile(ctx context.Context, path string) error {
 	log.Infof(ctx, configLogPrefix+"drop-in file: %s", path)
 	// keeps the storage options from storage.conf and merge it to crio config
 	var storageOpts []string
+
 	storageOpts = append(storageOpts, c.StorageOptions...)
 	// storage configurations from storage.conf, if crio config has no values for these, they will be merged to crio config
 	graphRoot := c.Root
@@ -892,6 +893,7 @@ func (c *Config) ToString() (string, error) {
 // fails, which should never happen at all because of general type safeness.
 func (c *Config) ToBytes() ([]byte, error) {
 	var buffer bytes.Buffer
+
 	e := toml.NewEncoder(&buffer)
 
 	tc := tomlConfig{}

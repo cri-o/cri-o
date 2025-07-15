@@ -95,6 +95,7 @@ func countLines(fileName string) (int, error) {
 	}
 
 	defer file.Close()
+
 	fileScanner := bufio.NewScanner(file)
 	lineCount := 0
 

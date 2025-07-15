@@ -312,6 +312,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		}
 
 		defer os.Remove(f.Name())
+
 		debug.WriteHeapDump(f.Fd())
 
 		if _, err := f.Seek(0, 0); err != nil {

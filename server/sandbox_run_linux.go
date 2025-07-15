@@ -415,6 +415,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	resourceCleaner := resourcestore.NewResourceCleaner()
 	// in some cases, it is still necessary to reserve container resources when an error occurs (such as just a request context timeout error)
 	storeResource := false
+
 	defer func() {
 		// no error or resource need to be stored, no need to cleanup
 		if retErr == nil || storeResource {

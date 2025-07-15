@@ -27,6 +27,7 @@ var (
 
 func CgroupIsV2() bool {
 	var cgroupIsV2 bool
+
 	cgroupIsV2, cgroupIsV2Err = cgroups.IsCgroup2UnifiedMode()
 
 	return cgroupIsV2

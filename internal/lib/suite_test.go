@@ -137,6 +137,7 @@ func beforeEach() {
 
 	// Set the config
 	var err error
+
 	config, err = libconfig.DefaultConfig()
 	Expect(err).ToNot(HaveOccurred())
 

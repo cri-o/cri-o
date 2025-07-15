@@ -133,6 +133,7 @@ func waitForFileAndRead(path string) ([]byte, error) {
 		if _, err := os.Stat(path); err == nil {
 			break
 		}
+
 		select {
 		case <-deadline:
 			return nil, fmt.Errorf("waiting for %s timed out", path)
