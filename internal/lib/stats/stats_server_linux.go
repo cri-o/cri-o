@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/vishvananda/netlink"
@@ -239,6 +240,20 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 		case CPUMetrics:
 			if cpuMetrics := generateSandboxCPUMetrics(sb, cgstats.CPU); cpuMetrics != nil {
 				metrics = append(metrics, cpuMetrics...)
+			}
+		case DiskMetrics:
+			mountpoint := c.MountPoint()
+
+			var fsStats syscall.Statfs_t
+			if err := syscall.Statfs(mountpoint, &fsStats); err != nil {
+				return nil
+			}
+
+			// Calculate usage as total blocks minus free blocks
+			usageBytes := (uint64(fsStats.Blocks) - uint64(fsStats.Bfree)) * uint64(fsStats.Bsize)
+
+			if diskMetrics := generateSandboxDiskMetrics(sb, c, &fsStats, usageBytes); diskMetrics != nil {
+				metrics = append(metrics, diskMetrics...)
 			}
 		case MemoryMetrics:
 			if memoryMetrics := generateSandboxMemoryMetrics(sb, cgstats.Memory); memoryMetrics != nil {

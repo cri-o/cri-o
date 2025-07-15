@@ -12,6 +12,7 @@ var baseLabelKeys = []string{"id", "name", "image"}
 
 const (
 	CPUMetrics     = "cpu"
+	DiskMetrics    = "disk"
 	MemoryMetrics  = "memory"
 	NetworkMetrics = "network"
 	OOMMetrics     = "oom"
@@ -58,6 +59,12 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			containerCpuCfsPeriodsTotal,
 			containerCpuCfsThrottledPeriodsTotal,
 			containerCpuCfsThrottledSecondsTotal,
+		},
+		DiskMetrics: {
+			containerFsInodesFree,
+			containerFsInodesTotal,
+			containerFsLimitBytes,
+			containerFsUsageBytes,
 		},
 		MemoryMetrics: {
 			containerMemoryCache,

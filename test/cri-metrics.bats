@@ -32,6 +32,7 @@ collection_period = 0
 included_pod_metrics = [
     "network",
     "cpu",
+	"disk",
     "memory",
     "oom",
 ]
@@ -118,6 +119,7 @@ collection_period = 0
 included_pod_metrics = [
     "network",
     "cpu",
+	"disk",
     "memory",
     "oom",
 ]
@@ -153,6 +155,57 @@ EOF
 		cgroup_memory_failcnt=$(cat "$CTR_CGROUP"/memory.failcnt) &&
 		metrics_memory_failcnt=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_failcnt") | .value.value | tonumber')
 	[[ $metrics_memory_failcnt == "$cgroup_memory_failcnt" ]]
+
+	stop_crio
+}
+
+@test "container disk metrics" {
+	PORT=$(free_port)
+	CONTAINER_ENABLE_METRICS=true \
+		CONTAINER_METRICS_PORT=$PORT \
+		setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+    "cpu",
+    "disk",
+    "memory",
+    "oom",
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	sleep 1 # Allow disk stats collection
+
+	metrics=$(crictl metricsp)
+
+	# assert container_fs_usage_bytes is present
+	fs_usage=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_usage_bytes") | .value.value | tonumber')
+	[[ "$fs_usage" -gt 0 ]]
+
+	# assert container_fs_limit_bytes is present
+	fs_limit=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_limit_bytes") | .value.value | tonumber')
+	[[ "$fs_limit" -gt 0 ]]
+
+	# assert container_fs_inodes_free is present
+	fs_inodes_free=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_inodes_free") | .value.value | tonumber')
+	[[ "$fs_inodes_free" -gt 0 ]]
+
+	# assert container_fs_inodes_total is present
+	fs_inodes_total=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_inodes_total") | .value.value | tonumber')
+	[[ "$fs_inodes_total" -gt 0 ]]
+
+	# Generate disk usage and validate increase
+	crictl exec --sync "$CONTAINER_ID" dd if=/dev/zero of=/tmp/bloatfile bs=10M count=5
+	sleep 1
+	new_fs_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_usage_bytes") | .value.value | tonumber')
+	[[ "$new_fs_usage" -gt "$fs_usage" ]]
 
 	stop_crio
 }
