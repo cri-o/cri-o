@@ -275,6 +275,11 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	// We will delete all container resources if creation fails
 	defer func() {
 		if retErr != nil {
+			// Ensure container cleanup runs to clean up artifacts (only if container has cleanups)
+			if c.HasCleanups() {
+				c.Cleanup()
+			}
+
 			if err := r.DeleteContainer(ctx, c); err != nil {
 				log.Warnf(ctx, "Unable to delete container %s: %v", c.ID(), err)
 			}

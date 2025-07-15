@@ -11,7 +11,7 @@ function teardown() {
 	cleanup_test
 }
 
-ARTIFACT_REPO=quay.io/crio/artifact
+ARTIFACT_REPO=quay.io/sohankunkerkar/artifact
 ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
 ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
@@ -33,7 +33,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	mkdir -p "$CONTAINER_REGISTRIES_CONF_DIR"
 	printf 'unqualified-search-registries = ["quay.io"]' >> "$CONTAINER_REGISTRIES_CONF_DIR/99-registry.conf"
 
-	IMAGE=crio/artifact:singlefile
+	IMAGE=sohankunkerkar/artifact:singlefile
 	CONTAINER_REGISTRIES_CONF_DIR=$CONTAINER_REGISTRIES_CONF_DIR start_crio
 	cleanup_images
 	crictl pull $IMAGE
@@ -43,7 +43,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	[ "$output" != "" ]
 
 	# Should be available on the whole list
-	crictl images | grep -qE "quay.io/crio/artifact.*singlefile"
+	crictl images | grep -qE "quay.io/sohankunkerkar/artifact.*singlefile"
 }
 
 @test "should be able to inspect an OCI artifact" {
@@ -76,7 +76,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	crictl inspecti "${imageId:0:12}"
 
 	# shortname
-	crictl inspecti crio/artifact:singlefile
+	crictl inspecti sohankunkerkar/artifact:singlefile
 }
 
 @test "should be able to remove an OCI artifact" {
@@ -130,6 +130,67 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	[[ "$output" == "hello artifact" ]]
 	run crictl exec --sync "$ctr_id" cat /root/artifact/artifact.sh
 	[[ "$output" == *"echo hello artifact" ]]
+}
+
+@test "should be able to mount artifact with multiple files and folders" {
+	start_crio
+	IMAGE="$ARTIFACT_REPO:multifile-folders"
+	crictl pull $IMAGE
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg ARTIFACT_IMAGE "$IMAGE" \
+		'.mounts = [ {
+      container_path: "/root/artifact",
+      image: { image: $ARTIFACT_IMAGE },
+    } ] |
+    .command = ["sleep", "3600"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$ctr_id"
+
+	# Test config files
+	run crictl exec --sync "$ctr_id" cat /root/artifact/configs/app.conf
+	[[ "$output" == "config1: value1" ]]
+	run crictl exec --sync "$ctr_id" cat /root/artifact/configs/db.conf
+	[[ "$output" == "config2: value2" ]]
+
+	# Test script files
+	run crictl exec --sync "$ctr_id" cat /root/artifact/scripts/start.sh
+	[[ "$output" == *"Hello from script1"* ]]
+	run crictl exec --sync "$ctr_id" cat /root/artifact/scripts/stop.sh
+	[[ "$output" == *"Hello from script2"* ]]
+
+	# Test data files
+	run crictl exec --sync "$ctr_id" cat /root/artifact/data/file1.txt
+	[[ "$output" == "data file 1" ]]
+
+	# Test nested directory structure
+	run crictl exec --sync "$ctr_id" cat /root/artifact/data/subdir/nested.txt
+	[[ "$output" == "nested data file" ]]
+
+	# Test symlink
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/data/subdir/symlink.txt
+	[[ "$output" == *"-> ../file1.txt"* ]]
+	run crictl exec --sync "$ctr_id" cat /root/artifact/data/subdir/symlink.txt
+	[[ "$output" == "data file 1" ]]
+
+	# Test directory listing
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/
+	[[ "$output" == *"configs"* ]]
+	[[ "$output" == *"scripts"* ]]
+	[[ "$output" == *"data"* ]]
+
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/data/
+	[[ "$output" == *"file1.txt"* ]]
+	[[ "$output" == *"subdir"* ]]
+
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/data/subdir/
+	[[ "$output" == *"nested.txt"* ]]
+	[[ "$output" == *"symlink.txt"* ]]
+
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/scripts/start.sh
+	[[ "$output" == *"-rw-r--r--"* ]]
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/scripts/stop.sh
+	[[ "$output" == *"-rw-r--r--"* ]]
 }
 
 @test "should be able to relabel selinux label" {
@@ -285,4 +346,28 @@ EOF
 	ctr_id=$(crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
 	run crictl exec "$ctr_id" sha256sum /root/artifact/cri-o/bin/crio
 	[[ "$output" == *"ae5d192303e5f9a357c6ea39308338956b62b8830fd05f0460796db2215c2b35"* ]]
+}
+
+@test "should extract mounted image artifact files correctly" {
+	start_crio
+	IMAGE="quay.io/sohankunkerkar/test-artifact:v1"
+	crictl pull "$IMAGE"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg IMAGE "$IMAGE" \
+		'.mounts = [{
+			container_path: "/root/artifacts",
+			image: { image: $IMAGE },
+			readonly: true
+		}]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+
+	run crictl exec --sync "$ctr_id" cat /root/artifacts/zstd.txt
+	[ "$output" == "This is a zstd-compressed file" ]
+
+	# Cleanup
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+	crictl rmi "$IMAGE"
 }
