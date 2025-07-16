@@ -80,7 +80,6 @@ To install CRI-O on Flatcar Container Linux with sysexts, follow these steps:
 - Step 1: Download the installation script:
 
   Sample extension script for installing CRI-O using sysext is [here](https://github.com/flatcar/sysext-bakery/blob/main/create_crio_sysext.sh).
-
   - Using curl:
 
     ```bash
@@ -106,7 +105,6 @@ chmod +x create_crio_sysext.sh
 - Step 2: Run the installation script:
 
   Execute the script with the required arguments:
-
   - The version of CRI-O you wish to install. [(Find a specific version of
     CRI-O here)](https://github.com/cri-o/cri-o/releases)
   - The name you wish to give to the sysext image.
@@ -123,7 +121,6 @@ chmod +x create_crio_sysext.sh
   ```
 
 - Step 3: Deploy the system extension:
-
   - Once the script completes, you will have a `.raw` sysext image file named as
     per your `SYSEXTNAME` argument.
   - To deploy the system extension, move the `.raw` file to the
@@ -137,7 +134,6 @@ chmod +x create_crio_sysext.sh
   ```
 
 - Step 4: Verify the installation:
-
   - Verify that the CRI-O service is running correctly.
 
     ```bash
