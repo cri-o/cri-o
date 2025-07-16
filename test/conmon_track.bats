@@ -3,8 +3,8 @@
 load helpers
 
 function setup() {
-	if [[ $RUNTIME_TYPE != oci ]]; then
-		skip "not using conmonrs"
+	if [[ $RUNTIME_TYPE == vm ]]; then
+		skip "using vm"
 	fi
 	setup_test
 }
