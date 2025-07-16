@@ -58,72 +58,14 @@ block, and all the traces during that time will be lost.
 
 The [OpenTelemetry Collector][collector] alone cannot be used to visualize
 traces and spans. For that a frontend like [Jaeger][jaeger] can be used to
-connect to it. To achieve that, a configuration file for OTLP needs to be
-created, like this `otel-collector-config.yaml`:
+visualize the data. The Jaeger community provides an all-in-one image which
+already ships the collector as well:
 
 [jaeger]: https://www.jaegertracing.io
 [collector]: https://opentelemetry.io/docs/collector
 
-```yaml
-receivers:
-  otlp:
-    protocols:
-      http:
-      grpc:
-
-exporters:
-  logging:
-    loglevel: debug
-
-  jaeger:
-    endpoint: localhost:14250
-    tls:
-      insecure: true
-
-processors:
-  batch:
-
-extensions:
-  health_check:
-  pprof:
-    endpoint: localhost:1888
-  zpages:
-    endpoint: localhost:55679
-
-service:
-  extensions: [pprof, zpages, health_check]
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [logging, jaeger]
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [logging]
-```
-
-The `jaeger` `endpoint` has been set to `localhost:14250`, means before starting
-the collector we have to start the jaeger instance:
-
 ```bash
-podman run -it --rm --network host jaegertracing/all-in-one:1.41.0
-```
-
-After jaeger is up and running we can start the OpenTelemetry collector:
-
-```bash
-podman run -it --rm --network host \
-    -v ./otel-collector-config.yaml:/etc/otel-collector-config.yaml \
-    otel/opentelemetry-collector:0.70.0 --config=/etc/otel-collector-config.yaml
-```
-
-The collector logs will indicate that the connection to Jaeger was successful:
-
-```text
-2023-01-26T13:26:22.015Z        info    jaegerexporter@v0.70.0/exporter.go:184  \
-    State of the connection with the Jaeger Collector backend \
-    {"kind": "exporter", "data_type": "traces", "name": "jaeger", "state": "READY"}
+podman run -it --rm --network host cr.jaegertracing.io/jaegertracing/jaeger:2.8.0
 ```
 
 The Jaeger UI should be now available on `http://localhost:16686`.
@@ -140,46 +82,8 @@ And when now running a CRI API call, for example by using[`crictl`](https://gith
 sudo crictl ps
 ```
 
-Then the OpenTelemetry collector will indicate that it has received new traces
-and spans, where the trace with the ID `1987d3baa753087d60dd1a566c14da31`
-contains the invocation for listing the containers via `crictl ps`:
-
-```text
-Span #2
-    Trace ID       : 1987d3baa753087d60dd1a566c14da31
-    Parent ID      :
-    ID             : 3b91638c1aa3cf30
-    Name           : /runtime.v1.RuntimeService/ListContainers
-    Kind           : Internal
-    Start time     : 2023-01-26 13:29:44.409289041 +0000 UTC
-    End time       : 2023-01-26 13:29:44.409831126 +0000 UTC
-    Status code    : Unset
-    Status message :
-Events:
-SpanEvent #0
-     -> Name: log
-     -> Timestamp: 2023-01-26 13:29:44.409324579 +0000 UTC
-     -> DroppedAttributesCount: 0
-     -> Attributes::
-          -> log.severity: Str(DEBUG)
-          -> log.message: Str(Request: &ListContainersRequest{Filter:&ContainerFilter{Id:,State:&ContainerStateValue{State:CONTAINER_RUNNING,},PodSandboxId:,LabelSelector:map[string]string{},},})
-          -> id: Str(4e395179-b3c6-4f87-ac77-a70361dd4ebd)
-          -> name: Str(/runtime.v1.RuntimeService/ListContainers)
-SpanEvent #1
-     -> Name: log
-     -> Timestamp: 2023-01-26 13:29:44.409813328 +0000 UTC
-     -> DroppedAttributesCount: 0
-     -> Attributes::
-          -> log.severity: Str(DEBUG)
-          -> log.message: Str(Response: &ListContainersResponse{Containers:[]*Container{},})
-          -> name: Str(/runtime.v1.RuntimeService/ListContainers)
-          -> id: Str(4e395179-b3c6-4f87-ac77-a70361dd4ebd)
-```
-
-We can see that there are `SpanEvent`s attached to the `Span`, carrying the log
-messages from CRI-O. The visualization of the trace, its spans and log messages
-can be found in Jaeger as well, under
-`http://localhost:16686/trace/1987d3baa753087d60dd1a566c14da31`:
+Then the visualization of the trace, its spans and log messages
+can be now found in Jaeger via `http://localhost:16686`:
 
 ![trace](./tracing.png "Trace")
 
