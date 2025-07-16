@@ -151,7 +151,28 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		return fmt.Errorf("set init PID: %w", err)
 	}
 
+	c.state.ContainerMonitorProcess, err = r.getConmonrsProcess()
+	if err != nil {
+		return err
+	}
+
+	c.SetMonitorProcess(ctx)
+
 	return nil
+}
+
+func (r *runtimePod) getConmonrsProcess() (*ContainerMonitorProcess, error) {
+	conmonrsPid := int(r.client.PID())
+
+	startTime, err := getPidStartTime(conmonrsPid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conmonrs pid start time: %w", err)
+	}
+
+	return &ContainerMonitorProcess{
+		Pid:       conmonrsPid,
+		StartTime: startTime,
+	}, nil
 }
 
 func (r *runtimePod) StartContainer(ctx context.Context, c *Container) error {
@@ -315,8 +336,7 @@ func (r *runtimePod) IsContainerAlive(c *Container) bool {
 }
 
 func (r *runtimePod) ProbeMonitor(ctx context.Context, c *Container) error {
-	// Not implemented
-	return nil
+	return r.oci.ProbeMonitor(ctx, c)
 }
 
 func (r *runtimePod) ServeExecContainer(ctx context.Context, c *Container, cmd []string, tty, stdin, stdout, stderr bool) (string, error) {
