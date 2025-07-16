@@ -1508,7 +1508,7 @@ EOF
 	CRICTL_TIMEOUT=10m crictl stop -t 10 "$ctr_id"
 	crictl rmp -f "$pod_id"
 
-	grep -q "Stopping container ${ctr_id} with stop signal timed out." "$CRIO_LOG"
+	grep -q "Stopping container ${ctr_id} with stop signal(15) timed out." "$CRIO_LOG"
 
 	readarray -t attempts < "$FAKE_RUNTIME_ATTEMPTS_LOG"
 
