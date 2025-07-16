@@ -1765,10 +1765,14 @@ func (r *runtimeOCI) IsContainerAlive(c *Container) bool {
 }
 
 func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
+	c.monitorProcessLock.Lock()
+	defer c.monitorProcessLock.Unlock()
+
 	if c.monitorProcess == nil {
 		// It's possible when the container has existed before crio was updated.
-		// TODO(atokubi): remove this conditional in 1.35 because we don't support
-		//  1.33->1.35 in place cri-o update without node reboot
+		// Or it already doesn't exist.
+		log.Debugf(ctx, "Conmon for container %s doesn't exist", c.ID())
+
 		return nil
 	}
 
@@ -1779,6 +1783,7 @@ func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
 	if r.IsContainerAlive(c) {
 		metrics.Instance().MetricContainersStoppedMonitorCountInc(c.Name())
 		log.Errorf(ctx, "Conmon for container %s is stopped, although the container is running", c.ID())
+		c.monitorProcess = nil
 	}
 
 	return nil

@@ -82,7 +82,10 @@ type Container struct {
 	runtimePath           string // runtime path for a given platform
 	execPIDs              map[int]bool
 	runtimeUser           *types.ContainerUser
-	monitorProcess        *os.Process
+	// monitorProcess can be nil while running when the process is killed for some reason.
+	// To avoid race condition, it must be used with monitorProcessLock.
+	monitorProcess     *os.Process
+	monitorProcessLock sync.Mutex
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -921,6 +924,9 @@ func (c *Container) RuntimeUser() *types.ContainerUser {
 // It doesn't return any error so that we can continue to load the container even if the monitor process
 // is not found.
 func (c *Container) SetMonitorProcess(ctx context.Context) {
+	c.monitorProcessLock.Lock()
+	defer c.monitorProcessLock.Unlock()
+
 	if c.monitorProcess != nil {
 		return
 	}
