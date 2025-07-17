@@ -16,8 +16,15 @@ function metrics_setup() {
 	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
 	# Make sure we get a non-empty metrics response
 	crictl metricsp | grep "podSandboxId"
-	CONTAINER_ID=$(crictl create "$POD_ID" "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
+
+	jq --arg TESTDATA "$TESTDATA" '.mounts = [{
+            host_path: $TESTDATA,
+            container_path: "/testdata",
+          }]' \
+		"$TESTDATA/container_sleep.json" > "$TESTDIR/container_metrics.json"
+	CONTAINER_ID=$(crictl create "$POD_ID" "$TESTDIR/container_metrics.json" "$TESTDATA/sandbox_config.json")
 	crictl start "$CONTAINER_ID"
+
 	# assert pod metrics are present
 	crictl metricsp | grep "container_network_receive_bytes_total"
 	# assert container metrics are present
@@ -25,13 +32,14 @@ function metrics_setup() {
 }
 
 @test "container memory metrics" {
-	CONTAINER_ENABLE_METRICS="true" setup_crio
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]
 collection_period = 0
 included_pod_metrics = [
     "network",
     "cpu",
+    "hugetlb",
     "memory",
     "oom",
 ]
@@ -102,22 +110,21 @@ EOF
 	# or cgroup memory.stat:mapped_file (cgroup v1)
 
 	# TODO: find a suitable command/script to use to increase the mapped file count in the cgroup
-
-	stop_crio
 }
 
 @test "container memory cgroupv1-specific metrics" {
-	# Ignored for cgroupv2
 	if is_cgroup_v2; then
-		skip
+		skip "skip test for cgroup v2"
 	fi
-	CONTAINER_ENABLE_METRICS="true" setup_crio
+
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]
 collection_period = 0
 included_pod_metrics = [
     "network",
     "cpu",
+    "hugetlb",
     "memory",
     "oom",
 ]
@@ -153,6 +160,73 @@ EOF
 		cgroup_memory_failcnt=$(cat "$CTR_CGROUP"/memory.failcnt) &&
 		metrics_memory_failcnt=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_failcnt") | .value.value | tonumber')
 	[[ $metrics_memory_failcnt == "$cgroup_memory_failcnt" ]]
+}
 
-	stop_crio
+@test "container hugetlb metrics" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+    "cpu",
+    "hugetlb",
+    "memory",
+    "oom",
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	# allocate static huge pages
+	old_pages=$(cat /proc/sys/vm/nr_hugepages)
+	if [[ $old_pages == "0" ]]; then
+		echo 1 | tee /proc/sys/vm/nr_hugepages
+
+		bats::on_failure() {
+			echo 0 | tee /proc/sys/vm/nr_hugepages
+		}
+	fi
+
+	# make use of the huge page in the container
+	crictl exec --sync "$CONTAINER_ID" /usr/bin/cp /testdata/usehugetlb.c /
+	crictl exec --sync "$CONTAINER_ID" /usr/bin/gcc /usehugetlb.c -o /usr/bin/usehugetlb
+	crictl exec --sync "$CONTAINER_ID" /usr/bin/usehugetlb &
+
+	# wait until the huge page is being consumed
+	until [[ $(cat "$CTR_CGROUP"/hugetlb.2MB.rsvd.current) == "2097152" ]]; do
+		sleep 1
+	done
+
+	metrics=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[]')
+
+	# assert container_hugetlb_usage_bytes{pagesize="2MB"} == 2MB
+	metrics_hugetlb_usage_2mb=$(echo "$metrics" | jq 'select(.name == "container_hugetlb_usage_bytes" and any(.labelValues[]; . == "2MB")) | .value.value | tonumber')
+	[[ $metrics_hugetlb_usage_2mb == "2097152" ]]
+
+	# assert container_hugetlb_max_usage_bytes{pagesize="2MB"} == 0(cgroup v2) or 2MB(cgroup v1)
+	# cgroup v2 does not support hugetlb max usage stats
+	metrics_hugetlb_max_usage_2mb=$(echo "$metrics" | jq 'select(.name == "container_hugetlb_max_usage_bytes" and any(.labelValues[]; . == "2MB")) | .value.value | tonumber')
+	if is_cgroup_v2; then
+		cgroup_hugetlb_max_usage_2mb=0
+	else
+		cgroup_hugetlb_max_usage_2mb=2097152
+	fi
+	[[ $metrics_hugetlb_max_usage_2mb == "$cgroup_hugetlb_max_usage_2mb" ]]
+
+	# assert container_hugetlb_usage_bytes{pagesize="1GB"} == 0
+	metrics_hugetlb_usage_1gb=$(echo "$metrics" | jq 'select(.name == "container_hugetlb_usage_bytes" and any(.labelValues[]; . == "1GB")) | .value.value | tonumber')
+	[[ $metrics_hugetlb_usage_1gb == "0" ]]
+
+	# assert container_hugetlb_max_usage_bytes{pagesize="1GB"} == 0
+	metrics_hugetlb_max_usage_1gb=$(echo "$metrics" | jq 'select(.name == "container_hugetlb_max_usage_bytes" and any(.labelValues[]; . == "1GB")) | .value.value | tonumber')
+	[[ $metrics_hugetlb_max_usage_1gb == "0" ]]
+
+	# cleanup
+	if [[ $old_pages == "0" ]]; then
+		echo 0 | tee /proc/sys/vm/nr_hugepages
+	fi
 }

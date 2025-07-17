@@ -240,6 +240,10 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 			if cpuMetrics := generateSandboxCPUMetrics(sb, cgstats.CPU); cpuMetrics != nil {
 				metrics = append(metrics, cpuMetrics...)
 			}
+		case HugetlbMetrics:
+			if hugetlbMetrics := generateSandboxHugetlbMetrics(sb, cgstats.Hugetlb); hugetlbMetrics != nil {
+				metrics = append(metrics, hugetlbMetrics...)
+			}
 		case MemoryMetrics:
 			if memoryMetrics := generateSandboxMemoryMetrics(sb, cgstats.Memory); memoryMetrics != nil {
 				metrics = append(metrics, memoryMetrics...)
