@@ -14,24 +14,6 @@ function teardown() {
 	cleanup_test
 }
 
-function prepare_stream_server() {
-	setup_crio
-
-	cat << EOF > "$CRIO_CONFIG_DIR/99-websocket.conf"
-[crio.runtime]
-default_runtime = "websocket"
-[crio.runtime.runtimes.websocket]
-runtime_path = "$RUNTIME_BINARY_PATH"
-runtime_type = "pod"
-monitor_path = ""
-stream_websockets = true
-EOF
-	unset CONTAINER_DEFAULT_RUNTIME
-	unset CONTAINER_RUNTIMES
-
-	start_crio_no_setup
-}
-
 @test "conmonrs is used" {
 	start_crio
 
@@ -42,7 +24,7 @@ EOF
 }
 
 @test "conmonrs streaming server for exec" {
-	prepare_stream_server
+	start_crio_with_websocket_stream_server
 	POD=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	CTR=$(crictl create "$POD" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$CTR"
@@ -53,7 +35,7 @@ EOF
 }
 
 @test "conmonrs streaming server for attach" {
-	prepare_stream_server
+	start_crio_with_websocket_stream_server
 	POD=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	CTR=$(crictl create "$POD" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$CTR"
