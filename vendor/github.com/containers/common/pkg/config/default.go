@@ -102,7 +102,7 @@ var (
 	// DefaultHooksDirs defines the default hooks directory.
 	DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
 	// DefaultCdiSpecDirs defines the default cdi spec directories.
-	DefaultCdiSpecDirs = []string{"/etc/cdi"}
+	DefaultCdiSpecDirs = []string{"/etc/cdi", "/var/run/cdi"}
 	// DefaultCapabilities is the default for the default_capabilities option in the containers.conf file.
 	DefaultCapabilities = []string{
 		"CAP_CHOWN",
@@ -361,11 +361,6 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	c.ComposeProviders.Set(getDefaultComposeProviders()) // may vary across supported platforms
 	c.ComposeWarningLogs = true
 
-	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
-		if err := types.SetDefaultConfigFilePath(path); err != nil {
-			return nil, err
-		}
-	}
 	storeOpts, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
