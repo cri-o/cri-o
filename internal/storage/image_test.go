@@ -665,12 +665,12 @@ var _ = t.Describe("Image", func() {
 
 	t.Describe("CompileRegexpsForPinnedImages", func() {
 		It("should return regexps for exact patterns", func() {
-			patterns := []string{"quay.io/crio/pause:latest", "docker.io/crio/sandbox:latest", "registry.k8s.io/pause:3.10"}
+			patterns := []string{"quay.io/crio/pause:latest", "docker.io/crio/sandbox:latest", "registry.k8s.io/pause:3.10.1"}
 			regexps := storage.CompileRegexpsForPinnedImages(patterns)
 			Expect(regexps).To(HaveLen(len(patterns)))
 			Expect(regexps[0].MatchString("quay.io/crio/pause:latest")).To(BeTrue())
 			Expect(regexps[1].MatchString("docker.io/crio/sandbox:latest")).To(BeTrue())
-			Expect(regexps[2].MatchString("registry.k8s.io/pause:3.10")).To(BeTrue())
+			Expect(regexps[2].MatchString("registry.k8s.io/pause:3.10.1")).To(BeTrue())
 		})
 
 		It("should return regexps for keyword patterns", func() {

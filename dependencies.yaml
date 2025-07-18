@@ -131,7 +131,7 @@ dependencies:
         match: MDTOC_VERSION
 
   - name: pause
-    version: 3.10
+    version: 3.10.1
     refPaths:
       - path: docs/crio.8.md
         match: "registry.k8s.io/pause:"
