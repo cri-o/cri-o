@@ -33,7 +33,6 @@ import (
 	"github.com/cri-o/cri-o/internal/memorystore"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
-	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
@@ -1174,12 +1173,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
-	}
-
-	if hooks != nil {
+	if hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations()); hooks != nil {
 		if err := hooks.PreStart(ctx, container, sb); err != nil {
 			return nil, fmt.Errorf("failed to run pre-stop hook for container %q: %w", sb.ID(), err)
 		}
