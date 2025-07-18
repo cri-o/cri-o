@@ -279,7 +279,23 @@ type RuntimeHandler struct {
 	// conmon-rs (runtime_type = "pod") supports this configuration for exec
 	// and attach. Forwarding ports will be supported in future releases.
 	StreamWebsockets bool `toml:"stream_websockets,omitempty"`
+
+	// ExecCPUAffinity specifies which CPU is used when exec-ing the container.
+	// The valid values are:
+	// "":
+	//   Use runtime default.
+	// "first":
+	//   When it has only exclusive cpuset, use the first CPU in the exclusive cpuset.
+	//   When it has both shared and exclusive cpusets, use first CPU in the shared cpuset.
+	ExecCPUAffinity ExecCPUAffinityType `toml:"exec_cpu_affinity,omitempty"`
 }
+
+type ExecCPUAffinityType string
+
+const (
+	ExecCPUAffinityTypeDefault ExecCPUAffinityType = ""
+	ExecCPUAffinityTypeFirst   ExecCPUAffinityType = "first"
+)
 
 // Multiple runtime Handlers in a map.
 type Runtimes map[string]*RuntimeHandler
@@ -1377,6 +1393,7 @@ func defaultRuntimeHandler(isSystemd bool) *RuntimeHandler {
 		},
 		ContainerMinMemory: units.BytesSize(defaultContainerMinMemoryCrun),
 		MonitorCgroup:      getDefaultMonitorGroup(isSystemd),
+		ExecCPUAffinity:    ExecCPUAffinityTypeDefault,
 	}
 }
 
@@ -1744,6 +1761,10 @@ func (r *RuntimeHandler) Validate(name string) error {
 		return fmt.Errorf("websocket streaming: %w", err)
 	}
 
+	if err := r.validateRuntimeExecCPUAffinity(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1966,6 +1987,16 @@ func (r *RuntimeHandler) RuntimeDefaultAnnotations() map[string]string {
 // RuntimeStreamWebsockets returns the configured websocket streaming option for this handler.
 func (r *RuntimeHandler) RuntimeStreamWebsockets() bool {
 	return r.StreamWebsockets
+}
+
+// validateRuntimeExecCPUAffinity checks if the RuntimeHandler enforces proper CPU affinity settings.
+func (r *RuntimeHandler) validateRuntimeExecCPUAffinity() error {
+	switch r.ExecCPUAffinity {
+	case ExecCPUAffinityTypeDefault, ExecCPUAffinityTypeFirst:
+		return nil
+	}
+
+	return fmt.Errorf("invalid exec_cpu_affinity %q", r.ExecCPUAffinity)
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {

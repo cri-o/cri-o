@@ -1174,7 +1174,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	if hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations()); hooks != nil {
+	if hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations()); hooks != nil {
 		if err := hooks.PreStart(ctx, container, sb); err != nil {
 			return nil, fmt.Errorf("failed to run pre-stop hook for container %q: %w", sb.ID(), err)
 		}
