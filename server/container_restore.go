@@ -32,9 +32,7 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*
 		return nil, nil
 	}
 
-	status, err := s.storageImageStatus(ctx, types.ImageSpec{
-		Image: input,
-	})
+	status, err := s.storageImageStatus(ctx, &types.ImageSpec{Image: input})
 	if err != nil {
 		return nil, err
 	}
@@ -62,18 +60,18 @@ func (s *Server) CRImportCheckpoint(
 	var mountPoint string
 
 	// Ensure that the image to restore the checkpoint from has been provided.
-	if createConfig.Image == nil || createConfig.Image.Image == "" {
+	if createConfig.GetImage() == nil || createConfig.GetImage().GetImage() == "" {
 		return "", errors.New(`attribute "image" missing from container definition`)
 	}
 
-	if createConfig.Metadata == nil || createConfig.Metadata.Name == "" {
+	if createConfig.GetMetadata() == nil || createConfig.GetMetadata().GetName() == "" {
 		return "", errors.New(`attribute "metadata" missing from container definition`)
 	}
 
-	inputImage := createConfig.Image.Image
-	createMounts := createConfig.Mounts
-	createAnnotations := createConfig.Annotations
-	createLabels := createConfig.Labels
+	inputImage := createConfig.GetImage().GetImage()
+	createMounts := createConfig.GetMounts()
+	createAnnotations := createConfig.GetAnnotations()
+	createLabels := createConfig.GetLabels()
 
 	restoreStorageImageID, err := s.checkIfCheckpointOCIImage(ctx, inputImage)
 	if err != nil {
@@ -83,14 +81,14 @@ func (s *Server) CRImportCheckpoint(
 	var restoreArchivePath string
 
 	if restoreStorageImageID != nil {
-		systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
+		systemCtx, err := s.contextForNamespace(sb.Metadata().GetNamespace())
 		if err != nil {
 			return "", fmt.Errorf("get context for namespace: %w", err)
 		}
 		// WARNING: This hard-codes an assumption that SignaturePolicyPath set specifically for the namespace is never less restrictive
 		// than the default system-wide policy, i.e. that if an image is successfully pulled, it always conforms to the system-wide policy.
 		if systemCtx.SignaturePolicyPath != "" {
-			return "", fmt.Errorf("namespaced signature policy %s defined for pods in namespace %s; signature validation is not supported for container restore", systemCtx.SignaturePolicyPath, sb.Metadata().Namespace)
+			return "", fmt.Errorf("namespaced signature policy %s defined for pods in namespace %s; signature validation is not supported for container restore", systemCtx.SignaturePolicyPath, sb.Metadata().GetNamespace())
 		}
 
 		log.Debugf(ctx, "Restoring from oci image %s", inputImage)
@@ -228,8 +226,8 @@ func (s *Server) CRImportCheckpoint(
 
 	containerConfig := &types.ContainerConfig{
 		Metadata: &types.ContainerMetadata{
-			Name:    createConfig.Metadata.Name,
-			Attempt: createConfig.Metadata.Attempt,
+			Name:    createConfig.GetMetadata().GetName(),
+			Attempt: createConfig.GetMetadata().GetAttempt(),
 		},
 		Image: &types.ImageSpec{
 			Image: rootFSImage,
@@ -244,13 +242,13 @@ func (s *Server) CRImportCheckpoint(
 		Labels: createLabels,
 	}
 
-	if createConfig.Linux != nil {
-		if createConfig.Linux.Resources != nil {
-			containerConfig.Linux.Resources = createConfig.Linux.Resources
+	if createConfig.GetLinux() != nil {
+		if createConfig.GetLinux().GetResources() != nil {
+			containerConfig.Linux.Resources = createConfig.GetLinux().GetResources()
 		}
 
-		if createConfig.Linux.SecurityContext != nil {
-			containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+		if createConfig.GetLinux().GetSecurityContext() != nil {
+			containerConfig.Linux.SecurityContext = createConfig.GetLinux().GetSecurityContext()
 		}
 	}
 
@@ -300,15 +298,15 @@ func (s *Server) CRImportCheckpoint(
 		bindMountFound := false
 
 		for _, createMount := range createMounts {
-			if createMount.ContainerPath != m.Destination {
+			if createMount.GetContainerPath() != m.Destination {
 				continue
 			}
 
 			bindMountFound = true
-			mount.HostPath = createMount.HostPath
-			mount.Readonly = createMount.Readonly
-			mount.RecursiveReadOnly = createMount.RecursiveReadOnly
-			mount.Propagation = createMount.Propagation
+			mount.HostPath = createMount.GetHostPath()
+			mount.Readonly = createMount.GetReadonly()
+			mount.RecursiveReadOnly = createMount.GetRecursiveReadOnly()
+			mount.Propagation = createMount.GetPropagation()
 
 			break
 		}
@@ -335,10 +333,10 @@ func (s *Server) CRImportCheckpoint(
 
 	sandboxConfig := &types.PodSandboxConfig{
 		Metadata: &types.PodSandboxMetadata{
-			Name:      sb.Metadata().Name,
-			Uid:       sb.Metadata().Uid,
-			Namespace: sb.Metadata().Namespace,
-			Attempt:   sb.Metadata().Attempt,
+			Name:      sb.Metadata().GetName(),
+			Uid:       sb.Metadata().GetUid(),
+			Namespace: sb.Metadata().GetNamespace(),
+			Attempt:   sb.Metadata().GetAttempt(),
 		},
 		Linux: &types.LinuxPodSandboxConfig{},
 	}

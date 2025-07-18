@@ -48,11 +48,11 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 		envs = imageConfig.Config.Env
 	} else {
 		for _, item := range kubeEnvs {
-			if item.Key == "" {
+			if item.GetKey() == "" {
 				continue
 			}
 
-			envs = append(envs, item.Key+"="+item.Value)
+			envs = append(envs, item.GetKey()+"="+item.GetValue())
 		}
 
 		if imageConfig != nil {

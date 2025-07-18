@@ -39,7 +39,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.Items)).To(BeEquivalentTo(1))
+			Expect(len(response.GetItems())).To(BeEquivalentTo(1))
 		})
 
 		It("should succeed without infra container", func() {
@@ -55,7 +55,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			// the sandbox is created, and even though it has no infra container, it should be displayed
-			Expect(response.Items).To(HaveLen(1))
+			Expect(response.GetItems()).To(HaveLen(1))
 		})
 
 		It("should skip not created sandboxes", func() {
@@ -70,7 +70,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Items).To(BeEmpty())
+			Expect(response.GetItems()).To(BeEmpty())
 		})
 
 		It("should succeed with filter", func() {
@@ -89,7 +89,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.Items)).To(BeEquivalentTo(1))
+			Expect(len(response.GetItems())).To(BeEquivalentTo(1))
 		})
 
 		It("should succeed with filter for state", func() {
@@ -112,7 +112,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Items).To(BeEmpty())
+			Expect(response.GetItems()).To(BeEmpty())
 		})
 
 		It("should succeed with filter for label", func() {
@@ -132,7 +132,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Items).To(BeEmpty())
+			Expect(response.GetItems()).To(BeEmpty())
 		})
 
 		It("should succeed with filter but when not finding id", func() {
@@ -148,7 +148,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Items).To(BeEmpty())
+			Expect(response.GetItems()).To(BeEmpty())
 		})
 	})
 })

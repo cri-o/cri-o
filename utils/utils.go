@@ -436,20 +436,20 @@ func GetLabelOptions(selinuxOptions *types.SELinuxOption) []string {
 	labels := []string{}
 
 	if selinuxOptions != nil {
-		if selinuxOptions.User != "" {
-			labels = append(labels, "user:"+selinuxOptions.User)
+		if selinuxOptions.GetUser() != "" {
+			labels = append(labels, "user:"+selinuxOptions.GetUser())
 		}
 
-		if selinuxOptions.Role != "" {
-			labels = append(labels, "role:"+selinuxOptions.Role)
+		if selinuxOptions.GetRole() != "" {
+			labels = append(labels, "role:"+selinuxOptions.GetRole())
 		}
 
-		if selinuxOptions.Type != "" {
-			labels = append(labels, "type:"+selinuxOptions.Type)
+		if selinuxOptions.GetType() != "" {
+			labels = append(labels, "type:"+selinuxOptions.GetType())
 		}
 
-		if selinuxOptions.Level != "" {
-			labels = append(labels, "level:"+selinuxOptions.Level)
+		if selinuxOptions.GetLevel() != "" {
+			labels = append(labels, "level:"+selinuxOptions.GetLevel())
 		}
 	}
 

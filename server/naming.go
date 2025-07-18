@@ -20,15 +20,15 @@ func makeSandboxContainerName(sandboxConfig *types.PodSandboxConfig) string {
 	return strings.Join([]string{
 		kubePrefix,
 		oci.InfraContainerName,
-		sandboxConfig.Metadata.Name,
-		sandboxConfig.Metadata.Namespace,
-		sandboxConfig.Metadata.Uid,
-		strconv.FormatUint(uint64(sandboxConfig.Metadata.Attempt), 10),
+		sandboxConfig.GetMetadata().GetName(),
+		sandboxConfig.GetMetadata().GetNamespace(),
+		sandboxConfig.GetMetadata().GetUid(),
+		strconv.FormatUint(uint64(sandboxConfig.GetMetadata().GetAttempt()), 10),
 	}, nameDelimiter)
 }
 
 func (s *Server) ReserveSandboxContainerIDAndName(config *types.PodSandboxConfig) (string, error) {
-	if config == nil || config.Metadata == nil {
+	if config == nil || config.GetMetadata() == nil {
 		return "", errors.New("cannot generate sandbox container name without metadata")
 	}
 

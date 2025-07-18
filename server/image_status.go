@@ -23,20 +23,20 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	img := req.Image
-	if img == nil || img.Image == "" {
+	img := req.GetImage()
+	if img == nil || img.GetImage() == "" {
 		return nil, errors.New("no image specified")
 	}
 
-	log.Infof(ctx, "Checking image status: %s", img.Image)
+	log.Infof(ctx, "Checking image status: %s", img.GetImage())
 
-	status, err := s.storageImageStatus(ctx, *img)
+	status, err := s.storageImageStatus(ctx, img)
 	if err != nil {
 		return nil, err
 	}
 
 	if status == nil {
-		artifact, err := s.ArtifactStore().Status(ctx, img.Image)
+		artifact, err := s.ArtifactStore().Status(ctx, img.GetImage())
 		if err == nil {
 			return &types.ImageStatusResponse{
 				Image: artifact.CRIImage(),
@@ -44,7 +44,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		}
 
 		if errors.Is(err, ociartifact.ErrNotFound) {
-			log.Infof(ctx, "Neither image nor artfiact %s found", img.Image)
+			log.Infof(ctx, "Neither image nor artfiact %s found", img.GetImage())
 		} else if err != nil {
 			log.Errorf(ctx, "Unable to get artifact: %v", err)
 		}
@@ -65,7 +65,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 			Id:          status.ID.IDStringForOutOfProcessConsumptionOnly(),
 			RepoTags:    status.RepoTags,
 			RepoDigests: status.RepoDigests,
-			Size_:       size,
+			Size:        size,
 			Spec: &types.ImageSpec{
 				Annotations: status.Annotations,
 			},
@@ -73,7 +73,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		},
 	}
 
-	if req.Verbose {
+	if req.GetVerbose() {
 		info, err := createImageInfo(status)
 		if err != nil {
 			return nil, fmt.Errorf("creating image info: %w", err)
@@ -94,17 +94,17 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 
 // storageImageStatus calls ImageStatus for a k8s ImageSpec.
 // Returns (nil, nil) if image was not found.
-func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (*pkgstorage.ImageResult, error) {
-	if id := s.ContainerServer.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(spec.Image); id != nil {
+func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) (*pkgstorage.ImageResult, error) {
+	if id := s.ContainerServer.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(spec.GetImage()); id != nil {
 		status, err := s.ContainerServer.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
 			if errors.Is(err, istorage.ErrNoSuchImage) || errors.Is(err, storage.ErrImageUnknown) {
-				log.Infof(ctx, "Image %s not found", spec.Image)
+				log.Infof(ctx, "Image %s not found", spec.GetImage())
 
 				return nil, nil
 			}
 
-			log.Warnf(ctx, "Error getting status from %s: %v", spec.Image, err)
+			log.Warnf(ctx, "Error getting status from %s: %v", spec.GetImage(), err)
 
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 		return status, nil
 	}
 
-	potentialMatches, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.Image)
+	potentialMatches, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.GetImage())
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 	}
 	// CandidatesForPotentiallyShortImageName returns at least one value if it doesn't fail.
 	// So, if we got here, there was at least one ErrNoSuchImage, and no other errors.
-	log.Infof(ctx, "Image %s not found", spec.Image)
+	log.Infof(ctx, "Image %s not found", spec.GetImage())
 
 	return nil, nil
 }

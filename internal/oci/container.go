@@ -19,6 +19,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
@@ -239,10 +240,10 @@ func (c *Container) CRIContainer() *types.Container {
 		newState = types.ContainerState_CONTAINER_EXITED
 	}
 
-	if newState != c.criContainer.State {
-		cpy := *c.criContainer
+	if newState != c.criContainer.GetState() {
+		cpy := proto.CloneOf(c.criContainer)
 		cpy.State = newState
-		c.criContainer = &cpy
+		c.criContainer = cpy
 	}
 
 	return c.criContainer
@@ -376,7 +377,7 @@ func (c *Container) Name() string {
 
 // ID returns the id of the container.
 func (c *Container) ID() string {
-	return c.criContainer.Id
+	return c.criContainer.GetId()
 }
 
 // BundlePath returns the bundlePath of the container.
@@ -391,12 +392,12 @@ func (c *Container) LogPath() string {
 
 // Labels returns the labels of the container.
 func (c *Container) Labels() map[string]string {
-	return c.criContainer.Labels
+	return c.criContainer.GetLabels()
 }
 
 // Annotations returns the annotations of the container.
 func (c *Container) Annotations() map[string]string {
-	return c.criContainer.Annotations
+	return c.criContainer.GetAnnotations()
 }
 
 // CrioAnnotations returns the crio annotations of the container.
@@ -407,7 +408,7 @@ func (c *Container) CrioAnnotations() map[string]string {
 // UserRequestedImage returns the users' input originally used to find imageID; it might evaluate to a different image
 // (or to a different kind of reference!) at any future time.
 func (c *Container) UserRequestedImage() string {
-	return c.criContainer.Image.Image
+	return c.criContainer.GetImage().GetImage()
 }
 
 // SomeNameOfTheImage returns _some_ name of the image imageID, if any;
@@ -423,7 +424,7 @@ func (c *Container) ImageID() *storage.StorageImageID {
 
 // Sandbox returns the sandbox name of the container.
 func (c *Container) Sandbox() string {
-	return c.criContainer.PodSandboxId
+	return c.criContainer.GetPodSandboxId()
 }
 
 // SetSandbox sets the ID of the Sandbox.
@@ -449,7 +450,7 @@ func (c *Container) CheckpointPath() string {
 
 // Metadata returns the metadata of the container.
 func (c *Container) Metadata() *types.ContainerMetadata {
-	return c.criContainer.Metadata
+	return c.criContainer.GetMetadata()
 }
 
 // State returns the state of the running container.

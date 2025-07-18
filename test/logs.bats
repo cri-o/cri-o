@@ -46,7 +46,7 @@ function teardown() {
 	sleep 5
 
 	crictl stop -t 10 "$ctr_id" &
-	wait_for_log "Request: &StopContainerRequest"
+	wait_for_log "Request: &v1.StopContainerRequest"
 	crictl logs -r "$ctr_id"
 	output=$(crictl inspect "$ctr_id" | jq -r ".status.state")
 	[[ "$output" == "CONTAINER_RUNNING" ]]
