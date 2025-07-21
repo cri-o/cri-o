@@ -278,7 +278,7 @@ func (c *ContainerServer) ContainerRestore(
 		ctr.Name(),
 		sb.KubeName(),
 		sb.Namespace(),
-		sb.Metadata().Uid,
+		sb.Metadata().GetUid(),
 	)
 	ctrSpec.AddAnnotation(annotations.Name, mData)
 

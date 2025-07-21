@@ -51,7 +51,7 @@ func (a *Artifact) CRIImage() *critypes.Image {
 
 	return &critypes.Image{
 		Id:          a.Digest().Encoded(),
-		Size_:       a.size(),
+		Size:        a.size(),
 		RepoTags:    repoTags,
 		RepoDigests: []string{a.CanonicalName()},
 		Pinned:      true,

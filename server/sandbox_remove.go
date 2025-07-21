@@ -17,22 +17,22 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	log.Infof(ctx, "Removing pod sandbox: %s", req.PodSandboxId)
+	log.Infof(ctx, "Removing pod sandbox: %s", req.GetPodSandboxId())
 
-	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.GetPodSandboxId())
 	if err != nil {
 		if errors.Is(err, sandbox.ErrIDEmpty) {
 			return nil, err
 		}
 
 		if errors.Is(err, errSandboxNotCreated) {
-			return nil, fmt.Errorf("sandbox %s is not yet created", req.PodSandboxId)
+			return nil, fmt.Errorf("sandbox %s is not yet created", req.GetPodSandboxId())
 		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
 		// the CRI interface which expects to not error out in not found
 		// cases.
-		log.Warnf(ctx, "Could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
+		log.Warnf(ctx, "Could not get sandbox %s, it's probably been removed already: %v", req.GetPodSandboxId(), err)
 
 		return &types.RemovePodSandboxResponse{}, nil
 	}

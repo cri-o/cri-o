@@ -271,7 +271,7 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 	return ocicni.PodNetwork{
 		Name:      sb.KubeName(),
 		Namespace: sb.Namespace(),
-		UID:       sb.Metadata().Uid,
+		UID:       sb.Metadata().GetUid(),
 		Networks:  []ocicni.NetAttachment{},
 		ID:        sb.ID(),
 		NetNS:     sb.NetNsPath(),

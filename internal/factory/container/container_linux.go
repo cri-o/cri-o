@@ -11,7 +11,7 @@ import (
 // SelinuxLabel returns the container's SelinuxLabel
 // it takes the sandbox's label, which it falls back upon.
 func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
-	selinuxConfig := c.config.Linux.SecurityContext.SelinuxOptions
+	selinuxConfig := c.config.GetLinux().GetSecurityContext().GetSelinuxOptions()
 
 	labels := map[string]string{}
 

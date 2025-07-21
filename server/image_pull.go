@@ -32,33 +32,33 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	var err error
 
 	image := ""
-	img := req.Image
+	img := req.GetImage()
 
 	if img != nil {
-		image = img.Image
+		image = img.GetImage()
 	}
 
 	log.Infof(ctx, "Pulling image: %s", image)
 
 	pullArgs := pullArguments{image: image}
 
-	sc := req.SandboxConfig
+	sc := req.GetSandboxConfig()
 	if sc != nil {
-		if sc.Linux != nil {
-			pullArgs.sandboxCgroup = sc.Linux.CgroupParent
+		if sc.GetLinux() != nil {
+			pullArgs.sandboxCgroup = sc.GetLinux().GetCgroupParent()
 		}
 
-		if sc.Metadata != nil {
-			pullArgs.namespace = sc.Metadata.Namespace
+		if sc.GetMetadata() != nil {
+			pullArgs.namespace = sc.GetMetadata().GetNamespace()
 		}
 	}
 
-	if req.Auth != nil {
-		username := req.Auth.Username
-		password := req.Auth.Password
+	if req.GetAuth() != nil {
+		username := req.GetAuth().GetUsername()
+		password := req.GetAuth().GetPassword()
 
-		if req.Auth.Auth != "" {
-			username, password, err = decodeDockerAuth(req.Auth.Auth)
+		if req.GetAuth().GetAuth() != "" {
+			username, password, err = decodeDockerAuth(req.GetAuth().GetAuth())
 			if err != nil {
 				log.Debugf(ctx, "Error decoding authentication for image %s: %v", image, err)
 

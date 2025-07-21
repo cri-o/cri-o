@@ -13,7 +13,7 @@ func (s *Server) PodSandboxStats(ctx context.Context, req *types.PodSandboxStats
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
+	sb, err := s.getPodSandboxFromRequest(ctx, req.GetPodSandboxId())
 	if err != nil {
 		return nil, err
 	}

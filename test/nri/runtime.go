@@ -118,10 +118,10 @@ func (r *runtime) PullImage(image string) (string, error) {
 		return "", fmt.Errorf("failed to list images: %w", err)
 	}
 
-	for _, img := range listReply.Images {
-		for _, tag := range img.RepoTags {
+	for _, img := range listReply.GetImages() {
+		for _, tag := range img.GetRepoTags() {
 			if tag == image {
-				return img.Id, nil
+				return img.GetId(), nil
 			}
 		}
 	}
@@ -136,7 +136,7 @@ func (r *runtime) PullImage(image string) (string, error) {
 		return "", fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
 
-	return reply.ImageRef, nil
+	return reply.GetImageRef(), nil
 }
 
 func (r *runtime) ListPods(namespace string) (ready, other []string, err error) {
@@ -148,7 +148,7 @@ func (r *runtime) ListPods(namespace string) (ready, other []string, err error) 
 		return nil, nil, err
 	}
 
-	for _, pod := range reply.Items {
+	for _, pod := range reply.GetItems() {
 		if pod.GetMetadata().GetNamespace() != namespace {
 			continue
 		}
@@ -246,12 +246,12 @@ func (r *runtime) CreatePod(namespace, name, uid string, options ...PodOption) (
 	r.Lock()
 	defer r.Unlock()
 
-	id := reply.PodSandboxId
+	id := reply.GetPodSandboxId()
 	r.podConfigs[id] = config
 	r.pods[uid] = id
 	r.pods[id] = id
 
-	return reply.PodSandboxId, nil
+	return reply.GetPodSandboxId(), nil
 }
 
 func (r *runtime) UpdatePod(pod string, overhead, resources *cri.LinuxContainerResources) error {
@@ -342,7 +342,7 @@ func (r *runtime) ListContainers(namespace string) (running, other, readyPods, o
 		return nil, nil, nil, nil, err
 	}
 
-	for _, ctr := range reply.Containers {
+	for _, ctr := range reply.GetContainers() {
 		pod := ctr.GetPodSandboxId()
 		if _, ok := pods[pod]; !ok {
 			continue
@@ -459,7 +459,7 @@ func (r *runtime) CreateContainer(pod, name, uid string, options ...ContainerOpt
 			"sh",
 			"-c",
 			fmt.Sprintf("echo %s/%s/%s $(sleep 3600)",
-				podConfig.Metadata.Namespace, podConfig.Metadata.Name, name),
+				podConfig.GetMetadata().GetNamespace(), podConfig.GetMetadata().GetName(), name),
 		},
 		WorkingDir:  "/",
 		Labels:      make(map[string]string),
@@ -495,7 +495,7 @@ func (r *runtime) CreateContainer(pod, name, uid string, options ...ContainerOpt
 	r.Lock()
 	defer r.Unlock()
 
-	id := reply.ContainerId
+	id := reply.GetContainerId()
 	r.containers[uid] = id
 	r.containers[id] = id
 
@@ -576,5 +576,5 @@ func (r *runtime) ExecSync(ctr string, cmd []string) (stdout, stderr []byte, ec 
 		return nil, nil, -1, fmt.Errorf("failed to exec command in container %s: %w", ctr, err)
 	}
 
-	return reply.Stdout, reply.Stderr, reply.ExitCode, nil
+	return reply.GetStdout(), reply.GetStderr(), reply.GetExitCode(), nil
 }

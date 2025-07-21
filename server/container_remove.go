@@ -24,9 +24,9 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	log.Infof(ctx, "Removing container: %s", req.ContainerId)
+	log.Infof(ctx, "Removing container: %s", req.GetContainerId())
 	// save container description to print
-	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
 		// The RemoveContainer RPC is idempotent, and must not return an error
 		// if the container has already been removed. Ref:
@@ -35,7 +35,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 			return &types.RemoveContainerResponse{}, nil
 		}
 
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
 	}
 
 	sb := s.getSandbox(ctx, c.Sandbox())

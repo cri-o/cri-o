@@ -284,18 +284,18 @@ var _ = t.Describe("Container", func() {
 		containerResources := sut.GetResources()
 
 		// Then
-		Expect(containerResources.Linux.CpuPeriod).To(Equal(int64(cpuPeriod)))
-		Expect(containerResources.Linux.CpuQuota).To(Equal(cpuQuota))
-		Expect(containerResources.Linux.CpuShares).To(Equal(int64(cpuShares)))
-		Expect(containerResources.Linux.CpusetCpus).To(Equal(cpusetCpus))
-		Expect(containerResources.Linux.CpusetMems).To(Equal(cpusetMems))
-		Expect(containerResources.Linux.OomScoreAdj).To(Equal(int64(oomScoreAdj)))
-		Expect(containerResources.Linux.MemoryLimitInBytes).To(Equal(memoryLimitInBytes))
-		Expect(containerResources.Linux.MemorySwapLimitInBytes).To(Equal(memorySwapLimitInBytes))
-		Expect(containerResources.Linux.Unified).To(Equal(unified))
-		for i := range len(containerResources.Linux.HugepageLimits) {
-			Expect(containerResources.Linux.HugepageLimits[i].PageSize).To(Equal(hugepageLimits[i].Pagesize))
-			Expect(containerResources.Linux.HugepageLimits[i].Limit).To(Equal(hugepageLimits[i].Limit))
+		Expect(containerResources.GetLinux().GetCpuPeriod()).To(Equal(int64(cpuPeriod)))
+		Expect(containerResources.GetLinux().GetCpuQuota()).To(Equal(cpuQuota))
+		Expect(containerResources.GetLinux().GetCpuShares()).To(Equal(int64(cpuShares)))
+		Expect(containerResources.GetLinux().GetCpusetCpus()).To(Equal(cpusetCpus))
+		Expect(containerResources.GetLinux().GetCpusetMems()).To(Equal(cpusetMems))
+		Expect(containerResources.GetLinux().GetOomScoreAdj()).To(Equal(int64(oomScoreAdj)))
+		Expect(containerResources.GetLinux().GetMemoryLimitInBytes()).To(Equal(memoryLimitInBytes))
+		Expect(containerResources.GetLinux().GetMemorySwapLimitInBytes()).To(Equal(memorySwapLimitInBytes))
+		Expect(containerResources.GetLinux().GetUnified()).To(Equal(unified))
+		for i := range len(containerResources.GetLinux().GetHugepageLimits()) {
+			Expect(containerResources.GetLinux().GetHugepageLimits()[i].GetPageSize()).To(Equal(hugepageLimits[i].Pagesize))
+			Expect(containerResources.GetLinux().GetHugepageLimits()[i].GetLimit()).To(Equal(hugepageLimits[i].Limit))
 		}
 	})
 
@@ -332,15 +332,15 @@ var _ = t.Describe("Container", func() {
 		containerResources := sut.GetResources()
 
 		// Then
-		Expect(containerResources.Linux.CpuPeriod).To(Equal(int64(cpuPeriod)))
-		Expect(containerResources.Linux.CpuQuota).To(Equal(cpuQuota))
-		Expect(containerResources.Linux.CpuShares).To(Equal(int64(cpuShares)))
-		Expect(containerResources.Linux.CpusetCpus).To(Equal(cpusetCpus))
-		Expect(containerResources.Linux.CpusetMems).To(Equal(cpusetMems))
-		Expect(containerResources.Linux.MemoryLimitInBytes).To(Equal(memoryLimitInBytes))
-		Expect(containerResources.Linux.MemorySwapLimitInBytes).To(Equal(memorySwapLimitInBytes))
-		Expect(containerResources.Linux.Unified).To(BeEmpty())
-		Expect(containerResources.Linux.HugepageLimits).To(BeEmpty())
+		Expect(containerResources.GetLinux().GetCpuPeriod()).To(Equal(int64(cpuPeriod)))
+		Expect(containerResources.GetLinux().GetCpuQuota()).To(Equal(cpuQuota))
+		Expect(containerResources.GetLinux().GetCpuShares()).To(Equal(int64(cpuShares)))
+		Expect(containerResources.GetLinux().GetCpusetCpus()).To(Equal(cpusetCpus))
+		Expect(containerResources.GetLinux().GetCpusetMems()).To(Equal(cpusetMems))
+		Expect(containerResources.GetLinux().GetMemoryLimitInBytes()).To(Equal(memoryLimitInBytes))
+		Expect(containerResources.GetLinux().GetMemorySwapLimitInBytes()).To(Equal(memorySwapLimitInBytes))
+		Expect(containerResources.GetLinux().GetUnified()).To(BeEmpty())
+		Expect(containerResources.GetLinux().GetHugepageLimits()).To(BeEmpty())
 	})
 
 	t.Describe("FromDisk", func() {

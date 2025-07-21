@@ -42,8 +42,8 @@ var _ = t.Describe("ContainerList", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			if created {
-				Expect(len(response.Containers)).To(BeEquivalentTo(1))
-				Expect(response.Containers[0].State).To(Equal(expectedState))
+				Expect(len(response.GetContainers())).To(BeEquivalentTo(1))
+				Expect(response.GetContainers()[0].GetState()).To(Equal(expectedState))
 			}
 		},
 			Entry("Created 1", &oci.ContainerState{
@@ -77,7 +77,7 @@ var _ = t.Describe("ContainerList", func() {
 				// Then
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
-				Expect(len(response.Containers)).To(BeEquivalentTo(0))
+				Expect(len(response.GetContainers())).To(BeEquivalentTo(0))
 			})
 
 			It("should succeed with matching filter", func() {
@@ -91,7 +91,7 @@ var _ = t.Describe("ContainerList", func() {
 				// Then
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
-				Expect(len(response.Containers)).To(BeEquivalentTo(1))
+				Expect(len(response.GetContainers())).To(BeEquivalentTo(1))
 			})
 
 			It("should succeed with non matching filter for sandbox ID", func() {
@@ -106,7 +106,7 @@ var _ = t.Describe("ContainerList", func() {
 				// Then
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
-				Expect(len(response.Containers)).To(BeEquivalentTo(0))
+				Expect(len(response.GetContainers())).To(BeEquivalentTo(0))
 			})
 
 			It("should succeed with matching filter for sandbox and container ID", func() {
@@ -121,7 +121,7 @@ var _ = t.Describe("ContainerList", func() {
 				// Then
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
-				Expect(len(response.Containers)).To(BeEquivalentTo(1))
+				Expect(len(response.GetContainers())).To(BeEquivalentTo(1))
 			})
 
 			It("should succeed with matching filter for sandbox ID", func() {
@@ -135,7 +135,7 @@ var _ = t.Describe("ContainerList", func() {
 				// Then
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
-				Expect(len(response.Containers)).To(BeEquivalentTo(1))
+				Expect(len(response.GetContainers())).To(BeEquivalentTo(1))
 			})
 
 			It("should succeed with state filter", func() {
@@ -151,7 +151,7 @@ var _ = t.Describe("ContainerList", func() {
 				// Then
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
-				Expect(len(response.Containers)).To(BeEquivalentTo(0))
+				Expect(len(response.GetContainers())).To(BeEquivalentTo(0))
 			})
 
 			It("should succeed with label filter", func() {
@@ -165,7 +165,7 @@ var _ = t.Describe("ContainerList", func() {
 				// Then
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
-				Expect(len(response.Containers)).To(BeEquivalentTo(0))
+				Expect(len(response.GetContainers())).To(BeEquivalentTo(0))
 			})
 		})
 	})

@@ -47,8 +47,8 @@ var _ = t.Describe("ImageList", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.Images)).To(BeEquivalentTo(1))
-			Expect(response.Images[0].Id).To(Equal(imageID.IDStringForOutOfProcessConsumptionOnly()))
+			Expect(len(response.GetImages())).To(BeEquivalentTo(1))
+			Expect(response.GetImages()[0].GetId()).To(Equal(imageID.IDStringForOutOfProcessConsumptionOnly()))
 		})
 
 		It("should succeed with filter", func() {
@@ -76,7 +76,7 @@ var _ = t.Describe("ImageList", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.Images)).To(BeEquivalentTo(1))
+			Expect(len(response.GetImages())).To(BeEquivalentTo(1))
 		})
 
 		It("should fail when image listing errors", func() {
@@ -130,8 +130,8 @@ var _ = t.Describe("ImageList", func() {
 
 			// Then
 			Expect(result).NotTo(BeNil())
-			Expect(result.RepoTags).To(BeEmpty())
-			Expect(result.RepoDigests).To(BeEmpty())
+			Expect(result.GetRepoTags()).To(BeEmpty())
+			Expect(result.GetRepoDigests()).To(BeEmpty())
 		})
 
 		It("should succeed with repo tags and digests", func() {
@@ -150,12 +150,12 @@ var _ = t.Describe("ImageList", func() {
 
 			// Then
 			Expect(result).NotTo(BeNil())
-			Expect(result.RepoTags).To(HaveLen(2))
-			Expect(result.RepoTags).To(ConsistOf("1", "2"))
-			Expect(result.RepoDigests).To(HaveLen(2))
-			Expect(result.RepoDigests).To(ConsistOf("3", "4"))
-			Expect(result.Size_).To(Equal(size))
-			Expect(result.Uid.Value).To(BeEquivalentTo(10))
+			Expect(result.GetRepoTags()).To(HaveLen(2))
+			Expect(result.GetRepoTags()).To(ConsistOf("1", "2"))
+			Expect(result.GetRepoDigests()).To(HaveLen(2))
+			Expect(result.GetRepoDigests()).To(ConsistOf("3", "4"))
+			Expect(result.GetSize()).To(Equal(size))
+			Expect(result.GetUid().GetValue()).To(BeEquivalentTo(10))
 		})
 
 		It("should succeed with previous tag but no current", func() {
@@ -171,9 +171,9 @@ var _ = t.Describe("ImageList", func() {
 
 			// Then
 			Expect(result).NotTo(BeNil())
-			Expect(result.RepoTags).To(BeEmpty())
-			Expect(result.RepoDigests).To(HaveLen(1))
-			Expect(result.RepoDigests).To(ContainElement("1@2"))
+			Expect(result.GetRepoTags()).To(BeEmpty())
+			Expect(result.GetRepoDigests()).To(HaveLen(1))
+			Expect(result.GetRepoDigests()).To(ContainElement("1@2"))
 		})
 
 		It("should return nil if input image is nil", func() {

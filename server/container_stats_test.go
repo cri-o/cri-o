@@ -55,7 +55,7 @@ var _ = t.Describe("ContainerStatsList", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Stats).To(BeEmpty())
+			Expect(response.GetStats()).To(BeEmpty())
 		})
 		It("should filter stopped container", func() {
 			// Given
@@ -72,7 +72,7 @@ var _ = t.Describe("ContainerStatsList", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Stats).To(BeEmpty())
+			Expect(response.GetStats()).To(BeEmpty())
 		})
 		It("should filter by id", func() {
 			// Given
@@ -90,7 +90,7 @@ var _ = t.Describe("ContainerStatsList", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
-			Expect(response.Stats).To(BeEmpty())
+			Expect(response.GetStats()).To(BeEmpty())
 		})
 	})
 })

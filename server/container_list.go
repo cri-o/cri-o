@@ -14,15 +14,15 @@ import (
 // filterContainer returns whether passed container matches filtering criteria.
 func filterContainer(c *types.Container, filter *types.ContainerFilter) bool {
 	if filter != nil {
-		if filter.State != nil {
-			if c.State != filter.State.State {
+		if filter.GetState() != nil {
+			if c.GetState() != filter.GetState().GetState() {
 				return false
 			}
 		}
 
 		if filter.LabelSelector != nil {
-			sel := fields.SelectorFromSet(filter.LabelSelector)
-			if !sel.Matches(fields.Set(c.Labels)) {
+			sel := fields.SelectorFromSet(filter.GetLabelSelector())
+			if !sel.Matches(fields.Set(c.GetLabels())) {
 				return false
 			}
 		}
@@ -37,26 +37,26 @@ func (s *Server) filterContainerList(ctx context.Context, filter *types.Containe
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Filter using container id and pod id first.
-	if filter.Id != "" {
-		c, err := s.GetContainerFromShortID(ctx, filter.Id)
+	if filter.GetId() != "" {
+		c, err := s.GetContainerFromShortID(ctx, filter.GetId())
 		if err != nil {
 			// If we don't find a container ID with a filter, it should not
 			// be considered an error.  Log a warning and return an empty struct
-			log.Warnf(ctx, "Unable to find container ID %s", filter.Id)
+			log.Warnf(ctx, "Unable to find container ID %s", filter.GetId())
 
 			return nil
 		}
 
 		switch {
-		case filter.PodSandboxId == "":
+		case filter.GetPodSandboxId() == "":
 			return []*oci.Container{c}
-		case strings.HasPrefix(c.Sandbox(), filter.PodSandboxId):
+		case strings.HasPrefix(c.Sandbox(), filter.GetPodSandboxId()):
 			return []*oci.Container{c}
 		default:
 			return nil
 		}
-	} else if filter.PodSandboxId != "" {
-		sb, err := s.getPodSandboxFromRequest(ctx, filter.PodSandboxId)
+	} else if filter.GetPodSandboxId() != "" {
+		sb, err := s.getPodSandboxFromRequest(ctx, filter.GetPodSandboxId())
 		if err != nil {
 			return nil
 		}
@@ -76,7 +76,7 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 
 	var ctrs []*types.Container
 
-	filter := req.Filter
+	filter := req.GetFilter()
 
 	ctrList, err := s.ContainerServer.ListContainers()
 	if err != nil {
@@ -95,7 +95,7 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 
 		c := ctr.CRIContainer()
 		// Filter by other criteria such as state and labels.
-		if filterContainer(c, req.Filter) {
+		if filterContainer(c, req.GetFilter()) {
 			ctrs = append(ctrs, c)
 		}
 	}

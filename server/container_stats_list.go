@@ -19,11 +19,11 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 		return nil, err
 	}
 
-	if req.Filter != nil {
+	if req.GetFilter() != nil {
 		cFilter := &types.ContainerFilter{
-			Id:            req.Filter.Id,
-			PodSandboxId:  req.Filter.PodSandboxId,
-			LabelSelector: req.Filter.LabelSelector,
+			Id:            req.GetFilter().GetId(),
+			PodSandboxId:  req.GetFilter().GetPodSandboxId(),
+			LabelSelector: req.GetFilter().GetLabelSelector(),
 		}
 		ctrList = s.filterContainerList(ctx, cFilter, ctrList)
 

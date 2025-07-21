@@ -20,15 +20,15 @@ func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container,
 		return fmt.Errorf("failed to configure namespaces in container create: %w", err)
 	}
 
-	sc := c.config.Linux.SecurityContext
+	sc := c.config.GetLinux().GetSecurityContext()
 
-	if sc.NamespaceOptions.Network == types.NamespaceMode_NODE {
+	if sc.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE {
 		if err := c.spec.RemoveLinuxNamespace(string(rspec.NetworkNamespace)); err != nil {
 			return err
 		}
 	}
 
-	switch sc.NamespaceOptions.Pid {
+	switch sc.GetNamespaceOptions().GetPid() {
 	case types.NamespaceMode_NODE:
 		// kubernetes PodSpec specify to use Host PID namespace
 		if err := c.spec.RemoveLinuxNamespace(string(rspec.PIDNamespace)); err != nil {
@@ -37,7 +37,7 @@ func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container,
 	case types.NamespaceMode_POD:
 		pidNsPath := sb.PidNsPath()
 		if pidNsPath == "" {
-			if sb.NamespaceOptions().Pid != types.NamespaceMode_POD {
+			if sb.NamespaceOptions().GetPid() != types.NamespaceMode_POD {
 				return errors.New("pod level PID namespace requested for the container, but pod sandbox was not similarly configured, and does not have an infra container")
 			}
 
