@@ -103,10 +103,10 @@ func isAllBitSet(in []byte) bool {
 	return true
 }
 
-// UpdateIRQSmpAffinityMask take input cpus that need to change irq affinity mask and
+// calcIRQSMPAffinityMask take input cpus that need to change irq affinity mask and
 // the current mask string, return an update mask string and inverted mask, with those cpus
 // enabled or disable in the mask.
-func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
+func calcIRQSMPAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
 	podcpuset, err := cpuset.Parse(cpus)
 	if err != nil {
 		return cpus, "", err

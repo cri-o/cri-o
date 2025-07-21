@@ -10,28 +10,57 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
-// GetRuntimeHandlerHooks returns RuntimeHandlerHooks implementation by the runtime handler name.
-func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handler string, annotations map[string]string) (RuntimeHandlerHooks, error) {
+// NewHooksRetriever returns a pointer to a new retriever.
+// Log a warning if deprecated configuration is detected.
+func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetriever {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	if strings.Contains(handler, HighPerformance) {
-		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
-
-		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
+	rhh := &HooksRetriever{
+		config:               config,
+		highPerformanceHooks: nil,
 	}
 
-	if highPerformanceAnnotationsSpecified(annotations) {
-		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
+	for name, runtime := range config.Runtimes {
+		annotationMap := map[string]string{}
+		for _, v := range runtime.AllowedAnnotations {
+			annotationMap[v] = ""
+		}
 
-		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
+		if strings.Contains(name, HighPerformance) && !highPerformanceAnnotationsSpecified(annotationMap) {
+			log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under "+
+				"allowed_annotations is deprecated since 1.21", HighPerformance)
+		}
 	}
 
-	if cpuLoadBalancingAllowed(config) {
-		return &DefaultCPULoadBalanceHooks{}, nil
+	return rhh
+}
+
+// Get checks runtime name or the sandbox's annotations for allowed high performance annotations. If present, it returns
+// the single instance of highPerformanceHooks.
+// Otherwise, if crio's config allows CPU load balancing anywhere, return a DefaultCPULoadBalanceHooks.
+// Otherwise, return nil.
+func (hr *HooksRetriever) Get(runtimeName string, sandboxAnnotations map[string]string) RuntimeHandlerHooks {
+	if strings.Contains(runtimeName, HighPerformance) || highPerformanceAnnotationsSpecified(sandboxAnnotations) {
+		if hr.highPerformanceHooks == nil {
+			hr.highPerformanceHooks = &HighPerformanceHooks{
+				irqBalanceConfigFile:     hr.config.IrqBalanceConfigFile,
+				cpusetLock:               sync.Mutex{},
+				irqSMPAffinityFileLock:   sync.Mutex{},
+				irqBalanceConfigFileLock: sync.Mutex{},
+				sharedCPUs:               hr.config.SharedCPUSet,
+				irqSMPAffinityFile:       IrqSmpAffinityProcFile,
+			}
+		}
+
+		return hr.highPerformanceHooks
 	}
 
-	return nil, nil
+	if cpuLoadBalancingAllowed(hr.config) {
+		return &DefaultCPULoadBalanceHooks{}
+	}
+
+	return nil
 }
 
 func highPerformanceAnnotationsSpecified(annotations map[string]string) bool {
