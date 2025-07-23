@@ -12,6 +12,7 @@ var baseLabelKeys = []string{"id", "name", "image"}
 
 const (
 	CPUMetrics     = "cpu"
+	HugetlbMetrics = "hugetlb"
 	MemoryMetrics  = "memory"
 	NetworkMetrics = "network"
 	OOMMetrics     = "oom"
@@ -59,6 +60,10 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			containerCpuCfsThrottledPeriodsTotal,
 			containerCpuCfsThrottledSecondsTotal,
 		},
+		HugetlbMetrics: {
+			containerHugetlbUsageBytes,
+			containerHugetlbMaxUsageBytes,
+		},
 		MemoryMetrics: {
 			containerMemoryCache,
 			containerMemoryRss,
@@ -97,17 +102,25 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 
 // ComputeSandboxMetrics computes the metrics for both pod and container sandbox.
 func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric, metricName string) []*types.Metric {
-	values := append(sandboxBaseLabelValues(sb), metricName)
+	baseLabels := append(sandboxBaseLabelValues(sb), metricName)
 	calculatedMetrics := make([]*types.Metric, 0, len(metrics))
 
 	for _, m := range metrics {
 		for _, v := range m.valueFunc() {
+			labels := baseLabels
+
+			if len(v.labels) > 0 {
+				labels = make([]string, 0, len(baseLabels)+len(v.labels))
+				labels = append(labels, baseLabels...)
+				labels = append(labels, v.labels...)
+			}
+
 			newMetric := &types.Metric{
 				Name:        m.desc.GetName(),
 				Timestamp:   time.Now().UnixNano(),
 				MetricType:  v.metricType,
 				Value:       &types.UInt64Value{Value: v.value},
-				LabelValues: append(values, v.labels...),
+				LabelValues: labels,
 			}
 			calculatedMetrics = append(calculatedMetrics, newMetric)
 		}
