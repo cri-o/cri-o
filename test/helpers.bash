@@ -800,3 +800,21 @@ function remove_random_storage_layer() {
 function is_using_crun() {
     runtime --version | grep -q crun
 }
+
+function start_crio_with_websocket_stream_server() {
+    setup_crio
+
+    cat <<EOF >"$CRIO_CONFIG_DIR/99-websocket.conf"
+[crio.runtime]
+default_runtime = "websocket"
+[crio.runtime.runtimes.websocket]
+runtime_path = "$RUNTIME_BINARY_PATH"
+runtime_type = "pod"
+monitor_path = ""
+stream_websockets = true
+EOF
+    unset CONTAINER_DEFAULT_RUNTIME
+    unset CONTAINER_RUNTIMES
+
+    start_crio_no_setup
+}
