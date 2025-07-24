@@ -2,6 +2,7 @@ package rdt
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/intel/goresctrl/pkg/rdt"
@@ -29,7 +30,7 @@ func New() *Config {
 		config:    &rdt.Config{},
 	}
 
-	rdt.SetLogger(logrus.StandardLogger())
+	rdt.SetLogger(slog.Default())
 
 	if err := rdt.Initialize(ResctrlPrefix); err != nil {
 		c.supported = false

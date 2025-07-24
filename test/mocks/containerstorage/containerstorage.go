@@ -74,21 +74,6 @@ func (mr *MockStoreMockRecorder) ApplyDiff(to, diff any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiff", reflect.TypeOf((*MockStore)(nil).ApplyDiff), to, diff)
 }
 
-// ApplyDiffWithDiffer mocks base method.
-func (m *MockStore) ApplyDiffWithDiffer(to string, options *graphdriver.ApplyDiffWithDifferOpts, differ graphdriver.Differ) (*graphdriver.DriverWithDifferOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyDiffWithDiffer", to, options, differ)
-	ret0, _ := ret[0].(*graphdriver.DriverWithDifferOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ApplyDiffWithDiffer indicates an expected call of ApplyDiffWithDiffer.
-func (mr *MockStoreMockRecorder) ApplyDiffWithDiffer(to, options, differ any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiffWithDiffer", reflect.TypeOf((*MockStore)(nil).ApplyDiffWithDiffer), to, options, differ)
-}
-
 // ApplyStagedLayer mocks base method.
 func (m *MockStore) ApplyStagedLayer(args storage.ApplyStagedLayerOptions) (*storage.Layer, error) {
 	m.ctrl.T.Helper()
