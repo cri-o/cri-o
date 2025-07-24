@@ -1,16 +1,17 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 24 Jul 2025 12:34:00 UTC for commit [cb591e0][0]._
+_Generated on Thu, 24 Jul 2025 19:40:17 UTC for commit [d8dca90][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/cb591e06e245d0e2409ed263b1b70f3ab3cf5f8a
+[0]: https://github.com/cri-o/cri-o/commit/d8dca90b1548163b767278e6b03c86e063b177fd
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.6                             | v0.0.7                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250724100211-fdbe5493686f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250724122724-c762a3dd4fc4 | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.61.0                            | v0.62.0                            | true   | true             |
+| sigs.k8s.io/yaml                                                            | v1.5.0                             | v1.6.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -227,7 +228,7 @@ _Generated on Thu, 24 Jul 2025 12:34:00 UTC for commit [cb591e0][0]._
 | github.com/aws/aws-sdk-go-v2/service/sso                                    | v1.25.1                               | v1.25.6                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                | v1.29.2                               | v1.30.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                    | v1.33.17                              | v1.34.1                             | false  | true             |
-| github.com/aws/smithy-go                                                    | v1.22.3                               | v1.22.4                             | false  | true             |
+| github.com/aws/smithy-go                                                    | v1.22.3                               | v1.22.5                             | false  | true             |
 | github.com/awslabs/amazon-ecr-credential-helper/ecr-login                   | v0.9.1                                |                                     | false  | true             |
 | github.com/benbjohnson/clock                                                | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                     | v1.0.1                                |                                     | false  | true             |
@@ -443,7 +444,7 @@ _Generated on Thu, 24 Jul 2025 12:34:00 UTC for commit [cb591e0][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250724100211-fdbe5493686f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250724122724-c762a3dd4fc4  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -480,7 +481,7 @@ _Generated on Thu, 24 Jul 2025 12:34:00 UTC for commit [cb591e0][0]._
 | github.com/mattn/go-isatty                                                  | v0.0.19                               | v0.0.20                             | false  | true             |
 | github.com/mattn/go-runewidth                                               | v0.0.16                               |                                     | false  | true             |
 | github.com/mattn/go-shellwords                                              | v1.0.12                               |                                     | false  | true             |
-| github.com/mattn/go-sqlite3                                                 | v1.14.28                              |                                     | false  | true             |
+| github.com/mattn/go-sqlite3                                                 | v1.14.28                              | v1.14.29                            | false  | true             |
 | github.com/matttproud/golang_protobuf_extensions                            | v1.0.4                                |                                     | false  | true             |
 | github.com/maxbrunsfeld/counterfeiter/v6                                    | v6.11.3                               |                                     | false  | true             |
 | github.com/mdlayher/packet                                                  | v1.1.2                                |                                     | false  | true             |
@@ -755,6 +756,6 @@ _Generated on Thu, 24 Jul 2025 12:34:00 UTC for commit [cb591e0][0]._
 | sigs.k8s.io/release-utils                                                   | v0.12.0                               |                                     | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                        | v4.6.0                                | v4.7.0                              | false  | true             |
 | sigs.k8s.io/structured-merge-diff/v6                                        | v6.2.0                                | v6.3.0                              | false  | true             |
-| sigs.k8s.io/yaml                                                            | v1.5.0                                |                                     | true   | true             |
+| sigs.k8s.io/yaml                                                            | v1.5.0                                | v1.6.0                              | true   | true             |
 | tags.cncf.io/container-device-interface                                     | v1.0.1                                |                                     | true   | true             |
 | tags.cncf.io/container-device-interface/specs-go                            | v1.0.0                                |                                     | false  | true             |
