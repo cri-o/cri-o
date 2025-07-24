@@ -466,7 +466,7 @@ Default transport for pulling images from a remote container storage.
 **global_auth_file**=""
 The path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
 
-**pause_image**="registry.k8s.io/pause:3.10"
+**pause_image**="registry.k8s.io/pause:3.10.1"
 The on-registry image used to instantiate infra containers.
 The value should start with a registry host name.
 This option supports live configuration reload.
