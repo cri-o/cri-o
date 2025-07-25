@@ -86,7 +86,7 @@ require (
 	sigs.k8s.io/knftables v0.0.18
 	sigs.k8s.io/release-sdk v0.12.3
 	sigs.k8s.io/release-utils v0.12.0
-	sigs.k8s.io/yaml v1.5.0
+	sigs.k8s.io/yaml v1.6.0
 	tags.cncf.io/container-device-interface v1.0.1
 )
 
