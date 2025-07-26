@@ -7,18 +7,20 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/cpuset"
 )
 
 var _ = Describe("Utils", func() {
-	Describe("UpdateIRQSmpAffinityMask", func() {
+	Describe("calcNewIRQSMPAffinityMask", func() {
 		type Input struct {
-			cpus string
+			cpus cpuset.CPUSet
 			mask string
 			set  bool
 		}
 		type Expected struct {
 			mask    string
 			invMask string
+			err     error
 		}
 		type TestData struct {
 			input    Input
@@ -27,33 +29,38 @@ var _ = Describe("Utils", func() {
 
 		DescribeTable("testing cpu mask",
 			func(c TestData) {
-				mask, invMask, err := calcIRQSMPAffinityMask(c.input.cpus, c.input.mask, c.input.set)
+				mask, invMask, err := calcNewIRQSMPAffinityMask(c.input.cpus, c.input.mask, c.input.set)
+				if c.expected.err != nil {
+					Expect(err).To(MatchError(c.expected.err))
+
+					return
+				}
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mask).To(Equal(c.expected.mask))
 				Expect(invMask).To(Equal(c.expected.invMask))
 			},
 			Entry("clear a single bit that was one", TestData{
-				input:    Input{cpus: "0", mask: "0000,00003003", set: false},
+				input:    Input{cpus: cpuset.New(0), mask: "0000,00003003", set: false},
 				expected: Expected{mask: "00000000,00003002", invMask: "0000ffff,ffffcffd"},
 			}),
 			Entry("set a single bit that was zero", TestData{
-				input:    Input{cpus: "4", mask: "0000,00003003", set: true},
+				input:    Input{cpus: cpuset.New(4), mask: "0000,00003003", set: true},
 				expected: Expected{mask: "00000000,00003013", invMask: "0000ffff,ffffcfec"},
 			}),
 			Entry("clear a set of bits", TestData{
-				input:    Input{cpus: "4-13", mask: "ffff,ffffffff", set: false},
+				input:    Input{cpus: cpuset.New(4, 5, 6, 7, 8, 9, 10, 11, 12, 13), mask: "ffff,ffffffff", set: false},
 				expected: Expected{mask: "0000ffff,ffffc00f", invMask: "00000000,00003ff0"},
 			}),
 			Entry("set a set of bits", TestData{
-				input:    Input{cpus: "4-13", mask: "ffff,ffffc00f", set: true},
+				input:    Input{cpus: cpuset.New(4, 5, 6, 7, 8, 9, 10, 11, 12, 13), mask: "ffff,ffffc00f", set: true},
 				expected: Expected{mask: "0000ffff,ffffffff", invMask: "00000000,00000000"},
 			}),
 			Entry("clear a single bit that was one when odd mask is present", TestData{
-				input:    Input{cpus: "9", mask: "fff", set: false},
+				input:    Input{cpus: cpuset.New(9), mask: "fff", set: false},
 				expected: Expected{mask: "00000dff", invMask: "0000f200"},
 			}),
 			Entry("clear two bits from a short mask", TestData{
-				input:    Input{cpus: "2-3", mask: "ffffff", set: false},
+				input:    Input{cpus: cpuset.New(2, 3), mask: "ffffff", set: false},
 				expected: Expected{mask: "00fffff3", invMask: "0000000c"},
 			}),
 		)
