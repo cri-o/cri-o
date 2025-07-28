@@ -2,6 +2,7 @@ package runtimehandlerhooks
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -924,16 +925,25 @@ var _ = Describe("high_performance_hooks", func() {
 		var cfg *config.Config
 		var hooksRetriever *HooksRetriever
 
+		formatIRQBalanceBannedCPUs := func(v string) string {
+			return fmt.Sprintf("%s=%q", irqBalanceBannedCpus, v)
+		}
+
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		flags = "0000,0000ffff"
+		bannedCPUFlags = "ffffffff,ffff0000"
 
 		ctx := context.Background()
 
-		verifySetIRQLoadBalancing := func(expected string) {
+		verifySetIRQLoadBalancing := func(expectedIrqSmp, expectedIrqBalance string) {
 			content, err := os.ReadFile(irqSmpAffinityFile)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
+			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedIrqSmp))
+
+			content, err = os.ReadFile(irqBalanceConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(strings.Trim(string(content), "\n")).To(Equal(formatIRQBalanceBannedCPUs(expectedIrqBalance)))
 		}
 
 		createContainer := func(cpus string) (*oci.Container, error) {
@@ -970,6 +980,8 @@ var _ = Describe("high_performance_hooks", func() {
 
 			// create tests affinity file
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
+			Expect(err).ToNot(HaveOccurred())
+			err = os.WriteFile(irqBalanceConfigFile, []byte(formatIRQBalanceBannedCPUs(bannedCPUFlags)), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 
 			sbox := sandbox.NewBuilder()
@@ -1028,6 +1040,7 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
+					hph.irqBalanceConfigFile = irqBalanceConfigFile
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {
@@ -1041,7 +1054,7 @@ var _ = Describe("high_performance_hooks", func() {
 					}()
 				}
 				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000")
+				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
 			})
 		})
 
@@ -1068,6 +1081,7 @@ var _ = Describe("high_performance_hooks", func() {
 				hph, ok := hooks.(*HighPerformanceHooks)
 				Expect(ok).To(BeTrue())
 				hph.irqSMPAffinityFile = irqSmpAffinityFile
+				hph.irqBalanceConfigFile = irqBalanceConfigFile
 
 				var wg sync.WaitGroup
 				for cpu := range 16 {
@@ -1081,7 +1095,7 @@ var _ = Describe("high_performance_hooks", func() {
 					}()
 				}
 				wg.Wait()
-				verifySetIRQLoadBalancing(flags)
+				verifySetIRQLoadBalancing(flags, bannedCPUFlags)
 			})
 		})
 
@@ -1109,6 +1123,7 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
+					hph.irqBalanceConfigFile = irqBalanceConfigFile
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {
@@ -1122,7 +1137,7 @@ var _ = Describe("high_performance_hooks", func() {
 					}()
 				}
 				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000")
+				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
 			})
 		})
 
@@ -1173,6 +1188,7 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
+					hph.irqBalanceConfigFile = irqBalanceConfigFile
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {
@@ -1186,7 +1202,7 @@ var _ = Describe("high_performance_hooks", func() {
 					}()
 				}
 				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000")
+				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
 			})
 		})
 
@@ -1234,7 +1250,7 @@ var _ = Describe("high_performance_hooks", func() {
 					}()
 				}
 				wg.Wait()
-				verifySetIRQLoadBalancing(flags)
+				verifySetIRQLoadBalancing(flags, bannedCPUFlags)
 			})
 		})
 	})
