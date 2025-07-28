@@ -10,7 +10,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.3.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.27
+	github.com/containerd/containerd v1.7.28
 	github.com/containerd/containerd/api v1.9.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/nri v0.9.1-0.20250219030224-e597e7849f24
@@ -21,7 +21,7 @@ require (
 	github.com/containernetworking/plugins v1.7.1
 	github.com/containers/common v0.64.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.6.7-0.20250708125850-5449cc50f844
+	github.com/containers/conmon-rs v0.7.0
 	github.com/containers/image/v5 v5.36.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.1
@@ -233,7 +233,7 @@ require (
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/term v0.33.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
-	golang.org/x/time v0.11.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.35.0 // indirect
 	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
