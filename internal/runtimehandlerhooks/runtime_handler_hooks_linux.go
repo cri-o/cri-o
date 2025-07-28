@@ -46,8 +46,7 @@ func (hr *HooksRetriever) Get(runtimeName string, sandboxAnnotations map[string]
 			hr.highPerformanceHooks = &HighPerformanceHooks{
 				irqBalanceConfigFile:     hr.config.IrqBalanceConfigFile,
 				cpusetLock:               sync.Mutex{},
-				irqSMPAffinityFileLock:   sync.Mutex{},
-				irqBalanceConfigFileLock: sync.Mutex{},
+				updateIRQSMPAffinityLock: sync.Mutex{},
 				sharedCPUs:               hr.config.SharedCPUSet,
 				irqSMPAffinityFile:       IrqSmpAffinityProcFile,
 			}
