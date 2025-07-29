@@ -16,6 +16,11 @@ import (
 // We could have used the libcontainer/cgroups.Stats object as a standard stats object for cri-o.
 // But due to it's incompatibility with non-linux platforms,
 // we have to create our own object that can be moved around regardless of the runtime.
+type ContainerRuntimeStats struct {
+	Cgroup *CgroupStats
+	Disk   *DiskMetrics
+}
+
 type CgroupStats struct {
 	Memory     *MemoryStats
 	CPU        *CPUStats
@@ -67,6 +72,13 @@ type HugetlbStats struct {
 type PidsStats struct {
 	Current uint64
 	Limit   uint64
+}
+
+type DiskMetrics struct {
+	UsageBytes  uint64
+	LimitBytes  uint64
+	InodesFree  uint64
+	InodesTotal uint64
 }
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup

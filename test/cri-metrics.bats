@@ -280,9 +280,16 @@ EOF
 	crictl exec --sync "$CONTAINER_ID" mkdir -p /var/lib/mydisktest
 	crictl exec --sync "$CONTAINER_ID" dd if=/dev/zero of=/var/lib/mydisktest/bloatfile bs=50M count=1
 	crictl exec --sync "$CONTAINER_ID" sync
-	sleep 10
-	new_fs_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_usage_bytes") | .value.value | tonumber')
-	[[ "$new_fs_usage" -gt "$fs_usage" ]]
+	# Polling loop for metrics to be updated
+	local timeout=60 # Set a reasonable timeout in seconds
+	local new_fs_usage=0
+	for ((i = 0; i < timeout; i++)); do
+		new_fs_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_usage_bytes") | .value.value | tonumber')
+		if [[ "$new_fs_usage" -gt "$fs_usage" ]]; then
+			break
+		fi
+		sleep 1
+	done
 
 	stop_crio
 }

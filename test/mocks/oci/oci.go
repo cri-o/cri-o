@@ -76,10 +76,10 @@ func (mr *MockRuntimeImplMockRecorder) CheckpointContainer(arg0, arg1, arg2, arg
 }
 
 // ContainerStats mocks base method.
-func (m *MockRuntimeImpl) ContainerStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*cgmgr.CgroupStats, error) {
+func (m *MockRuntimeImpl) ContainerStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*cgmgr.ContainerRuntimeStats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerStats", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*cgmgr.CgroupStats)
+	ret0, _ := ret[0].(*cgmgr.ContainerRuntimeStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

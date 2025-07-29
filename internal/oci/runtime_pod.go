@@ -298,7 +298,7 @@ func (r *runtimePod) UnpauseContainer(ctx context.Context, c *Container) error {
 	return r.oci.UnpauseContainer(ctx, c)
 }
 
-func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
+func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.ContainerRuntimeStats, error) {
 	return r.oci.ContainerStats(ctx, c, cgroup)
 }
 
