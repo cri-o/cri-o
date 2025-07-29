@@ -1320,7 +1320,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		makeOCIConfigurationRootless(specgen)
 	}
 
-	hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+	hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 
 	if err := s.nri.createContainer(ctx, specgen, sb, ociContainer); err != nil {
 		return nil, err

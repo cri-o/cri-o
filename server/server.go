@@ -896,7 +896,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 		}
 	}
 
-	if hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations()); hooks != nil {
+	if hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations()); hooks != nil {
 		if err := hooks.PostStop(ctx, c, sb); err != nil {
 			log.Errorf(ctx, "Failed to run post-stop hook for container %s: %v", c.ID(), err)
 		}
