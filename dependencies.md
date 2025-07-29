@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 29 Jul 2025 12:40:17 UTC for commit [a7fb740][0]._
+_Generated on Tue, 29 Jul 2025 17:25:42 UTC for commit [51ce3dd][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a7fb7403153a737fe2d424f568b92c22a438ca7b
+[0]: https://github.com/cri-o/cri-o/commit/51ce3dd659becb9d31c2752cf11c4411e3b18c22
 
 ## Outdated Dependencies
 
@@ -570,7 +570,7 @@ _Generated on Tue, 29 Jul 2025 12:40:17 UTC for commit [a7fb740][0]._
 | github.com/russross/blackfriday/v2                                          | v2.1.0                                |                                     | false  | true             |
 | github.com/ryanuber/go-glob                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/safchain/ethtool                                                 | v0.5.10                               | v0.6.1                              | false  | true             |
-| github.com/sagikazarmark/locafero                                           | v0.7.0                                | v0.9.0                              | false  | true             |
+| github.com/sagikazarmark/locafero                                           | v0.7.0                                | v0.10.0                             | false  | true             |
 | github.com/sagikazarmark/slog-shim                                          | v0.1.0                                |                                     | false  | true             |
 | github.com/santhosh-tekuri/jsonschema/v5                                    | v5.3.1                                |                                     | false  | true             |
 | github.com/santhosh-tekuri/jsonschema/v6                                    | v6.0.2                                |                                     | false  | true             |
@@ -707,7 +707,7 @@ _Generated on Tue, 29 Jul 2025 12:40:17 UTC for commit [a7fb740][0]._
 | golang.org/x/oauth2                                                         | v0.30.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                           | v0.16.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                            | v0.34.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20250710130107-8d8967aff50b    | v0.0.0-20250728150502-1581f0a59201  | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20250710130107-8d8967aff50b    | v0.0.0-20250729135900-28f32e417a03  | false  | true             |
 | golang.org/x/term                                                           | v0.33.0                               |                                     | false  | true             |
 | golang.org/x/text                                                           | v0.27.0                               |                                     | false  | true             |
 | golang.org/x/time                                                           | v0.12.0                               |                                     | false  | true             |
