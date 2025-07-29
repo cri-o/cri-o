@@ -152,7 +152,7 @@ irqbalance_cpu_ban_list_restore_default() {
 	# then
 	local banned_cpus
 	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
-
+	echo "banned_cpus_for_conf=${banned_cpus_for_conf} banned_cpus=${banned_cpus}" 
 	[ "$banned_cpus_for_conf" == "$banned_cpus" ]
 
 	teardown_serial_test
