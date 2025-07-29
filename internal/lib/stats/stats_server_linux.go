@@ -264,14 +264,7 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 		case NetworkMetrics:
 			continue // Network metrics are collected at the pod level only.
 		case ProcessMetrics:
-			pid, err := c.Pid()
-			if err != nil {
-				log.Errorf(ss.ctx, "Unable to fetch process ID for container %s: %v", c.ID(), err)
-
-				continue
-			}
-			
-			if processMetrics := generateSandboxProcessMetrics(sb, pid); processMetrics != nil {
+			if processMetrics := generateSandboxProcessMetrics(sb, cgstats.Process); processMetrics != nil {
 				metrics = append(metrics, processMetrics...)
 			}
 		default:
