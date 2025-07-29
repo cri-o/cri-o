@@ -873,26 +873,24 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		return RegistryImageReference{}, err
 	}
 
-	manifestBytes, err := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext).PullManifest(ctx, srcRef, &ociartifact.PullOptions{CopyOptions: &libimage.CopyOptions{
+	manifestBytes, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+		SourceCtx:        &srcSystemContext,
+		DestinationCtx:   options.DestinationCtx,
 		OciDecryptConfig: options.OciDecryptConfig,
+		ProgressInterval: options.ProgressInterval,
 		Progress:         options.Progress,
-		RemoveSignatures: true, // signature is not supported for OCI layout dest
-	}})
+	})
 	if err != nil {
-		if !errors.Is(err, ociartifact.ErrIsAnImage) {
-			return RegistryImageReference{}, fmt.Errorf("unable to try pulling possible OCI artifact: %w", err)
+		artifactManifestBytes, artifactErr := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext).PullManifest(ctx, srcRef, &ociartifact.PullOptions{CopyOptions: &libimage.CopyOptions{
+			OciDecryptConfig: options.OciDecryptConfig,
+			Progress:         options.Progress,
+			RemoveSignatures: true, // signature is not supported for OCI layout dest
+		}})
+		if artifactErr != nil {
+			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: pull image err: %w; artifact err: %w", err, artifactErr)
 		}
 
-		manifestBytes, err = copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
-			SourceCtx:        &srcSystemContext,
-			DestinationCtx:   options.DestinationCtx,
-			OciDecryptConfig: options.OciDecryptConfig,
-			ProgressInterval: options.ProgressInterval,
-			Progress:         options.Progress,
-		})
-		if err != nil {
-			return RegistryImageReference{}, err
-		}
+		manifestBytes = artifactManifestBytes
 	}
 
 	manifestDigest, err := manifest.Digest(manifestBytes)
