@@ -521,6 +521,7 @@ func DialLongSocket(network, path string) (*net.UnixConn, error) {
 	socketName := filepath.Base(path)
 
 	const procSelfFDPath = "/proc/self/fd"
+
 	socketPath := filepath.Join(procSelfFDPath, strconv.Itoa(int(f.Fd())), socketName)
 
 	conn, err := net.DialUnix(network, nil, &net.UnixAddr{
@@ -585,6 +586,7 @@ func (c *ConmonClient) Version(
 	}
 
 	defer conn.Close()
+
 	client := proto.Conmon(conn.Bootstrap(ctx))
 
 	future, free := client.Version(ctx, func(p proto.Conmon_version_Params) error {
@@ -794,6 +796,7 @@ func (c *ConmonClient) CreateContainer(
 	}
 
 	defer conn.Close()
+
 	client := proto.Conmon(conn.Bootstrap(ctx))
 
 	future, free := client.CreateContainer(ctx, func(p proto.Conmon_createContainer_Params) error {
@@ -1097,6 +1100,7 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 	}
 
 	defer conn.Close()
+
 	client := proto.Conmon(conn.Bootstrap(ctx))
 
 	future, free := client.ReopenLogContainer(ctx, func(p proto.Conmon_reopenLogContainer_Params) error {
@@ -1248,6 +1252,7 @@ func (c *ConmonClient) CreateNamespaces(
 	}
 
 	defer conn.Close()
+
 	client := proto.Conmon(conn.Bootstrap(ctx))
 
 	future, free := client.CreateNamespaces(ctx, func(p proto.Conmon_createNamespaces_Params) error {

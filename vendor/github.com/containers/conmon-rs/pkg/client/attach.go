@@ -223,6 +223,7 @@ func (c *ConmonClient) setupStdioChannels(
 	}
 
 	receiveStdoutError = make(chan error)
+
 	go func() {
 		receiveStdoutError <- c.redirectResponseToOutputStreams(ctx, cfg, conn)
 	}()
@@ -420,6 +421,7 @@ func (c *ConmonClient) readStdio(
 	}
 
 	c.logger.Trace("Read stdio on attach")
+
 	select {
 	case err = <-receiveStdoutError:
 		c.logger.WithError(err).Trace("Received message on output channel")
@@ -498,6 +500,7 @@ func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindo
 	}
 
 	defer conn.Close()
+
 	client := proto.Conmon(conn.Bootstrap(ctx))
 
 	future, free := client.SetWindowSizeContainer(ctx, func(p proto.Conmon_setWindowSizeContainer_Params) error {
