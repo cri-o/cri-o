@@ -1,40 +1,37 @@
 package statsserver
 
 import (
-	"syscall"
-
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/oci"
 )
 
-// generateSandboxDiskMetrics computes filesystem disk metrics for a container sandbox.
-func generateSandboxDiskMetrics(sb *sandbox.Sandbox, ctr *oci.Container, fsStats *syscall.Statfs_t, usageBytes uint64) []*types.Metric {
-
+// generateSandboxDiskMetrics computes filesystem disk metrics from DiskMetrics for a container sandbox.
+func generateSandboxDiskMetrics(sb *sandbox.Sandbox, diskStats *cgmgr.DiskMetrics) []*types.Metric {
 	diskMetrics := []*containerMetric{
 		{
 			desc: containerFsInodesFree,
 			valueFunc: func() metricValues {
-				return metricValues{{value: uint64(fsStats.Ffree), metricType: types.MetricType_GAUGE}}
+				return metricValues{{value: diskStats.InodesFree, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
 			desc: containerFsInodesTotal,
 			valueFunc: func() metricValues {
-				return metricValues{{value: uint64(fsStats.Files), metricType: types.MetricType_GAUGE}}
+				return metricValues{{value: diskStats.InodesTotal, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
 			desc: containerFsLimitBytes,
 			valueFunc: func() metricValues {
-				return metricValues{{value: uint64(fsStats.Blocks) * uint64(fsStats.Bsize), metricType: types.MetricType_GAUGE}}
+				return metricValues{{value: diskStats.LimitBytes, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
 			desc: containerFsUsageBytes,
 			valueFunc: func() metricValues {
-				return metricValues{{value: usageBytes, metricType: types.MetricType_GAUGE}}
+				return metricValues{{value: diskStats.UsageBytes, metricType: types.MetricType_GAUGE}}
 			},
 		},
 	}
