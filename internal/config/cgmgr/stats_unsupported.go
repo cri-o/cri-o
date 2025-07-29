@@ -11,6 +11,7 @@ type CgroupStats struct {
 	CPU        *CPUStats
 	Hugetlb    map[string]HugetlbStats
 	Pid        *PidsStats
+	Process    *ProcessStats
 	SystemNano int64
 }
 
@@ -53,6 +54,10 @@ type HugetlbStats struct {
 type PidsStats struct {
 	Current uint64
 	Limit   uint64
+}
+
+type ProcessStats struct {
+	FileDescriptors uint64
 }
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup
