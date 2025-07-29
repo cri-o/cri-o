@@ -71,7 +71,7 @@ type RuntimeImpl interface {
 	UpdateContainerStatus(context.Context, *Container) error
 	PauseContainer(context.Context, *Container) error
 	UnpauseContainer(context.Context, *Container) error
-	ContainerStats(context.Context, *Container, string) (*cgmgr.CgroupStats, error)
+	ContainerStats(context.Context, *Container, string) (*cgmgr.ContainerRuntimeStats, error)
 	SignalContainer(context.Context, *Container, syscall.Signal) error
 	AttachContainer(context.Context, *Container, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
@@ -445,7 +445,7 @@ func (r *Runtime) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
+func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.ContainerRuntimeStats, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 

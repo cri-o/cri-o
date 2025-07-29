@@ -1,3 +1,5 @@
+//go:build linux
+
 package oci
 
 import (
@@ -5,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"syscall"
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
 )
 
@@ -106,4 +110,34 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 	log.Infof(ctx, "Finished port forwarding for %q on port %d", c.ID(), port)
 
 	return nil
+}
+
+// getContainerDiskStats collects disk metrics for a container on Linux.
+func (r *runtimeOCI) getContainerDiskStats(c *Container) (*cgmgr.DiskMetrics, error) {
+	mountPoint := c.MountPoint()
+	if mountPoint == "" {
+		return nil, fmt.Errorf("container %s has no mount point", c.ID())
+	}
+
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs(mountPoint, &stat); err != nil {
+		return nil, fmt.Errorf("failed to get filesystem stats for %s: %w", mountPoint, err)
+	}
+
+	blockSize := uint64(stat.Bsize)
+	totalBlocks := stat.Blocks
+	freeBlocks := stat.Bavail
+
+	usageBytes := (totalBlocks - freeBlocks) * blockSize
+	limitBytes := totalBlocks * blockSize
+
+	inodesTotal := stat.Files
+	inodesFree := stat.Ffree
+
+	return &cgmgr.DiskMetrics{
+		UsageBytes:  usageBytes,
+		LimitBytes:  limitBytes,
+		InodesTotal: inodesTotal,
+		InodesFree:  inodesFree,
+	}, nil
 }
