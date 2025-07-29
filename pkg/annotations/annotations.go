@@ -29,8 +29,25 @@ const (
 	// CPUQuotaAnnotation indicates that CPU quota should be disabled for CPUs used by the container.
 	CPUQuotaAnnotation = "cpu-quota.crio.io"
 
-	// IRQLoadBalancingAnnotation indicates that IRQ load balancing should be disabled for CPUs used by the container.
+	// IRQLoadBalancingAnnotation controls IRQ load balancing for container CPUs.
+	// Set to "disable" to turn off IRQ balancing on all container CPUs.
+	// Set to "housekeeping" to use the housekeeping-cpus.crio.io annotation for CPU specification.
+	// Set to "housekeeping-full-pcpus-only" to use the housekeeping-cpus.crio.io CPUs as well as their thread siblings.
+	// This requires that all thread siblings be allocated to the pod, or it will result in a failure.
 	IRQLoadBalancingAnnotation = "irq-load-balancing.crio.io"
+
+	// HousekeepingCPUsAnnotation specifies CPUs for housekeeping.
+	// Use per-container annotations: housekeeping-cpus.crio.io/<container name>: <relative CPU indices>.
+	// Indices are parsed according to CPU set List Format (see man 7 cpuset).
+	// As the absolute CPU set is only known at runtime, CPU indices are relative. Example: if a container is allocated
+	// CPUs [2, 4, 6], and the relative index "1" is used, the housekeeping CPU is CPU 4.
+	// Injects an environment variable (HousekeepingCPUsEnvVar) to matching containers.
+	//
+	// At the moment, this is used together with IRQLoadBalancingAnnotation == "housekeeping" or
+	// "housekeeping-full-pcpus-only".
+	// The indices act as an allow-list: IRQ balancing is enabled only on housekeeping CPUs and disabled
+	// on all other static CPUs of the entire Pod.
+	HousekeepingCPUsAnnotation = "housekeeping-cpus.crio.io"
 
 	// OCISeccompBPFHookAnnotation is the annotation used by the OCI seccomp BPF hook for tracing container syscalls.
 	OCISeccompBPFHookAnnotation = "io.containers.trace-syscall"
