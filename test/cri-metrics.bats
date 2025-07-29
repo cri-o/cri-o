@@ -169,10 +169,8 @@ EOF
 collection_period = 0
 included_pod_metrics = [
     "network",
-    "cpu",
     "hugetlb",
     "memory",
-    "oom",
 ]
 EOF
 	start_crio_no_setup
@@ -229,4 +227,32 @@ EOF
 	if [[ $old_pages == "0" ]]; then
 		echo 0 | tee /proc/sys/vm/nr_hugepages
 	fi
+}
+
+@test "container process metrics" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+    "memory",
+    "process",
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	# run some processes in the container
+	crictl exec --sync "$CONTAINER_ID" /bin/bash -c 'sleep 30 &'
+	crictl exec --sync "$CONTAINER_ID" /bin/bash -c 'sleep 30 &'
+
+	metrics=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[]')
+
+	# assert container_processes == 3
+	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_processes") | .value.value | tonumber')
+	[[ $metrics_container_processes == "3" ]]
 }
