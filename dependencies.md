@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 29 Jul 2025 17:25:42 UTC for commit [51ce3dd][0]._
+_Generated on Wed, 30 Jul 2025 07:21:41 UTC for commit [17c08c8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/51ce3dd659becb9d31c2752cf11c4411e3b18c22
+[0]: https://github.com/cri-o/cri-o/commit/17c08c84f734265589fdcdce70a2fe4aee57c22b
 
 ## Outdated Dependencies
 
@@ -209,9 +209,9 @@ _Generated on Tue, 29 Jul 2025 17:25:42 UTC for commit [51ce3dd][0]._
 | github.com/aws/aws-sdk-go                                                   | v1.55.5                               | v1.55.7                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                | v1.36.3                               | v1.37.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                       | v1.6.6                                | v1.7.0                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                         | v1.29.10                              | v1.30.0                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                    | v1.17.63                              | v1.18.0                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/ec2/imds                               | v1.16.30                              | v1.17.0                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                         | v1.29.10                              | v1.30.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                    | v1.17.63                              | v1.18.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/ec2/imds                               | v1.16.30                              | v1.18.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                         | v1.3.34                               | v1.4.0                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                          | v2.6.34                               | v2.7.0                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                   | v1.8.3                                |                                     | false  | true             |
@@ -300,7 +300,7 @@ _Generated on Tue, 29 Jul 2025 17:25:42 UTC for commit [51ce3dd][0]._
 | github.com/containers/storage                                               | v1.59.0                               |                                     | true   | true             |
 | github.com/coreos/go-iptables                                               | v0.8.0                                |                                     | false  | true             |
 | github.com/coreos/go-oidc                                                   | v2.3.0+incompatible                   |                                     | false  | true             |
-| github.com/coreos/go-oidc/v3                                                | v3.14.1                               |                                     | false  | true             |
+| github.com/coreos/go-oidc/v3                                                | v3.14.1                               | v3.15.0                             | false  | true             |
 | github.com/coreos/go-semver                                                 | v0.3.1                                |                                     | false  | true             |
 | github.com/coreos/go-systemd/v22                                            | v22.5.1-0.20231103132048-7d375ecc2b09 |                                     | true   | true             |
 | github.com/cpuguy83/go-md2man/v2                                            | v2.0.7                                |                                     | false  | true             |
@@ -319,7 +319,7 @@ _Generated on Tue, 29 Jul 2025 17:25:42 UTC for commit [51ce3dd][0]._
 | github.com/distribution/reference                                           | v0.6.0                                |                                     | false  | true             |
 | github.com/docker/cli                                                       | v28.3.2+incompatible                  | v28.3.3+incompatible                | false  | true             |
 | github.com/docker/distribution                                              | v2.8.3+incompatible                   |                                     | true   | true             |
-| github.com/docker/docker                                                    | v28.3.2+incompatible                  | v28.3.3+incompatible                | false  | true             |
+| github.com/docker/docker                                                    | v28.3.3+incompatible                  |                                     | false  | true             |
 | github.com/docker/docker-credential-helpers                                 | v0.9.3                                |                                     | false  | true             |
 | github.com/docker/go-connections                                            | v0.5.0                                |                                     | false  | true             |
 | github.com/docker/go-events                                                 | v0.0.0-20190806004212-e31b211e4f1c    | v0.0.0-20250114142523-c867878c5e32  | false  | true             |
