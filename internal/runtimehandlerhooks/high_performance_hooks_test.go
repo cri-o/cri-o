@@ -2,6 +2,7 @@ package runtimehandlerhooks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,6 +38,66 @@ const (
 	governorSchedutil    = "schedutil"
 	governorUserspace    = "userspace"
 )
+
+type mockServiceManager struct {
+	isServiceEnabled map[string]bool
+	restartService   map[string]error
+	history          []string
+}
+
+func (m *mockServiceManager) IsServiceEnabled(serviceName string) bool {
+	m.history = append(m.history, "systemctl is-enabled "+serviceName)
+	if m.isServiceEnabled == nil {
+		return false
+	}
+
+	return m.isServiceEnabled[serviceName]
+}
+
+func (m *mockServiceManager) RestartService(serviceName string) error {
+	m.history = append(m.history, "systemctl restart "+serviceName)
+	if m.restartService == nil {
+		return errors.New("service not found")
+	}
+
+	if _, ok := m.restartService[serviceName]; !ok {
+		return errors.New("service not found")
+	}
+
+	return m.restartService[serviceName]
+}
+
+type mockCommandRunner struct {
+	lookPath map[string]struct {
+		path string
+		err  error
+	}
+	history []string
+}
+
+func (m *mockCommandRunner) LookPath(file string) (string, error) {
+	m.history = append(m.history, "which "+file)
+	if m.lookPath == nil {
+		return "", errors.New("path not found")
+	}
+
+	if _, ok := m.lookPath[file]; !ok {
+		return "", errors.New("path not found")
+	}
+
+	return m.lookPath[file].path, m.lookPath[file].err
+}
+
+func (m *mockCommandRunner) RunCommand(name string, env []string, arg ...string) error {
+	m.history = append(m.history, fmt.Sprintf(
+		"%s %s %s",
+		strings.Join(env, " "),
+		name,
+		strings.Join(arg, " "),
+	))
+
+	return nil
+}
 
 // The actual test suite.
 var _ = Describe("high_performance_hooks", func() {
@@ -552,9 +613,12 @@ var _ = Describe("high_performance_hooks", func() {
 	})
 
 	Describe("restoreIrqBalanceConfig", func() {
+		var mockSvcMgr *mockServiceManager
+
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		irqBannedCPUConfigFile := filepath.Join(fixturesDir, "orig_irq_banned_cpus")
+
 		verifyRestoreIrqBalanceConfig := func(expectedOrigBannedCPUs, expectedBannedCPUs string) {
 			err = RestoreIrqBalanceConfig(context.TODO(), irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityFile)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
@@ -580,6 +644,21 @@ var _ = Describe("high_performance_hooks", func() {
 			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bannedCPUs).To(Equal("0000ffff,ffffcfcc"))
+
+			mockSvcMgr = &mockServiceManager{
+				isServiceEnabled: map[string]bool{
+					"irqbalance": true,
+				},
+				restartService: map[string]error{
+					"irqbalance": nil,
+				},
+				history: []string{},
+			}
+			serviceManager = mockSvcMgr
+		})
+
+		JustAfterEach(func() {
+			serviceManager = &defaultServiceManager{}
 		})
 
 		Context("when banned cpu config file doesn't exist", func() {
@@ -590,6 +669,8 @@ var _ = Describe("high_performance_hooks", func() {
 
 			It("should set banned cpu config file from irq balance config", func() {
 				verifyRestoreIrqBalanceConfig("0000ffff,ffffcfcc", "0000ffff,ffffcfcc")
+				Expect(mockSvcMgr.history).NotTo(ContainElement("systemctl is-enabled irqbalance"))
+				Expect(mockSvcMgr.history).NotTo(ContainElement("systemctl restart irqbalance"))
 			})
 		})
 
@@ -603,8 +684,133 @@ var _ = Describe("high_performance_hooks", func() {
 
 			It("should restore irq balance config with content from banned cpu config file", func() {
 				verifyRestoreIrqBalanceConfig("00000000,00000000", "00000000,00000000")
+				Expect(mockSvcMgr.history).To(ContainElement("systemctl is-enabled irqbalance"))
+				Expect(mockSvcMgr.history).To(ContainElement("systemctl restart irqbalance"))
 			})
 		})
+	})
+
+	Describe("handleIRQBalanceRestart", func() {
+		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
+
+		h := &HighPerformanceHooks{
+			irqBalanceConfigFile: irqBalanceConfigFile,
+		}
+
+		type parameters struct {
+			isServiceEnabled         bool
+			irqBalanceFileExists     bool
+			restartServiceSucceeds   bool
+			pathLookupError          bool
+			calculatedIRQBalanceMask string
+		}
+
+		DescribeTable("handleIRQBalanceRestart scenarios",
+			func(p parameters, serviceMgrHistory, cmdRunnerHistory []string) {
+				defer func() {
+					// Reset global mocks.
+					serviceManager = &defaultServiceManager{}
+					commandRunner = &defaultCommandRunner{}
+				}()
+
+				// Setup mocks according to parameters and irqbalance config file.
+				mockSvcMgr := &mockServiceManager{
+					isServiceEnabled: map[string]bool{
+						"irqbalance": p.isServiceEnabled,
+					},
+					history: []string{},
+				}
+				mockCmdRunner := &mockCommandRunner{
+					history: []string{},
+				}
+
+				if p.restartServiceSucceeds {
+					mockSvcMgr.restartService = map[string]error{
+						"irqbalance": nil,
+					}
+				} else {
+					mockSvcMgr.restartService = map[string]error{
+						"irqbalance": errors.New("restart failed"),
+					}
+				}
+
+				if p.pathLookupError {
+					mockCmdRunner.lookPath = map[string]struct {
+						path string
+						err  error
+					}{
+						"irqbalance": {path: "", err: errors.New("not found")},
+					}
+				} else {
+					mockCmdRunner.lookPath = map[string]struct {
+						path string
+						err  error
+					}{
+						"irqbalance": {path: "/usr/bin/irqbalance", err: nil},
+					}
+				}
+				if p.irqBalanceFileExists {
+					err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
+					Expect(err).ToNot(HaveOccurred())
+					err = updateIrqBalanceConfigFile(irqBalanceConfigFile, p.calculatedIRQBalanceMask)
+					Expect(err).ToNot(HaveOccurred())
+				}
+				serviceManager = mockSvcMgr
+				commandRunner = mockCmdRunner
+
+				// Execute application logic.
+				if !h.handleIRQBalanceRestart(context.TODO(), "container-name") {
+					h.handleIRQBalanceOneShot(context.TODO(), "container-name", p.calculatedIRQBalanceMask)
+				}
+
+				// Verify behavior based on scenario.
+				Expect(mockSvcMgr.history).To(Equal(serviceMgrHistory))
+				Expect(mockCmdRunner.history).To(Equal(cmdRunnerHistory))
+			},
+			Entry("irqbalance is enabled and succeeds",
+				parameters{isServiceEnabled: true, irqBalanceFileExists: true, restartServiceSucceeds: true, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				[]string{
+					"systemctl is-enabled irqbalance",
+					"systemctl restart irqbalance",
+				},
+				[]string{}),
+			Entry("irqbalance is enabled but irqbalance file does not exist",
+				parameters{isServiceEnabled: true, irqBalanceFileExists: false, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				[]string{
+					"systemctl is-enabled irqbalance",
+				},
+				[]string{
+					"which irqbalance",
+					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
+				}),
+			Entry("irqbalance is enabled and fails but oneshot works",
+				parameters{isServiceEnabled: true, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				[]string{
+					"systemctl is-enabled irqbalance",
+					"systemctl restart irqbalance",
+				},
+				[]string{
+					"which irqbalance",
+					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
+				}),
+			Entry("irqbalance is disabled but irqBalance file exists",
+				parameters{isServiceEnabled: false, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				[]string{
+					"systemctl is-enabled irqbalance",
+				},
+				[]string{
+					"which irqbalance",
+					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
+				}),
+			Entry("irqbalance is disabled, oneshot lookup fails",
+				parameters{isServiceEnabled: false, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: true, calculatedIRQBalanceMask: "ffff,ffff"},
+				[]string{
+					"systemctl is-enabled irqbalance",
+				},
+				[]string{
+					"which irqbalance",
+				}),
+		)
 	})
 
 	Describe("convertAnnotationToLatency", func() {
