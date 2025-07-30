@@ -61,6 +61,49 @@ const (
 	SharedCPUsEnvVar     = "OPENSHIFT_SHARED_CPUS"
 )
 
+// ServiceManager interface for managing system services.
+type ServiceManager interface {
+	IsServiceEnabled(serviceName string) bool
+	RestartService(serviceName string) error
+}
+
+// CommandRunner interface for running external commands.
+type CommandRunner interface {
+	LookPath(file string) (string, error)
+	RunCommand(name string, env []string, arg ...string) error
+}
+
+// Default implementations.
+type defaultServiceManager struct{}
+
+func (d *defaultServiceManager) IsServiceEnabled(serviceName string) bool {
+	return isServiceEnabled(serviceName)
+}
+
+func (d *defaultServiceManager) RestartService(serviceName string) error {
+	return restartService(serviceName)
+}
+
+type defaultCommandRunner struct{}
+
+func (d *defaultCommandRunner) LookPath(file string) (string, error) {
+	return exec.LookPath(file)
+}
+
+func (d *defaultCommandRunner) RunCommand(name string, env []string, arg ...string) error {
+	cmd := cmdrunner.Command(name, arg...)
+	if len(env) > 0 {
+		cmd.Env = env
+	}
+
+	return cmd.Run()
+}
+
+var (
+	serviceManager ServiceManager = &defaultServiceManager{}
+	commandRunner  CommandRunner  = &defaultCommandRunner{}
+)
+
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads.
 type HighPerformanceHooks struct {
 	irqBalanceConfigFile     string
@@ -613,13 +656,13 @@ func (h *HighPerformanceHooks) handleIRQBalanceRestart(ctx context.Context, cNam
 	// quick succession and the parameter must be reconfigured for this to work correctly.
 	// See:
 	// https://github.com/cri-o/cri-o/pull/8834/commits/b96928dcbb7956e0ebde42238e88955831411216
-	if !isServiceEnabled(irqBalancedName) || !fileExists(h.irqBalanceConfigFile) {
+	if !serviceManager.IsServiceEnabled(irqBalancedName) || !fileExists(h.irqBalanceConfigFile) {
 		return false
 	}
 
 	log.Debugf(ctx, "Container %q restarting irqbalance service", cName)
 
-	if err := restartIrqBalanceService(); err != nil {
+	if err := serviceManager.RestartService(irqBalancedName); err != nil {
 		log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
 
 		return false
@@ -630,7 +673,7 @@ func (h *HighPerformanceHooks) handleIRQBalanceRestart(ctx context.Context, cNam
 
 // handleIRQBalanceOneShot runs irqbalance --oneshot command.
 func (h *HighPerformanceHooks) handleIRQBalanceOneShot(ctx context.Context, cName, newIRQBalanceSetting string) {
-	irqBalanceFullPath, err := exec.LookPath(irqBalancedName)
+	irqBalanceFullPath, err := commandRunner.LookPath(irqBalancedName)
 	if err != nil {
 		// irqbalance is not installed, skip the rest; pod should still start, so return nil instead.
 		log.Warnf(ctx, "Irqbalance binary not found: %v", err)
@@ -638,13 +681,16 @@ func (h *HighPerformanceHooks) handleIRQBalanceOneShot(ctx context.Context, cNam
 		return
 	}
 
-	cmd := cmdrunner.Command(irqBalanceFullPath, "--oneshot")
-	additionalEnv := irqBalanceBannedCpus + "=" + newIRQBalanceSetting
-	cmd.Env = append(os.Environ(), additionalEnv)
+	env := fmt.Sprintf("%s=%s", irqBalanceBannedCpus, newIRQBalanceSetting)
+	log.Debugf(ctx, "Container %q running '%s %s %s'", cName, env, irqBalanceFullPath, "--oneshot")
 
-	if err := cmd.Run(); err != nil {
+	if err := commandRunner.RunCommand(
+		irqBalanceFullPath,
+		[]string{env},
+		"--oneshot",
+	); err != nil {
 		log.Warnf(ctx, "Container %q failed to run '%s %s %s', err: %q",
-			cName, additionalEnv, irqBalanceFullPath, "--oneshot", err)
+			cName, env, irqBalanceFullPath, "--oneshot", err)
 	}
 }
 
@@ -1090,8 +1136,8 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 		return err
 	}
 
-	if isServiceEnabled(irqBalancedName) {
-		if err := restartIrqBalanceService(); err != nil {
+	if serviceManager.IsServiceEnabled(irqBalancedName) {
+		if err := serviceManager.RestartService(irqBalancedName); err != nil {
 			log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
 		}
 	}
