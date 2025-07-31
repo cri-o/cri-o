@@ -224,3 +224,32 @@ function check_networking() {
 	crictl stopp "$new_pod_id"
 	crictl rmp "$new_pod_id"
 }
+
+@test "CNI teardown called even with missing or invalid netns to prevent IP leaks" {
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	# Get the network namespace path
+	NETNS_PATH=/var/run/netns/
+	NS=$(crictl inspectp "$pod_id" |
+		jq -er '.info.runtimeSpec.linux.namespaces[] | select(.type == "network").path | sub("'$NETNS_PATH'"; "")')
+
+	output=$(crictl inspectp "$pod_id" | jq -r '.status.state')
+	[[ "$output" == "SANDBOX_READY" ]]
+
+	# Stop the pod first to release the network namespace.
+	crictl stopp "$pod_id"
+
+	# Now remove the network namespace file to simulate the issue.
+	rm -f "$NETNS_PATH$NS"
+
+	# Remove the pod - this should still call CNI teardown.
+	crictl rmp "$pod_id"
+
+	# Verify CNI teardown was called by checking logs.
+	grep -q "Deleting pod.*from CNI network" "$CRIO_LOG"
+
+	# Verify the pod is gone.
+	run ! crictl inspectp "$pod_id"
+}
