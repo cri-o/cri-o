@@ -13,7 +13,8 @@ It assumes you've already installed `golang>=1.22.2`,`kind>=v0.22.0`,`docker>=26
 > [!WARNING]
 > **Known Issues:**
 >
-> This setup does not support running privileged containers, and therefore isn't able to bring up the kube-proxy daemonset:
+> This setup does not support running privileged containers, and therefore
+> isn't able to bring up the kube-proxy daemonset:
 > `Error: container create failed: capset: Operation not permitted`
 
 ## Build Node Image
@@ -139,50 +140,46 @@ echo "Finished building image: $TARGET"
 
 <!-- markdownlint-enable MD013 -->
 
----
-
-> Note
-
-In case you're using `buildx` the error like below might happen:
-
-<!-- markdownlint-disable MD013 -->
-
-```shell
-$ docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t kindnode/crio:$CRIO_VERSION .
-[+] Building 1.4s (2/2) FINISHED                                           docker-container:kind-builder
- => [internal] load build definition from Dockerfile                                                0.0s
- => => transferring dockerfile: 977B                                                                0.0s
- => ERROR [internal] load metadata for docker.io/kindest/node:latest                                1.2s
-------
- > [internal] load metadata for docker.io/kindest/node:latest:
-------
-WARNING: No output specified with docker-container driver. Build result will only remain in the build cache. To push result image into registry use --push or to load image into docker use --load
-Dockerfile:1
---------------------
-   1 | >>> FROM kindest/node:latest
-   2 |
-   3 |     ARG CRIO_VERSION
---------------------
-ERROR: failed to solve: kindest/node:latest: failed to resolve source metadata for docker.io/kindest/node:latest: docker.io/kindest/node:latest: not found
-```
-
-<!-- markdownlint-enable MD013 -->
-
-Check if you're using `buildx`:
-
-```shell
-$ cat ~/.docker/config.json
-{
-  "auths": {},
-  "aliases": {
-    "builder": "buildx"
-  }
-}
-$ mv ~/.docker/config.json ~/.docker/config.jsonBACKUP
-# disable buildx for a while
-```
-
----
+> [!NOTE]
+>
+> In case you're using `buildx` the error like below might happen:
+>
+> <!-- markdownlint-disable MD013 -->
+>
+> ```shell
+> $ docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t kindnode/crio:$CRIO_VERSION .
+> [+] Building 1.4s (2/2) FINISHED                                           docker-container:kind-builder
+>  => [internal] load build definition from Dockerfile                                                0.0s
+>  => => transferring dockerfile: 977B                                                                0.0s
+>  => ERROR [internal] load metadata for docker.io/kindest/node:latest                                1.2s
+> ------
+>  > [internal] load metadata for docker.io/kindest/node:latest:
+> ------
+> WARNING: No output specified with docker-container driver. Build result will only remain in the build cache. To push result image into registry use --push or to load image into docker use --load
+> Dockerfile:1
+> --------------------
+>    1 | >>> FROM kindest/node:latest
+>    2 |
+>    3 |     ARG CRIO_VERSION
+> --------------------
+> ERROR: failed to solve: kindest/node:latest: failed to resolve source metadata for docker.io/kindest/node:latest: docker.io/kindest/node:latest: not found
+> ```
+>
+> <!-- markdownlint-enable MD013 -->
+>
+> Check if you're using `buildx`:
+>
+> ```shell
+> $ cat ~/.docker/config.json
+> {
+>   "auths": {},
+>   "aliases": {
+>     "builder": "buildx"
+>   }
+> }
+> $ mv ~/.docker/config.json ~/.docker/config.jsonBACKUP
+> # disable buildx for a while
+> ```
 
 With the built `node image,` we can create the kind cluster:
 
