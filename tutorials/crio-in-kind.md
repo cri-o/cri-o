@@ -6,33 +6,9 @@ cluster with CRI-O Container Runtime by creating a custom [`node image`](https:/
 
 It assumes you've already installed `golang>=1.22.2`,`kind>=v0.22.0`,`docker>=26.1.0`.
 
-1. [Build Base Image](#build-base-image)
 1. [Build Node Image](#build-node-image)
 1. [Create kind cluster](#create-kind-cluster)
 1. [Deploy example workload](#deploy-example-workload)
-
-## Build Base Image
-
-We need `kind` sources to build the
-[`base image`](https://kind.sigs.k8s.io/docs/design/base-image/):
-
-<!-- markdownlint-disable MD013 -->
-
-```sh
-$ git clone git@github.com:kubernetes-sigs/kind.git
-$ cd kind/images/base
-$ make quick
-./../../hack/build/init-buildx.sh
-docker buildx build  --load --progress=auto -t gcr.io/k8s-staging-kind/base:v20240508-19df3db3 --pull --build-arg GO_VERSION=1.21.6  .
-### ... some output here
-```
-
-<!-- markdownlint-enable MD013 -->
-
-The image `gcr.io/k8s-staging-kind/base:v20240508-19df3db3` is our
-[`base image`](https://kind.sigs.k8s.io/docs/design/base-image/).
-We'll use it for
-[`node image`](https://kind.sigs.k8s.io/docs/design/node-image/) building.
 
 ## Build Node Image
 
@@ -52,7 +28,7 @@ $ git clone --depth 1 --branch ${K8S_VERSION} https://github.com/kubernetes/kube
 Now let's build the `node image`:
 
 ```sh
-$ kind build node-image --base-image gcr.io/k8s-staging-kind/base:v20240508-19df3db3
+$ kind build node-image
 Starting to build Kubernetes
 +++ [0508 15:41:04] Verifying Prerequisites....
 +++ [0508 15:41:04] Building Docker image kube-build:build-14d7110ae1-5-v1.30.0-go1.22.2-bullseye.0
