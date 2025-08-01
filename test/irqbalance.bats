@@ -90,7 +90,7 @@ function teardown_serial_test() {
 # then
 #	we expect cri-o to save the irqbalance banned cpus mask in a file
 # 	pointed by the "$BANNEDCPUS_CONF" env var
-#	and the mask must have value stated in "IRQBALANCE_BANNED_CPUS" field
+#	and the mask must have value stated in "IRQBALANCE_BANNED_CPULIST" field
 #   from irqbalance service configuration file.
 irqbalance_cpu_ban_list_save() {
 	setup_serial_test
@@ -103,7 +103,7 @@ irqbalance_cpu_ban_list_save() {
 	[ -f "$BANNEDCPUS_CONF" ] && rm -f "$BANNEDCPUS_CONF"
 
 	local expected_banned_cpus
-	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	# when
 	IRQBALANCE_CONFIG_FILE="${IRQBALANCE_CONF}" IRQBALANCE_CONFIG_RESTORE_FILE="$BANNEDCPUS_CONF" start_crio
@@ -129,7 +129,7 @@ irqbalance_cpu_ban_list_save() {
 # then
 #	we expect cri-o to read the irqbalance banned cpus mask from a file
 # 	pointed by the "$BANNEDCPUS_CONF" env var
-#	and save the mask value in "IRQBALANCE_BANNED_CPUS" field
+#	and save the mask value in "IRQBALANCE_BANNED_CPULIST" field
 #   of irqbalance service configuration file.
 irqbalance_cpu_ban_list_restore_default() {
 	setup_serial_test
@@ -139,7 +139,8 @@ irqbalance_cpu_ban_list_restore_default() {
 	fi
 	[ -f "$CONFIGLET" ] && rm -f "$CONFIGLET"
 
-	echo "IRQBALANCE_BANNED_CPUS=\"0\"" > "$IRQBALANCE_CONF"
+	echo "IRQBALANCE_BANNED_CPUS=\"0\"" > "${IRQBALANCE_CONF}"
+	echo "IRQBALANCE_BANNED_CPULIST=-" >> "${IRQBALANCE_CONF}"
 
 	local banned_cpus_for_conf
 	banned_cpus_for_conf=$(cat /proc/irq/default_smp_affinity)
@@ -150,8 +151,8 @@ irqbalance_cpu_ban_list_restore_default() {
 
 	# then
 	local banned_cpus
-	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
-
+	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	echo "banned_cpus_for_conf=${banned_cpus_for_conf} banned_cpus=${banned_cpus}" 
 	[ "$banned_cpus_for_conf" == "$banned_cpus" ]
 
 	teardown_serial_test
@@ -165,7 +166,7 @@ irqbalance_cpu_ban_list_restore_default() {
 #   and we explicitly disable the restore file option
 # then
 #	restore option does not disturb cri-o behaviour
-#	so it reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
+#	so it reads banned cpus mask from "IRQBALANCE_BANNED_CPULIST" field
 #   and save it in a file pointer by "BANNEDCPUS_CONF"  env var
 irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
 	setup_serial_test
@@ -176,7 +177,7 @@ irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
 	[ -f "$CONFIGLET" ] && rm -f "$CONFIGLET"
 
 	local expected_banned_cpus
-	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ -f "$BANNEDCPUS_CONF" ] && rm -f "$BANNEDCPUS_CONF"
 
@@ -185,7 +186,7 @@ irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
 
 	# then
 	local banned_cpus
-	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ "$expected_banned_cpus" == "$banned_cpus" ] && [ ! -f "$BANNEDCPUS_CONF" ]
 
@@ -201,7 +202,7 @@ irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
 #   and we explicitly disable the restore file option
 # then
 #	restore option does not disturb cri-o behaviour
-#	so cri-o reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
+#	so cri-o reads banned cpus mask from "IRQBALANCE_BANNED_CPULIST" field
 #   and save it in a file pointer by "BANNEDCPUS_CONF"  env var
 irqbalance_cpu_ban_list_restore_disable() {
 	setup_serial_test
@@ -212,7 +213,7 @@ irqbalance_cpu_ban_list_restore_disable() {
 	[ -f "$CONFIGLET" ] && rm -f "$CONFIGLET"
 
 	local expected_banned_cpus
-	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	local banned_cpus_for_conf
 	banned_cpus_for_conf=$(cat /proc/irq/default_smp_affinity)
@@ -223,7 +224,7 @@ irqbalance_cpu_ban_list_restore_disable() {
 
 	# then
 	local banned_cpus
-	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ "$expected_banned_cpus" == "$banned_cpus" ]
 
@@ -238,7 +239,7 @@ irqbalance_cpu_ban_list_restore_disable() {
 #   and the restore file option pointing to an existing file.
 # then
 #	cri-o should read banned cpus mask from restore file
-#	and save it in "IRQBALANCE_BANNED_CPUS" field.
+#	and save it in "IRQBALANCE_BANNED_CPULIST" field.
 irqbalance_cpu_ban_list_restore_explicit_file() {
 	setup_serial_test
 	# given
@@ -249,7 +250,8 @@ irqbalance_cpu_ban_list_restore_explicit_file() {
 
 	[ -f "$BANNEDCPUS_CONF" ] && rm -f "$BANNEDCPUS_CONF"
 
-	echo "IRQBALANCE_BANNED_CPUS=\"0\"" > "$IRQBALANCE_CONF"
+	echo "IRQBALANCE_BANNED_CPUS=\"0\"" > "${IRQBALANCE_CONF}"
+	echo "IRQBALANCE_BANNED_CPULIST=-" >> "${IRQBALANCE_CONF}"
 
 	local irqbalance_restore_file
 	irqbalance_restore_file="$(mktemp /tmp/irq-restore.XXXXXXXXX)"
@@ -264,7 +266,7 @@ irqbalance_cpu_ban_list_restore_explicit_file() {
 
 	# then
 	local banned_cpus
-	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	# when a explicit file is used to restore default one is completely ignored,
 	# and so, it should not be created.( as it did not existed before)
