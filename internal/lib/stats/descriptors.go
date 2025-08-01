@@ -163,3 +163,12 @@ var (
 		LabelKeys: baseLabelKeys,
 	}
 )
+
+// Process metrics.
+var (
+	containerProcesses = &types.MetricDescriptor{
+		Name:      "container_processes",
+		Help:      "Number of processes running inside the container",
+		LabelKeys: baseLabelKeys,
+	}
+)
