@@ -129,3 +129,21 @@ function teardown() {
 #	crictl rmp -fa
 #	! curl -sf "http://localhost:$PORT/metrics" | grep 'crio_containers_oom{'
 #}
+
+@test "container_start_time_seconds metric is exposed" {
+	# Start CRI-O with metrics enabled on a random port
+	PORT=$(free_port)
+	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT="$PORT" start_crio
+
+	# Create a pod and a container
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/container_config.json)
+	crictl start "$ctr_id"
+
+	# Allow some time for the metric to be populated
+	sleep 2
+
+	# Fetch metrics and check for the enw metric
+	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep '^container_start_time_seconds{')
+	[[ -n "$METRIC" ]]
+}
