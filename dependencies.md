@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Aug 2025 05:58:45 UTC for commit [17758e7][0]._
+_Generated on Fri, 01 Aug 2025 16:01:58 UTC for commit [86dd5c7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/17758e774169e1f23ea18cde6bb8fb38bc51a47c
+[0]: https://github.com/cri-o/cri-o/commit/86dd5c7619b74e2d88fc4a1336e6eba0d846fa54
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.6                             | v0.0.7                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250731214918-82f141a02e18 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250801143446-c47bff6d6a92 | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.61.0                            | v0.62.0                            | true   | true             |
 
 ## All Dependencies
@@ -142,7 +142,7 @@ _Generated on Fri, 01 Aug 2025 05:58:45 UTC for commit [17758e7][0]._
 | cloud.google.com/go/workflows                                               | v1.13.3                               | v1.14.2                             | false  | true             |
 | code.cloudfoundry.org/bytefmt                                               | v0.0.0-20211005130812-5bb3c17173e5    | v0.45.0                             | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                              | v0.0.0-20250224124241-b27552d3e05c    | v0.0.0-20250722084951-074d06050084  | false  | true             |
-| cuelang.org/go                                                              | v0.12.1                               | v0.13.2                             | false  | true             |
+| cuelang.org/go                                                              | v0.12.1                               | v0.14.0                             | false  | true             |
 | dario.cat/mergo                                                             | v1.0.2                                |                                     | false  | true             |
 | filippo.io/edwards25519                                                     | v1.1.0                                |                                     | false  | true             |
 | github.com/AdaLogics/go-fuzz-headers                                        | v0.0.0-20230811130428-ced1acdcaa24    | v0.0.0-20240806141605-e8a1dd7889d6  | false  | true             |
@@ -443,7 +443,7 @@ _Generated on Fri, 01 Aug 2025 05:58:45 UTC for commit [17758e7][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250731214918-82f141a02e18  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250801143446-c47bff6d6a92  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
