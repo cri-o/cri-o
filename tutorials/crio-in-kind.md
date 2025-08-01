@@ -6,33 +6,16 @@ cluster with CRI-O Container Runtime by creating a custom [`node image`](https:/
 
 It assumes you've already installed `golang>=1.22.2`,`kind>=v0.22.0`,`docker>=26.1.0`.
 
-1. [Build Base Image](#build-base-image)
 1. [Build Node Image](#build-node-image)
 1. [Create kind cluster](#create-kind-cluster)
 1. [Deploy example workload](#deploy-example-workload)
 
-## Build Base Image
-
-We need `kind` sources to build the
-[`base image`](https://kind.sigs.k8s.io/docs/design/base-image/):
-
-<!-- markdownlint-disable MD013 -->
-
-```sh
-$ git clone git@github.com:kubernetes-sigs/kind.git
-$ cd kind/images/base
-$ make quick
-./../../hack/build/init-buildx.sh
-docker buildx build  --load --progress=auto -t gcr.io/k8s-staging-kind/base:v20240508-19df3db3 --pull --build-arg GO_VERSION=1.21.6  .
-### ... some output here
-```
-
-<!-- markdownlint-enable MD013 -->
-
-The image `gcr.io/k8s-staging-kind/base:v20240508-19df3db3` is our
-[`base image`](https://kind.sigs.k8s.io/docs/design/base-image/).
-We'll use it for
-[`node image`](https://kind.sigs.k8s.io/docs/design/node-image/) building.
+> [!WARNING]
+> **Known Issues:**
+>
+> This setup does not support running privileged containers, and therefore
+> isn't able to bring up the kube-proxy daemonset:
+> `Error: container create failed: capset: Operation not permitted`
 
 ## Build Node Image
 
@@ -52,7 +35,7 @@ $ git clone --depth 1 --branch ${K8S_VERSION} https://github.com/kubernetes/kube
 Now let's build the `node image`:
 
 ```sh
-$ kind build node-image --base-image gcr.io/k8s-staging-kind/base:v20240508-19df3db3
+$ kind build node-image
 Starting to build Kubernetes
 +++ [0508 15:41:04] Verifying Prerequisites....
 +++ [0508 15:41:04] Building Docker image kube-build:build-14d7110ae1-5-v1.30.0-go1.22.2-bullseye.0
@@ -86,11 +69,14 @@ Building in container: kind-build-1715175957-1495463435
 Image "kindest/node:latest" build completed.
 ```
 
-Now let's build our image with CRI-O on top of `kindest/node:latest`:
+Now let's build our image with CRI-O on top of `kindest/node:latest`.
+
+First, create the following dockerfile:
 
 <!-- markdownlint-disable MD013 -->
 
 ```dockerfile
+# kind-crio-image.dockerfile
 FROM kindest/node:latest
 
 ARG CRIO_VERSION
@@ -102,10 +88,10 @@ RUN echo "Installing Packages ..." \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     software-properties-common vim gnupg \
     && echo "Installing cri-o ..." \
-    && curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/$PROJECT_PATH/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/$PROJECT_PATH/deb/ /" | tee /etc/apt/sources.list.d/cri-o.list \
+    && curl -fsSL https://download.opensuse.org/repositories/isv:/cri-o:/$PROJECT_PATH/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://download.opensuse.org/repositories/isv:/cri-o:/$PROJECT_PATH/deb/ /" | tee /etc/apt/sources.list.d/cri-o.list \
     && apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get --option=Dpkg::Options::=--force-confdef install -y cri-o \
+    && DEBIAN_FRONTEND=noninteractive apt-get --option=Dpkg::Options::=--force-confdef install -y cri-o podman \
     && sed -i 's/containerd/crio/g' /etc/crictl.yaml \
     && systemctl disable containerd \
     && systemctl enable crio
@@ -113,63 +99,87 @@ RUN echo "Installing Packages ..." \
 
 <!-- markdownlint-enable MD013 -->
 
-<!-- markdownlint-disable MD013 -->
+Now, use the following script to build the final image:
 
-Next let's build image with
-[`prerelease:v1.30`](https://github.com/cri-o/packaging/blob/main/README.md#prereleases) CRI-O version:
+<!-- markdownlint-disable MD013 -->
 
 ```sh
-$ CRIO_VERSION=v1.30
-$ docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t kindnode/crio:$CRIO_VERSION .
-# some output
-```
+#!/bin/bash
 
-<!-- markdownlint-enable MD013 -->
+set -euo pipefail
 
----
+CRIO_VERSION=${CRIO_VERSION:-v1.33}
+TARGET="kindnode/crio:$CRIO_VERSION"
+INTERMEDIATE="${TARGET}-tmp"
 
-> Note
+echo "Building intermediate image $INTERMEDIATE ..."
+docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t $INTERMEDIATE -f kind-crio-image.dockerfile .
 
-In case you're using `buildx` the error like below might happen:
+echo "Building final image $TARGET ..."
+# Run the intermediate image in the background
+docker run --privileged --rm -d --name crio-builder --entrypoint sleep $INTERMEDIATE infinity
 
-<!-- markdownlint-disable MD013 -->
-
-```shell
-$ docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t kindnode/crio:$CRIO_VERSION .
-[+] Building 1.4s (2/2) FINISHED                                           docker-container:kind-builder
- => [internal] load build definition from Dockerfile                                                0.0s
- => => transferring dockerfile: 977B                                                                0.0s
- => ERROR [internal] load metadata for docker.io/kindest/node:latest                                1.2s
-------
- > [internal] load metadata for docker.io/kindest/node:latest:
-------
-WARNING: No output specified with docker-container driver. Build result will only remain in the build cache. To push result image into registry use --push or to load image into docker use --load
-Dockerfile:1
---------------------
-   1 | >>> FROM kindest/node:latest
-   2 |
-   3 |     ARG CRIO_VERSION
---------------------
-ERROR: failed to solve: kindest/node:latest: failed to resolve source metadata for docker.io/kindest/node:latest: docker.io/kindest/node:latest: not found
-```
-
-<!-- markdownlint-enable MD013 -->
-
-Check if you're using `buildx`:
-
-```shell
-$ cat ~/.docker/config.json
-{
-  "auths": {},
-  "aliases": {
-    "builder": "buildx"
-  }
+func cleanup {
+  docker kill crio-builder
 }
-$ mv ~/.docker/config.json ~/.docker/config.jsonBACKUP
-# disable buildx for a while
+# Remove the crio-builder container on exit
+trap cleanup EXIT
+
+# Start crio & containerd daemons
+docker exec -d crio-builder containerd
+docker exec -d crio-builder crio
+
+# Migrate the pinned kube-* images from containerd to cri-o
+docker exec crio-builder bash -c 'for IMG in $(ctr -n k8s.io images list -q | grep "registry.k8s.io/kube-"); do echo "Migrating $IMG ..." && ctr -n k8s.io image export --platform "linux/amd64" - "$IMG" | podman load; done'
+
+# Commit the final image, restoring the original entrypoint
+docker commit --change 'ENTRYPOINT [ "/usr/local/bin/entrypoint", "/sbin/init" ]' crio-builder $TARGET
+
+echo "Finished building image: $TARGET"
 ```
 
----
+<!-- markdownlint-enable MD013 -->
+
+> [!NOTE]
+>
+> In case you're using `buildx` the error like below might happen:
+>
+> <!-- markdownlint-disable MD013 -->
+>
+> ```shell
+> $ docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t kindnode/crio:$CRIO_VERSION .
+> [+] Building 1.4s (2/2) FINISHED                                           docker-container:kind-builder
+>  => [internal] load build definition from Dockerfile                                                0.0s
+>  => => transferring dockerfile: 977B                                                                0.0s
+>  => ERROR [internal] load metadata for docker.io/kindest/node:latest                                1.2s
+> ------
+>  > [internal] load metadata for docker.io/kindest/node:latest:
+> ------
+> WARNING: No output specified with docker-container driver. Build result will only remain in the build cache. To push result image into registry use --push or to load image into docker use --load
+> Dockerfile:1
+> --------------------
+>    1 | >>> FROM kindest/node:latest
+>    2 |
+>    3 |     ARG CRIO_VERSION
+> --------------------
+> ERROR: failed to solve: kindest/node:latest: failed to resolve source metadata for docker.io/kindest/node:latest: docker.io/kindest/node:latest: not found
+> ```
+>
+> <!-- markdownlint-enable MD013 -->
+>
+> Check if you're using `buildx`:
+>
+> ```shell
+> $ cat ~/.docker/config.json
+> {
+>   "auths": {},
+>   "aliases": {
+>     "builder": "buildx"
+>   }
+> }
+> $ mv ~/.docker/config.json ~/.docker/config.jsonBACKUP
+> # disable buildx for a while
+> ```
 
 With the built `node image,` we can create the kind cluster:
 
