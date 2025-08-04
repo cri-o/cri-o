@@ -228,6 +228,10 @@ func retrieveIrqBannedCPUList(irqBalanceConfigFile string) (cpuset.CPUSet, error
 
 		if strings.HasPrefix(line, irqBalanceBannedCPUs+"=") {
 			list := strings.Trim(strings.Split(line, "=")[1], "\"")
+			// if the list is "-", it means that no CPUs are banned, so return an empty set
+			if list == "-" {
+				return cpuset.New(), nil
+			}
 
 			setFromNewValue, err = cpuset.Parse(list)
 			if err != nil {
