@@ -84,7 +84,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			c.SetStartFailed(retErr)
 
 			if hooks != nil {
-				if err := hooks.PreStop(ctx, c, sandbox); err != nil {
+				if err := hooks.PreStop(ctx, s.ContainerServer, c, sandbox); err != nil {
 					log.Warnf(ctx, "Failed to run pre-stop hook for container %q: %v", c.ID(), err)
 				}
 			}
@@ -104,7 +104,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	}()
 
 	if hooks != nil {
-		if err := hooks.PreStart(ctx, c, sandbox); err != nil {
+		if err := hooks.PreStart(ctx, s.ContainerServer, c, sandbox); err != nil {
 			return nil, fmt.Errorf("failed to run pre-start hook for container %q: %w", c.ID(), err)
 		}
 	}

@@ -15,14 +15,19 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/hostport"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/memorystore"
 	"github.com/cri-o/cri-o/internal/oci"
 	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
+	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
+	libmock "github.com/cri-o/cri-o/test/mocks/lib"
 )
 
 const (
@@ -37,6 +42,9 @@ const (
 	governorPowersave    = "powersave"
 	governorSchedutil    = "schedutil"
 	governorUserspace    = "userspace"
+
+	containerID = "containerID"
+	sandboxID   = "sandboxID"
 )
 
 type mockServiceManager struct {
@@ -97,18 +105,103 @@ func (m *mockCommandRunner) RunCommand(name string, env []string, arg ...string)
 
 // The actual test suite.
 var _ = Describe("high_performance_hooks", func() {
-	container, err := oci.NewContainer("containerID", "", "", "",
-		make(map[string]string), make(map[string]string),
-		make(map[string]string), "pauseImage", nil, nil, "",
-		&types.ContainerMetadata{}, "sandboxID", false, false,
-		false, "", "", time.Now(), "")
-	Expect(err).ToNot(HaveOccurred())
-
 	var flags, bannedCPUFlags string
+	var err error
+
+	container := &oci.Container{}
+	containerServer := &lib.ContainerServer{}
+	libcfg := &config.Config{}
+
+	baseSandboxBuilder := func() sandbox.Builder {
+		sbox := sandbox.NewBuilder()
+		createdAt := time.Now()
+		sbox.SetCreatedAt(createdAt)
+		sbox.SetID(sandboxID)
+		sbox.SetName("sandboxName")
+		sbox.SetLogDir("test")
+		sbox.SetShmPath("test")
+		sbox.SetNamespace("")
+		sbox.SetKubeName("")
+		sbox.SetMountLabel("test")
+		sbox.SetProcessLabel("test")
+		sbox.SetCgroupParent("")
+		sbox.SetRuntimeHandler("")
+		sbox.SetResolvPath("")
+		sbox.SetHostname("")
+		sbox.SetPortMappings([]*hostport.PortMapping{})
+		sbox.SetHostNetwork(false)
+		sbox.SetUsernsMode("")
+		sbox.SetPodLinuxOverhead(nil)
+		sbox.SetPodLinuxResources(nil)
+		sbox.SetPrivileged(false)
+		sbox.SetHostNetwork(false)
+		sbox.SetCreatedAt(createdAt)
+
+		return sbox
+	}
+
+	setupContainerAndSandbox := func() {
+		// Create and add sandbox with high-performance runtime handler
+		sbox := baseSandboxBuilder()
+		sbox.SetRuntimeHandler("high-performance")
+		sbox.SetContainers(memorystore.New[*oci.Container]())
+		sandboxDisableAnnotations := map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
+		err = sbox.SetCRISandbox(
+			sbox.ID(),
+			make(map[string]string),
+			sandboxDisableAnnotations,
+			&types.PodSandboxMetadata{},
+		)
+		Expect(err).ToNot(HaveOccurred())
+		sb, err := sbox.GetSandbox()
+		Expect(err).ToNot(HaveOccurred())
+		containerServer.AddSandbox(context.TODO(), sb) //nolint:errcheck
+
+		// Create container with CPU specification
+		container, err = oci.NewContainer(containerID, containerID, "", "",
+			make(map[string]string), make(map[string]string),
+			make(map[string]string), "pauseImage", nil, nil, "",
+			&types.ContainerMetadata{}, sandboxID, false, false,
+			false, "", "", time.Now(), "")
+		Expect(err).ToNot(HaveOccurred())
+
+		// Set container spec and state
+		var cpuShares uint64 = 1024
+		container.SetSpec(
+			&specs.Spec{
+				Linux: &specs.Linux{
+					Resources: &specs.LinuxResources{
+						CPU: &specs.LinuxCPU{
+							Cpus:   "4,5",
+							Shares: &cpuShares,
+						},
+					},
+				},
+			},
+		)
+
+		// Add container to server
+		containerServer.AddContainer(context.TODO(), container)
+	}
 
 	BeforeEach(func() {
 		err := os.MkdirAll(fixturesDir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
+
+		tempDir, err := os.MkdirTemp(fixturesDir, "crio-*")
+		Expect(err).NotTo(HaveOccurred())
+		libcfg.ContainerAttachSocketDir = tempDir
+
+		mockCtrl := gomock.NewController(GinkgoT())
+		libMock := libmock.NewMockIface(mockCtrl)
+		storeMock := containerstoragemock.NewMockStore(mockCtrl)
+		gomock.InOrder(
+			libMock.EXPECT().GetStore().Return(storeMock, nil),
+			libMock.EXPECT().GetData().Return(libcfg),
+		)
+		containerServer, err = lib.New(context.Background(), libMock)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(containerServer).NotTo(BeNil())
 	})
 
 	AfterEach(func() {
@@ -124,7 +217,7 @@ var _ = Describe("high_performance_hooks", func() {
 				irqBalanceConfigFile: irqBalanceConfigFile,
 				irqSMPAffinityFile:   irqSmpAffinityFile,
 			}
-			err := h.setIRQLoadBalancing(context.TODO(), container, enabled)
+			err := h.setIRQLoadBalancing(context.TODO(), containerServer, container, enabled)
 			Expect(err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqSmpAffinityFile)
@@ -134,18 +227,7 @@ var _ = Describe("high_performance_hooks", func() {
 		}
 
 		JustBeforeEach(func() {
-			// set container CPUs
-			container.SetSpec(
-				&specs.Spec{
-					Linux: &specs.Linux{
-						Resources: &specs.LinuxResources{
-							CPU: &specs.LinuxCPU{
-								Cpus: "4,5",
-							},
-						},
-					},
-				},
-			)
+			setupContainerAndSandbox()
 
 			// create tests affinity file
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
@@ -181,7 +263,7 @@ var _ = Describe("high_performance_hooks", func() {
 				irqBalanceConfigFile: irqBalanceConfigFile,
 				irqSMPAffinityFile:   irqSmpAffinityFile,
 			}
-			err = h.setIRQLoadBalancing(context.TODO(), container, enabled)
+			err := h.setIRQLoadBalancing(context.TODO(), containerServer, container, enabled)
 			Expect(err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqSmpAffinityFile)
@@ -196,6 +278,8 @@ var _ = Describe("high_performance_hooks", func() {
 		}
 
 		JustBeforeEach(func() {
+			setupContainerAndSandbox()
+
 			// set irqbalanace config file with no banned cpus
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).ToNot(HaveOccurred())
@@ -204,18 +288,6 @@ var _ = Describe("high_performance_hooks", func() {
 			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bannedCPUs).To(Equal(bannedCPUFlags))
-			// set container CPUs
-			container.SetSpec(
-				&specs.Spec{
-					Linux: &specs.Linux{
-						Resources: &specs.LinuxResources{
-							CPU: &specs.LinuxCPU{
-								Cpus: "4,5",
-							},
-						},
-					},
-				},
-			)
 
 			// create tests affinity file
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
@@ -758,7 +830,7 @@ var _ = Describe("high_performance_hooks", func() {
 				commandRunner = mockCmdRunner
 
 				// Execute
-				h.handleIRQBalanceRestart(context.TODO(), "container-name")
+				h.handleIRQBalanceRestart(context.TODO())
 
 				// Verify behavior based on scenario
 				if isServiceEnabled {
@@ -890,34 +962,6 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 	})
 	Describe("PreCreate Hook", func() {
-		baseSandboxBuilder := func() sandbox.Builder {
-			sbox := sandbox.NewBuilder()
-			createdAt := time.Now()
-			sbox.SetCreatedAt(createdAt)
-			sbox.SetID("sandboxID")
-			sbox.SetName("sandboxName")
-			sbox.SetLogDir("test")
-			sbox.SetShmPath("test")
-			sbox.SetNamespace("")
-			sbox.SetKubeName("")
-			sbox.SetMountLabel("test")
-			sbox.SetProcessLabel("test")
-			sbox.SetCgroupParent("")
-			sbox.SetRuntimeHandler("")
-			sbox.SetResolvPath("")
-			sbox.SetHostname("")
-			sbox.SetPortMappings([]*hostport.PortMapping{})
-			sbox.SetHostNetwork(false)
-			sbox.SetUsernsMode("")
-			sbox.SetPodLinuxOverhead(nil)
-			sbox.SetPodLinuxResources(nil)
-			sbox.SetPrivileged(false)
-			sbox.SetHostNetwork(false)
-			sbox.SetCreatedAt(createdAt)
-
-			return sbox
-		}
-
 		shares := uint64(2048)
 		baseGenerator := func() *generate.Generator {
 			return &generate.Generator{
@@ -937,10 +981,10 @@ var _ = Describe("high_performance_hooks", func() {
 		}
 
 		buildContainer := func(g *generate.Generator) (*oci.Container, error) {
-			c, err := oci.NewContainer("containerID", "", "", "",
+			c, err := oci.NewContainer(containerID, containerID, "", "",
 				make(map[string]string), make(map[string]string),
 				make(map[string]string), "pauseImage", nil, nil, "",
-				&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
+				&types.ContainerMetadata{Name: "cnt1"}, sandboxID, false, false,
 				false, "", "", time.Now(), "")
 			if err != nil {
 				return nil, err
@@ -1104,7 +1148,6 @@ var _ = Describe("high_performance_hooks", func() {
 	Describe("Make sure that correct runtime handler hooks are set", func() {
 		var runtimeName string
 		var sandboxAnnotations map[string]string
-		var sb *sandbox.Sandbox
 		var cfg *config.Config
 		var hooksRetriever *HooksRetriever
 
@@ -1114,8 +1157,6 @@ var _ = Describe("high_performance_hooks", func() {
 
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
-		flags = "0000,0000ffff"
-		bannedCPUFlags = "ffffffff,ffff0000"
 
 		ctx := context.Background()
 
@@ -1129,14 +1170,34 @@ var _ = Describe("high_performance_hooks", func() {
 			Expect(strings.Trim(string(content), "\n")).To(Equal(formatIRQBalanceBannedCPUs(expectedIrqBalance)))
 		}
 
-		createContainer := func(cpus string) (*oci.Container, error) {
-			container, err := oci.NewContainer("containerID", "", "", "",
+		createContainer := func(containerServer *lib.ContainerServer, id, cpus, runtimeName string,
+			sandboxAnnotations map[string]string,
+		) (*oci.Container, *sandbox.Sandbox, error) {
+			fullContainerID := containerID + id
+			fullSandboxID := sandboxID + id
+
+			sbox := baseSandboxBuilder()
+			sbox.SetID(fullSandboxID)
+			sbox.SetRuntimeHandler(runtimeName)
+			sbox.SetContainers(memorystore.New[*oci.Container]())
+			err = sbox.SetCRISandbox(
+				sbox.ID(),
+				make(map[string]string),
+				sandboxAnnotations,
+				&types.PodSandboxMetadata{},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			sb, err := sbox.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
+			containerServer.AddSandbox(context.TODO(), sb) //nolint:errcheck
+
+			container, err := oci.NewContainer(fullContainerID, fullContainerID, "", "",
 				make(map[string]string), make(map[string]string),
 				make(map[string]string), "pauseImage", nil, nil, "",
-				&types.ContainerMetadata{}, "sandboxID", false, false,
+				&types.ContainerMetadata{}, fullSandboxID, false, false,
 				false, "", "", time.Now(), "")
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			var cpuShares uint64 = 1024
 			container.SetSpec(
@@ -1152,10 +1213,46 @@ var _ = Describe("high_performance_hooks", func() {
 				},
 			)
 
-			return container, nil
+			// Add container to server
+			containerServer.AddContainer(context.TODO(), container)
+
+			return container, sb, nil
+		}
+
+		addContainersWithConcurrency := func() {
+			var wg sync.WaitGroup
+			for cpu := 10; cpu < 20; cpu++ {
+				wg.Add(1)
+				go func() {
+					defer GinkgoRecover()
+					defer wg.Done()
+					container, sb, err := createContainer(
+						containerServer,
+						strconv.Itoa(cpu),
+						strconv.Itoa(cpu),
+						runtimeName,
+						sandboxAnnotations,
+					)
+					Expect(err).ToNot(HaveOccurred())
+
+					hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+					Expect(hooks).NotTo(BeNil())
+					if hph, ok := hooks.(*HighPerformanceHooks); ok {
+						hph.irqSMPAffinityFile = irqSmpAffinityFile
+						hph.irqBalanceConfigFile = irqBalanceConfigFile
+					}
+
+					err = hooks.PreStart(ctx, containerServer, container, sb)
+					Expect(err).ToNot(HaveOccurred())
+				}()
+			}
+			wg.Wait()
 		}
 
 		JustBeforeEach(func() {
+			flags = "0000,001fff0f"
+			bannedCPUFlags = "ffffffff,ffff00f0"
+
 			// Simulate a restart of crio each time as we're modifying the config between runs.
 			cpuLoadBalancingAllowedAnywhereOnce = sync.Once{}
 
@@ -1165,39 +1262,6 @@ var _ = Describe("high_performance_hooks", func() {
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			err = os.WriteFile(irqBalanceConfigFile, []byte(formatIRQBalanceBannedCPUs(bannedCPUFlags)), 0o644)
-			Expect(err).ToNot(HaveOccurred())
-
-			sbox := sandbox.NewBuilder()
-			createdAt := time.Now()
-			sbox.SetCreatedAt(createdAt)
-			sbox.SetID("sandboxID")
-			sbox.SetName("sandboxName")
-			sbox.SetLogDir("test")
-			sbox.SetShmPath("test")
-			sbox.SetNamespace("")
-			sbox.SetKubeName("")
-			sbox.SetMountLabel("test")
-			sbox.SetProcessLabel("test")
-			sbox.SetCgroupParent("")
-			sbox.SetRuntimeHandler(runtimeName)
-			sbox.SetResolvPath("")
-			sbox.SetHostname("")
-			sbox.SetPortMappings([]*hostport.PortMapping{})
-			sbox.SetHostNetwork(false)
-			sbox.SetUsernsMode("")
-			sbox.SetPodLinuxOverhead(nil)
-			sbox.SetPodLinuxResources(nil)
-			err = sbox.SetCRISandbox(
-				sbox.ID(),
-				map[string]string{},
-				sandboxAnnotations,
-				&types.PodSandboxMetadata{},
-			)
-			Expect(err).ToNot(HaveOccurred())
-			sbox.SetPrivileged(false)
-			sbox.SetHostNetwork(false)
-			sbox.SetCreatedAt(createdAt)
-			sb, err = sbox.GetSandbox()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -1216,28 +1280,12 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				libcfg.RuntimeConfig = cfg.RuntimeConfig
 			})
 
 			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				if hph, ok := hooks.(*HighPerformanceHooks); ok {
-					hph.irqSMPAffinityFile = irqSmpAffinityFile
-					hph.irqBalanceConfigFile = irqBalanceConfigFile
-				}
-				var wg sync.WaitGroup
-				for cpu := range 16 {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						container, err := createContainer(strconv.Itoa(cpu))
-						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
-						Expect(err).ToNot(HaveOccurred())
-					}()
-				}
-				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
+				addContainersWithConcurrency()
+				verifySetIRQLoadBalancing("00000000,0010030f", "ffffffff,ffeffcf0")
 			})
 		})
 
@@ -1256,24 +1304,33 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				libcfg.RuntimeConfig = cfg.RuntimeConfig
 			})
 
 			It("should keep the current irq bit mask but return a high performance hooks", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				hph, ok := hooks.(*HighPerformanceHooks)
-				Expect(ok).To(BeTrue())
-				hph.irqSMPAffinityFile = irqSmpAffinityFile
-				hph.irqBalanceConfigFile = irqBalanceConfigFile
-
 				var wg sync.WaitGroup
-				for cpu := range 16 {
+				for cpu := 10; cpu < 20; cpu++ {
 					wg.Add(1)
 					go func() {
+						defer GinkgoRecover()
 						defer wg.Done()
-						container, err := createContainer(strconv.Itoa(cpu))
+						container, sb, err := createContainer(
+							containerServer,
+							strconv.Itoa(cpu),
+							strconv.Itoa(cpu),
+							runtimeName,
+							sandboxAnnotations,
+						)
 						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
+
+						hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+						Expect(hooks).NotTo(BeNil())
+						hph, ok := hooks.(*HighPerformanceHooks)
+						Expect(ok).To(BeTrue())
+						hph.irqSMPAffinityFile = irqSmpAffinityFile
+						hph.irqBalanceConfigFile = irqBalanceConfigFile
+
+						err = hooks.PreStart(ctx, containerServer, container, sb)
 						Expect(err).ToNot(HaveOccurred())
 					}()
 				}
@@ -1299,28 +1356,12 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				libcfg.RuntimeConfig = cfg.RuntimeConfig
 			})
 
 			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				if hph, ok := hooks.(*HighPerformanceHooks); ok {
-					hph.irqSMPAffinityFile = irqSmpAffinityFile
-					hph.irqBalanceConfigFile = irqBalanceConfigFile
-				}
-				var wg sync.WaitGroup
-				for cpu := range 16 {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						container, err := createContainer(strconv.Itoa(cpu))
-						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
-						Expect(err).ToNot(HaveOccurred())
-					}()
-				}
-				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
+				addContainersWithConcurrency()
+				verifySetIRQLoadBalancing("00000000,0010030f", "ffffffff,ffeffcf0")
 			})
 		})
 
@@ -1341,9 +1382,19 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				libcfg.RuntimeConfig = cfg.RuntimeConfig
 			})
 
 			It("should return a nil hook", func(ctx context.Context) {
+				_, sb, err := createContainer(
+					containerServer,
+					"20",
+					"20",
+					runtimeName,
+					sandboxAnnotations,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
 				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).To(BeNil())
 			})
@@ -1364,28 +1415,12 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				libcfg.RuntimeConfig = cfg.RuntimeConfig
 			})
 
 			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				if hph, ok := hooks.(*HighPerformanceHooks); ok {
-					hph.irqSMPAffinityFile = irqSmpAffinityFile
-					hph.irqBalanceConfigFile = irqBalanceConfigFile
-				}
-				var wg sync.WaitGroup
-				for cpu := range 16 {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						container, err := createContainer(strconv.Itoa(cpu))
-						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
-						Expect(err).ToNot(HaveOccurred())
-					}()
-				}
-				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
+				addContainersWithConcurrency()
+				verifySetIRQLoadBalancing("00000000,0010030f", "ffffffff,ffeffcf0")
 			})
 		})
 
@@ -1414,26 +1449,490 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				libcfg.RuntimeConfig = cfg.RuntimeConfig
 			})
 
 			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				_, ok := (hooks).(*DefaultCPULoadBalanceHooks)
-				Expect(ok).To(BeTrue())
 				var wg sync.WaitGroup
-				for cpu := range 16 {
+				for cpu := 10; cpu < 20; cpu++ {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
-						container, err := createContainer(strconv.Itoa(cpu))
+						container, sb, err := createContainer(
+							containerServer,
+							strconv.Itoa(cpu),
+							strconv.Itoa(cpu),
+							runtimeName,
+							sandboxAnnotations,
+						)
 						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
+
+						hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+						Expect(hooks).NotTo(BeNil())
+						_, ok := (hooks).(*DefaultCPULoadBalanceHooks)
+						Expect(ok).To(BeTrue())
+
+						err = hooks.PreStart(ctx, containerServer, container, sb)
 						Expect(err).ToNot(HaveOccurred())
 					}()
 				}
 				wg.Wait()
 				verifySetIRQLoadBalancing(flags, bannedCPUFlags)
+			})
+		})
+	})
+	Describe("Make sure that out of order calls can be handled", func() {
+		var cfg *config.Config
+		var hooksRetriever *HooksRetriever
+		var flags string
+
+		formatIRQBalanceBannedCPUs := func(v string) string {
+			return fmt.Sprintf("%s=%q", irqBalanceBannedCpus, v)
+		}
+
+		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
+		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
+
+		ctx := context.Background()
+
+		verifySetIRQLoadBalancing := func(expectedIrqSmp, expectedIrqBalance, testDesc string) {
+			content, err := os.ReadFile(irqSmpAffinityFile)
+			Expect(err).ToNot(HaveOccurred(), testDesc)
+			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedIrqSmp), testDesc)
+
+			content, err = os.ReadFile(irqBalanceConfigFile)
+			Expect(err).ToNot(HaveOccurred(), testDesc)
+			Expect(strings.Trim(string(content), "\n")).To(Equal(formatIRQBalanceBannedCPUs(expectedIrqBalance)), testDesc)
+		}
+
+		generateSandbox := func(sandboxID, runtimeName string, sandboxAnnotations map[string]string) *sandbox.Sandbox {
+			sbox := baseSandboxBuilder()
+			sbox.SetID(sandboxID)
+			sbox.SetRuntimeHandler(runtimeName)
+			sbox.SetContainers(memorystore.New[*oci.Container]())
+			err = sbox.SetCRISandbox(
+				sbox.ID(),
+				make(map[string]string),
+				sandboxAnnotations,
+				&types.PodSandboxMetadata{},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			sb, err := sbox.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
+
+			return sb
+		}
+
+		generateContainer := func(containerID, sandboxID, cpus string) *oci.Container {
+			container, err := oci.NewContainer(containerID, containerID, "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "pauseImage", nil, nil, "",
+				&types.ContainerMetadata{}, sandboxID, false, false,
+				false, "", "", time.Now(), "")
+			Expect(err).NotTo(HaveOccurred())
+
+			var cpuShares uint64 = 1024
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus:   cpus,
+								Shares: &cpuShares,
+							},
+						},
+					},
+				},
+			)
+
+			return container
+		}
+
+		generateContainerWithShares := func(containerID, sandboxID, cpus string, shares uint64) *oci.Container {
+			container, err := oci.NewContainer(containerID, containerID, "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "pauseImage", nil, nil, "",
+				&types.ContainerMetadata{}, sandboxID, false, false,
+				false, "", "", time.Now(), "")
+			Expect(err).NotTo(HaveOccurred())
+
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus:   cpus,
+								Shares: &shares,
+							},
+						},
+					},
+				},
+			)
+
+			return container
+		}
+
+		BeforeEach(func() {
+			cfg = &config.Config{
+				RuntimeConfig: config.RuntimeConfig{
+					IrqBalanceConfigFile: irqBalanceConfigFile,
+					Runtimes: config.Runtimes{
+						"high-performance": {
+							AllowedAnnotations: []string{},
+						},
+						"default": {},
+					},
+				},
+			}
+			libcfg.RuntimeConfig = cfg.RuntimeConfig
+		})
+
+		JustBeforeEach(func() {
+			flags = "00000f0f,0f00ff0f"
+			bannedCPUFlags = "fffff0f0,ffff00f0"
+
+			// Simulate a restart of crio each time as we're modifying the config between runs.
+			cpuLoadBalancingAllowedAnywhereOnce = sync.Once{}
+
+			hooksRetriever = NewHooksRetriever(ctx, cfg)
+
+			// create tests affinity file
+			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
+			Expect(err).ToNot(HaveOccurred())
+			err = os.WriteFile(irqBalanceConfigFile, []byte(formatIRQBalanceBannedCPUs(bannedCPUFlags)), 0o644)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when containers passed prestop but have not been deleted yet", func() {
+			It("should set the correct irq bit mask", func(ctx context.Context) {
+				sandboxDisableAnnotations := map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
+				container1 := generateContainer("container1", "sandbox1", "10-29")
+				sandbox1 := generateSandbox("sandbox1", "high-performance", sandboxDisableAnnotations)
+				container2 := generateContainer("container2", "sandbox2", "10-29")
+				sandbox2 := generateSandbox("sandbox2", "high-performance", sandboxDisableAnnotations)
+
+				addEvents := []struct {
+					f                  func() (*sandbox.Sandbox, *oci.Container)
+					expectedIrqSmp     string
+					expectedIrqBalance string
+				}{
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddSandbox(ctx, sandbox1) //nolint:errcheck
+							containerServer.AddContainer(ctx, container1)
+
+							return sandbox1, container1
+						},
+						expectedIrqSmp:     "00000f0f,0000030f",
+						expectedIrqBalance: "fffff0f0,fffffcf0",
+					},
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddSandbox(ctx, sandbox2) //nolint:errcheck
+							containerServer.AddContainer(ctx, container2)
+
+							return sandbox2, container2
+						},
+						expectedIrqSmp:     "00000f0f,0000030f",
+						expectedIrqBalance: "fffff0f0,fffffcf0",
+					},
+				}
+				for i, e := range addEvents {
+					testDesc := fmt.Sprintf("test add %d", i)
+					sb, container := e.f()
+					hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+					if hooks != nil {
+						if hph, ok := hooks.(*HighPerformanceHooks); ok {
+							hph.irqSMPAffinityFile = irqSmpAffinityFile
+							hph.irqBalanceConfigFile = irqBalanceConfigFile
+						}
+
+						err = hooks.PreStart(ctx, containerServer, container, sb)
+						Expect(err).ToNot(HaveOccurred(), testDesc)
+					}
+
+					verifySetIRQLoadBalancing(e.expectedIrqSmp, e.expectedIrqBalance, testDesc)
+				}
+
+				deleteEvents := []struct {
+					c                  *oci.Container
+					sb                 *sandbox.Sandbox
+					expectedIrqSmp     string
+					expectedIrqBalance string
+				}{
+					{
+						c:                  container1,
+						sb:                 sandbox1,
+						expectedIrqSmp:     "00000f0f,0000030f",
+						expectedIrqBalance: "fffff0f0,fffffcf0",
+					},
+					{
+						c:                  container2,
+						sb:                 sandbox2,
+						expectedIrqSmp:     "00000f0f,3fffff0f",
+						expectedIrqBalance: "fffff0f0,c00000f0",
+					},
+				}
+				for _, e := range deleteEvents {
+					hooks := hooksRetriever.Get(ctx, e.sb.RuntimeHandler(), e.sb.Annotations())
+					if hooks != nil {
+						if hph, ok := hooks.(*HighPerformanceHooks); ok {
+							hph.irqSMPAffinityFile = irqSmpAffinityFile
+							hph.irqBalanceConfigFile = irqBalanceConfigFile
+						}
+
+						err = hooks.PreStop(ctx, containerServer, e.c, e.sb)
+						Expect(err).ToNot(HaveOccurred())
+					}
+					verifySetIRQLoadBalancing(e.expectedIrqSmp, e.expectedIrqBalance, e.c.ID())
+				}
+				for _, e := range deleteEvents {
+					containerServer.RemoveContainer(ctx, e.c)
+					containerServer.RemoveSandbox(ctx, e.sb.ID()) //nolint:errcheck
+				}
+			})
+		})
+
+		Context("when spawning and deleting pods", func() {
+			It("should set the correct irq bit mask", func(ctx context.Context) {
+				sandboxDisableAnnotations := map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
+				container1 := generateContainer("container1", "sandbox1", "0-63")
+				sandbox1 := generateSandbox("sandbox1", "default", map[string]string{})
+				container2 := generateContainer("container2", "sandbox2", "0-63")
+				sandbox2 := generateSandbox("sandbox2", "high-performance", map[string]string{})
+				container3a := generateContainer("container3a", "sandbox3", "10-19")
+				container3b := generateContainer("container3b", "sandbox3", "20-29")
+				sandbox3 := generateSandbox("sandbox3", "high-performance", sandboxDisableAnnotations)
+				container4 := generateContainer("container4", "sandbox4", "10-19")
+				sandbox4 := generateSandbox("sandbox4", "high-performance", sandboxDisableAnnotations)
+				container5 := generateContainer("container5", "sandbox5", "20-29")
+				sandbox5 := generateSandbox("sandbox5", "high-performance", sandboxDisableAnnotations)
+				container6a := generateContainer("container6a", "sandbox6", "30-39")
+				container6b := generateContainerWithShares("container6b", "sandbox6", "0-63", 512) // 512 is not divisible by 1024
+				sandbox6 := generateSandbox("sandbox6", "high-performance", sandboxDisableAnnotations)
+
+				addEvents := []struct {
+					f                  func() (*sandbox.Sandbox, *oci.Container)
+					expectedIrqSmp     string
+					expectedIrqBalance string
+				}{
+					// Should be a NOOP.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddSandbox(ctx, sandbox1) //nolint:errcheck
+							containerServer.AddContainer(ctx, container1)
+
+							return sandbox1, container1
+						},
+						expectedIrqSmp:     flags,
+						expectedIrqBalance: bannedCPUFlags,
+					},
+					// Should be a NOOP.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddSandbox(ctx, sandbox2) //nolint:errcheck
+							containerServer.AddContainer(ctx, container2)
+
+							return sandbox2, container2
+						},
+						expectedIrqSmp:     flags,
+						expectedIrqBalance: bannedCPUFlags,
+					},
+					// Create a sandbox with 2 containers. Only process the event for the first container.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddSandbox(ctx, sandbox3) //nolint:errcheck
+							containerServer.AddContainer(ctx, container3a)
+							containerServer.AddContainer(ctx, container3b)
+
+							return sandbox3, container3a
+						},
+						expectedIrqSmp:     "00000f0f,0f00030f",
+						expectedIrqBalance: "fffff0f0,f0fffcf0",
+					},
+					// Now, process the event for the second container.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							return sandbox3, container3b
+						},
+						expectedIrqSmp:     "00000f0f,0000030f",
+						expectedIrqBalance: "fffff0f0,fffffcf0",
+					},
+					// Now, add 2 containers on the same CPUs to simulate out of order add/remove.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddSandbox(ctx, sandbox4) //nolint:errcheck
+							containerServer.AddContainer(ctx, container4)
+
+							return sandbox4, container4
+						},
+						expectedIrqSmp:     "00000f0f,0000030f",
+						expectedIrqBalance: "fffff0f0,fffffcf0",
+					},
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddSandbox(ctx, sandbox5) //nolint:errcheck
+							containerServer.AddContainer(ctx, container5)
+
+							return sandbox5, container5
+						},
+						expectedIrqSmp:     "00000f0f,0000030f",
+						expectedIrqBalance: "fffff0f0,fffffcf0",
+					},
+					// Add container6a (CPUs 30-39) in sandbox6
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddSandbox(ctx, sandbox6) //nolint:errcheck
+							containerServer.AddContainer(ctx, container6a)
+
+							return sandbox6, container6a
+						},
+						expectedIrqSmp:     "00000f00,0000030f",
+						expectedIrqBalance: "fffff0ff,fffffcf0",
+					},
+					// Add container6b (CPUs 0-63, non-whole CPU shares) - should be ignored due to non-1024-divisible shares
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.AddContainer(ctx, container6b)
+
+							return sandbox6, container6b
+						},
+						expectedIrqSmp:     "00000f00,0000030f",
+						expectedIrqBalance: "fffff0ff,fffffcf0",
+					},
+				}
+				for i, e := range addEvents {
+					testDesc := fmt.Sprintf("test add %d", i)
+					sb, container := e.f()
+					hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+					if hooks != nil {
+						if hph, ok := hooks.(*HighPerformanceHooks); ok {
+							hph.irqSMPAffinityFile = irqSmpAffinityFile
+							hph.irqBalanceConfigFile = irqBalanceConfigFile
+						}
+
+						err = hooks.PreStart(ctx, containerServer, container, sb)
+						Expect(err).ToNot(HaveOccurred(), testDesc)
+					}
+
+					verifySetIRQLoadBalancing(e.expectedIrqSmp, e.expectedIrqBalance, testDesc)
+				}
+
+				deleteEvents := []struct {
+					f                  func() (*sandbox.Sandbox, *oci.Container)
+					expectedIrqSmp     string
+					expectedIrqBalance string
+				}{
+					// Delete the sandbox with 2 containers - process the event for the first container.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							return sandbox3, container3a
+						},
+						expectedIrqSmp:     "00000f00,0000030f",
+						expectedIrqBalance: "fffff0ff,fffffcf0",
+					},
+					// Now, process the event for the second container.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							return sandbox3, container3b
+						},
+						expectedIrqSmp:     "00000f00,0000030f",
+						expectedIrqBalance: "fffff0ff,fffffcf0",
+					},
+					// The containers are removed after PreStop. So let's clean the containers up here.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.RemoveContainer(ctx, container3a)
+							containerServer.RemoveContainer(ctx, container3b)
+							containerServer.RemoveSandbox(ctx, sandbox3.ID()) //nolint:errcheck
+
+							return nil, nil
+						},
+					},
+					// Now, delete the container on 10-19.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							return sandbox4, container4
+						},
+						expectedIrqSmp:     "00000f00,000fff0f",
+						expectedIrqBalance: "fffff0ff,fff000f0",
+					},
+					// The container is removed after PreStop. So let's clean the container up here.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.RemoveContainer(ctx, container4)
+							containerServer.RemoveSandbox(ctx, sandbox4.ID()) //nolint:errcheck
+
+							return nil, nil
+						},
+					},
+					// Now, delete the container on 20-29.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							return sandbox5, container5
+						},
+						expectedIrqSmp:     "00000f00,3fffff0f",
+						expectedIrqBalance: "fffff0ff,c00000f0",
+					},
+					// The containers is removed after PreStop. So let's clean the container up here.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.RemoveContainer(ctx, container5)
+							containerServer.RemoveSandbox(ctx, sandbox5.ID()) //nolint:errcheck
+
+							return nil, nil
+						},
+					},
+					// Delete container6a (CPUs 30-39)
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							return sandbox6, container6a
+						},
+						expectedIrqSmp:     "00000fff,ffffff0f",
+						expectedIrqBalance: "fffff000,000000f0",
+					},
+					// Delete container6b (CPUs 0-63, non-whole CPU shares) - should be ignored
+					// Take note that it's expected that we are not back at the original flags. As cri-o spawns and
+					// deletes containers with IRQ SMP affinity requests, it sets the containers back to the expected
+					// state (expected after looking at all containers on those CPUs) which might be different from the
+					// original state.
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							return sandbox6, container6b
+						},
+						expectedIrqSmp:     "00000fff,ffffff0f",
+						expectedIrqBalance: "fffff000,000000f0",
+					},
+					// Clean up container6a, container6b and sandbox6
+					{
+						f: func() (*sandbox.Sandbox, *oci.Container) {
+							containerServer.RemoveContainer(ctx, container6a)
+							containerServer.RemoveContainer(ctx, container6b)
+							containerServer.RemoveSandbox(ctx, sandbox6.ID()) //nolint:errcheck
+
+							return nil, nil
+						},
+					},
+				}
+				for i, e := range deleteEvents {
+					testDesc := fmt.Sprintf("test delete %d", i)
+					sb, container := e.f()
+					if sb == nil && container == nil {
+						continue
+					}
+					hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+					if hooks != nil {
+						if hph, ok := hooks.(*HighPerformanceHooks); ok {
+							hph.irqSMPAffinityFile = irqSmpAffinityFile
+							hph.irqBalanceConfigFile = irqBalanceConfigFile
+						}
+
+						err = hooks.PreStop(ctx, containerServer, container, sb)
+						Expect(err).ToNot(HaveOccurred())
+					}
+
+					verifySetIRQLoadBalancing(e.expectedIrqSmp, e.expectedIrqBalance, testDesc)
+				}
 			})
 		})
 	})

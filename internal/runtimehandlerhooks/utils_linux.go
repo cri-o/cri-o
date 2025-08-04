@@ -106,53 +106,57 @@ func isAllBitSet(in []byte) bool {
 // calcIRQSMPAffinityMask take input cpus that need to change irq affinity mask and
 // the current mask string, return an update mask string and inverted mask, with those cpus
 // enabled or disable in the mask.
-func calcIRQSMPAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
-	podcpuset, err := cpuset.Parse(cpus)
-	if err != nil {
-		return cpus, "", err
-	}
-
+func calcIRQSMPAffinityMask(originalIRQSMPSetting string, enabledCPUSet, disabledCPUSet cpuset.CPUSet) (cpuMask, bannedCPUMask string, err error) {
 	// only ascii string supported
-	if !isASCII(current) {
-		return cpus, "", fmt.Errorf("non ascii character detected: %s", current)
+	if !isASCII(originalIRQSMPSetting) {
+		return "", "", fmt.Errorf("non ascii character detected: %s", originalIRQSMPSetting)
 	}
 
 	// remove ","; now each element is "0-9,a-f"
-	s := strings.ReplaceAll(current, ",", "")
+	s := strings.ReplaceAll(originalIRQSMPSetting, ",", "")
 
 	// the index 0 corresponds to the cpu 0-7
 	// the LSb (right-most bit) represents the lowest cpu id from the byte
 	// and the MSb (left-most bit) represents the highest cpu id from the byte
 	currentMaskArray, err := mapHexCharToByte(s)
 	if err != nil {
-		return cpus, "", err
+		return "", "", fmt.Errorf("failed to convert hex string %q to byte array: %w", s, err)
 	}
 
+	// Enable everything first.
+	for _, cpu := range enabledCPUSet.List() {
+		currentMaskArray[cpu/8] |= cpuMaskByte(cpu % 8)
+	}
+	// Now, remove the disabled CPUs from the current list (for SMP affinity file).
+	for _, cpu := range disabledCPUSet.List() {
+		currentMaskArray[cpu/8] &^= cpuMaskByte(cpu % 8)
+	}
+	// And for irqbalance configuration, we'll need the inverted mask.
 	invertedMaskArray := invertByteArray(currentMaskArray)
 
-	for _, cpu := range podcpuset.List() {
-		if set {
-			// each byte represent 8 cpus
-			currentMaskArray[cpu/8] |= cpuMaskByte(cpu % 8)
-			invertedMaskArray[cpu/8] &^= cpuMaskByte(cpu % 8)
-		} else {
-			currentMaskArray[cpu/8] &^= cpuMaskByte(cpu % 8)
-			invertedMaskArray[cpu/8] |= cpuMaskByte(cpu % 8)
-		}
-	}
-
+	// Convert byte slices back to hexadecimal representation.
 	maskString := mapByteToHexChar(currentMaskArray)
 	invertedMaskString := mapByteToHexChar(invertedMaskArray)
 
-	maskStringWithComma := maskString[0:8]
-	invertedMaskStringWithComma := invertedMaskString[0:8]
-
-	for i := 8; i+8 <= len(maskString); i += 8 {
-		maskStringWithComma = maskStringWithComma + "," + maskString[i:i+8]
-		invertedMaskStringWithComma = invertedMaskStringWithComma + "," + invertedMaskString[i:i+8]
-	}
+	// Add commas back in.
+	maskStringWithComma := addCommasToHexString(maskString)
+	invertedMaskStringWithComma := addCommasToHexString(invertedMaskString)
 
 	return maskStringWithComma, invertedMaskStringWithComma, nil
+}
+
+// addCommasToHexString adds commas every 8 characters to a hex string.
+func addCommasToHexString(hexString string) string {
+	if len(hexString) <= 8 {
+		return hexString
+	}
+
+	result := hexString[0:8]
+	for i := 8; i+8 <= len(hexString); i += 8 {
+		result = result + "," + hexString[i:i+8]
+	}
+
+	return result
 }
 
 func restartService(serviceName string) error {

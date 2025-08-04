@@ -6,6 +6,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 )
@@ -24,12 +25,12 @@ func (*DefaultCPULoadBalanceHooks) PreCreate(context.Context, *generate.Generato
 }
 
 // No-op.
-func (*DefaultCPULoadBalanceHooks) PreStart(context.Context, *oci.Container, *sandbox.Sandbox) error {
+func (*DefaultCPULoadBalanceHooks) PreStart(context.Context, *lib.ContainerServer, *oci.Container, *sandbox.Sandbox) error {
 	return nil
 }
 
 // No-op.
-func (*DefaultCPULoadBalanceHooks) PreStop(context.Context, *oci.Container, *sandbox.Sandbox) error {
+func (*DefaultCPULoadBalanceHooks) PreStop(context.Context, *lib.ContainerServer, *oci.Container, *sandbox.Sandbox) error {
 	return nil
 }
 

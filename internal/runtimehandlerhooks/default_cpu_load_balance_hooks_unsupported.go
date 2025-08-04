@@ -5,6 +5,7 @@ package runtimehandlerhooks
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -24,12 +25,12 @@ func (*DefaultCPULoadBalanceHooks) PreCreate(context.Context, *generate.Generato
 }
 
 // No-op
-func (*DefaultCPULoadBalanceHooks) PreStart(context.Context, *oci.Container, *sandbox.Sandbox) error {
+func (*DefaultCPULoadBalanceHooks) PreStart(context.Context, *lib.ContainerServer, *oci.Container, *sandbox.Sandbox) error {
 	return nil
 }
 
 // No-op
-func (*DefaultCPULoadBalanceHooks) PreStop(context.Context, *oci.Container, *sandbox.Sandbox) error {
+func (*DefaultCPULoadBalanceHooks) PreStop(context.Context, *lib.ContainerServer, *oci.Container, *sandbox.Sandbox) error {
 	return nil
 }
 
