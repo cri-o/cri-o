@@ -694,6 +694,11 @@ func (h *HighPerformanceHooks) handleIRQBalanceRestart(ctx context.Context, cNam
 		return
 	}
 
+	// If the irqbalance service is enabled, restart it and return.
+	// systemd's StartLimitBurst might cause issues here when container restarts occur in very
+	// quick succession and the parameter must be reconfigured for this to work correctly.
+	// See:
+	// https://github.com/cri-o/cri-o/pull/8834/commits/b96928dcbb7956e0ebde42238e88955831411216
 	if serviceManager.IsServiceEnabled(irqBalancedName) {
 		log.Debugf(ctx, "Container %q restarting irqbalance service", cName)
 
