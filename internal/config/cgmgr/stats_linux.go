@@ -20,7 +20,6 @@ type CgroupStats struct {
 	Memory     *MemoryStats
 	CPU        *CPUStats
 	Pid        *PidsStats
-	Process    *ProcessStats
 	SystemNano int64
 }
 
@@ -60,14 +59,11 @@ type CPUStats struct {
 }
 
 type PidsStats struct {
-	Current uint64
-	Limit   uint64
-}
-
-
-type ProcessStats struct {
+	Current         uint64
+	Limit           uint64
 	FileDescriptors uint64
 }
+
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup
 // If the configured memory limit is larger than the total memory on the sys, the
 // physical system memory size is returned.
@@ -126,7 +122,6 @@ func libctrStatsToCgroupStats(stats *cgroups.Stats) *CgroupStats {
 			Current: stats.PidsStats.Current,
 			Limit:   stats.PidsStats.Limit,
 		},
-		Process:    &ProcessStats{},
 		SystemNano: time.Now().UnixNano(),
 	}
 }

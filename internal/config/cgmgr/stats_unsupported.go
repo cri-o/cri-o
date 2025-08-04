@@ -10,7 +10,6 @@ type CgroupStats struct {
 	Memory     *MemoryStats
 	CPU        *CPUStats
 	Pid        *PidsStats
-	Process    *ProcessStats
 	SystemNano int64
 }
 
@@ -46,11 +45,8 @@ type CPUStats struct {
 }
 
 type PidsStats struct {
-	Current uint64
-	Limit   uint64
-}
-
-type ProcessStats struct {
+	Current         uint64
+	Limit           uint64
 	FileDescriptors uint64
 }
 

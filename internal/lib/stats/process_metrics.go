@@ -7,13 +7,13 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 )
 
-func generateSandboxProcessMetrics(sb *sandbox.Sandbox, process *cgmgr.ProcessStats) []*types.Metric {
+func generateSandboxProcessMetrics(sb *sandbox.Sandbox, pid *cgmgr.PidsStats) []*types.Metric {
 	processMetrics := []*containerMetric{
 		{
 			desc: containerFileDescriptors,
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      process.FileDescriptors,
+					value:      pid.FileDescriptors,
 					metricType: types.MetricType_GAUGE,
 				}}
 			},
