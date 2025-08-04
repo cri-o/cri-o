@@ -1051,7 +1051,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 	if err != nil {
 		// Ignore returning error as given irqBalanceConfigFile may not exist.
-		log.Errorf(ctx, "Restore irqbalance config: failed to get current CPU ban list, ignoring")
+		log.Errorf(ctx, "Restore irqbalance config: failed to get current CPU ban list: %v, ignoring", err)
 
 		return nil
 	}
@@ -1066,7 +1066,12 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 
 		defer irqBannedCPUsConfig.Close()
 
-		_, err = irqBannedCPUsConfig.WriteString(bannedCPUs.String())
+		bannedCPUsAsString := bannedCPUs.String()
+		if bannedCPUsAsString == "" {
+			bannedCPUsAsString = "-"
+		}
+
+		_, err = irqBannedCPUsConfig.WriteString(bannedCPUsAsString)
 		if err != nil {
 			return err
 		}
