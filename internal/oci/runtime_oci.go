@@ -1286,13 +1286,10 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 
 	pid, err := c.Pid()
 	if err != nil {
-		return stats, nil
+		return stats, err
 	}
 
-	if stats.Process == nil {
-		stats.Process = &cgmgr.ProcessStats{}
-	}
-	stats.Process.FileDescriptors = getFileDescriptorCount(pid)
+	stats.Pid.FileDescriptors = getFileDescriptorCount(pid)
 
 	return stats, nil
 }

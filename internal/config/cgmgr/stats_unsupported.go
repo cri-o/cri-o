@@ -11,7 +11,6 @@ type CgroupStats struct {
 	CPU        *CPUStats
 	Hugetlb    map[string]HugetlbStats
 	Pid        *PidsStats
-	Process    *ProcessStats
 	SystemNano int64
 }
 
@@ -52,11 +51,8 @@ type HugetlbStats struct {
 }
 
 type PidsStats struct {
-	Current uint64
-	Limit   uint64
-}
-
-type ProcessStats struct {
+	Current         uint64
+	Limit           uint64
 	FileDescriptors uint64
 }
 
