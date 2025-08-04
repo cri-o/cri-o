@@ -169,6 +169,10 @@ irqbalance_cpu_ban_list_save() {
 
 	local expected_banned_cpus
 	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	# CRI-O writes "-" to represent an empty banned CPU list
+	if [ -z "$expected_banned_cpus" ]; then
+		expected_banned_cpus="-"
+	fi
 
 	# when
 	IRQBALANCE_CONFIG_FILE="${IRQBALANCE_CONF}" IRQBALANCE_CONFIG_RESTORE_FILE="$BANNEDCPUS_CONF" start_crio
