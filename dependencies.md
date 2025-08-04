@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Aug 2025 16:01:58 UTC for commit [86dd5c7][0]._
+_Generated on Mon, 04 Aug 2025 10:17:03 UTC for commit [f06a24f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/86dd5c7619b74e2d88fc4a1336e6eba0d846fa54
+[0]: https://github.com/cri-o/cri-o/commit/f06a24ffcb8289c3cf6cbb625039ad2c0f863ec9
 
 ## Outdated Dependencies
 
@@ -299,7 +299,7 @@ _Generated on Fri, 01 Aug 2025 16:01:58 UTC for commit [86dd5c7][0]._
 | github.com/containers/podman/v4                                             | v4.2.0                                | v4.9.5                              | false  | true             |
 | github.com/containers/storage                                               | v1.59.0                               |                                     | true   | true             |
 | github.com/coreos/go-iptables                                               | v0.8.0                                |                                     | false  | true             |
-| github.com/coreos/go-oidc                                                   | v2.3.0+incompatible                   |                                     | false  | true             |
+| github.com/coreos/go-oidc                                                   | v2.3.0+incompatible                   | v2.4.0+incompatible                 | false  | true             |
 | github.com/coreos/go-oidc/v3                                                | v3.14.1                               | v3.15.0                             | false  | true             |
 | github.com/coreos/go-semver                                                 | v0.3.1                                |                                     | false  | true             |
 | github.com/coreos/go-systemd/v22                                            | v22.5.1-0.20231103132048-7d375ecc2b09 |                                     | true   | true             |
@@ -349,7 +349,7 @@ _Generated on Fri, 01 Aug 2025 16:01:58 UTC for commit [86dd5c7][0]._
 | github.com/go-git/go-git/v5                                                 | v5.16.0                               | v5.16.2                             | false  | true             |
 | github.com/go-ini/ini                                                       | v1.67.0                               |                                     | false  | true             |
 | github.com/go-jose/go-jose/v3                                               | v3.0.4                                |                                     | false  | true             |
-| github.com/go-jose/go-jose/v4                                               | v4.0.5                                | v4.1.1                              | false  | true             |
+| github.com/go-jose/go-jose/v4                                               | v4.0.5                                | v4.1.2                              | false  | true             |
 | github.com/go-kit/kit                                                       | v0.8.0                                | v0.13.0                             | false  | true             |
 | github.com/go-kit/log                                                       | v0.1.0                                | v0.2.1                              | false  | true             |
 | github.com/go-logfmt/logfmt                                                 | v0.5.0                                | v0.6.0                              | false  | true             |
@@ -486,7 +486,7 @@ _Generated on Fri, 01 Aug 2025 16:01:58 UTC for commit [86dd5c7][0]._
 | github.com/mdlayher/packet                                                  | v1.1.2                                |                                     | false  | true             |
 | github.com/mdlayher/socket                                                  | v0.5.1                                |                                     | false  | true             |
 | github.com/mdlayher/vsock                                                   | v1.1.0                                | v1.2.1                              | false  | true             |
-| github.com/miekg/dns                                                        | v1.1.61                               | v1.1.67                             | false  | true             |
+| github.com/miekg/dns                                                        | v1.1.61                               | v1.1.68                             | false  | true             |
 | github.com/miekg/pkcs11                                                     | v1.1.1                                |                                     | false  | true             |
 | github.com/minio/sha256-simd                                                | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/mistifyio/go-zfs/v3                                              | v3.0.1                                |                                     | false  | true             |
@@ -577,14 +577,14 @@ _Generated on Fri, 01 Aug 2025 16:01:58 UTC for commit [86dd5c7][0]._
 | github.com/sassoftware/relic                                                | v7.2.1+incompatible                   |                                     | false  | true             |
 | github.com/sebdah/goldie/v2                                                 | v2.5.5                                | v2.7.1                              | false  | true             |
 | github.com/seccomp/libseccomp-golang                                        | v0.11.0                               |                                     | true   | true             |
-| github.com/secure-systems-lab/go-securesystemslib                           | v0.9.0                                |                                     | false  | true             |
+| github.com/secure-systems-lab/go-securesystemslib                           | v0.9.0                                | v0.9.1                              | false  | true             |
 | github.com/segmentio/ksuid                                                  | v1.0.4                                |                                     | false  | true             |
 | github.com/sergi/go-diff                                                    | v1.3.2-0.20230802210424-5b0b94c5c0d3  | v1.4.0                              | false  | true             |
 | github.com/shibumi/go-pathspec                                              | v1.3.0                                |                                     | false  | true             |
 | github.com/sigstore/cosign/v2                                               | v2.5.0                                | v2.5.3                              | false  | true             |
 | github.com/sigstore/fulcio                                                  | v1.6.6                                | v1.7.1                              | false  | true             |
 | github.com/sigstore/protobuf-specs                                          | v0.4.1                                | v0.5.0                              | false  | true             |
-| github.com/sigstore/rekor                                                   | v1.3.10                               |                                     | false  | true             |
+| github.com/sigstore/rekor                                                   | v1.3.10                               | v1.4.0                              | false  | true             |
 | github.com/sigstore/sigstore                                                | v1.9.5                                |                                     | false  | true             |
 | github.com/sigstore/sigstore-go                                             | v0.7.1                                | v1.1.0                              | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/aws                          | v1.8.12                               | v1.9.5                              | false  | true             |
