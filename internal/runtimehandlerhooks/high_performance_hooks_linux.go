@@ -836,10 +836,16 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 	if err != nil {
 		return err
 	}
+
+	irqBalanceSetting := newIRQBalanceSetting.String()
+	if irqBalanceSetting == "" {
+		irqBalanceSetting = "-"
+	}
+
 	// Now, restart the irqbalance service or run irqbalance --oneshot command.
 	// On failure, this will log errors but will not return them, as it is not critical for the pod to start.
 	if !h.handleIRQBalanceRestart(ctx, c.Name()) {
-		h.handleIRQBalanceOneShot(ctx, c.Name(), newIRQBalanceSetting.String())
+		h.handleIRQBalanceOneShot(ctx, c.Name(), irqBalanceSetting)
 	}
 
 	return nil
@@ -1189,7 +1195,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 	if err != nil {
 		// Ignore returning error as given irqBalanceConfigFile may not exist.
-		log.Infof(ctx, "Restore irqbalance config: failed to get current CPU ban list, ignoring")
+		log.Errorf(ctx, "Restore irqbalance config: failed to get current CPU ban list: %v, ignoring", err)
 
 		return nil
 	}
@@ -1204,7 +1210,12 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 
 		defer irqBannedCPUsConfig.Close()
 
-		_, err = irqBannedCPUsConfig.WriteString(bannedCPUs.String())
+		bannedCPUsAsString := bannedCPUs.String()
+		if bannedCPUsAsString == "" {
+			bannedCPUsAsString = "-"
+		}
+
+		_, err = irqBannedCPUsConfig.WriteString(bannedCPUsAsString)
 		if err != nil {
 			return err
 		}
