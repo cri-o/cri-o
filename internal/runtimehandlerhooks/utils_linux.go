@@ -220,7 +220,7 @@ func retrieveIrqBannedCPUList(irqBalanceConfigFile string) (cpuset.CPUSet, error
 	for line := range lines {
 		// try to read from the legacy variable first and merge both values.
 		// after the first iteration, it'll comment this line, so
-		// it will not enter this flow again (because the prefix won't match).
+		// it will not enter this flow again since the prefix no longer matches.
 		if strings.HasPrefix(line, irqBalanceBannedCPUsLegacy+"=") {
 			list := strings.Trim(strings.Split(line, "=")[1], "\"")
 
@@ -232,14 +232,18 @@ func retrieveIrqBannedCPUList(irqBalanceConfigFile string) (cpuset.CPUSet, error
 
 		if strings.HasPrefix(line, irqBalanceBannedCPUs+"=") {
 			list := strings.Trim(strings.Split(line, "=")[1], "\"")
+			// if the list is "-", it means that no CPUs are banned, so return an empty set
+			if list == "-" {
+				setFromNewValue = cpuset.New()
+			} else {
+				setFromNewValue, err = cpuset.Parse(list)
+			}
 
-			setFromNewValue, err = cpuset.Parse(list)
 			if err != nil {
 				return cpuset.New(), err
 			}
 		}
 	}
-
 	return setFromOldValue.Union(setFromNewValue), nil
 }
 
