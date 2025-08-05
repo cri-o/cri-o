@@ -230,3 +230,36 @@ EOF
 		echo 0 | tee /proc/sys/vm/nr_hugepages
 	fi
 }
+
+@test "container process metrics" {
+	PORT=$(free_port)
+	CONTAINER_ENABLE_METRICS=true \
+		CONTAINER_METRICS_PORT=$PORT \
+		setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+    "cpu",
+    "memory",
+    "oom",
+    "process"
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CONTAINER_ID=$(crictl create "$POD_ID" "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$CONTAINER_ID"
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	container_pid=$(crictl inspect "$CONTAINER_ID" | jq -r '.info.pid')
+	file_descriptors=$(ls "/proc/$container_pid/fd" | wc -l)
+	metrics_file_descriptors=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_file_descriptors") | .value.value | tonumber')
+	# assert container_file_descriptors metric == file descriptors files in /proc/$container_pid/fd
+	[[ "$file_descriptors" == "$metrics_file_descriptors" ]]
+
+	stop_crio
+}
