@@ -44,6 +44,11 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 			updated = req.GetLinux()
 		}
 
+		// Validate memory update before applying it.
+		if err := s.validateMemoryUpdate(ctx, c, updated.GetMemoryLimitInBytes()); err != nil {
+			return nil, fmt.Errorf("memory validation failed: %w", err)
+		}
+
 		resources := toOCIResources(updated)
 		if err := s.ContainerServer.Runtime().UpdateContainer(ctx, c, resources); err != nil {
 			return nil, err
