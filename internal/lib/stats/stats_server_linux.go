@@ -359,7 +359,7 @@ func containerCRIStats(stats *cgmgr.ContainerRuntimeStats, ctr *oci.Container, s
 
 	// Add filesystem stats if available
 	if stats.Disk != nil {
-		criStats.WritableLayer = criFilesystemStats(stats.Disk, systemNano)
+		criStats.WritableLayer = criFilesystemStats(stats.Disk, ctr, systemNano)
 	}
 
 	return criStats
@@ -399,10 +399,16 @@ func criProcessStats(pStats *cgmgr.PidsStats, systemNano int64) *types.ProcessUs
 	}
 }
 
-func criFilesystemStats(diskStats *cgmgr.DiskMetrics, systemNano int64) *types.FilesystemUsage {
+func criFilesystemStats(diskStats *cgmgr.DiskMetrics, ctr *oci.Container, systemNano int64) *types.FilesystemUsage {
+	mountpoint := ctr.MountPoint()
+	if mountpoint == "" {
+		// Skip FS stats as mount point is unknown
+		return nil
+	}
+
 	return &types.FilesystemUsage{
 		Timestamp: systemNano,
-		FsId:      &types.FilesystemIdentifier{Mountpoint: "/"}, // Default mountpoint
+		FsId:      &types.FilesystemIdentifier{Mountpoint: mountpoint},
 		UsedBytes: &types.UInt64Value{Value: diskStats.UsageBytes},
 	}
 }

@@ -42,7 +42,6 @@ collection_period = 0
 included_pod_metrics = [
     "network",
     "cpu",
-	"disk",
     "hugetlb",
     "memory",
     "oom",
@@ -128,7 +127,6 @@ collection_period = 0
 included_pod_metrics = [
     "network",
     "cpu",
-	"disk",
     "hugetlb",
     "memory",
     "oom",
@@ -242,11 +240,8 @@ EOF
 collection_period = 0
 included_pod_metrics = [
     "network",
-    "cpu",
 	"disk",
-    "hugetlb",
     "memory",
-    "oom",
 ]
 EOF
 	start_crio_no_setup
@@ -276,20 +271,64 @@ EOF
 	fs_inodes_total=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_inodes_total") | .value.value | tonumber')
 	[[ "$fs_inodes_total" -gt 0 ]]
 
-	# Generate disk usage and validate increase
+	# Validate that inodes_total >= inodes_free (basic sanity check)
+	[[ "$fs_inodes_total" -ge "$fs_inodes_free" ]]
+
+	# Test inode metrics by creating many small files
+	# Create 50 small files to consume inodes
 	crictl exec --sync "$CONTAINER_ID" mkdir -p /var/lib/mydisktest
-	crictl exec --sync "$CONTAINER_ID" dd if=/dev/zero of=/var/lib/mydisktest/bloatfile bs=50M count=1
+	crictl exec --sync "$CONTAINER_ID" /bin/sh -c "for i in \$(seq 1 50); do touch /var/lib/mydisktest/inode_test_file_\$i; done"
 	crictl exec --sync "$CONTAINER_ID" sync
-	# Polling loop for metrics to be updated
+
+	# Poll for inode metrics to be updated
 	local timeout=60 # Set a reasonable timeout in seconds
-	local new_fs_usage=0
+	local new_fs_inodes_free=0
+	local found_inode_decrease=false
 	for ((i = 0; i < timeout; i++)); do
-		new_fs_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_usage_bytes") | .value.value | tonumber')
-		if [[ "$new_fs_usage" -gt "$fs_usage" ]]; then
+		new_fs_inodes_free=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_inodes_free") | .value.value | tonumber')
+		if [[ "$new_fs_inodes_free" -lt "$fs_inodes_free" ]]; then
+			found_inode_decrease=true
 			break
 		fi
 		sleep 1
 	done
+
+	if ! $found_inode_decrease; then
+		echo "Free inode count did not decrease within $timeout seconds after creating files"
+		exit 1
+	fi
+
+	# Verify inode metrics consistency after file creation
+	new_metrics=$(crictl metricsp)
+	new_fs_inodes_total=$(echo "$new_metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_inodes_total") | .value.value | tonumber')
+	# Total inodes should remain the same
+	[[ "$new_fs_inodes_total" -eq "$fs_inodes_total" ]]
+	# Free inodes should be less than before
+	[[ "$new_fs_inodes_free" -lt "$fs_inodes_free" ]]
+	# Ensure total >= free still holds
+	[[ "$new_fs_inodes_total" -ge "$new_fs_inodes_free" ]]
+
+	# Generate disk usage and validate increase
+	crictl exec --sync "$CONTAINER_ID" mkdir -p /var/lib/mydisktest
+	crictl exec --sync "$CONTAINER_ID" dd if=/dev/zero of=/var/lib/mydisktest/bloatfile bs=1024 count=4
+	crictl exec --sync "$CONTAINER_ID" sync
+	# Polling loop for metrics to be updated
+	local timeout=60 # Set a reasonable timeout in seconds
+	local new_fs_usage=0
+	local found_increase=false
+	for ((i = 0; i < timeout; i++)); do
+		new_fs_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_usage_bytes") | .value.value | tonumber')
+		if [[ "$new_fs_usage" -gt "$fs_usage" ]]; then
+			found_increase=true
+			break
+		fi
+		sleep 1
+	done
+
+	if ! $found_increase; then
+		echo "Disk usage did not increase within $timeout seconds"
+		exit 1
+	fi
 
 	stop_crio
 }
