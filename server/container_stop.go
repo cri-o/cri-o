@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/containers/storage/pkg/truncindex"
+	"github.com/prometheus/procfs"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -47,6 +48,8 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
+	tryToLogContainerMonitorProcessVmRSS(ctx, ctr)
+
 	sb := s.getSandbox(ctx, ctr.Sandbox())
 
 	hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
@@ -80,4 +83,28 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	}
 
 	return nil
+}
+
+func tryToLogContainerMonitorProcessVmRSS(ctx context.Context, c *oci.Container) {
+	cmp := c.State().ContainerMonitorProcess
+	if cmp == nil {
+		return
+	}
+
+	fs, err := procfs.NewDefaultFS()
+	if err != nil {
+		return
+	}
+
+	proc, err := fs.Proc(cmp.Pid)
+	if err != nil {
+		return
+	}
+
+	status, err := proc.NewStatus()
+	if err != nil {
+		return
+	}
+
+	log.Debugf(ctx, "Monitor stats for container ID %s: vmRSS=%d, PID=%d", c.ID(), status.VmRSS, cmp.Pid)
 }
