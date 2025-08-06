@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"syscall"
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/google/cadvisor/fs"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
@@ -119,25 +119,37 @@ func (r *runtimeOCI) getContainerDiskStats(c *Container) (*cgmgr.DiskMetrics, er
 		return nil, fmt.Errorf("container %s has no mount point", c.ID())
 	}
 
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(mountPoint, &stat); err != nil {
-		return nil, fmt.Errorf("failed to get filesystem stats for %s: %w", mountPoint, err)
+	fsInfo, err := fs.NewFsInfo(fs.Context{Crio: fs.CrioContext{Root: r.config.Root, ImageStore: r.config.ImageStore, Driver: r.config.Storage}})
+	if err != nil {
+		return nil, fmt.Errorf("failed to init fs info: %w", err)
 	}
 
-	blockSize := uint64(stat.Bsize)
-	totalBlocks := stat.Blocks
-	freeBlocks := stat.Bavail
+	pathSet := map[string]struct{}{mountPoint: {}}
 
-	usageBytes := (totalBlocks - freeBlocks) * blockSize
-	limitBytes := totalBlocks * blockSize
+	infos, err := fsInfo.GetFsInfoForPath(pathSet)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get fs info for %s: %w", mountPoint, err)
+	}
 
-	inodesTotal := stat.Files
-	inodesFree := stat.Ffree
+	if len(infos) == 0 {
+		return nil, fmt.Errorf("no fs info returned for mount point %s", mountPoint)
+	}
+
+	info := infos[0]
+
+	var inodesFree, inodesTotal uint64
+	if info.InodesFree != nil {
+		inodesFree = *info.InodesFree
+	}
+
+	if info.Inodes != nil {
+		inodesTotal = *info.Inodes
+	}
 
 	return &cgmgr.DiskMetrics{
-		UsageBytes:  usageBytes,
-		LimitBytes:  limitBytes,
-		InodesTotal: inodesTotal,
+		UsageBytes:  info.Capacity - info.Free,
+		LimitBytes:  info.Capacity,
 		InodesFree:  inodesFree,
+		InodesTotal: inodesTotal,
 	}, nil
 }
