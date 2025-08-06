@@ -256,3 +256,36 @@ EOF
 	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_processes") | .value.value | tonumber')
 	[[ $metrics_container_processes == "3" ]]
 }
+
+@test "memory limit decrease below usage should be blocked" {
+	start_crio
+
+	# Create a container config with initial memory limit of 128MB
+	jq '.command = ["/bin/sh", "-c", "dd if=/dev/zero of=/dev/shm/memtest bs=1M count=64 && echo '\''Memory allocated: 64MB'\'' && sleep 300"] | .linux.resources.memory_limit_in_bytes = 134217728' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/container_memory.json
+
+	# Run the container
+	ctr_id=$(crictl run "$TESTDIR"/container_memory.json "$TESTDATA"/sandbox_config.json)
+
+	# Wait a moment for memory allocation
+	sleep 3
+
+	# Attempt to update memory limit to 32MB
+	run crictl update --memory 33554432 "$ctr_id"
+	echo "Update attempt output: $output"
+	[[ "$status" -ne 0 ]]
+	[[ "$output" =~ "cannot decrease memory limit" ]]
+
+	# Verify the container is still running with original memory limit.
+	run crictl inspect "$ctr_id"
+	[[ "$status" -eq 0 ]]
+	[[ "$output" == *"CONTAINER_RUNNING"* ]]
+
+	# Test that memory limit increase still works.
+	run crictl update --memory 268435456 "$ctr_id"
+	echo "Increase attempt output: $output"
+	[[ "$status" -eq 0 ]]
+
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+}
