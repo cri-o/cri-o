@@ -19,13 +19,13 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.3.0
 	github.com/containernetworking/plugins v1.7.1
-	github.com/containers/common v0.64.0
+	github.com/containers/common v0.64.1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.7.1
-	github.com/containers/image/v5 v5.36.0
+	github.com/containers/image/v5 v5.36.1
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.1
-	github.com/containers/storage v1.59.0
+	github.com/containers/storage v1.59.1
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/creack/pty v1.1.24
 	github.com/cri-o/ocicni v0.4.3
