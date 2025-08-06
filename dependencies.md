@@ -1,17 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 06 Aug 2025 00:38:09 UTC for commit [06e7803][0]._
+_Generated on Wed, 06 Aug 2025 08:30:49 UTC for commit [defcc16][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/06e7803070aee2df3b281399ae093193773f30c4
+[0]: https://github.com/cri-o/cri-o/commit/defcc167503022a642880b4e6a1efd7808b7a05a
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.6                             | v0.0.7                             | true   | true             |
-| github.com/containers/common                                                | v0.64.0                            | v0.64.1                            | true   | true             |
-| github.com/containers/image/v5                                              | v5.36.0                            | v5.36.1                            | true   | true             |
-| github.com/containers/storage                                               | v1.59.0                            | v1.59.1                            | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250805201320-af01434226d1 | true   | true             |
 | github.com/seccomp/libseccomp-golang                                        | v0.11.0                            | v0.11.1                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.61.0                            | v0.62.0                            | true   | true             |
@@ -293,15 +290,15 @@ _Generated on Wed, 06 Aug 2025 00:38:09 UTC for commit [06e7803][0]._
 | github.com/containerd/zfs                                                   | v1.1.0                                | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                          | v1.3.0                                |                                     | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.7.1                                |                                     | true   | true             |
-| github.com/containers/common                                                | v0.64.0                               | v0.64.1                             | true   | true             |
+| github.com/containers/common                                                | v0.64.1                               |                                     | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.7.1                                |                                     | true   | true             |
-| github.com/containers/image/v5                                              | v5.36.0                               | v5.36.1                             | true   | true             |
+| github.com/containers/image/v5                                              | v5.36.1                               |                                     | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.2.1                                |                                     | true   | true             |
 | github.com/containers/podman/v4                                             | v4.2.0                                | v4.9.5                              | false  | true             |
-| github.com/containers/storage                                               | v1.59.0                               | v1.59.1                             | true   | true             |
+| github.com/containers/storage                                               | v1.59.1                               |                                     | true   | true             |
 | github.com/coreos/go-iptables                                               | v0.8.0                                |                                     | false  | true             |
 | github.com/coreos/go-oidc                                                   | v2.3.0+incompatible                   | v2.4.0+incompatible                 | false  | true             |
 | github.com/coreos/go-oidc/v3                                                | v3.14.1                               | v3.15.0                             | false  | true             |
