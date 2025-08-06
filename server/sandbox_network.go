@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
@@ -16,6 +18,10 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
+)
+
+const (
+	cacheDir = "/var/lib/cni/results"
 )
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
@@ -185,41 +191,73 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	}
 
 	// Check if the network namespace file exists and is valid before attempting CNI teardown.
-	// If the file doesn't exist or is invalid, skip CNI teardown and mark network as stopped.
+	// If the file doesn't exist or is invalid, we should still attempt CNI teardown using cached information
+	// to prevent IP leaks, but we'll mark the network as stopped regardless of the outcome.
+	netnsValid := true
+
 	if podNetwork.NetNS != "" {
 		if _, statErr := os.Stat(podNetwork.NetNS); statErr != nil {
-			// Network namespace file doesn't exist, mark network as stopped and return success
-			log.Debugf(ctx, "Network namespace file %s does not exist for pod sandbox %s(%s), skipping CNI teardown",
+			// Network namespace file doesn't exist, but we should still attempt CNI teardown
+			log.Debugf(ctx, "Network namespace file %s does not exist for pod sandbox %s(%s), attempting CNI teardown with cached info",
 				podNetwork.NetNS, sb.Name(), sb.ID())
 
-			return sb.SetNetworkStopped(ctx, true)
-		}
-
-		if validateErr := s.validateNetworkNamespace(podNetwork.NetNS); validateErr != nil {
+			netnsValid = false
+		} else if validateErr := s.validateNetworkNamespace(podNetwork.NetNS); validateErr != nil {
 			// Network namespace file exists but is invalid (e.g., corrupted or fake file)
-			log.Warnf(ctx, "Network namespace file %s is invalid for pod sandbox %s(%s): %v, removing and skipping CNI teardown",
+			log.Warnf(ctx, "Network namespace file %s is invalid for pod sandbox %s(%s): %v, removing and attempting CNI teardown with cached info",
 				podNetwork.NetNS, sb.Name(), sb.ID(), validateErr)
 			s.cleanupNetns(ctx, podNetwork.NetNS, sb)
 
-			return sb.SetNetworkStopped(ctx, true)
+			netnsValid = false
 		}
 	}
 
+	// Always attempt CNI teardown to prevent IP leaks, even if netns is invalid.
 	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
 		log.Warnf(ctx, "Failed to destroy network for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
 
 		// If the network namespace exists but CNI teardown failed, try to clean it up.
-		if podNetwork.NetNS != "" {
+		if podNetwork.NetNS != "" && netnsValid {
 			if _, statErr := os.Stat(podNetwork.NetNS); statErr == nil {
 				// Clean up the netns file since CNI teardown failed.
 				s.cleanupNetns(ctx, podNetwork.NetNS, sb)
 			}
 		}
 
+		// Clean up CNI result files if CNI teardown failed.
+		s.cleanupCNIResultFiles(ctx, sb.ID())
+
+		// Even if CNI teardown failed, mark network as stopped to prevent retry loops.
+		if setErr := sb.SetNetworkStopped(ctx, true); setErr != nil {
+			log.Warnf(ctx, "Failed to set network stopped for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), setErr)
+		}
+
 		return fmt.Errorf("network teardown failed for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
 	}
 
 	return sb.SetNetworkStopped(ctx, true)
+}
+
+// cleanupCNIResultFiles removes CNI result files for a given container ID.
+// This is called when CNI teardown fails to prevent stale result files from accumulating.
+func (s *Server) cleanupCNIResultFiles(ctx context.Context, containerID string) {
+	entries, err := os.ReadDir(cacheDir)
+	if err != nil {
+		log.Warnf(ctx, "Failed to read CNI cache directory %s: %v", cacheDir, err)
+
+		return
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.Contains(entry.Name(), containerID) {
+			filePath := filepath.Join(cacheDir, entry.Name())
+			if err := os.Remove(filePath); err != nil {
+				log.Warnf(ctx, "Failed to remove CNI result file %s: %v", filePath, err)
+			} else {
+				log.Infof(ctx, "Cleaned up CNI result file %s for container %s", entry.Name(), containerID)
+			}
+		}
+	}
 }
 
 func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
