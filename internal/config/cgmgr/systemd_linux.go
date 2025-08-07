@@ -42,10 +42,10 @@ type SystemdManager struct {
 func NewSystemdManager() *SystemdManager {
 	systemdMgr := SystemdManager{}
 	if node.CgroupIsV2() {
-		systemdMgr.memoryPath = cgroupMemoryPathV2
+		systemdMgr.memoryPath = CgroupMemoryPathV2
 		systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV2
 	} else {
-		systemdMgr.memoryPath = cgroupMemoryPathV1
+		systemdMgr.memoryPath = CgroupMemoryPathV1
 		systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV1
 		systemdMgr.v1CtrCgMgr = make(map[string]cgroups.Manager)
 		systemdMgr.v1SbCgMgr = make(map[string]cgroups.Manager)
