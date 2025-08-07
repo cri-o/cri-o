@@ -145,6 +145,11 @@ func beforeEach() {
 	config.HooksDir = []string{}
 	// so we have permission to make a directory within it
 	config.ContainerAttachSocketDir = t.MustTempDir("crio")
+	// Simulate a clean shutdown. Otherwise, when running tests as root on
+	// a system where cri-o is already installed, we hit non-mocked functions
+	// in lib.New internal/lib/container_server.go in if condition
+	// `if config.InternalRepair && ShutdownWasUnclean(config)`.
+	config.CleanShutdownFile = t.MustTempFile("clean.shutdown")
 
 	gomock.InOrder(
 		libMock.EXPECT().GetStore().Return(storeMock, nil),
