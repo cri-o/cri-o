@@ -7,14 +7,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/cpuset"
 )
 
 var _ = Describe("Utils", func() {
 	Describe("UpdateIRQSmpAffinityMask", func() {
 		type Input struct {
-			cpus string
-			mask string
-			set  bool
+			originalIRQSMPSetting string
+			enabledCPUSet         cpuset.CPUSet
+			disabledCPUSet        cpuset.CPUSet
 		}
 		type Expected struct {
 			mask    string
@@ -27,33 +28,37 @@ var _ = Describe("Utils", func() {
 
 		DescribeTable("testing cpu mask",
 			func(c TestData) {
-				mask, invMask, err := calcIRQSMPAffinityMask(c.input.cpus, c.input.mask, c.input.set)
+				mask, invMask, err := calcIRQSMPAffinityMask(
+					c.input.originalIRQSMPSetting,
+					c.input.enabledCPUSet,
+					c.input.disabledCPUSet,
+				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mask).To(Equal(c.expected.mask))
 				Expect(invMask).To(Equal(c.expected.invMask))
 			},
 			Entry("clear a single bit that was one", TestData{
-				input:    Input{cpus: "0", mask: "0000,00003003", set: false},
+				input:    Input{disabledCPUSet: cpuset.New(0), originalIRQSMPSetting: "0000,00003003"},
 				expected: Expected{mask: "00000000,00003002", invMask: "0000ffff,ffffcffd"},
 			}),
 			Entry("set a single bit that was zero", TestData{
-				input:    Input{cpus: "4", mask: "0000,00003003", set: true},
+				input:    Input{enabledCPUSet: cpuset.New(4), originalIRQSMPSetting: "0000,00003003"},
 				expected: Expected{mask: "00000000,00003013", invMask: "0000ffff,ffffcfec"},
 			}),
 			Entry("clear a set of bits", TestData{
-				input:    Input{cpus: "4-13", mask: "ffff,ffffffff", set: false},
+				input:    Input{disabledCPUSet: makeCPUSet("4-13"), originalIRQSMPSetting: "ffff,ffffffff"},
 				expected: Expected{mask: "0000ffff,ffffc00f", invMask: "00000000,00003ff0"},
 			}),
 			Entry("set a set of bits", TestData{
-				input:    Input{cpus: "4-13", mask: "ffff,ffffc00f", set: true},
+				input:    Input{enabledCPUSet: makeCPUSet("4-13"), originalIRQSMPSetting: "ffff,ffffc00f"},
 				expected: Expected{mask: "0000ffff,ffffffff", invMask: "00000000,00000000"},
 			}),
 			Entry("clear a single bit that was one when odd mask is present", TestData{
-				input:    Input{cpus: "9", mask: "fff", set: false},
+				input:    Input{disabledCPUSet: cpuset.New(9), originalIRQSMPSetting: "fff"},
 				expected: Expected{mask: "00000dff", invMask: "0000f200"},
 			}),
 			Entry("clear two bits from a short mask", TestData{
-				input:    Input{cpus: "2-3", mask: "ffffff", set: false},
+				input:    Input{disabledCPUSet: cpuset.New(2, 3), originalIRQSMPSetting: "ffffff"},
 				expected: Expected{mask: "00fffff3", invMask: "0000000c"},
 			}),
 		)
@@ -121,6 +126,15 @@ func writeTempFile(content string) (string, error) {
 	}
 
 	return f.Name(), nil
+}
+
+func makeCPUSet(input string) cpuset.CPUSet {
+	c, err := cpuset.Parse(input)
+	if err != nil {
+		panic(err)
+	}
+
+	return c
 }
 
 const confTemplate = `# irqbalance is a daemon process that distributes interrupts across
