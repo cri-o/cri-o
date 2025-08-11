@@ -182,7 +182,8 @@ var _ = t.Describe("Image", func() {
 			// When
 			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
-					SystemRegistriesConfPath: "../../test/registries.conf",
+					SystemRegistriesConfPath:    "../../test/registries.conf",
+					SystemRegistriesConfDirPath: t.MustTempDir("registries.conf.d"),
 				},
 				testImageName,
 			)
@@ -236,7 +237,8 @@ var _ = t.Describe("Image", func() {
 			// When
 			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
-					SystemRegistriesConfPath: "../../test/registries.conf",
+					SystemRegistriesConfPath:    "../../test/registries.conf",
+					SystemRegistriesConfDirPath: t.MustTempDir("registries.conf.d"),
 				},
 				testImageWithTagAndDigest,
 			)
@@ -293,7 +295,8 @@ var _ = t.Describe("Image", func() {
 			// When
 			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
-					SystemRegistriesConfPath: "/dev/null",
+					SystemRegistriesConfPath:    "/dev/null",
+					SystemRegistriesConfDirPath: t.MustTempDir("registries.conf.d"),
 				},
 				testImageName,
 			)
