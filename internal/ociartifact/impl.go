@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker"
@@ -148,10 +150,17 @@ func (d *defaultImpl) CandidatesForPotentiallyShortImageName(systemContext *type
 		sc = *systemContext // A shallow copy
 	}
 
-	disabled := types.ShortNameModeDisabled
-	sc.ShortNameMode = &disabled
+	resolved, err := shortnames.ResolveLocally(&sc, imageName)
+	if err != nil {
+		// Error is not very clear in this context, and unfortunately is also not a variable.
+		if strings.Contains(err.Error(), "short-name resolution enforced but cannot prompt without a TTY") {
+			return nil, fmt.Errorf("short name mode is enforcing, but image name %s returns ambiguous list", imageName)
+		}
 
-	return shortnames.ResolveLocally(&sc, imageName)
+		return nil, err
+	}
+
+	return resolved, nil
 }
 
 func (d *defaultImpl) ChooseInstance(manifestList manifest.List, systemContext *types.SystemContext) (digest.Digest, error) {

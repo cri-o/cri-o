@@ -554,6 +554,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.PullProgressTimeout, c.PullProgressTimeout),
 		},
 		{
+			templateString: templateStringCrioImageShortNameMode,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.ShortNameMode, c.ShortNameMode),
+		},
+		{
 			templateString: templateStringOCIArtifactMountSupport,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.OCIArtifactMountSupport, c.OCIArtifactMountSupport),
@@ -1531,6 +1536,14 @@ const templateStringCrioImagePullProgressTimeout = `# The timeout for an image p
 # gets canceled. This value will be also used for calculating the pull progress interval to pull_progress_timeout / 10.
 # Can be set to 0 to disable the timeout as well as the progress output.
 {{ $.Comment }}pull_progress_timeout = "{{ .PullProgressTimeout }}"
+
+`
+
+const templateStringCrioImageShortNameMode = `# The mode of short name resolution.
+# The valid values are "enforcing" and "disabled", and the default is "enforcing".
+# If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
+# If "disabled", the first result will be chosen.
+{{ $.Comment }}short_name_mode = "{{ .ShortNameMode }}"
 
 `
 

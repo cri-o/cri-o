@@ -27,6 +27,7 @@ import (
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/cpuset"
+	"k8s.io/utils/ptr"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
 	"github.com/cri-o/cri-o/internal/config/apparmor"
@@ -616,6 +617,11 @@ type ImageConfig struct {
 	PullProgressTimeout time.Duration `toml:"pull_progress_timeout"`
 	// OCIArtifactMountSupport is used to determine if CRI-O should support OCI Artifacts.
 	OCIArtifactMountSupport bool `toml:"oci_artifact_mount_support"`
+	// ShortNameMode describes the mode of short name resolution.
+	// The valid values are "enforcing" and "disabled".
+	// If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
+	// If "disabled", the first result will be chosen.
+	ShortNameMode string `toml:"short_name_mode"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table.
@@ -746,6 +752,11 @@ type tomlConfig struct {
 // SetSystemContext configures the SystemContext used by containers/image library.
 func (t *tomlConfig) SetSystemContext(c *Config) {
 	c.SystemContext.BigFilesTemporaryDir = c.BigFilesTemporaryDir
+	c.SystemContext.ShortNameMode = ptr.To(types.ShortNameModeEnforcing)
+
+	if c.ShortNameMode == "disabled" {
+		c.SystemContext.ShortNameMode = ptr.To(types.ShortNameModeDisabled)
+	}
 }
 
 func (t *tomlConfig) toConfig(c *Config) {
@@ -981,6 +992,7 @@ func DefaultConfig() (*Config, error) {
 			SignaturePolicyDir:      "/etc/crio/policies",
 			PullProgressTimeout:     0,
 			OCIArtifactMountSupport: true,
+			ShortNameMode:           "enforcing",
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
@@ -1688,6 +1700,12 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 
 	if _, err := c.ParsePauseImage(); err != nil {
 		return fmt.Errorf("invalid pause image %q: %w", c.PauseImage, err)
+	}
+
+	switch c.ShortNameMode {
+	case "enforcing", "disabled", "":
+	default:
+		return fmt.Errorf("invalid short name mode %q", c.ShortNameMode)
 	}
 
 	if onExecution {

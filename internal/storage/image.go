@@ -1015,11 +1015,13 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 		sc = *systemContext // A shallow copy
 	}
 
-	disabled := types.ShortNameModeDisabled
-	sc.ShortNameMode = &disabled
-
 	resolved, err := shortnames.Resolve(&sc, imageName)
 	if err != nil {
+		// Error is not very clear in this context, and unfortunately is also not a variable.
+		if strings.Contains(err.Error(), "short-name resolution enforced but cannot prompt without a TTY") {
+			return nil, fmt.Errorf("short name mode is enforcing, but image name %s returns ambiguous list", imageName)
+		}
+
 		return nil, err
 	}
 
