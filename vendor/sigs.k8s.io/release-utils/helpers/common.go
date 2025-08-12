@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+package helpers
 
 import (
 	"bufio"
@@ -238,8 +238,10 @@ func readInput(question string) (string, error) {
 	go func() {
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
+
 		response := scanner.Text()
 		inputChannel <- response
+
 		close(inputChannel)
 	}()
 

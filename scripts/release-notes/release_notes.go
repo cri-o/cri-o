@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/command"
-	"sigs.k8s.io/release-utils/util"
+	"sigs.k8s.io/release-utils/helpers"
 
 	"github.com/cri-o/cri-o/internal/version"
 )
@@ -92,14 +92,14 @@ func run() error {
 	// Check if we're on a tag and adapt variables if necessary
 	bundleVersion := head
 	shortHead := head[:7]
-	endRev := util.AddTagPrefix(version.Version)
+	endRev := helpers.AddTagPrefix(version.Version)
 
 	startVersion, err := startVersionFromCurrent(version.Version)
 	if err != nil {
 		return fmt.Errorf("parsing start version: %w", err)
 	}
 
-	startTag := util.AddTagPrefix(startVersion)
+	startTag := helpers.AddTagPrefix(startVersion)
 
 	if output, err := command.New(
 		"git", "describe", "--tags", "--exact-match",
@@ -109,7 +109,7 @@ func run() error {
 		bundleVersion = foundTag
 		shortHead = foundTag
 		endRev = foundTag
-		startTag = util.AddTagPrefix(decVersion(foundTag))
+		startTag = helpers.AddTagPrefix(decVersion(foundTag))
 	} else {
 		logrus.Infof("Not using git tag because `git describe` failed: %v", err)
 	}
@@ -376,7 +376,7 @@ func indexOfPrefix(prefix string, slice []string) int {
 }
 
 func decVersion(tag string) string {
-	sv, err := util.TagStringToSemver(strings.TrimSpace(tag))
+	sv, err := helpers.TagStringToSemver(strings.TrimSpace(tag))
 	if err != nil {
 		panic(err)
 	}

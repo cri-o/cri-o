@@ -519,7 +519,7 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/fatih/color v1.15.0
+# github.com/fatih/color v1.16.0
 ## explicit; go 1.17
 github.com/fatih/color
 # github.com/felixge/httpsnoop v1.0.4
@@ -549,7 +549,7 @@ github.com/go-git/go-billy/v5/helper/polyfill
 github.com/go-git/go-billy/v5/memfs
 github.com/go-git/go-billy/v5/osfs
 github.com/go-git/go-billy/v5/util
-# github.com/go-git/go-git/v5 v5.16.0
+# github.com/go-git/go-git/v5 v5.16.2
 ## explicit; go 1.23.0
 github.com/go-git/go-git/v5
 github.com/go-git/go-git/v5/config
@@ -676,8 +676,8 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.20.5
-## explicit; go 1.24.0
+# github.com/google/go-containerregistry v0.20.6
+## explicit; go 1.24
 github.com/google/go-containerregistry/pkg/name
 github.com/google/go-containerregistry/pkg/v1
 github.com/google/go-containerregistry/pkg/v1/types
@@ -784,7 +784,7 @@ github.com/manifoldco/promptui/screenbuf
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.19
+# github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.16
@@ -842,15 +842,15 @@ github.com/mxk/go-flowrate/flowrate
 # github.com/oklog/ulid v1.3.1
 ## explicit
 github.com/oklog/ulid
-# github.com/olekukonko/errors v0.0.0-20250405072817-4e6d85265da6
+# github.com/olekukonko/errors v1.1.0
 ## explicit; go 1.21
 github.com/olekukonko/errors
-# github.com/olekukonko/ll v0.0.8
+# github.com/olekukonko/ll v0.0.9
 ## explicit; go 1.21
 github.com/olekukonko/ll
 github.com/olekukonko/ll/lh
 github.com/olekukonko/ll/lx
-# github.com/olekukonko/tablewriter v1.0.8
+# github.com/olekukonko/tablewriter v1.0.9
 ## explicit; go 1.21
 github.com/olekukonko/tablewriter
 github.com/olekukonko/tablewriter/pkg/twwarp
@@ -981,7 +981,7 @@ github.com/sergi/go-diff/diffmatchpatch
 # github.com/sigstore/fulcio v1.6.6
 ## explicit; go 1.23.3
 github.com/sigstore/fulcio/pkg/certificate
-# github.com/sigstore/protobuf-specs v0.4.1
+# github.com/sigstore/protobuf-specs v0.5.0
 ## explicit; go 1.22.0
 github.com/sigstore/protobuf-specs/gen/pb-go/common/v1
 # github.com/sigstore/sigstore v1.9.5
@@ -1003,7 +1003,7 @@ github.com/smallstep/pkcs7/internal/legacy/x509
 # github.com/soheilhy/cmux v0.1.5
 ## explicit; go 1.11
 github.com/soheilhy/cmux
-# github.com/spf13/pflag v1.0.6
+# github.com/spf13/pflag v1.0.7
 ## explicit; go 1.12
 github.com/spf13/pflag
 # github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6
@@ -1126,8 +1126,8 @@ go.opentelemetry.io/auto/sdk/internal/telemetry
 ## explicit; go 1.23.0
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc/internal
-# go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0
-## explicit; go 1.22.0
+# go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0
+## explicit; go 1.23.0
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/request
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv
@@ -1761,18 +1761,18 @@ sigs.k8s.io/knftables
 ## explicit; go 1.18
 sigs.k8s.io/randfill
 sigs.k8s.io/randfill/bytesource
-# sigs.k8s.io/release-sdk v0.12.3
-## explicit; go 1.24.0
+# sigs.k8s.io/release-sdk v0.12.4-0.20250809110342-befb0e4cde00
+## explicit; go 1.24.2
 sigs.k8s.io/release-sdk/git
 sigs.k8s.io/release-sdk/github
 sigs.k8s.io/release-sdk/github/internal
 sigs.k8s.io/release-sdk/regex
-# sigs.k8s.io/release-utils v0.12.0
+# sigs.k8s.io/release-utils v0.12.1
 ## explicit; go 1.23.0
 sigs.k8s.io/release-utils/command
 sigs.k8s.io/release-utils/env
 sigs.k8s.io/release-utils/env/internal
-sigs.k8s.io/release-utils/util
+sigs.k8s.io/release-utils/helpers
 # sigs.k8s.io/structured-merge-diff/v6 v6.2.0
 ## explicit; go 1.23
 sigs.k8s.io/structured-merge-diff/v6/fieldpath

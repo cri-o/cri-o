@@ -351,6 +351,7 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 				}()
 
 				wg.Wait()
+
 				doneChan <- done{stdoutErr, stderrErr}
 			}()
 		}
