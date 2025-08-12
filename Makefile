@@ -527,6 +527,10 @@ mock-ociartifact-types: ${MOCKGEN}
 		-package ociartifactmock \
 		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
 		github.com/cri-o/cri-o/internal/ociartifact Impl
+	${BUILD_BIN_PATH}/mockgen \
+		-package ociartifactmock \
+		github.com/containers/image/v5/types ImageSource | \
+		sed '1,/^package/d; /^import/,/^)/d' >> ${MOCK_PATH}/ociartifact/ociartifact.go
 
 .PHONY: mock-systemd
 mock-systemd: ${MOCKGEN}

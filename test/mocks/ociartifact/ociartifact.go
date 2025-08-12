@@ -387,10 +387,12 @@ func (mr *MockImplMockRecorder) ToJSON(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToJSON", reflect.TypeOf((*MockImpl)(nil).ToJSON), arg0)
 }
 
+
 // MockImageSource is a mock of ImageSource interface.
 type MockImageSource struct {
 	ctrl     *gomock.Controller
 	recorder *MockImageSourceMockRecorder
+	isgomock struct{}
 }
 
 // MockImageSourceMockRecorder is the mock recorder for MockImageSource.
@@ -441,9 +443,9 @@ func (mr *MockImageSourceMockRecorder) GetBlob(arg0, arg1, arg2 any) *gomock.Cal
 }
 
 // GetManifest mocks base method.
-func (m *MockImageSource) GetManifest(arg0 context.Context, arg1 *digest.Digest) ([]byte, string, error) {
+func (m *MockImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetManifest", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetManifest", ctx, instanceDigest)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -451,24 +453,24 @@ func (m *MockImageSource) GetManifest(arg0 context.Context, arg1 *digest.Digest)
 }
 
 // GetManifest indicates an expected call of GetManifest.
-func (mr *MockImageSourceMockRecorder) GetManifest(arg0, arg1 any) *gomock.Call {
+func (mr *MockImageSourceMockRecorder) GetManifest(ctx, instanceDigest any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetManifest", reflect.TypeOf((*MockImageSource)(nil).GetManifest), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetManifest", reflect.TypeOf((*MockImageSource)(nil).GetManifest), ctx, instanceDigest)
 }
 
 // GetSignatures mocks base method.
-func (m *MockImageSource) GetSignatures(arg0 context.Context, arg1 *digest.Digest) ([][]byte, error) {
+func (m *MockImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSignatures", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetSignatures", ctx, instanceDigest)
 	ret0, _ := ret[0].([][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSignatures indicates an expected call of GetSignatures.
-func (mr *MockImageSourceMockRecorder) GetSignatures(arg0, arg1 any) *gomock.Call {
+func (mr *MockImageSourceMockRecorder) GetSignatures(ctx, instanceDigest any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSignatures", reflect.TypeOf((*MockImageSource)(nil).GetSignatures), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSignatures", reflect.TypeOf((*MockImageSource)(nil).GetSignatures), ctx, instanceDigest)
 }
 
 // HasThreadSafeGetBlob mocks base method.
@@ -486,18 +488,18 @@ func (mr *MockImageSourceMockRecorder) HasThreadSafeGetBlob() *gomock.Call {
 }
 
 // LayerInfosForCopy mocks base method.
-func (m *MockImageSource) LayerInfosForCopy(arg0 context.Context, arg1 *digest.Digest) ([]types.BlobInfo, error) {
+func (m *MockImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LayerInfosForCopy", arg0, arg1)
+	ret := m.ctrl.Call(m, "LayerInfosForCopy", ctx, instanceDigest)
 	ret0, _ := ret[0].([]types.BlobInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LayerInfosForCopy indicates an expected call of LayerInfosForCopy.
-func (mr *MockImageSourceMockRecorder) LayerInfosForCopy(arg0, arg1 any) *gomock.Call {
+func (mr *MockImageSourceMockRecorder) LayerInfosForCopy(ctx, instanceDigest any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerInfosForCopy", reflect.TypeOf((*MockImageSource)(nil).LayerInfosForCopy), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerInfosForCopy", reflect.TypeOf((*MockImageSource)(nil).LayerInfosForCopy), ctx, instanceDigest)
 }
 
 // Reference mocks base method.
