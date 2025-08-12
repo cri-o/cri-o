@@ -1279,28 +1279,19 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	stats, err := r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
+	cgroupStats, err := r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
 	if err != nil {
-		return stats, err
+		return nil, err
 	}
 
-	pid, err := c.Pid()
+	fileDescriptors, err := r.getContainerFileDescriptors(ctx, c)
 	if err != nil {
-		return stats, err
+		log.Warnf(ctx, "Failed to get file descriptor stats for container %s: %v", c.ID(), err)
 	}
 
-	stats.Pid.FileDescriptors = getFileDescriptorCount(pid)
+	cgroupStats.Pid.FileDescriptors = fileDescriptors
 
-	return stats, nil
-}
-
-func getFileDescriptorCount(pid int) uint64 {
-	fdDir := fmt.Sprintf("/proc/%d/fd", pid)
-	entries, err := os.ReadDir(fdDir)
-	if err != nil {
-		return 0
-	}
-	return uint64(len(entries))
+	return cgroupStats, nil
 }
 
 // SignalContainer sends a signal to a container process.

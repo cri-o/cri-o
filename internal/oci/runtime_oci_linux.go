@@ -1,3 +1,5 @@
+//go:build linux
+
 package oci
 
 import (
@@ -5,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -106,4 +109,19 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 	log.Infof(ctx, "Finished port forwarding for %q on port %d", c.ID(), port)
 
 	return nil
+}
+
+func (r *runtimeOCI) getContainerFileDescriptors(ctx context.Context, c *Container) (uint64, error) {
+	pid, err := c.Pid()
+	if err != nil {
+		log.Warnf(ctx, "Failed to get pid for container %s: %v", c.ID(), err)
+	}
+
+	fdDir := fmt.Sprintf("/proc/%d/fd", pid)
+	entries, err := os.ReadDir(fdDir)
+	if err != nil {
+		return 0, nil
+	}
+
+	return uint64(len(entries)), nil
 }
