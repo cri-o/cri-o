@@ -700,6 +700,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 		if c.HasCleanups() {
 			c.Cleanup()
 		}
+
 		return err
 	}
 

@@ -23,6 +23,15 @@ import (
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
+// BindMountResult groups the return values from addOCIBindMounts to reduce function complexity.
+type BindMountResult struct {
+	Volumes             []oci.ContainerVolume
+	Mounts              []rspec.Mount
+	SafeMounts          []*safeMountInfo
+	Cleanups            []func()
+	ArtifactExtractDirs []string
+}
+
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
 func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Generator, mappings *idtools.IDMappings) {
 }
@@ -46,7 +55,7 @@ func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerCo
 func setOCIBindMountsPrivileged(g *generate.Generator) {
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, []func(), []string, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool) (*BindMountResult, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -89,11 +98,11 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	for _, m := range mounts {
 		dest := m.ContainerPath
 		if dest == "" {
-			return nil, nil, nil, nil, nil, errors.New("mount.ContainerPath is empty")
+			return nil, errors.New("mount.ContainerPath is empty")
 		}
 
 		if m.HostPath == "" {
-			return nil, nil, nil, nil, nil, errors.New("mount.HostPath is empty")
+			return nil, errors.New("mount.HostPath is empty")
 		}
 
 		src := filepath.Join(s.config.BindMountPrefix, m.HostPath)
@@ -103,12 +112,12 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			src = resolvedSrc
 		} else {
 			if !os.IsNotExist(err) {
-				return nil, nil, nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
+				return nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
 			}
 
 			if !ctr.Restore() {
 				if err = os.MkdirAll(src, 0o755); err != nil {
-					return nil, nil, nil, nil, nil, fmt.Errorf("failed to mkdir %s: %w", src, err)
+					return nil, fmt.Errorf("failed to mkdir %s: %w", src, err)
 				}
 			}
 		}
@@ -149,7 +158,13 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		})
 	}
 
-	return volumes, ociMounts, nil, nil, nil, nil
+	return &BindMountResult{
+		Volumes:             volumes,
+		Mounts:              ociMounts,
+		SafeMounts:          nil,
+		Cleanups:            nil,
+		ArtifactExtractDirs: nil,
+	}, nil
 }
 
 func addShmMount(ctr ctrfactory.Container, sb *sandbox.Sandbox) {

@@ -1022,6 +1022,7 @@ func (c *Container) GetArtifactExtractDirs() []string {
 	// Return a copy to avoid race conditions
 	result := make([]string, len(c.state.ArtifactExtractDirs))
 	copy(result, c.state.ArtifactExtractDirs)
+
 	return result
 }
 
@@ -1030,5 +1031,6 @@ func (c *Container) GetArtifactExtractDirs() []string {
 func (c *Container) ClearArtifactExtractDirs() {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
 	c.state.ArtifactExtractDirs = nil
 }
