@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 11 Aug 2025 21:48:57 UTC for commit [fa806b0][0]._
+_Generated on Tue, 12 Aug 2025 08:38:49 UTC for commit [5dd7ea2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fa806b0167c287cdbb039656354549912fcd0604
+[0]: https://github.com/cri-o/cri-o/commit/5dd7ea2ca9d8e3209f45cd5be7c4f1ef6e1bdb48
 
 ## Outdated Dependencies
 
@@ -150,7 +150,7 @@ _Generated on Mon, 11 Aug 2025 21:48:57 UTC for commit [fa806b0][0]._
 | cloud.google.com/go/webrisk                                                 | v1.10.3                               | v1.11.1                             | false  | true             |
 | cloud.google.com/go/websecurityscanner                                      | v1.7.3                                | v1.7.6                              | false  | true             |
 | cloud.google.com/go/workflows                                               | v1.13.3                               | v1.14.2                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                               | v0.0.0-20211005130812-5bb3c17173e5    | v0.45.0                             | false  | true             |
+| code.cloudfoundry.org/bytefmt                                               | v0.0.0-20211005130812-5bb3c17173e5    | v0.46.0                             | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                              | v0.0.0-20250224124241-b27552d3e05c    | v0.0.0-20250722084951-074d06050084  | false  | true             |
 | cuelang.org/go                                                              | v0.12.1                               | v0.14.1                             | false  | true             |
 | dario.cat/mergo                                                             | v1.0.2                                |                                     | false  | true             |
@@ -725,9 +725,9 @@ _Generated on Mon, 11 Aug 2025 21:48:57 UTC for commit [fa806b0][0]._
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | google.golang.org/api                                                       | v0.228.0                              | v0.246.0                            | false  | true             |
 | google.golang.org/appengine                                                 | v1.6.7                                | v1.6.8                              | false  | true             |
-| google.golang.org/genproto                                                  | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250811160224-6b04f9b4fc78  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20250603155806-513f23925822    | v0.0.0-20250811160224-6b04f9b4fc78  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20250603155806-513f23925822    | v0.0.0-20250811160224-6b04f9b4fc78  | false  | true             |
+| google.golang.org/genproto                                                  | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250811230008-5f3141c8851a  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20250603155806-513f23925822    | v0.0.0-20250811230008-5f3141c8851a  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20250603155806-513f23925822    | v0.0.0-20250811230008-5f3141c8851a  | false  | true             |
 | google.golang.org/grpc                                                      | v1.74.2                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                               | v1.5.1                                |                                     | false  | true             |
 | google.golang.org/protobuf                                                  | v1.36.6                               | v1.36.7                             | true   | true             |
