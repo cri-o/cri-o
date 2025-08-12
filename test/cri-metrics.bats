@@ -255,31 +255,6 @@ EOF
 	# assert container_processes == 3
 	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_processes") | .value.value | tonumber')
 	[[ $metrics_container_processes == "3" ]]
-}
-
-@test "container process metrics" {
-	PORT=$(free_port)
-	CONTAINER_ENABLE_METRICS=true \
-		CONTAINER_METRICS_PORT=$PORT \
-		setup_crio
-	cat << EOF > "$CRIO_CONFIG"
-[crio.stats]
-collection_period = 0
-included_pod_metrics = [
-    "network",
-    "cpu",
-    "memory",
-    "oom",
-    "process"
-]
-EOF
-	start_crio_no_setup
-	check_images
-
-	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
-	CONTAINER_ID=$(crictl create "$POD_ID" "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
-	crictl start "$CONTAINER_ID"
-	set_container_pod_cgroup_root "" "$CONTAINER_ID"
 
 	container_pid=$(crictl inspect "$CONTAINER_ID" | jq -r '.info.pid')
 	file_descriptors=$(ls "/proc/$container_pid/fd" | wc -l)
