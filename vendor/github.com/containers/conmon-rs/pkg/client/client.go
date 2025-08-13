@@ -11,7 +11,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -27,10 +29,11 @@ import (
 )
 
 const (
-	binaryName     = "conmonrs"
-	socketName     = "conmon.sock"
-	pidFileName    = "pidfile"
-	defaultTimeout = 10 * time.Second
+	binaryName          = "conmonrs"
+	socketName          = "conmon.sock"
+	pidFileName         = "pidfile"
+	defaultTimeout      = 10 * time.Second
+	heaptrackBinaryName = "heaptrack"
 )
 
 var (
@@ -96,6 +99,9 @@ type ConmonServerConfig struct {
 
 	// Tracing can be used to enable OpenTelemetry tracing.
 	Tracing *Tracing
+
+	// Heaptrack can be used to memory profile the server.
+	Heaptrack *Heaptrack
 }
 
 // Tracing is the structure for managing server-side OpenTelemetry tracing.
@@ -109,6 +115,20 @@ type Tracing struct {
 
 	// Tracer allows the client to create additional spans if set.
 	Tracer trace.Tracer
+}
+
+// Heaptrack is the structure for configuring the memory profiling.
+type Heaptrack struct {
+	// Enabled tells the server to run with heaptrack enabled.
+	Enabled bool
+
+	// BinaryPath is the path to the heaptrack binary. Can be empty to lookup
+	// the local $PATH variable.
+	BinaryPath string
+
+	// OutputPath is the storage path for the memory profile. Can be empty to
+	// use the current directory for storing the profile.
+	OutputPath string
 }
 
 // NewConmonServerConfig creates a new ConmonServerConfig instance for the
@@ -189,6 +209,10 @@ func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 	}
 
 	cl.serverPID = pid
+
+	if config.Heaptrack != nil && config.Heaptrack.Enabled {
+		go cl.attachHeaptrack(config, pid)
+	}
 
 	// Cleanup the background server process
 	// if we fail any of the next steps
@@ -432,16 +456,15 @@ func validateLogDriver(driver LogDriver) error {
 	return validateStringSlice(
 		"log driver",
 		string(driver),
+		string(LogDriverNone),
 		string(LogDriverStdout),
 		string(LogDriverSystemd),
 	)
 }
 
 func validateStringSlice(typ, given string, possibleValues ...string) error {
-	for _, possibleValue := range possibleValues {
-		if given == possibleValue {
-			return nil
-		}
+	if slices.Contains(possibleValues, given) {
+		return nil
 	}
 
 	return fmt.Errorf("%w: %s %q", errInvalidValue, typ, given)
@@ -1641,4 +1664,38 @@ func (c *ConmonClient) ServePortForwardContainer(
 	}
 
 	return &ServePortForwardContainerResult{URL: url}, nil
+}
+
+func (c *ConmonClient) attachHeaptrack(config *ConmonServerConfig, pid uint32) {
+	c.logger.Infof("Attaching heaptrack to PID %d", pid)
+
+	args := []string{"--record-only"}
+
+	if config.Heaptrack.OutputPath != "" {
+		args = append(args, "-o", config.Heaptrack.OutputPath)
+	}
+
+	args = append(args, "-p", strconv.FormatUint(uint64(pid), 10))
+
+	entrypoint := config.Heaptrack.BinaryPath
+	if entrypoint == "" {
+		path, err := exec.LookPath(heaptrackBinaryName)
+		if err != nil {
+			c.logger.Errorf("Unable to find heaptrack path: %v", err)
+
+			return
+		}
+
+		entrypoint = path
+	}
+
+	c.logger.Debugf("Running heaptrack via: %s %s", entrypoint, strings.Join(args, " "))
+
+	cmd := exec.Command(entrypoint, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		c.logger.Errorf("Unable to run heaptrack: %v", err)
+	}
 }
