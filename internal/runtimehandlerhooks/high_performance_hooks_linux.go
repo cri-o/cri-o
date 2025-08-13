@@ -229,13 +229,6 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 		return nil
 	}
 
-	// enable the IRQ smp balancing for the container CPUs
-	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
-		if err := h.setIRQLoadBalancing(ctx, c, true); err != nil {
-			return fmt.Errorf("set IRQ load balancing: %w", err)
-		}
-	}
-
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations()) {
 		podManager, containerManagers, err := libctrManagersForPodAndContainerCgroup(c, s.CgroupParent())
@@ -271,12 +264,23 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 }
 
 // If CPU load balancing is enabled, then *all* containers must run this PostStop hook.
-func (*HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
+func (h *HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
+	cSpec := c.Spec()
+	if shouldRunHooks(ctx, c.ID(), &cSpec, s) {
+		// enable the IRQ smp balancing for the container CPUs
+		if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
+			if err := h.setIRQLoadBalancing(ctx, c, true); err != nil {
+				return fmt.Errorf("set IRQ load balancing: %w", err)
+			}
+		}
+	}
+
 	// We could check if `!cpuLoadBalancingAllowed()` here, but it requires access to the config, which would be
 	// odd to plumb. Instead, always assume if they're using a HighPerformanceHook, they have CPULoadBalanceDisabled
 	// annotation allowed.
-	h := &DefaultCPULoadBalanceHooks{}
-	return h.PostStop(ctx, c, s)
+	dh := &DefaultCPULoadBalanceHooks{}
+
+	return dh.PostStop(ctx, c, s)
 }
 
 func shouldCPULoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
