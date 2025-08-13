@@ -1127,8 +1127,8 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.Cg
 		},
 		Hugetlb: hugetlbStats,
 		Pid: &cgmgr.PidsStats{
-			Current: m.Pids.Current,
-			Limit:   m.Pids.Limit,
+			Current:         m.Pids.Current,
+			Limit:           m.Pids.Limit,
 			FileDescriptors: 0,
 		},
 		SystemNano: time.Now().UnixNano(),
@@ -1193,8 +1193,8 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *cgmgr.Cg
 		},
 		Hugetlb: hugetlbStats,
 		Pid: &cgmgr.PidsStats{
-			Current: m.Pids.Current,
-			Limit:   m.Pids.Limit,
+			Current:         m.Pids.Current,
+			Limit:           m.Pids.Limit,
 			FileDescriptors: 0,
 		},
 		SystemNano: time.Now().UnixNano(),

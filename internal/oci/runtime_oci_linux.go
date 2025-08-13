@@ -116,6 +116,7 @@ func (r *runtimeOCI) getContainerFileDescriptors(ctx context.Context, c *Contain
 	}
 
 	fdDir := fmt.Sprintf("/proc/%d/fd", pid)
+
 	entries, err := os.ReadDir(fdDir)
 	if err != nil {
 		return 0, nil
