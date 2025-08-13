@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 13 Aug 2025 05:56:19 UTC for commit [e8f7645][0]._
+_Generated on Wed, 13 Aug 2025 11:47:29 UTC for commit [de510f7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e8f76457785945cafbd72509d66cf3f9f3613d93
+[0]: https://github.com/cri-o/cri-o/commit/de510f777e57c445251852321b902c5b64dd3127
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|---------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.6                                | v0.0.7                             | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.7.1                                | v0.7.2                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250811163623-9379a18c8ac0 | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.61.0                               | v0.62.0                            | true   | true             |
 | golang.org/x/net                                                            | v0.42.0                               | v0.43.0                            | true   | true             |
@@ -301,7 +302,7 @@ _Generated on Wed, 13 Aug 2025 05:56:19 UTC for commit [e8f7645][0]._
 | github.com/containernetworking/plugins                                      | v1.7.1                                |                                     | true   | true             |
 | github.com/containers/common                                                | v0.64.1                               |                                     | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  |                                     | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.7.1                                |                                     | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.7.1                                | v0.7.2                              | true   | true             |
 | github.com/containers/image/v5                                              | v5.36.1                               |                                     | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
