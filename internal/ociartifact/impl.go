@@ -148,8 +148,8 @@ func (d *defaultImpl) CandidatesForPotentiallyShortImageName(systemContext *type
 		sc = *systemContext // A shallow copy
 	}
 
-	disabled := types.ShortNameModeDisabled
-	sc.ShortNameMode = &disabled
+	enforcing := types.ShortNameModeEnforcing
+	sc.ShortNameMode = &enforcing
 
 	return shortnames.ResolveLocally(&sc, imageName)
 }
