@@ -14,20 +14,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
-
-import (
-	"io"
-
-	"github.com/olekukonko/tablewriter"
-)
-
-// NewTableWriter creates a new table writer with the given output and options.
-func NewTableWriter(output io.Writer, options ...tablewriter.Option) *tablewriter.Table {
-	table := tablewriter.NewWriter(output)
-	for _, opt := range options {
-		table.Options(opt)
-	}
-
-	return table
-}
+package helpers

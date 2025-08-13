@@ -41,7 +41,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/command"
-	"sigs.k8s.io/release-utils/util"
+	"sigs.k8s.io/release-utils/helpers"
 
 	"sigs.k8s.io/release-sdk/regex"
 )
@@ -680,7 +680,7 @@ func (r *Repo) LatestReleaseBranchMergeBaseToLatest() (DiscoverResult, error) {
 	}
 
 	version := versions[0]
-	versionTag := util.SemverToTagString(version)
+	versionTag := helpers.SemverToTagString(version)
 	logrus.Debugf("Latest non patch version %s", versionTag)
 
 	base, err := r.MergeBase(
@@ -718,7 +718,7 @@ func (r *Repo) LatestNonPatchFinalToMinor() (DiscoverResult, error) {
 	}
 
 	latestVersion := versions[0]
-	latestVersionTag := util.SemverToTagString(latestVersion)
+	latestVersionTag := helpers.SemverToTagString(latestVersion)
 	logrus.Debugf("Latest non patch version %s", latestVersionTag)
 
 	end, err := r.RevParseTag(latestVersionTag)
@@ -727,7 +727,7 @@ func (r *Repo) LatestNonPatchFinalToMinor() (DiscoverResult, error) {
 	}
 
 	previousVersion := versions[1]
-	previousVersionTag := util.SemverToTagString(previousVersion)
+	previousVersionTag := helpers.SemverToTagString(previousVersion)
 	logrus.Debugf("Previous non patch version %s", previousVersionTag)
 
 	start, err := r.RevParseTag(previousVersionTag)
@@ -752,7 +752,7 @@ func (r *Repo) latestNonPatchFinalVersions() ([]semver.Version, error) {
 	}
 
 	_ = tags.ForEach(func(t *plumbing.Reference) error {
-		ver, err := util.TagStringToSemver(t.Name().Short())
+		ver, err := helpers.TagStringToSemver(t.Name().Short())
 
 		if err == nil {
 			// We're searching for the latest, non patch final tag
@@ -1043,16 +1043,16 @@ func (r *Repo) LatestPatchToPatch(branch string) (DiscoverResult, error) {
 		Patch: latestTag.Patch - 1,
 	}
 
-	logrus.Debugf("Parsing latest tag %s%v", util.TagPrefix, latestTag)
-	latestVersionTag := util.SemverToTagString(latestTag)
+	logrus.Debugf("Parsing latest tag %s%v", helpers.TagPrefix, latestTag)
+	latestVersionTag := helpers.SemverToTagString(latestTag)
 
 	end, err := r.RevParseTag(latestVersionTag)
 	if err != nil {
 		return DiscoverResult{}, fmt.Errorf("parsing version %v: %w", latestTag, err)
 	}
 
-	logrus.Debugf("Parsing previous tag %s%v", util.TagPrefix, prevTag)
-	previousVersionTag := util.SemverToTagString(prevTag)
+	logrus.Debugf("Parsing previous tag %s%v", helpers.TagPrefix, prevTag)
+	previousVersionTag := helpers.SemverToTagString(prevTag)
 
 	start, err := r.RevParseTag(previousVersionTag)
 	if err != nil {
@@ -1081,8 +1081,8 @@ func (r *Repo) LatestPatchToLatest(branch string) (DiscoverResult, error) {
 		latestTag.Pre = nil
 	}
 
-	logrus.Debugf("Parsing latest tag %s%v", util.TagPrefix, latestTag)
-	latestVersionTag := util.SemverToTagString(latestTag)
+	logrus.Debugf("Parsing latest tag %s%v", helpers.TagPrefix, latestTag)
+	latestVersionTag := helpers.SemverToTagString(latestTag)
 
 	start, err := r.RevParseTag(latestVersionTag)
 	if err != nil {
@@ -1115,7 +1115,7 @@ func (r *Repo) LatestTagForBranch(branch string) (tag semver.Version, err error)
 		return tag, errors.New("no tags found on branch")
 	}
 
-	tag, err = util.TagStringToSemver(tags[0])
+	tag, err = helpers.TagStringToSemver(tags[0])
 	if err != nil {
 		return tag, err
 	}

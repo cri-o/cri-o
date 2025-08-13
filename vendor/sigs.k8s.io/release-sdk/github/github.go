@@ -34,7 +34,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/release-utils/env"
-	"sigs.k8s.io/release-utils/util"
+	"sigs.k8s.io/release-utils/helpers"
 
 	"sigs.k8s.io/release-sdk/git"
 	ghinternal "sigs.k8s.io/release-sdk/github/internal"
@@ -682,7 +682,7 @@ func (g *GitHub) LatestGitHubTagsPerBranch() (TagsPerBranch, error) {
 
 		// We skip non-semver tags because k/k contains tags like `v0.5` which
 		// are not valid
-		semverTag, err := util.TagStringToSemver(tag)
+		semverTag, err := helpers.TagStringToSemver(tag)
 		if err != nil {
 			logrus.Debugf("Skipping tag %s because it is not valid semver", tag)
 
@@ -884,7 +884,7 @@ func (g *GitHub) UploadReleaseAsset(
 	}
 
 	// Check the file exists
-	if !util.Exists(fileName) {
+	if !helpers.Exists(fileName) {
 		return nil, errors.New("unable to upload asset, file not found")
 	}
 

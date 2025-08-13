@@ -9,7 +9,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
-	"sigs.k8s.io/release-utils/util"
+	"sigs.k8s.io/release-utils/helpers"
 )
 
 const (
@@ -40,7 +40,7 @@ func GetCurrentVersionFromReleaseBranch(repo *git.Repo, baseBranchName string) (
 }
 
 func ConvertStringToSemver(tag string) (res semver.Version, err error) {
-	sv, err := util.TagStringToSemver(strings.TrimSpace(tag))
+	sv, err := helpers.TagStringToSemver(strings.TrimSpace(tag))
 	if err != nil {
 		return res, fmt.Errorf("unable to convert tag %q to semver: %w", tag, err)
 	}
