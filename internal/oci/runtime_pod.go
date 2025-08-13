@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/containers/common/pkg/resize"
@@ -59,10 +60,38 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		cgroupManager = conmonClient.CgroupManagerCgroupfs
 	}
 
+	heaptrack := &conmonClient.Heaptrack{}
+	logDriver := conmonClient.LogDriverNone
+
+	for _, env := range handler.MonitorEnv {
+		keyVal := strings.SplitN(env, "=", 2)
+		if len(keyVal) != 2 {
+			logrus.Warnf("Skipping monitor env %q because it is not in key=value format", env)
+
+			continue
+		}
+
+		switch keyVal[0] {
+		case "LOG_DRIVER":
+			logDriver = conmonClient.LogDriver(keyVal[1])
+
+		case "HEAPTRACK_OUTPUT_PATH":
+			heaptrack.Enabled = true
+			heaptrack.OutputPath = filepath.Join(keyVal[1], "cri-o.conmon-rs."+c.ID())
+
+		case "HEAPTRACK_BINARY_PATH":
+			heaptrack.Enabled = true
+			heaptrack.BinaryPath = keyVal[1]
+
+		default:
+			logrus.Warnf("Unknown monitor env option %q", env)
+		}
+	}
+
 	client, err := conmonClient.New(&conmonClient.ConmonServerConfig{
 		ConmonServerPath: handler.MonitorPath,
 		LogLevel:         conmonClient.FromLogrusLevel(logrus.GetLevel()),
-		LogDriver:        conmonClient.LogDriverSystemd,
+		LogDriver:        logDriver,
 		Runtime:          handler.RuntimePath,
 		ServerRunDir:     c.dir,
 		RuntimeRoot:      runRoot,
@@ -72,6 +101,7 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 			Enabled:  r.config.EnableTracing,
 			Endpoint: "http://" + r.config.TracingEndpoint,
 		},
+		Heaptrack: heaptrack,
 	})
 	if err != nil {
 		return nil, err
