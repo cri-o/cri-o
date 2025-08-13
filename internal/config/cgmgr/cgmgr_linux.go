@@ -29,9 +29,9 @@ const (
 
 	// these constants define the path and name of the memory max file
 	// for v1 and v2 respectively.
-	cgroupMemoryPathV1    = "/sys/fs/cgroup/memory"
+	CgroupMemoryPathV1    = "/sys/fs/cgroup/memory"
 	cgroupMemoryMaxFileV1 = "memory.limit_in_bytes"
-	cgroupMemoryPathV2    = "/sys/fs/cgroup"
+	CgroupMemoryPathV2    = "/sys/fs/cgroup"
 	cgroupMemoryMaxFileV2 = "memory.max"
 )
 
@@ -105,13 +105,13 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 	case cgroupfsCgroupManager:
 		if node.CgroupIsV2() {
 			return &CgroupfsManager{
-				memoryPath:    cgroupMemoryPathV2,
+				memoryPath:    CgroupMemoryPathV2,
 				memoryMaxFile: cgroupMemoryMaxFileV2,
 			}, nil
 		}
 
 		return &CgroupfsManager{
-			memoryPath:    cgroupMemoryPathV1,
+			memoryPath:    CgroupMemoryPathV1,
 			memoryMaxFile: cgroupMemoryMaxFileV1,
 			v1CtrCgMgr:    make(map[string]cgroups.Manager),
 			v1SbCgMgr:     make(map[string]cgroups.Manager),
