@@ -677,7 +677,7 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 		return fmt.Errorf("find container %s CPUs", c.ID())
 	}
 
-	if err := h.updateNewIRQSMPAffinityMask(ctx, c.Name(), lspec.Resources.CPU.Cpus, enable); err != nil {
+	if err := h.updateNewIRQSMPAffinityMask(ctx, c.ID(), c.Name(), lspec.Resources.CPU.Cpus, enable); err != nil {
 		return err
 	}
 	// Outside of the lock section, we can restart the irqbalance service or run irqbalance --oneshot command.
@@ -767,7 +767,7 @@ func (h *HighPerformanceHooks) handleIRQBalanceRestart(ctx context.Context, cNam
 // write those masks to /proc/irq/default_smp_affinity and /etc/sysconfig/irqbalance
 // Without this lock, 2 threads could read from the file and calculate the new mask but overwrite the
 // results of each other.
-func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, cName, cpus string, enable bool) error {
+func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, cID, cName, cpus string, enable bool) error {
 	h.updateIRQSMPAffinityLock.Lock()
 	defer h.updateIRQSMPAffinityLock.Unlock()
 
@@ -783,8 +783,14 @@ func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, 
 		return err
 	}
 
-	log.Debugf(ctx, "Container %q set %q: %q; %q: %q", cName,
-		h.irqSMPAffinityFile, newIRQSMPSetting,
+	action := "start"
+	if enable {
+		action = "stop"
+	}
+
+	log.Debugf(ctx, "Container %q (%q) action %s cpus %q set %q: %q -> %q; %q: %q",
+		cID, cName, action, cpus,
+		h.irqSMPAffinityFile, originalIRQSMPSetting, newIRQSMPSetting,
 		h.irqBalanceConfigFile, newIRQBalanceSetting,
 	)
 
