@@ -1,6 +1,7 @@
 package runtimehandlerhooks
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -61,12 +62,54 @@ const (
 	SharedCPUsEnvVar     = "OPENSHIFT_SHARED_CPUS"
 )
 
+// ServiceManager interface for managing system services.
+type ServiceManager interface {
+	IsServiceEnabled(serviceName string) bool
+	RestartService(serviceName string) error
+}
+
+// CommandRunner interface for running external commands.
+type CommandRunner interface {
+	LookPath(file string) (string, error)
+	RunCommand(name string, env []string, arg ...string) error
+}
+
+// Default implementations.
+type defaultServiceManager struct{}
+
+func (d *defaultServiceManager) IsServiceEnabled(serviceName string) bool {
+	return isServiceEnabled(serviceName)
+}
+
+func (d *defaultServiceManager) RestartService(serviceName string) error {
+	return restartService(serviceName)
+}
+
+type defaultCommandRunner struct{}
+
+func (d *defaultCommandRunner) LookPath(file string) (string, error) {
+	return exec.LookPath(file)
+}
+
+func (d *defaultCommandRunner) RunCommand(name string, env []string, arg ...string) error {
+	cmd := cmdrunner.Command(name, arg...)
+	if len(env) > 0 {
+		cmd.Env = env
+	}
+
+	return cmd.Run()
+}
+
+var (
+	serviceManager ServiceManager = &defaultServiceManager{}
+	commandRunner  CommandRunner  = &defaultCommandRunner{}
+)
+
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads.
 type HighPerformanceHooks struct {
 	irqBalanceConfigFile     string
 	cpusetLock               sync.Mutex
-	irqSMPAffinityFileLock   sync.Mutex
-	irqBalanceConfigFileLock sync.Mutex
+	updateIRQSMPAffinityLock sync.Mutex
 	sharedCPUs               string
 	execCPUAffinity          config.ExecCPUAffinityType
 	irqSMPAffinityFile       string
@@ -247,13 +290,6 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 		return nil
 	}
 
-	// enable the IRQ smp balancing for the container CPUs
-	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
-		if err := h.setIRQLoadBalancing(ctx, c, true); err != nil {
-			return fmt.Errorf("set IRQ load balancing: %w", err)
-		}
-	}
-
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations()) {
 		podManager, containerManagers, err := libctrManagersForPodAndContainerCgroup(c, s.CgroupParent())
@@ -290,13 +326,23 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 }
 
 // If CPU load balancing is enabled, then *all* containers must run this PostStop hook.
-func (*HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
+func (h *HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
+	cSpec := c.Spec()
+	if shouldRunHooks(ctx, c.ID(), &cSpec, s) {
+		// enable the IRQ smp balancing for the container CPUs
+		if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
+			if err := h.setIRQLoadBalancing(ctx, c, true); err != nil {
+				return fmt.Errorf("set IRQ load balancing: %w", err)
+			}
+		}
+	}
+
 	// We could check if `!cpuLoadBalancingAllowed()` here, but it requires access to the config, which would be
 	// odd to plumb. Instead, always assume if they're using a HighPerformanceHook, they have CPULoadBalanceDisabled
 	// annotation allowed.
-	h := &DefaultCPULoadBalanceHooks{}
+	dh := &DefaultCPULoadBalanceHooks{}
 
-	return h.PostStop(ctx, c, s)
+	return dh.PostStop(ctx, c, s)
 }
 
 func shouldCPULoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
@@ -631,69 +677,144 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 		return fmt.Errorf("find container %s CPUs", c.ID())
 	}
 
-	newIRQBalanceSetting, err := h.updateNewIRQSMPAffinityMask(lspec.Resources.CPU.Cpus, enable)
-	if err != nil {
+	if err := h.updateNewIRQSMPAffinityMask(ctx, c.ID(), c.Name(), lspec.Resources.CPU.Cpus, enable); err != nil {
 		return err
 	}
-
-	isIrqConfigExists := fileExists(h.irqBalanceConfigFile)
-
-	if isIrqConfigExists {
-		if err := h.updateIrqBalanceConfigFile(newIRQBalanceSetting); err != nil {
-			return err
-		}
-	}
-
-	if !isServiceEnabled(irqBalancedName) || !isIrqConfigExists {
-		if _, err := exec.LookPath(irqBalancedName); err != nil {
-			// irqbalance is not installed, skip the rest; pod should still start, so return nil instead
-			log.Warnf(ctx, "Irqbalance binary not found: %v", err)
-
-			return nil
-		}
-		// run irqbalance in daemon mode, so this won't cause delay
-		cmd := cmdrunner.Command(irqBalancedName, "--oneshot")
-		additionalEnv := irqBalanceBannedCpus + "=" + newIRQBalanceSetting
-		cmd.Env = append(os.Environ(), additionalEnv)
-
-		return cmd.Run()
-	}
-
-	if err := restartIrqBalanceService(); err != nil {
-		log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
-	}
+	// Outside of the lock section, we can restart the irqbalance service or run irqbalance --oneshot command.
+	// handleIRQBalanceRestart will log errors but will not return them, as it is not critical for the pod to start.
+	h.handleIRQBalanceRestart(ctx, c.Name())
 
 	return nil
 }
 
-func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(cpus string, enable bool) (string, error) {
-	h.irqSMPAffinityFileLock.Lock()
-	defer h.irqSMPAffinityFileLock.Unlock()
+// handleIRQBalanceRestart handles - outside of the lock section - the restart of the irqbalance service or runs
+// irqbalance --oneshot command if the service is not enabled. The environment variable for irqbalance oneshot
+// is read from h.irqBalanceConfigFile (/etc/sysconfig/irqbalance) which is guaranteed to be in a consistent state
+// after the lock section in updateNewIRQSMPAffinityMask.
+func (h *HighPerformanceHooks) handleIRQBalanceRestart(ctx context.Context, cName string) {
+	// Nothing else to do if irq balance config file does not exist.
+	if !fileExists(h.irqBalanceConfigFile) {
+		return
+	}
+
+	// If the irqbalance service is enabled, restart it and return.
+	// systemd's StartLimitBurst might cause issues here when container restarts occur in very
+	// quick succession and the parameter must be reconfigured for this to work correctly.
+	// See:
+	// https://github.com/cri-o/cri-o/pull/8834/commits/b96928dcbb7956e0ebde42238e88955831411216
+	if serviceManager.IsServiceEnabled(irqBalancedName) {
+		log.Debugf(ctx, "Container %q restarting irqbalance service", cName)
+
+		if err := serviceManager.RestartService(irqBalancedName); err != nil {
+			log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
+		}
+
+		return
+	}
+
+	// Handle irqbalance --oneshot below.
+	irqBalanceFullPath, err := commandRunner.LookPath(irqBalancedName)
+	if err != nil {
+		// irqbalance is not installed, skip the rest; pod should still start, so return nil instead.
+		log.Warnf(ctx, "Irqbalance binary not found: %v", err)
+
+		return
+	}
+
+	// From h.irqBalanceConfigFile, read the IRQ balance setting and set it in the environment.
+	file, err := os.Open(h.irqBalanceConfigFile)
+	if err != nil {
+		log.Warnf(ctx, "Failed to open irq balance config file %q: %v", h.irqBalanceConfigFile, err)
+
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if !strings.HasPrefix(scanner.Text(), irqBalanceBannedCpus+"=") {
+			continue
+		}
+
+		text := strings.TrimPrefix(scanner.Text(), irqBalanceBannedCpus+"=")
+		text = strings.Trim(text, "\"'")
+		env := fmt.Sprintf("%s=%s", irqBalanceBannedCpus, text)
+
+		log.Debugf(ctx, "Container %q running '%s %s %s'", cName, env, irqBalanceFullPath, "--oneshot")
+
+		if err := commandRunner.RunCommand(
+			irqBalanceFullPath,
+			[]string{env},
+			"--oneshot",
+		); err != nil {
+			log.Warnf(ctx, "Container %q failed to run '%s %s %s', err: %q",
+				cName, env, irqBalanceFullPath, "--oneshot", err)
+		}
+
+		return
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Warnf(ctx, "Failed to scan file %q, err: %q", h.irqBalanceConfigFile, err)
+	}
+
+	log.Warnf(ctx, "Failed to find %q in irq balance config file %q", irqBalanceBannedCpus, h.irqBalanceConfigFile)
+}
+
+// updateNewIRQSMPAffinityMask updates SMP IRQ affinity and IRQ balance configuration files.
+// The entire function must be wrapped inside a single lock to avoid race conditions.
+// The reason for this is that once we read from the SMP IRQ affinity file, we have to calculate new masks and
+// write those masks to /proc/irq/default_smp_affinity and /etc/sysconfig/irqbalance
+// Without this lock, 2 threads could read from the file and calculate the new mask but overwrite the
+// results of each other.
+func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, cID, cName, cpus string, enable bool) error {
+	h.updateIRQSMPAffinityLock.Lock()
+	defer h.updateIRQSMPAffinityLock.Unlock()
 
 	content, err := os.ReadFile(h.irqSMPAffinityFile)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	currentIRQSMPSetting := strings.TrimSpace(string(content))
+	originalIRQSMPSetting := strings.TrimSpace(string(content))
 
-	newIRQSMPSetting, newIRQBalanceSetting, err := calcIRQSMPAffinityMask(cpus, currentIRQSMPSetting, enable)
+	newIRQSMPSetting, newIRQBalanceSetting, err := calcIRQSMPAffinityMask(cpus, originalIRQSMPSetting, enable)
 	if err != nil {
-		return "", err
+		return err
 	}
+
+	action := "start"
+	if enable {
+		action = "stop"
+	}
+
+	log.Debugf(ctx, "Container %q (%q) action %s cpus %q set %q: %q -> %q; %q: %q",
+		cID, cName, action, cpus,
+		h.irqSMPAffinityFile, originalIRQSMPSetting, newIRQSMPSetting,
+		h.irqBalanceConfigFile, newIRQBalanceSetting,
+	)
 
 	if err := os.WriteFile(h.irqSMPAffinityFile, []byte(newIRQSMPSetting), 0o644); err != nil {
-		return "", err
+		return err
 	}
 
-	return newIRQBalanceSetting, nil
-}
+	// Nothing else to do if irq balance config file does not exist.
+	if !fileExists(h.irqBalanceConfigFile) {
+		return nil
+	}
 
-func (h *HighPerformanceHooks) updateIrqBalanceConfigFile(newIRQBalanceSetting string) error {
-	h.irqBalanceConfigFileLock.Lock()
-	defer h.irqBalanceConfigFileLock.Unlock()
+	if err := updateIrqBalanceConfigFile(h.irqBalanceConfigFile, newIRQBalanceSetting); err != nil {
+		// Rollback IRQ SMP affinity file to maintain consistency
+		if rollbackErr := os.WriteFile(h.irqSMPAffinityFile, []byte(originalIRQSMPSetting), 0o644); rollbackErr != nil {
+			log.Errorf(ctx, "Failed to rollback IRQ SMP affinity file after config update failure: %v", rollbackErr)
+		}
 
-	return updateIrqBalanceConfigFile(h.irqBalanceConfigFile, newIRQBalanceSetting)
+		return err
+	}
+
+	// Nothing else to do here inside the lock section. irqbalance --oneshot or
+	// service restart will be handled outside of the lock in setIRQLoadBalancing.
+	return nil
 }
 
 func setCPUQuota(podManager cgroups.Manager, containerManagers []cgroups.Manager) error {
@@ -1096,8 +1217,8 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 		return err
 	}
 
-	if isServiceEnabled(irqBalancedName) {
-		if err := restartIrqBalanceService(); err != nil {
+	if serviceManager.IsServiceEnabled(irqBalancedName) {
+		if err := serviceManager.RestartService(irqBalancedName); err != nil {
 			log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
 		}
 	}
