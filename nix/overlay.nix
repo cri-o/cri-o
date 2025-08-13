@@ -3,11 +3,7 @@ let
 in
 self: super:
 {
-  gpgme = (static super.gpgme).overrideAttrs (x: {
-    # Drop the --enable-fixed-path:
-    # https://github.com/nixos/nixpkgs/blob/9a79bc99/pkgs/development/libraries/gpgme/default.nix#L94
-    configureFlags = self.lib.lists.remove "--enable-fixed-path=${self.gnupg}/bin" x.configureFlags;
-  });
+  gpgme = (static super.gpgme);
   libassuan = (static super.libassuan);
   libgpg-error = (static super.libgpg-error);
   libseccomp = (static super.libseccomp);
