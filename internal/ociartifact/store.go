@@ -1,14 +1,20 @@
+//go:build !(freebsd && 386)
+
 package ociartifact
 
 import (
+	"archive/tar"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	modelSpec "github.com/CloudNativeAI/model-spec/specs-go/v1"
 	"github.com/containers/common/libimage"
@@ -17,6 +23,7 @@ import (
 	"github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 
@@ -36,17 +43,19 @@ var (
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
-	rootPath      string
-	systemContext *types.SystemContext
-	impl          Impl
+	rootPath           string
+	systemContext      *types.SystemContext
+	impl               Impl
+	extractArtifactDir string
 }
 
 // NewStore creates a new OCI artifact store.
 func NewStore(rootPath string, systemContext *types.SystemContext) *Store {
 	return &Store{
-		rootPath:      filepath.Join(rootPath, "artifacts"),
-		systemContext: systemContext,
-		impl:          &defaultImpl{},
+		rootPath:           filepath.Join(rootPath, "artifacts"),
+		systemContext:      systemContext,
+		impl:               &defaultImpl{},
+		extractArtifactDir: filepath.Join(rootPath, "extracted-artifacts"),
 	}
 }
 
@@ -58,6 +67,26 @@ func (unknownRef) String() string {
 
 func (u unknownRef) Name() string {
 	return u.String()
+}
+
+func (s *Store) GetArtifactExtractDir(artifact *Artifact) (string, error) {
+	// Parse manifest from artifact
+	manifestBytes, err := s.impl.ToJSON(artifact.Manifest())
+	if err != nil {
+		return "", fmt.Errorf("marshal manifest: %w", err)
+	}
+
+	parsedManifest, err := s.impl.ManifestFromBlob(manifestBytes, specs.MediaTypeImageManifest)
+	if err != nil {
+		return "", fmt.Errorf("parse manifest: %w", err)
+	}
+
+	configInfo := parsedManifest.ConfigInfo()
+	if configInfo.Digest == "" {
+		return "", errors.New("artifact manifest has no config digest")
+	}
+
+	return filepath.Join(s.extractArtifactDir, configInfo.Digest.Encoded()), nil
 }
 
 // PullOptions can be used to customize the pull behavior.
@@ -159,6 +188,10 @@ func (s *Store) PullManifest(
 		return nil, fmt.Errorf("parse manifest from blob: %w", err)
 	}
 
+	if parsedManifest == nil {
+		return nil, errors.New("parsed manifest is nil")
+	}
+
 	mediaType := s.impl.ManifestConfigMediaType(parsedManifest)
 	if opts.EnforceConfigMediaType != "" && mediaType != opts.EnforceConfigMediaType {
 		return nil, fmt.Errorf("wrong config media type %q, requires %q", mediaType, opts.EnforceConfigMediaType)
@@ -210,6 +243,16 @@ func (s *Store) PullManifest(
 
 	if err := s.impl.CloseCopier(copier); err != nil {
 		return nil, fmt.Errorf("close copier: %w", err)
+	}
+
+	configInfo := parsedManifest.ConfigInfo()
+	if configInfo.Digest == "" {
+		return nil, errors.New("manifest has no config digest")
+	}
+
+	extractDir := filepath.Join(s.extractArtifactDir, configInfo.Digest.Encoded())
+	if err := s.extractArtifactLayers(ctx, strRef, parsedManifest, dst, extractDir); err != nil {
+		return nil, fmt.Errorf("extract artifact layers: %w", err)
 	}
 
 	return manifestBytes, nil
@@ -505,7 +548,16 @@ type BlobMountPath struct {
 	// Source path of the blob, i.e. full path in the blob dir.
 	SourcePath string
 	// Name of the file in the artifact.
-	Name string
+	Name        string
+	cleanupFunc func()
+	cleanupOnce *sync.Once
+}
+
+// Cleanup triggers the deletion of the extracted directory.
+func (b *BlobMountPath) Cleanup() {
+	if b.cleanupFunc != nil && b.cleanupOnce != nil {
+		b.cleanupOnce.Do(b.cleanupFunc)
+	}
 }
 
 // BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
@@ -515,35 +567,343 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
 	}
 
-	src, err := ref.NewImageSource(ctx, sys)
+	extractDir, err := s.GetArtifactExtractDir(artifact)
+	if err != nil {
+		return nil, fmt.Errorf("get artifact extract dir: %w", err)
+	}
+
+	cleanupFunc := func() {
+		if err := os.RemoveAll(extractDir); err != nil {
+			log.Warnf(ctx, "Failed to remove artifact extract directory %s: %v", extractDir, err)
+		} else {
+			log.Debugf(ctx, "Successfully removed artifact extract directory: %s", extractDir)
+		}
+	}
+	cleanupOnce := &sync.Once{}
+
+	// Cleanup on function exit if we encounter an error.
+	cleanup := true
+
+	defer func() {
+		if cleanup {
+			if err := os.RemoveAll(extractDir); err != nil {
+				log.Warnf(ctx, "Failed to remove artifact extract directory on error %s: %v", extractDir, err)
+			} else {
+				log.Debugf(ctx, "Successfully removed artifact extract directory on error: %s", extractDir)
+			}
+		}
+	}()
+
+	src, err := s.impl.NewImageSource(ctx, ref, sys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image source: %w", err)
 	}
-
 	defer src.Close()
 
 	mountPaths := make([]BlobMountPath, 0, len(artifact.Manifest().Layers))
 
+	data, err := os.ReadFile(filepath.Join(s.extractArtifactDir, "layer-map.json"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read layer map: %w", err)
+	}
+
+	layerMap := make(map[string]string)
+	if err := json.Unmarshal(data, &layerMap); err != nil {
+		return nil, fmt.Errorf("failed to parse layer map: %w", err)
+	}
+
 	for _, l := range artifact.Manifest().Layers {
-		path, err := layout.GetLocalBlobPath(ctx, src, l.Digest)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get a local blob path: %w", err)
+		name, exists := layerMap[l.Digest.String()]
+		if !exists {
+			log.Warnf(ctx, "No mapping found for layer %s", l.Digest)
+
+			name = artifactName(l.Annotations)
+			if name == "" {
+				log.Warnf(ctx, "Unable to find name for artifact layer which makes it not mountable")
+
+				continue
+			}
 		}
 
-		name := artifactName(l.Annotations)
-		if name == "" {
-			log.Warnf(ctx, "Unable to find name for artifact layer which makes it not mountable")
+		if exists && name == "" {
+			// Multi-file/folder artifact: mount the extraction directory as the artifact root
+			mountPaths = append(mountPaths, BlobMountPath{
+				SourcePath:  extractDir,
+				Name:        "",
+				cleanupFunc: cleanupFunc,
+				cleanupOnce: cleanupOnce,
+			})
 
 			continue
 		}
 
+		// Sanitize the name to prevent path traversal attacks.
+		safeName, err := sanitizePath(name)
+		if err != nil {
+			log.Warnf(ctx, "Skipping layer with invalid name %s: %v", name, err)
+
+			continue
+		}
+
+		filePath := filepath.Join(extractDir, safeName)
+		// Check if this is a single-file artifact (directory containing a file with the same name)
+		sourcePath := filePath
+		mountName := safeName
+
+		if info, err := os.Stat(filePath); err == nil && info.IsDir() {
+			if entries, err := os.ReadDir(filePath); err == nil && len(entries) == 1 {
+				entry := entries[0]
+				if !entry.IsDir() && entry.Name() == info.Name() {
+					// Single-file artifact: directory X contains file X
+					sourcePath = filepath.Join(filePath, entry.Name())
+					mountName = entry.Name()
+					log.Debugf(ctx, "Single-file artifact detected: mounting %s as %s", sourcePath, mountName)
+				}
+			}
+		}
+
 		mountPaths = append(mountPaths, BlobMountPath{
-			SourcePath: path,
-			Name:       name,
+			SourcePath:  sourcePath,
+			Name:        mountName,
+			cleanupFunc: cleanupFunc,
+			cleanupOnce: cleanupOnce,
 		})
+	}
+	// Disable cleanup on success.
+	// mountArtifact() will handle the cleanup.
+	cleanup = false
+
+	for _, mountPath := range mountPaths {
+		log.Debugf(ctx, "Mounting artifact: SourcePath=%s, Name=%s", mountPath.SourcePath, mountPath.Name)
 	}
 
 	return mountPaths, nil
+}
+
+// extractArtifactLayers extracts tar/tar.gz layers from the pulled OCI artifact.
+func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManifest manifest.Manifest, ref types.ImageReference, extractDir string) error {
+	// Creates top-level extraction directory.
+	if err := os.MkdirAll(extractDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create artifact dir: %w", err)
+	}
+
+	// Cleanup directory if extraction fails.
+	var success bool
+
+	defer func() {
+		if !success {
+			if err := os.RemoveAll(extractDir); err != nil {
+				log.Warnf(ctx, "Failed to remove artifact extract directory on extraction failure %s: %v", extractDir, err)
+			} else {
+				log.Debugf(ctx, "Successfully removed artifact extract directory on extraction failure: %s", extractDir)
+			}
+		}
+	}()
+
+	src, err := s.impl.NewImageSource(ctx, ref, s.systemContext)
+	if err != nil {
+		return fmt.Errorf("failed to get an image source: %w", err)
+	}
+	defer src.Close()
+
+	bic := blobinfocache.DefaultCache(s.systemContext)
+	layerMap := make(map[string]string)
+
+	for _, layer := range s.impl.LayerInfos(parsedManifest) {
+		err = func() error {
+			blob, _, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: layer.Digest}, bic)
+			if err != nil {
+				return fmt.Errorf("failed to get blob: %w", err)
+			}
+			defer blob.Close()
+
+			content, filename, err := s.processLayerContent(ctx, layer.MediaType, blob)
+			if err != nil {
+				return fmt.Errorf("failed to process layer: %w", err)
+			}
+
+			name := filename
+			if name == "" {
+				name = artifactName(layer.Annotations)
+			}
+
+			// Process the layer content based on type
+			if strings.Contains(layer.MediaType, ".tar") {
+				if err := s.extractTarLayer(ctx, content, extractDir, layerMap, layer.Digest.String()); err != nil {
+					return err
+				}
+			} else {
+				if err := s.extractSingleFileLayer(ctx, content, name, extractDir, layerMap, layer.Digest.String()); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}()
+		// If any layer extraction fails, abort the entire operation.
+		if err != nil {
+			return fmt.Errorf("failed to extract artifact layer: %w", err)
+		}
+	}
+
+	// Mark extraction as successful
+	success = true
+
+	// Save layer mapping
+	mapPath := filepath.Join(s.extractArtifactDir, "layer-map.json")
+
+	data, err := s.impl.ToJSON(layerMap)
+	if err != nil {
+		return fmt.Errorf("failed to marshal layer map: %w", err)
+	}
+
+	if err := os.WriteFile(mapPath, data, 0o644); err != nil {
+		log.Errorf(ctx, "Failed to write file: %v", err)
+	}
+
+	success = true
+
+	return nil
+}
+
+// processLayerContent decompresses and processes layer content based on media type.
+// For tar formats, it extracts to a temporary directory and returns metadata.
+// For non-tar content, returns raw bytes.
+func (s *Store) processLayerContent(ctx context.Context, mediaType string, r io.Reader) (content []byte, filename string, err error) {
+	if strings.Contains(mediaType, ".tar") {
+		return s.processTarContent(ctx, r)
+	}
+
+	// Non-tar content - return raw bytes
+	data, err := s.impl.ReadAll(r)
+	if err != nil {
+		return nil, "", fmt.Errorf("reading blob content: %w", err)
+	}
+
+	return data, "", nil
+}
+
+// processTarContent handles tar content with automatic compression detection.
+func (s *Store) processTarContent(ctx context.Context, r io.Reader) (content []byte, filename string, err error) {
+	decompressedReader, err := archive.DecompressStream(r)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to decompress stream: %w", err)
+	}
+	defer decompressedReader.Close()
+
+	// Extract files from the decompressed tar stream.
+	files, baseDir, err := s.extractAllFromTar(ctx, decompressedReader)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Serialize the files map to JSON for storage.
+	jsonData, err := s.impl.ToJSON(files)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal files: %w", err)
+	}
+
+	return jsonData, baseDir, nil
+}
+
+// FileInfo stores file content and metadata.
+type FileInfo struct {
+	Content    []byte `json:"content"`
+	Mode       int64  `json:"mode"`
+	IsDir      bool   `json:"is_dir"`
+	IsSymlink  bool   `json:"is_symlink"`
+	LinkTarget string `json:"link_target,omitempty"`
+}
+
+// extractAllFromTar extracts all files and folders from a tar archive.
+// Returns a map of file paths to their FileInfo, and the base directory name if present.
+func (s *Store) extractAllFromTar(ctx context.Context, r io.Reader) (files map[string]FileInfo, baseDir string, err error) {
+	tr := tar.NewReader(r)
+	files = make(map[string]FileInfo)
+
+	// Track the first directory to use as base directory name
+	var firstDir string
+
+	for {
+		hdr, err := tr.Next()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		if err != nil {
+			log.Errorf(ctx, "Error reading tar header: %v", err)
+
+			return nil, "", fmt.Errorf("reading tar header: %w", err)
+		}
+
+		// Validate path is safe
+		safePath, err := sanitizePath(hdr.Name)
+		if err != nil {
+			log.Warnf(ctx, "Skipping file with invalid path %s: %v", hdr.Name, err)
+
+			continue
+		}
+
+		switch hdr.Typeflag {
+		case tar.TypeReg:
+			// Regular file
+			content, err := s.impl.ReadAll(tr)
+			if err != nil {
+				return nil, "", fmt.Errorf("reading file content from tar: %w", err)
+			}
+
+			files[safePath] = FileInfo{
+				Content:   content,
+				Mode:      hdr.Mode,
+				IsDir:     false,
+				IsSymlink: false,
+			}
+
+		case tar.TypeDir:
+			// Directory - track the first one as base directory
+			if firstDir == "" {
+				firstDir = filepath.Base(safePath)
+			}
+			// Create empty entry to mark directory existence
+			files[safePath] = FileInfo{
+				Content:   nil,
+				Mode:      hdr.Mode,
+				IsDir:     true,
+				IsSymlink: false,
+			}
+
+		case tar.TypeSymlink:
+			// Symlink - store the link target
+			linkTarget := hdr.Linkname
+			if _, err := sanitizePath(linkTarget); err != nil {
+				log.Warnf(ctx, "Skipping symlink with invalid target %s: %v", linkTarget, err)
+
+				continue
+			}
+			// Use a special key format to distinguish symlinks
+			symlinkKey := "SYMLINK:" + safePath
+			files[symlinkKey] = FileInfo{
+				Content:    nil,
+				Mode:       hdr.Mode,
+				IsDir:      false,
+				IsSymlink:  true,
+				LinkTarget: linkTarget,
+			}
+
+		default:
+			// Skip other file types (hardlinks, devices, etc.)
+			// Still need to read the content to advance the reader
+			if _, err := io.Copy(io.Discard, tr); err != nil {
+				return nil, "", fmt.Errorf("skipping file content: %w", err)
+			}
+		}
+	}
+
+	if len(files) == 0 {
+		return nil, "", errors.New("no files found in tar archive")
+	}
+
+	return files, firstDir, nil
 }
 
 func artifactName(annotations map[string]string) string {
@@ -556,4 +916,196 @@ func artifactName(annotations map[string]string) string {
 	}
 
 	return ""
+}
+
+// sanitizePath prevents path traversal attacks by ensuring the path is safe.
+func sanitizePath(path string) (string, error) {
+	if path == "" {
+		return "", errors.New("empty path")
+	}
+
+	// Normalize the path
+	cleanedPath := filepath.Clean(path)
+
+	// Check for path traversal patterns
+	if strings.Contains(cleanedPath, "..") {
+		return "", fmt.Errorf("path traversal attack detected: %s", path)
+	}
+
+	// Check for absolute paths
+	if filepath.IsAbs(cleanedPath) {
+		return "", fmt.Errorf("absolute path not allowed: %s", path)
+	}
+
+	return cleanedPath, nil
+}
+
+// extractTarLayer handles extraction of tar-based layers.
+func (s *Store) extractTarLayer(ctx context.Context, content []byte, extractDir string, layerMap map[string]string, digestStr string) error {
+	var files map[string]FileInfo
+	if err := json.Unmarshal(content, &files); err != nil {
+		return fmt.Errorf("failed to unmarshal files from layer: %w", err)
+	}
+
+	topFiles := s.findTopLevelFiles(files)
+
+	if len(topFiles) == 1 {
+		// Single-file tar: use the file name and extract at root.
+		return s.extractSingleFileTar(ctx, files, topFiles[0], extractDir, layerMap, digestStr)
+	} else {
+		// Multi-file/folder tar: mount the entire extraction directory.
+		return s.extractMultiFileTar(ctx, files, extractDir, layerMap, digestStr)
+	}
+}
+
+// extractSingleFileLayer handles extraction of non-tar single file layers.
+func (s *Store) extractSingleFileLayer(ctx context.Context, content []byte, name, extractDir string, layerMap map[string]string, digestStr string) error {
+	// Sanitize the name to prevent path traversal attacks.
+	safeName, err := sanitizePath(name)
+	if err != nil {
+		return fmt.Errorf("invalid file name: %w", err)
+	}
+
+	layerMap[digestStr] = safeName
+	filePath := filepath.Join(extractDir, safeName)
+
+	if err := s.ensureParentDir(filePath); err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(filePath, content, 0o644); err != nil {
+		log.Errorf(ctx, "Failed to write file: %v", err)
+		os.Remove(filePath)
+
+		return err
+	}
+
+	return nil
+}
+
+// findTopLevelFiles returns a list of top-level regular files (not directories or symlinks).
+func (s *Store) findTopLevelFiles(files map[string]FileInfo) []string {
+	topFiles := make([]string, 0, len(files))
+
+	for filePath, fileInfo := range files {
+		if strings.HasPrefix(filePath, "SYMLINK:") {
+			continue
+		}
+
+		if !fileInfo.IsDir && !fileInfo.IsSymlink && !strings.Contains(filePath, "/") {
+			topFiles = append(topFiles, filePath)
+		}
+	}
+
+	return topFiles
+}
+
+// extractSingleFileTar handles extraction of single-file tar archives.
+func (s *Store) extractSingleFileTar(ctx context.Context, files map[string]FileInfo, fileName, extractDir string, layerMap map[string]string, digestStr string) error {
+	// Double-check that the name is safe (should already be sanitized).
+	safeName, err := sanitizePath(fileName)
+	if err != nil {
+		return fmt.Errorf("invalid file name in tar: %w", err)
+	}
+
+	layerMap[digestStr] = safeName
+	fileInfo := files[fileName]
+	filePath := filepath.Join(extractDir, safeName)
+
+	if err := s.ensureParentDir(filePath); err != nil {
+		return err
+	}
+
+	mode := s.sanitizeFileMode(fileInfo.Mode, 0o644)
+	if err := os.WriteFile(filePath, fileInfo.Content, os.FileMode(mode)); err != nil {
+		log.Errorf(ctx, "Failed to write file: %v", err)
+		os.Remove(filePath)
+
+		return err
+	}
+
+	return nil
+}
+
+// extractMultiFileTar handles extraction of multi-file tar archives.
+func (s *Store) extractMultiFileTar(ctx context.Context, files map[string]FileInfo, extractDir string, layerMap map[string]string, digestStr string) error {
+	// Multi-file/folder tar: mount the entire extraction directory.
+	layerMap[digestStr] = ""
+
+	for filePath, fileInfo := range files {
+		if strings.HasPrefix(filePath, "SYMLINK:") {
+			if err := s.createSymlink(filePath, fileInfo, extractDir); err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		fullPath := filepath.Join(extractDir, filePath)
+		if err := s.ensureParentDir(fullPath); err != nil {
+			return err
+		}
+
+		if fileInfo.IsDir {
+			mode := s.sanitizeFileMode(fileInfo.Mode, 0o755)
+			if err := os.MkdirAll(fullPath, os.FileMode(mode)); err != nil {
+				return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
+			}
+		} else {
+			mode := s.sanitizeFileMode(fileInfo.Mode, 0o644)
+			if err := os.WriteFile(fullPath, fileInfo.Content, os.FileMode(mode)); err != nil {
+				log.Errorf(ctx, "Failed to write file: %v", err)
+				os.Remove(fullPath)
+
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// createSymlink creates a symlink with proper target path handling.
+func (s *Store) createSymlink(symlinkPath string, fileInfo FileInfo, extractDir string) error {
+	actualPath := strings.TrimPrefix(symlinkPath, "SYMLINK:")
+	fullPath := filepath.Join(extractDir, actualPath)
+
+	if err := s.ensureParentDir(fullPath); err != nil {
+		return err
+	}
+
+	linkTarget := fileInfo.LinkTarget
+	if !filepath.IsAbs(linkTarget) && !strings.HasPrefix(linkTarget, "../") && !strings.HasPrefix(linkTarget, "./") {
+		// If the target is a simple filename, make it relative to the symlink's directory.
+		symlinkDir := filepath.Dir(actualPath)
+		if symlinkDir != "." {
+			linkTarget = filepath.Join("..", linkTarget)
+		}
+	}
+
+	if err := os.Symlink(linkTarget, fullPath); err != nil {
+		return fmt.Errorf("failed to create symlink %s -> %s: %w", fullPath, linkTarget, err)
+	}
+
+	return nil
+}
+
+// ensureParentDir ensures the parent directory exists for the given file path.
+func (s *Store) ensureParentDir(filePath string) error {
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		return fmt.Errorf("failed to create parent directories for %s: %w", filePath, err)
+	}
+
+	return nil
+}
+
+// sanitizeFileMode sanitizes file mode with security restrictions and provides a default.
+func (s *Store) sanitizeFileMode(mode, defaultMode int64) int64 {
+	if mode == 0 {
+		mode = defaultMode
+	}
+	// Strip executable permissions for security
+	mode &^= 0o111
+
+	return mode
 }
