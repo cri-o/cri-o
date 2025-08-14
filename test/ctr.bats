@@ -1619,3 +1619,53 @@ EOF
 	output=$(run crictl inspect "$ctr_id" | jq -r '.status.exitCode')
 	[[ "$output" == "0" ]]
 }
+
+@test "memory limit decrease below usage should be blocked" {
+	start_crio
+
+	# Create a container config with initial memory limit of 128MB
+	jq '.command = ["/bin/sh", "-c", "dd if=/dev/zero of=/dev/shm/memtest bs=1M count=64 && echo '\''Memory allocated: 64MB'\'' && sleep 300"] | .linux.resources.memory_limit_in_bytes = 134217728' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/container_memory.json
+
+	# Run the container
+	ctr_id=$(crictl run "$TESTDIR"/container_memory.json "$TESTDATA"/sandbox_config.json)
+
+	# Wait a moment for memory allocation
+	sleep 3
+
+	# Check current memory usage to ensure it's above our target limit (32MB = 33554432 bytes).
+	run crictl stats --output json "$ctr_id"
+	[[ "$status" -eq 0 ]]
+	current_usage=$(echo "$output" | jq -r '.stats[0].memory.usageBytes.value')
+
+	[[ "$current_usage" -gt 33554432 ]]
+
+	# Attempt to update memory limit to 32MB (below current usage) - should fail
+	run crictl update --memory 33554432 "$ctr_id"
+	echo "Update attempt output: $output"
+	[[ "$status" -ne 0 ]]
+	[[ "$output" =~ "cannot decrease memory limit" ]]
+
+	# Verify the container is still running with original memory limit.
+	run crictl inspect "$ctr_id"
+	[[ "$status" -eq 0 ]]
+	[[ "$output" == *"CONTAINER_RUNNING"* ]]
+
+	# Check that memory limit is still the original 128MB (134217728 bytes)
+	memory_limit=$(echo "$output" | jq -r '.info.runtimeSpec.linux.resources.memory.limit')
+	[[ "$memory_limit" == "134217728" ]]
+
+	# Test that memory limit increase still works (256MB = 268435456 bytes)
+	run crictl update --memory 268435456 "$ctr_id"
+	echo "Increase attempt output: $output"
+	[[ "$status" -eq 0 ]]
+
+	# Verify the memory limit was actually updated to 256MB
+	run crictl inspect "$ctr_id"
+	[[ "$status" -eq 0 ]]
+	memory_limit_after_increase=$(echo "$output" | jq -r '.info.runtimeSpec.linux.resources.memory.limit')
+	[[ "$memory_limit_after_increase" == "268435456" ]]
+
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+}
