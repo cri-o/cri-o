@@ -21,7 +21,7 @@ require (
 	github.com/containernetworking/plugins v1.7.1
 	github.com/containers/common v0.64.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.7.1
+	github.com/containers/conmon-rs v0.7.2
 	github.com/containers/image/v5 v5.36.1
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.1

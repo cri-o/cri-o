@@ -11,6 +11,7 @@ sudo apt update
 sudo apt install -y \
     autoconf \
     automake \
+    cgroup-tools \
     conmon \
     criu \
     libaio-dev \
