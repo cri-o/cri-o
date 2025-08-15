@@ -340,6 +340,8 @@ func (s *Store) buildArtifact(ctx context.Context, item *layout.ListResult) (*Ar
 		namedRef, err := reference.ParseNormalizedNamed(val)
 		if err != nil {
 			log.Warnf(ctx, "Failed to parse annotation ref %s with the error %s", val, err)
+
+			namedRef = unknownRef{}
 		}
 
 		artifact.namedRef = namedRef
