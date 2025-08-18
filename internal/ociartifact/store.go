@@ -759,7 +759,9 @@ func (s *Store) extractArtifactLayers(ctx context.Context, _ string, parsedManif
 		return fmt.Errorf("failed to marshal layer map: %w", err)
 	}
 
-	if err := os.WriteFile(mapPath, data, 0o644); err != nil {
+	// Use sanitized file mode for layer map file
+	mode := s.sanitizeFileMode(0)
+	if err := os.WriteFile(mapPath, data, os.FileMode(mode)); err != nil {
 		log.Errorf(ctx, "Failed to write file: %v", err)
 	}
 
@@ -975,7 +977,9 @@ func (s *Store) extractSingleFileLayer(ctx context.Context, content []byte, name
 		return err
 	}
 
-	if err := os.WriteFile(filePath, content, 0o644); err != nil {
+	// Use sanitized file mode for single file layer
+	mode := s.sanitizeFileMode(0)
+	if err := os.WriteFile(filePath, content, os.FileMode(mode)); err != nil {
 		log.Errorf(ctx, "Failed to write file: %v", err)
 		os.Remove(filePath)
 
@@ -1018,7 +1022,7 @@ func (s *Store) extractSingleFileTar(ctx context.Context, files map[string]FileI
 		return err
 	}
 
-	mode := s.sanitizeFileMode(fileInfo.Mode, 0o644)
+	mode := s.sanitizeFileMode(fileInfo.Mode)
 	if err := os.WriteFile(filePath, fileInfo.Content, os.FileMode(mode)); err != nil {
 		log.Errorf(ctx, "Failed to write file: %v", err)
 		os.Remove(filePath)
@@ -1049,12 +1053,13 @@ func (s *Store) extractMultiFileTar(ctx context.Context, files map[string]FileIn
 		}
 
 		if fileInfo.IsDir {
-			mode := s.sanitizeFileMode(fileInfo.Mode, 0o755)
+			// Directories must have execute bits to be traversable. Do not strip them.
+			mode := s.sanitizeDirMode(fileInfo.Mode)
 			if err := os.MkdirAll(fullPath, os.FileMode(mode)); err != nil {
 				return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
 			}
 		} else {
-			mode := s.sanitizeFileMode(fileInfo.Mode, 0o644)
+			mode := s.sanitizeFileMode(fileInfo.Mode)
 			if err := os.WriteFile(fullPath, fileInfo.Content, os.FileMode(mode)); err != nil {
 				log.Errorf(ctx, "Failed to write file: %v", err)
 				os.Remove(fullPath)
@@ -1102,12 +1107,28 @@ func (s *Store) ensureParentDir(filePath string) error {
 }
 
 // sanitizeFileMode sanitizes file mode with security restrictions and provides a default.
-func (s *Store) sanitizeFileMode(mode, defaultMode int64) int64 {
+func (s *Store) sanitizeFileMode(mode int64) int64 {
 	if mode == 0 {
-		mode = defaultMode
+		mode = 0o644 // Default file mode
 	}
 	// Strip executable permissions for security
 	mode &^= 0o111
+
+	return mode
+}
+
+// sanitizeDirMode ensures a directory mode is usable. If mode is zero, applies a default.
+// Unlike files, directories require execute bits to be traversable, so we do not strip them.
+func (s *Store) sanitizeDirMode(mode int64) int64 {
+	if mode == 0 {
+		mode = 0o755 // Default directory mode
+	}
+
+	// Ensure owner execute bit at minimum so the directory is traversable
+	// even if upstream forgot to set it. Keep group/other execute bits if present.
+	if mode&0o100 == 0 { // owner execute
+		mode |= 0o100
+	}
 
 	return mode
 }

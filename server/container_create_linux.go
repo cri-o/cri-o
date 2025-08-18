@@ -436,6 +436,19 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	}, nil
 }
 
+// cleanupArtifactExtractDir ensures cleanup of extracted artifact directory.
+func (s *Server) cleanupArtifactExtractDir(originalPaths []ociartifact.BlobMountPath, artifact *ociartifact.Artifact) {
+	if len(originalPaths) > 0 {
+		originalPaths[0].Cleanup()
+	} else if artifact != nil {
+		// Fallback: remove the extract dir directly if no mount paths were created
+		extractDir, err := s.ArtifactStore().GetArtifactExtractDir(artifact)
+		if err == nil {
+			_ = os.RemoveAll(extractDir)
+		}
+	}
+}
+
 // mountArtifact binds artifact blobs to the container filesystem based on the provided mount configuration.
 func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator, m *types.Mount, mountLabel string, isSPC, maybeRelabel bool) (volumes []oci.ContainerVolume, cleanups []func(), extractDirs []string, err error) {
 	artifact, err := s.ArtifactStore().Status(ctx, m.GetImage().GetImage())
@@ -469,17 +482,8 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 
 	paths, err = FilterMountPathsBySubPath(ctx, m.GetImage().GetImage(), m.GetImageSubPath(), paths)
 	if err != nil {
-		// This error will get reported directly to the end user
-		// Ensure cleanup of the extracted artifact directory
-		if len(originalPaths) > 0 {
-			originalPaths[0].Cleanup()
-		} else if artifact != nil {
-			// Fallback: remove the extract dir directly if no mount paths were created
-			extractDir, derr := s.ArtifactStore().GetArtifactExtractDir(artifact)
-			if derr == nil {
-				_ = os.RemoveAll(extractDir)
-			}
-		}
+		// Ensure cleanup of extracted artifact directory on mount path creation failure.
+		s.cleanupArtifactExtractDir(originalPaths, artifact)
 
 		return nil, nil, nil, err
 	}
@@ -494,11 +498,17 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 	for _, path := range paths {
 		dest, err := securejoin.SecureJoin(m.GetContainerPath(), path.Name)
 		if err != nil {
+			// Ensure cleanup of extracted artifact directory on mount path creation failure.
+			s.cleanupArtifactExtractDir(originalPaths, artifact)
+
 			return nil, nil, nil, fmt.Errorf("failed to join container path %q and artifact blob path %q: %w", m.GetContainerPath(), path.Name, err)
 		}
 
 		if selinuxRelabel {
 			if err := securityLabel(path.SourcePath, mountLabel, false, maybeRelabel); err != nil {
+				// Ensure cleanup of extracted artifact directory on SELinux relabeling failure.
+				s.cleanupArtifactExtractDir(originalPaths, artifact)
+
 				return nil, nil, nil, err
 			}
 		}
@@ -522,8 +532,11 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 			GIDMappings: getOCIMappings(m.GetGidMappings()),
 		})
 		// Add cleanup function to call when this specific mount is no longer needed
+		// Capture path by value to avoid closure bug
+		pathToClean := path
+
 		cleanups = append(cleanups, func() {
-			path.Cleanup()
+			pathToClean.Cleanup()
 		})
 	}
 
