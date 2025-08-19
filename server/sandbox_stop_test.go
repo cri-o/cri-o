@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -25,7 +24,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Given
 			addContainerAndSandbox()
 			testSandbox.SetStopped(ctx, false)
-			Expect(testSandbox.SetNetworkStopped(ctx, false)).To(Succeed())
+			Expect(testSandbox.SetNetworkStopped(ctx, true)).To(Succeed())
 
 			// When
 			_, err := sut.StopPodSandbox(context.Background(),
@@ -43,22 +42,6 @@ var _ = t.Describe("PodSandboxStatus", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("should fail when container is not stopped", func() {
-			// Given
-			addContainerAndSandbox()
-			gomock.InOrder(
-				cniPluginMock.EXPECT().GetDefaultNetworkName().Return(""),
-				cniPluginMock.EXPECT().TearDownPodWithContext(gomock.Any(), gomock.Any()).Return(t.TestError),
-			)
-
-			// When
-			_, err := sut.StopPodSandbox(context.Background(),
-				&types.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
-
-			// Then
-			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with empty sandbox ID", func() {
