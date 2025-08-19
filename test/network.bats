@@ -253,3 +253,31 @@ function check_networking() {
 	# Verify the pod is gone.
 	run ! crictl inspectp "$pod_id"
 }
+
+@test "pod deletion succeeds when NetNS path is missing" {
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	crictl ps --id "$ctr_id" | grep Running
+
+	netns_path=$(crictl inspectp "$pod_id" | jq -r '.status.network.namespace_path')
+
+	# Simulating the scenario where infra container dies and NetNS becomes invalid
+	# by removing the network namespace file.
+	if [[ -n "$netns_path" && -f "$netns_path" ]]; then
+		rm -f "$netns_path"
+	fi
+
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+
+	crictl stopp "$pod_id"
+
+	# Pod deletion should succeed even with missing NetNS
+	crictl rmp "$pod_id"
+
+	run ! crictl inspectp "$pod_id"
+}
