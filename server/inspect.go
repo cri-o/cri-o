@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+	"k8s.io/utils/ptr"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -130,6 +131,7 @@ func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFu
 		LogPath:         ctr.LogPath(),
 		Sandbox:         ctr.Sandbox(),
 		IPs:             sb.IPs(),
+		HostNetwork:     ptr.To(sb.HostNetwork()),
 	}, nil
 }
 
