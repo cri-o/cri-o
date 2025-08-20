@@ -1,4 +1,4 @@
-//go:build !tinygo.wasm
+//go:build !wasip1
 
 // This file is designed to be imported by hosts.
 

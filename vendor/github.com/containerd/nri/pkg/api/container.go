@@ -16,23 +16,28 @@
 
 package api
 
-import (
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-)
+import "time"
 
-// FromOCILinuxNamespaces returns a namespace slice from an OCI runtime Spec.
-func FromOCILinuxNamespaces(o []rspec.LinuxNamespace) []*LinuxNamespace {
-	var namespaces []*LinuxNamespace
-	for _, ns := range o {
-		namespaces = append(namespaces, &LinuxNamespace{
-			Type: string(ns.Type),
-			Path: ns.Path,
-		})
+func (x *Container) GetCreatedAtTime() time.Time {
+	t := time.Time{}
+	if x != nil {
+		return t.Add(time.Duration(x.CreatedAt) * time.Nanosecond)
 	}
-	return namespaces
+	return t
 }
 
-// IsMarkedForRemoval checks if a LinuxNamespace is marked for removal.
-func (n *LinuxNamespace) IsMarkedForRemoval() (string, bool) {
-	return IsMarkedForRemoval(n.Type)
+func (x *Container) GetStartedAtTime() time.Time {
+	t := time.Time{}
+	if x != nil {
+		return t.Add(time.Duration(x.StartedAt) * time.Nanosecond)
+	}
+	return t
+}
+
+func (x *Container) GetFinishedAtTime() time.Time {
+	t := time.Time{}
+	if x != nil {
+		return t.Add(time.Duration(x.FinishedAt) * time.Nanosecond)
+	}
+	return t
 }

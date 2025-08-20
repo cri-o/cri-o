@@ -83,6 +83,9 @@ type Plugin interface {
 	// plugin-specific processing which needs to occur in connection with any of
 	// these events.
 	StateChange(context.Context, *StateChangeEvent) (*Empty, error)
+	// ValidateContainerAdjustment relays a container adjustment validation request
+	// to the plugin. Container creation will fail the plugin rejects the adjustments.
+	ValidateContainerAdjustment(context.Context, *ValidateContainerAdjustmentRequest) (*ValidateContainerAdjustmentResponse, error)
 }
 
 // go:plugin type=host
