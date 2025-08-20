@@ -597,6 +597,34 @@ Timeout for a plugin to register itself with NRI.
 **nri_plugin_request_timeout**="2s"
 Timeout for a plugin to handle an NRI request.
 
+## CRIO.NRI.DEFAULT_VALIDATOR TABLE
+
+The `crio.nri.default_validator` table contains settings for default built-in NRI validator plugin, which can be used to restrict what types of modifications other NRI plugins can make to containers.
+
+**nri_enable_default_validator**=false
+Enable the default NRI validator plugin.
+
+**nri_validator_reject_oci_hook_adjustment**=false
+Reject NRI plugin adjustment of OCI Hooks.
+
+**nri_validator_reject_runtime_default_seccomp_adjustment**=false
+Reject NRI plugin adjustment of runtime default seccomp policy.
+
+**nri_validator_reject_unconfined_seccomp_adjustment**=false
+Reject NRI plugin adjustment of unconfined seccomp policy.
+
+**nri_validator_reject_custom_seccomp_adjustment**=false
+Reject NRI plugin adjustment of custom seccomp policy.
+
+**nri_validator_reject_namespace_adjustment**=false
+Reject NRI plugin adjustment of linux namespaces.
+
+**nri_validator_required_plugins**=[]
+List of required NRI plugins that must be present.
+
+**nri_validator_tolerate_missing_plugins_annotation**=""
+Name of the annotation used to indicate toleration of missing required NRI plugins.
+
 # SEE ALSO
 
 crio.conf.d(5), containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
