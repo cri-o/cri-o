@@ -18,6 +18,7 @@ type ContainerInfo struct {
 	Root            string            `json:"root"`
 	Sandbox         string            `json:"sandbox"`
 	IPs             []string          `json:"ip_addresses"`
+	HostNetwork     *bool             `json:"host_network"`
 }
 
 // IDMappings specifies the ID mappings used for containers.
