@@ -1,4 +1,4 @@
-//go:build !tinygo.wasm
+//go:build !wasip1
 
 //
 //Copyright The containerd Authors.
@@ -95,7 +95,7 @@ type PluginPlugin struct {
 func NewPluginPlugin(ctx context.Context, opts ...wazeroConfigOption) (*PluginPlugin, error) {
 	o := &WazeroConfig{
 		newRuntime:   DefaultWazeroRuntime(),
-		moduleConfig: wazero.NewModuleConfig(),
+		moduleConfig: wazero.NewModuleConfig().WithStartFunctions("_initialize"),
 	}
 
 	for _, opt := range opts {
@@ -196,6 +196,10 @@ func (p *PluginPlugin) Load(ctx context.Context, pluginPath string, hostFunction
 	if statechange == nil {
 		return nil, errors.New("plugin_state_change is not exported")
 	}
+	validatecontaineradjustment := module.ExportedFunction("plugin_validate_container_adjustment")
+	if validatecontaineradjustment == nil {
+		return nil, errors.New("plugin_validate_container_adjustment is not exported")
+	}
 
 	malloc := module.ExportedFunction("malloc")
 	if malloc == nil {
@@ -207,18 +211,19 @@ func (p *PluginPlugin) Load(ctx context.Context, pluginPath string, hostFunction
 		return nil, errors.New("free is not exported")
 	}
 	return &pluginPlugin{
-		runtime:          r,
-		module:           module,
-		malloc:           malloc,
-		free:             free,
-		configure:        configure,
-		synchronize:      synchronize,
-		shutdown:         shutdown,
-		createcontainer:  createcontainer,
-		updatecontainer:  updatecontainer,
-		stopcontainer:    stopcontainer,
-		updatepodsandbox: updatepodsandbox,
-		statechange:      statechange,
+		runtime:                     r,
+		module:                      module,
+		malloc:                      malloc,
+		free:                        free,
+		configure:                   configure,
+		synchronize:                 synchronize,
+		shutdown:                    shutdown,
+		createcontainer:             createcontainer,
+		updatecontainer:             updatecontainer,
+		stopcontainer:               stopcontainer,
+		updatepodsandbox:            updatepodsandbox,
+		statechange:                 statechange,
+		validatecontaineradjustment: validatecontaineradjustment,
 	}, nil
 }
 
@@ -230,18 +235,19 @@ func (p *pluginPlugin) Close(ctx context.Context) (err error) {
 }
 
 type pluginPlugin struct {
-	runtime          wazero.Runtime
-	module           api.Module
-	malloc           api.Function
-	free             api.Function
-	configure        api.Function
-	synchronize      api.Function
-	shutdown         api.Function
-	createcontainer  api.Function
-	updatecontainer  api.Function
-	stopcontainer    api.Function
-	updatepodsandbox api.Function
-	statechange      api.Function
+	runtime                     wazero.Runtime
+	module                      api.Module
+	malloc                      api.Function
+	free                        api.Function
+	configure                   api.Function
+	synchronize                 api.Function
+	shutdown                    api.Function
+	createcontainer             api.Function
+	updatecontainer             api.Function
+	stopcontainer               api.Function
+	updatepodsandbox            api.Function
+	statechange                 api.Function
+	validatecontaineradjustment api.Function
 }
 
 func (p *pluginPlugin) Configure(ctx context.Context, request *ConfigureRequest) (*ConfigureResponse, error) {
@@ -259,7 +265,7 @@ func (p *pluginPlugin) Configure(ctx context.Context, request *ConfigureRequest)
 			return nil, err
 		}
 		dataPtr = results[0]
-		// This pointer is managed by TinyGo, but TinyGo is unaware of external usage.
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
 		// So, we have to free it when finished
 		defer p.free.Call(ctx, dataPtr)
 
@@ -320,7 +326,7 @@ func (p *pluginPlugin) Synchronize(ctx context.Context, request *SynchronizeRequ
 			return nil, err
 		}
 		dataPtr = results[0]
-		// This pointer is managed by TinyGo, but TinyGo is unaware of external usage.
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
 		// So, we have to free it when finished
 		defer p.free.Call(ctx, dataPtr)
 
@@ -381,7 +387,7 @@ func (p *pluginPlugin) Shutdown(ctx context.Context, request *Empty) (*Empty, er
 			return nil, err
 		}
 		dataPtr = results[0]
-		// This pointer is managed by TinyGo, but TinyGo is unaware of external usage.
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
 		// So, we have to free it when finished
 		defer p.free.Call(ctx, dataPtr)
 
@@ -442,7 +448,7 @@ func (p *pluginPlugin) CreateContainer(ctx context.Context, request *CreateConta
 			return nil, err
 		}
 		dataPtr = results[0]
-		// This pointer is managed by TinyGo, but TinyGo is unaware of external usage.
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
 		// So, we have to free it when finished
 		defer p.free.Call(ctx, dataPtr)
 
@@ -503,7 +509,7 @@ func (p *pluginPlugin) UpdateContainer(ctx context.Context, request *UpdateConta
 			return nil, err
 		}
 		dataPtr = results[0]
-		// This pointer is managed by TinyGo, but TinyGo is unaware of external usage.
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
 		// So, we have to free it when finished
 		defer p.free.Call(ctx, dataPtr)
 
@@ -564,7 +570,7 @@ func (p *pluginPlugin) StopContainer(ctx context.Context, request *StopContainer
 			return nil, err
 		}
 		dataPtr = results[0]
-		// This pointer is managed by TinyGo, but TinyGo is unaware of external usage.
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
 		// So, we have to free it when finished
 		defer p.free.Call(ctx, dataPtr)
 
@@ -625,7 +631,7 @@ func (p *pluginPlugin) UpdatePodSandbox(ctx context.Context, request *UpdatePodS
 			return nil, err
 		}
 		dataPtr = results[0]
-		// This pointer is managed by TinyGo, but TinyGo is unaware of external usage.
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
 		// So, we have to free it when finished
 		defer p.free.Call(ctx, dataPtr)
 
@@ -686,7 +692,7 @@ func (p *pluginPlugin) StateChange(ctx context.Context, request *StateChangeEven
 			return nil, err
 		}
 		dataPtr = results[0]
-		// This pointer is managed by TinyGo, but TinyGo is unaware of external usage.
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
 		// So, we have to free it when finished
 		defer p.free.Call(ctx, dataPtr)
 
@@ -726,6 +732,67 @@ func (p *pluginPlugin) StateChange(ctx context.Context, request *StateChangeEven
 	}
 
 	response := new(Empty)
+	if err = response.UnmarshalVT(bytes); err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+func (p *pluginPlugin) ValidateContainerAdjustment(ctx context.Context, request *ValidateContainerAdjustmentRequest) (*ValidateContainerAdjustmentResponse, error) {
+	data, err := request.MarshalVT()
+	if err != nil {
+		return nil, err
+	}
+	dataSize := uint64(len(data))
+
+	var dataPtr uint64
+	// If the input data is not empty, we must allocate the in-Wasm memory to store it, and pass to the plugin.
+	if dataSize != 0 {
+		results, err := p.malloc.Call(ctx, dataSize)
+		if err != nil {
+			return nil, err
+		}
+		dataPtr = results[0]
+		// This pointer is managed by the Wasm module, which is unaware of external usage.
+		// So, we have to free it when finished
+		defer p.free.Call(ctx, dataPtr)
+
+		// The pointer is a linear memory offset, which is where we write the name.
+		if !p.module.Memory().Write(uint32(dataPtr), data) {
+			return nil, fmt.Errorf("Memory.Write(%d, %d) out of range of memory size %d", dataPtr, dataSize, p.module.Memory().Size())
+		}
+	}
+
+	ptrSize, err := p.validatecontaineradjustment.Call(ctx, dataPtr, dataSize)
+	if err != nil {
+		return nil, err
+	}
+
+	resPtr := uint32(ptrSize[0] >> 32)
+	resSize := uint32(ptrSize[0])
+	var isErrResponse bool
+	if (resSize & (1 << 31)) > 0 {
+		isErrResponse = true
+		resSize &^= (1 << 31)
+	}
+
+	// We don't need the memory after deserialization: make sure it is freed.
+	if resPtr != 0 {
+		defer p.free.Call(ctx, uint64(resPtr))
+	}
+
+	// The pointer is a linear memory offset, which is where we write the name.
+	bytes, ok := p.module.Memory().Read(resPtr, resSize)
+	if !ok {
+		return nil, fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d",
+			resPtr, resSize, p.module.Memory().Size())
+	}
+
+	if isErrResponse {
+		return nil, errors.New(string(bytes))
+	}
+
+	response := new(ValidateContainerAdjustmentResponse)
 	if err = response.UnmarshalVT(bytes); err != nil {
 		return nil, err
 	}
