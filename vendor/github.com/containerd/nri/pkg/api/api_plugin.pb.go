@@ -1,4 +1,4 @@
-//go:build tinygo.wasm
+//go:build wasip1
 
 //
 //Copyright The containerd Authors.
@@ -31,7 +31,7 @@ import (
 
 const PluginPluginAPIVersion = 1
 
-//export plugin_api_version
+//go:wasmexport plugin_api_version
 func _plugin_api_version() uint64 {
 	return PluginPluginAPIVersion
 }
@@ -42,7 +42,7 @@ func RegisterPlugin(p Plugin) {
 	plugin = p
 }
 
-//export plugin_configure
+//go:wasmexport plugin_configure
 func _plugin_configure(ptr, size uint32) uint64 {
 	b := wasm.PtrToByte(ptr, size)
 	req := new(ConfigureRequest)
@@ -66,7 +66,7 @@ func _plugin_configure(ptr, size uint32) uint64 {
 	return (uint64(ptr) << uint64(32)) | uint64(size)
 }
 
-//export plugin_synchronize
+//go:wasmexport plugin_synchronize
 func _plugin_synchronize(ptr, size uint32) uint64 {
 	b := wasm.PtrToByte(ptr, size)
 	req := new(SynchronizeRequest)
@@ -90,7 +90,7 @@ func _plugin_synchronize(ptr, size uint32) uint64 {
 	return (uint64(ptr) << uint64(32)) | uint64(size)
 }
 
-//export plugin_shutdown
+//go:wasmexport plugin_shutdown
 func _plugin_shutdown(ptr, size uint32) uint64 {
 	b := wasm.PtrToByte(ptr, size)
 	req := new(Empty)
@@ -114,7 +114,7 @@ func _plugin_shutdown(ptr, size uint32) uint64 {
 	return (uint64(ptr) << uint64(32)) | uint64(size)
 }
 
-//export plugin_create_container
+//go:wasmexport plugin_create_container
 func _plugin_create_container(ptr, size uint32) uint64 {
 	b := wasm.PtrToByte(ptr, size)
 	req := new(CreateContainerRequest)
@@ -138,7 +138,7 @@ func _plugin_create_container(ptr, size uint32) uint64 {
 	return (uint64(ptr) << uint64(32)) | uint64(size)
 }
 
-//export plugin_update_container
+//go:wasmexport plugin_update_container
 func _plugin_update_container(ptr, size uint32) uint64 {
 	b := wasm.PtrToByte(ptr, size)
 	req := new(UpdateContainerRequest)
@@ -162,7 +162,7 @@ func _plugin_update_container(ptr, size uint32) uint64 {
 	return (uint64(ptr) << uint64(32)) | uint64(size)
 }
 
-//export plugin_stop_container
+//go:wasmexport plugin_stop_container
 func _plugin_stop_container(ptr, size uint32) uint64 {
 	b := wasm.PtrToByte(ptr, size)
 	req := new(StopContainerRequest)
@@ -186,7 +186,7 @@ func _plugin_stop_container(ptr, size uint32) uint64 {
 	return (uint64(ptr) << uint64(32)) | uint64(size)
 }
 
-//export plugin_update_pod_sandbox
+//go:wasmexport plugin_update_pod_sandbox
 func _plugin_update_pod_sandbox(ptr, size uint32) uint64 {
 	b := wasm.PtrToByte(ptr, size)
 	req := new(UpdatePodSandboxRequest)
@@ -210,7 +210,7 @@ func _plugin_update_pod_sandbox(ptr, size uint32) uint64 {
 	return (uint64(ptr) << uint64(32)) | uint64(size)
 }
 
-//export plugin_state_change
+//go:wasmexport plugin_state_change
 func _plugin_state_change(ptr, size uint32) uint64 {
 	b := wasm.PtrToByte(ptr, size)
 	req := new(StateChangeEvent)
@@ -218,6 +218,30 @@ func _plugin_state_change(ptr, size uint32) uint64 {
 		return 0
 	}
 	response, err := plugin.StateChange(context.Background(), req)
+	if err != nil {
+		ptr, size = wasm.ByteToPtr([]byte(err.Error()))
+		return (uint64(ptr) << uint64(32)) | uint64(size) |
+			// Indicate that this is the error string by setting the 32-th bit, assuming that
+			// no data exceeds 31-bit size (2 GiB).
+			(1 << 31)
+	}
+
+	b, err = response.MarshalVT()
+	if err != nil {
+		return 0
+	}
+	ptr, size = wasm.ByteToPtr(b)
+	return (uint64(ptr) << uint64(32)) | uint64(size)
+}
+
+//go:wasmexport plugin_validate_container_adjustment
+func _plugin_validate_container_adjustment(ptr, size uint32) uint64 {
+	b := wasm.PtrToByte(ptr, size)
+	req := new(ValidateContainerAdjustmentRequest)
+	if err := req.UnmarshalVT(b); err != nil {
+		return 0
+	}
+	response, err := plugin.ValidateContainerAdjustment(context.Background(), req)
 	if err != nil {
 		ptr, size = wasm.ByteToPtr([]byte(err.Error()))
 		return (uint64(ptr) << uint64(32)) | uint64(size) |
@@ -250,7 +274,7 @@ func (h hostFunctions) Log(ctx context.Context, request *LogRequest) (*Empty, er
 	}
 	ptr, size := wasm.ByteToPtr(buf)
 	ptrSize := _log(ptr, size)
-	wasm.FreePtr(ptr)
+	wasm.Free(ptr)
 
 	ptr = uint32(ptrSize >> 32)
 	size = uint32(ptrSize)
