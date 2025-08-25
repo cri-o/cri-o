@@ -673,6 +673,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			group:          crioNRIConfig,
 			isDefaultValue: simpleEqual(dc.NRI.PluginRequestTimeout, c.NRI.PluginRequestTimeout),
 		},
+		{
+			templateString: templateStringCrioNRIDefaultValidator,
+			group:          crioNRIConfig,
+			isDefaultValue: dc.NRI.IsDefaultValidatorDefaultConfig(),
+		},
 	}
 
 	return crioTemplateConfig, nil
@@ -1670,5 +1675,31 @@ const templateStringCrioNRIPluginRegistrationTimeout = `# Timeout for a plugin t
 
 const templateStringCrioNRIPluginRequestTimeout = `# Timeout for a plugin to handle an NRI request.
 {{ $.Comment }}nri_plugin_request_timeout = "{{ .NRI.PluginRequestTimeout }}"
+
+`
+
+const templateStringCrioNRIDefaultValidator = `# NRI default validator configuration.
+# If enabled, the builtin default validator can be used to reject a container if some
+# NRI plugin requested a restricted adjustment. Currently the following adjustments
+# can be restricted/rejected:
+# - OCI hook injection
+# - adjustment of runtime default seccomp profile
+# - adjustment of unconfied seccomp profile
+# - adjustment of a custom seccomp profile
+# - adjustment of linux namespaces
+# Additionally, the default validator can be used to reject container creation if any
+# of a required set of plugins has not processed a container creation request, unless
+# the container has been annotated to tolerate a missing plugin.
+#
+{{ $.Comment }}[crio.nri.default_validator]
+{{ $.Comment }}nri_enable_default_validator = {{ .NRI.DefaultValidator.Enable }}
+{{ $.Comment }}nri_validator_reject_oci_hook_adjustment = {{ .NRI.DefaultValidator.RejectOCIHookAdjustment }}
+{{ $.Comment }}nri_validator_reject_runtime_default_seccomp_adjustment = {{ .NRI.DefaultValidator.RejectRuntimeDefaultSeccompAdjustment }}
+{{ $.Comment }}nri_validator_reject_unconfined_seccomp_adjustment = {{ .NRI.DefaultValidator.RejectUnconfinedSeccompAdjustment }}
+{{ $.Comment }}nri_validator_reject_custom_seccomp_adjustment = {{ .NRI.DefaultValidator.RejectCustomSeccompAdjustment }}
+{{ $.Comment }}nri_validator_reject_namespace_adjustment = {{ .NRI.DefaultValidator.RejectNamespaceAdjustment }}
+{{ $.Comment }}nri_validator_required_plugins = [
+{{ range $p := .NRI.DefaultValidator.RequiredPlugins }}{{ $.Comment }}{{ printf "\t%q,\n" $p }}{{ end }}{{ $.Comment }}]
+{{ $.Comment }}nri_validator_tolerate_missing_plugins_annotation = "{{ .NRI.DefaultValidator.TolerateMissingAnnotation }}"
 
 `

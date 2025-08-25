@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containerd/nri/pkg/adaptation/builtin"
 	"github.com/containerd/nri/pkg/api"
 	"github.com/containerd/nri/pkg/log"
 	"github.com/containerd/nri/pkg/net"
@@ -155,7 +156,7 @@ func (r *Adaptation) newLaunchedPlugin(dir, idx, base, cfg string) (p *plugin, r
 	}
 
 	if err = p.cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed launch plugin %q: %w", p.name(), err)
+		return nil, fmt.Errorf("failed to launch plugin %q: %w", p.name(), err)
 	}
 
 	if err = p.connect(conn); err != nil {
@@ -163,6 +164,20 @@ func (r *Adaptation) newLaunchedPlugin(dir, idx, base, cfg string) (p *plugin, r
 	}
 
 	return p, nil
+}
+
+func (r *Adaptation) newBuiltinPlugin(b *builtin.BuiltinPlugin) (*plugin, error) {
+	if b.Base == "" || b.Index == "" {
+		return nil, fmt.Errorf("builtin plugin without index or name (%q, %q)", b.Index, b.Base)
+	}
+
+	return &plugin{
+		idx:    b.Index,
+		base:   b.Base,
+		closeC: make(chan struct{}),
+		r:      r,
+		impl:   &pluginType{builtinImpl: b},
+	}, nil
 }
 
 func isWasm(path string) bool {
@@ -229,6 +244,11 @@ func (p *plugin) isExternal() bool {
 	return p.cmd == nil
 }
 
+// Check if the plugin is a container adjustment validator.
+func (p *plugin) isContainerAdjustmentValidator() bool {
+	return p.events.IsSet(Event_VALIDATE_CONTAINER_ADJUSTMENT)
+}
+
 // 'connect' a plugin, setting up multiplexing on its socket.
 func (p *plugin) connect(conn stdnet.Conn) (retErr error) {
 	mux := multiplex.Multiplex(conn, multiplex.WithBlockedRead())
@@ -281,7 +301,7 @@ func (p *plugin) connect(conn stdnet.Conn) (retErr error) {
 
 	p.pid, err = getPeerPid(p.mux.Trunk())
 	if err != nil {
-		log.Warnf(noCtx, "failed to determine plugin pid pid: %v", err)
+		log.Warnf(noCtx, "failed to determine plugin pid: %v", err)
 	}
 
 	api.RegisterRuntimeService(p.rpcs, p)
@@ -291,7 +311,7 @@ func (p *plugin) connect(conn stdnet.Conn) (retErr error) {
 
 // Start Runtime service, wait for plugin to register, then configure it.
 func (p *plugin) start(name, version string) (err error) {
-	// skip start for WASM plugins and head right to the registration for
+	// skip start for WASM and builtin plugins and head right to the registration for
 	// events config
 	if p.impl.isTtrpc() {
 		var (
@@ -335,7 +355,7 @@ func (p *plugin) start(name, version string) (err error) {
 
 // close a plugin shutting down its multiplexed ttrpc connections.
 func (p *plugin) close() {
-	if p.impl.isWasm() {
+	if p.impl.isWasm() || p.impl.isBuiltin() {
 		p.closed = true
 		return
 	}
@@ -361,7 +381,7 @@ func (p *plugin) isClosed() bool {
 
 // stop a plugin (if it was launched by us)
 func (p *plugin) stop() error {
-	if p.isExternal() || p.cmd.Process == nil || p.impl.isWasm() {
+	if p.isExternal() || p.cmd.Process == nil || p.impl.isWasm() || p.impl.isBuiltin() {
 		return nil
 	}
 
@@ -384,11 +404,20 @@ func (p *plugin) name() string {
 }
 
 func (p *plugin) qualifiedName() string {
-	var kind, idx, base string
-	if p.isExternal() {
-		kind = "external"
+	var kind, idx, base, pid string
+	if p.impl.isBuiltin() {
+		kind = "builtin"
 	} else {
-		kind = "pre-connected"
+		if p.isExternal() {
+			kind = "external"
+		} else {
+			kind = "pre-connected"
+		}
+		if p.impl.isWasm() {
+			kind += "-wasm"
+		} else {
+			pid = "[" + strconv.Itoa(p.pid) + "]"
+		}
 	}
 	if idx = p.idx; idx == "" {
 		idx = "??"
@@ -396,18 +425,18 @@ func (p *plugin) qualifiedName() string {
 	if base = p.base; base == "" {
 		base = "plugin"
 	}
-	return kind + ":" + idx + "-" + base + "[" + strconv.Itoa(p.pid) + "]"
+	return kind + ":" + idx + "-" + base + pid
 }
 
 // RegisterPlugin handles the plugin's registration request.
 func (p *plugin) RegisterPlugin(ctx context.Context, req *RegisterPluginRequest) (*RegisterPluginResponse, error) {
 	if p.isExternal() {
 		if req.PluginName == "" {
-			p.regC <- fmt.Errorf("plugin %q registered empty name", p.qualifiedName())
+			p.regC <- fmt.Errorf("plugin %q registered with an empty name", p.qualifiedName())
 			return &RegisterPluginResponse{}, errors.New("invalid (empty) plugin name")
 		}
 		if err := api.CheckPluginIndex(req.PluginIdx); err != nil {
-			p.regC <- fmt.Errorf("plugin %q registered invalid index: %w", req.PluginName, err)
+			p.regC <- fmt.Errorf("plugin %q registered with an invalid index: %w", req.PluginName, err)
 			return &RegisterPluginResponse{}, fmt.Errorf("invalid plugin index: %w", err)
 		}
 		p.base = req.PluginName
@@ -673,6 +702,26 @@ func (p *plugin) StateChange(ctx context.Context, evt *StateChangeEvent) (err er
 	}
 
 	return nil
+}
+
+func (p *plugin) ValidateContainerAdjustment(ctx context.Context, req *ValidateContainerAdjustmentRequest) error {
+	if !p.events.IsSet(Event_VALIDATE_CONTAINER_ADJUSTMENT) {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, getPluginRequestTimeout())
+	defer cancel()
+
+	rpl, err := p.impl.ValidateContainerAdjustment(ctx, req)
+	if err != nil {
+		if isFatalError(err) {
+			log.Errorf(ctx, "closing plugin %s, failed to validate request: %v", p.name(), err)
+			p.close()
+		}
+		return fmt.Errorf("validator plugin %s failed: %v", p.name(), err)
+	}
+
+	return rpl.ValidationResult(p.name())
 }
 
 // isFatalError returns true if the error is fatal and the plugin connection should be closed.
