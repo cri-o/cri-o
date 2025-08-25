@@ -29,6 +29,9 @@ const (
 type LogDriver string
 
 const (
+	// LogDriverNone disables logging.
+	LogDriverNone LogDriver = "none"
+
 	// LogDriverStdout is the log driver printing to stdio.
 	LogDriverStdout LogDriver = "stdout"
 
