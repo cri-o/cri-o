@@ -805,11 +805,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
-	containerVolumes, ociMounts, safeMounts, err := s.addOCIBindMounts(ctx, ctr, &containerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport)
+	bindMountResult, err := s.addOCIBindMounts(ctx, ctr, &containerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport)
 	if err != nil {
 		return nil, err
 	}
 
+	containerVolumes := bindMountResult.Volumes
+	ociMounts := bindMountResult.Mounts
+	safeMounts := bindMountResult.SafeMounts
+	cleanups := bindMountResult.Cleanups
+	artifactExtractDirs := bindMountResult.ArtifactExtractDirs
 	cleanupSafeMounts = safeMounts
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container device creation")
@@ -1220,6 +1225,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		return nil, err
 	}
 
+	// Store artifact extract directories in container state for cleanup after CRI-O restarts
+	for _, extractDir := range artifactExtractDirs {
+		ociContainer.AddArtifactExtractDir(extractDir)
+	}
+
 	specgen.SetLinuxMountLabel(mountLabel)
 	specgen.SetProcessSelinuxLabel(processLabel)
 
@@ -1360,6 +1370,28 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	for _, cv := range containerVolumes {
 		ociContainer.AddVolume(cv)
 	}
+
+	// Track registered cleanups for potential failure cleanup
+	registeredCleanups := make([]func(), 0, len(cleanups))
+
+	log.Debugf(ctx, "Registering %d cleanup functions for container %s", len(cleanups), ociContainer.ID())
+
+	for _, cleanup := range cleanups {
+		ociContainer.AddCleanup(cleanup)
+		registeredCleanups = append(registeredCleanups, cleanup)
+	}
+
+	// Ensure cleanup runs if container creation fails after this point
+	// Only run cleanup if we actually have artifact cleanup functions
+	defer func() {
+		if retErr != nil && len(registeredCleanups) > 0 {
+			log.Warnf(ctx, "Container creation failed, cleaning up %d artifact cleanup functions", len(registeredCleanups))
+
+			for _, cleanup := range registeredCleanups {
+				cleanup()
+			}
+		}
+	}()
 
 	return ociContainer, nil
 }
