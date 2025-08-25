@@ -694,7 +694,9 @@ var _ = Describe("high_performance_hooks", func() {
 		}
 
 		DescribeTable("handleIRQBalanceRestart scenarios",
-			func(description string, isServiceEnabled bool, restartServiceSucceeds bool, pathLookupError bool, irqBalanceContent string) {
+			func(isServiceEnabled bool, restartServiceSucceeds bool, pathLookupError bool, irqBalanceFileExists bool,
+				irqBalanceMask string,
+			) {
 				defer func() {
 					// Reset global mocks.
 					serviceManager = &defaultServiceManager{}
@@ -712,38 +714,37 @@ var _ = Describe("high_performance_hooks", func() {
 					history: []string{},
 				}
 
-				if isServiceEnabled {
-					if restartServiceSucceeds {
-						mockSvcMgr.restartService = map[string]error{
-							"irqbalance": nil,
-						}
-					} else {
-						mockSvcMgr.restartService = map[string]error{
-							"irqbalance": errors.New("restart failed"),
-						}
+				if isServiceEnabled && restartServiceSucceeds {
+					mockSvcMgr.restartService = map[string]error{
+						"irqbalance": nil,
 					}
 				} else {
-					if pathLookupError {
-						mockCmdRunner.lookPath = map[string]struct {
-							path string
-							err  error
-						}{
-							"irqbalance": {path: "", err: errors.New("not found")},
-						}
-					} else {
-						mockCmdRunner.lookPath = map[string]struct {
-							path string
-							err  error
-						}{
-							"irqbalance": {path: "/usr/bin/irqbalance", err: nil},
-						}
+					mockSvcMgr.restartService = map[string]error{
+						"irqbalance": errors.New("restart failed"),
+					}
+				}
+
+				if pathLookupError {
+					mockCmdRunner.lookPath = map[string]struct {
+						path string
+						err  error
+					}{
+						"irqbalance": {path: "", err: errors.New("not found")},
+					}
+				} else {
+					mockCmdRunner.lookPath = map[string]struct {
+						path string
+						err  error
+					}{
+						"irqbalance": {path: "/usr/bin/irqbalance", err: nil},
 					}
 				}
 
 				// Setup config file.
-				err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
-				if irqBalanceContent != "none" {
-					err = updateIrqBalanceConfigFile(irqBalanceConfigFile, irqBalanceContent)
+				if irqBalanceFileExists {
+					err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
+					Expect(err).ToNot(HaveOccurred())
+					err = updateIrqBalanceConfigFile(irqBalanceConfigFile, irqBalanceMask)
 					Expect(err).ToNot(HaveOccurred())
 				}
 
@@ -752,35 +753,39 @@ var _ = Describe("high_performance_hooks", func() {
 				commandRunner = mockCmdRunner
 
 				// Execute.
-				h.handleIRQBalanceRestart(context.TODO(), "container-name")
-
-				// Verify behavior based on scenario.
-				if isServiceEnabled {
-					Expect(mockSvcMgr.history).To(ContainElement("systemctl is-enabled irqbalance"))
-					Expect(mockSvcMgr.history).To(ContainElement("systemctl restart irqbalance"))
-					Expect(mockCmdRunner.history).To(BeEmpty())
-
-					return
+				if !h.handleIRQBalanceRestart(context.TODO(), "container-name") {
+					h.handleIRQBalanceOneShot(context.TODO(), "container-name", irqBalanceMask)
 				}
 
-				// Irqbalance service is disabled.
+				// Verify behavior based on scenario.
 				Expect(mockSvcMgr.history).To(ContainElement("systemctl is-enabled irqbalance"))
+
+				if isServiceEnabled && irqBalanceFileExists {
+					Expect(mockSvcMgr.history).To(ContainElement("systemctl restart irqbalance"))
+
+					if restartServiceSucceeds {
+						Expect(mockCmdRunner.history).To(BeEmpty())
+
+						return
+					}
+				}
+
+				// Irqbalance service is disabled or configuration file does not exist or restart failed.
 				Expect(mockCmdRunner.history).To(ContainElement("which irqbalance"))
-				if pathLookupError || irqBalanceContent == "none" {
+				if pathLookupError {
 					Expect(mockCmdRunner.history).To(HaveLen(1))
 
 					return
 				}
 				// Path of irqbalance can be found and content has IRQBALANCE_BANNED_CPUS.
 				Expect(mockCmdRunner.history).ToNot(BeEmpty())
-				Expect(mockCmdRunner.history).To(ContainElement(fmt.Sprintf("IRQBALANCE_BANNED_CPUS=%s /usr/bin/irqbalance --oneshot", irqBalanceContent)))
+				Expect(mockCmdRunner.history).To(ContainElement(fmt.Sprintf("IRQBALANCE_BANNED_CPUS=%s /usr/bin/irqbalance --oneshot", irqBalanceMask)))
 			},
-			Entry("irqbalance is enabled and succeeds", "irqbalance is enabled and succeeds", true, true, false, ""),
-			Entry("irqbalance is enabled and fails", "irqbalance is enabled and fails", true, false, false, ""),
-			Entry("irqbalance is disabled, oneshot lookup fails", "irqbalance is disabled, oneshot lookup fails", false, false, true, ""),
-			Entry("irqbalance is disabled, empty banned cpus", "irqbalance is disabled, command fails", false, false, false, ""),
-			Entry("irqbalance is disabled, with banned cpus", "irqbalance is disabled, command succeeds", false, false, false, "ffff,ffff"),
-			Entry("irqbalance is disabled, missing banned cpus", "irqbalance is disabled, command succeeds", false, false, false, "none"),
+			Entry("irqbalance is enabled and succeeds", true, true, false, true, "ffff,ffff"),
+			Entry("irqbalance is enabled but irqbalance file does not exist", true, false, false, false, "ffff,ffff"),
+			Entry("irqbalance is enabled and fails but oneshot works", true, false, false, true, "ffff,ffff"),
+			Entry("irqbalance is disabled, oneshot lookup fails", false, false, true, true, ""),
+			Entry("irqbalance is disabled, with banned cpus", false, false, false, true, "ffff,ffff"),
 		)
 	})
 
