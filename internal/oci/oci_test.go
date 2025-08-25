@@ -47,9 +47,10 @@ var _ = t.Describe("Oci", func() {
 		)
 		runtimes := libconfig.Runtimes{
 			defaultRuntime: &libconfig.RuntimeHandler{
-				RuntimePath: "/bin/sh",
-				RuntimeType: "",
-				RuntimeRoot: "/run/runc",
+				RuntimePath:    "/bin/sh",
+				RuntimeType:    "",
+				RuntimeRoot:    "/run/runc",
+				SeccompProfile: "/var/foo/profile.json",
 			},
 			invalidRuntime: &libconfig.RuntimeHandler{},
 			usernsRuntime: &libconfig.RuntimeHandler{
@@ -127,6 +128,24 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(runtimeType).To(Equal(libconfig.RuntimeTypeVM))
+		})
+		It("SeccompProfile should return the seccomp profile path", func() {
+			// Given
+			// When
+			seccompProfile, err := sut.SeccompProfile(defaultRuntime)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(seccompProfile).To(Equal("/var/foo/profile.json"))
+		})
+		It("SeccompProfile should fail when runtime is not present", func() {
+			// Given
+			// When
+			seccompProfile, err := sut.SeccompProfile(invalidRuntime)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(seccompProfile).To(Equal(""))
 		})
 		Context("AllowedAnnotations", func() {
 			It("should succeed to return allowed annotation", func() {

@@ -1026,12 +1026,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 			}
 		}
 
+		runtimeHandlerProfilePath, err := s.ContainerServer.Runtime().SeccompProfile(sb.RuntimeHandler())
+		if err != nil {
+			return nil, err
+		}
+
 		notifier, ref, err := s.config.Seccomp().Setup(
 			ctx,
 			s.config.SystemContext,
 			s.seccompNotifierChan,
 			containerID,
 			ctr.Config().GetMetadata().GetName(),
+			runtimeHandlerProfilePath,
 			sb.Annotations(),
 			imgResult.Annotations,
 			specgen,
