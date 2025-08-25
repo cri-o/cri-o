@@ -77,11 +77,6 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 
 	c.CleanupConmonCgroup(ctx)
 
-	if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
-		// assume container already umounted
-		log.Warnf(ctx, "Failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
-	}
-
 	if err := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
 	}
