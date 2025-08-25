@@ -252,7 +252,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 		imageUser,
 		sc.GetRunAsUser(),
 	)
-	log.Debugf(ctx, "CONTAINER USER: %+v", containerUser)
+	log.Debugf(ctx, "Container user: %q", containerUser)
 
 	// Add uid, gid and groups from user
 	uid, gid, addGroups, err := utils.GetUserInfo(rootfs, containerUser)
@@ -374,10 +374,6 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 	// We use the user from the image config if nothing is provided
 	if userstr == "" {
 		userstr = imageUser
-	}
-
-	if userstr == "" {
-		return ""
 	}
 
 	return userstr
