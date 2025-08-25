@@ -41,7 +41,7 @@ func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetr
 // Otherwise, if crio's config allows CPU load balancing anywhere, return a DefaultCPULoadBalanceHooks.
 // Otherwise, return nil.
 func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAnnotations map[string]string) RuntimeHandlerHooks {
-	if strings.Contains(runtimeName, HighPerformance) || highPerformanceAnnotationsSpecified(sandboxAnnotations) {
+	if isHighPerformanceRuntime(runtimeName, sandboxAnnotations) {
 		runtimeConfig, ok := hr.config.Runtimes[runtimeName]
 		if !ok {
 			// This shouldn't happen because runtime is already validated
@@ -54,8 +54,7 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 			hr.highPerformanceHooks = &HighPerformanceHooks{
 				irqBalanceConfigFile:     hr.config.IrqBalanceConfigFile,
 				cpusetLock:               sync.Mutex{},
-				irqSMPAffinityFileLock:   sync.Mutex{},
-				irqBalanceConfigFileLock: sync.Mutex{},
+				updateIRQSMPAffinityLock: sync.Mutex{},
 				sharedCPUs:               hr.config.SharedCPUSet,
 				irqSMPAffinityFile:       IrqSmpAffinityProcFile,
 				execCPUAffinity:          runtimeConfig.ExecCPUAffinity,
