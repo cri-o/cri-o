@@ -1442,7 +1442,7 @@ gopkg.in/warnings.v0
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.34.0-rc.2
+# k8s.io/api v0.35.0-alpha.0
 ## explicit; go 1.24.0
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1alpha1
@@ -1501,7 +1501,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/storagemigration/v1alpha1
-# k8s.io/apimachinery v0.34.0-rc.2
+# k8s.io/apimachinery v0.35.0-alpha.0
 ## explicit; go 1.24.0
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -1563,10 +1563,10 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.34.0-rc.2
+# k8s.io/apiserver v0.35.0-alpha.0
 ## explicit; go 1.24.0
 k8s.io/apiserver/pkg/endpoints/responsewriter
-# k8s.io/client-go v0.34.0-rc.2
+# k8s.io/client-go v0.35.0-alpha.0
 ## explicit; go 1.24.0
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1alpha1
@@ -1704,7 +1704,7 @@ k8s.io/client-go/util/exec
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
-# k8s.io/component-base v0.34.0-rc.2
+# k8s.io/component-base v0.35.0-alpha.0
 ## explicit; go 1.24.0
 k8s.io/component-base/featuregate
 k8s.io/component-base/logs/logreduction
@@ -1715,12 +1715,12 @@ k8s.io/component-base/metrics/prometheusextension
 k8s.io/component-base/tracing
 k8s.io/component-base/tracing/api/v1
 k8s.io/component-base/version
-# k8s.io/cri-api v0.34.0-rc.2
+# k8s.io/cri-api v0.35.0-alpha.0
 ## explicit; go 1.24.0
 k8s.io/cri-api/pkg/apis
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
-# k8s.io/cri-client v0.34.0-rc.2
+# k8s.io/cri-client v0.35.0-alpha.0
 ## explicit; go 1.24.0
 k8s.io/cri-client/pkg
 k8s.io/cri-client/pkg/internal
@@ -1745,7 +1745,7 @@ k8s.io/kube-openapi/pkg/schemaconv
 k8s.io/kube-openapi/pkg/spec3
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/validation/spec
-# k8s.io/kubelet v0.34.0-rc.2
+# k8s.io/kubelet v0.35.0-alpha.0
 ## explicit; go 1.24.0
 k8s.io/kubelet/pkg/cri/streaming
 k8s.io/kubelet/pkg/cri/streaming/portforward
@@ -1771,7 +1771,7 @@ sigs.k8s.io/knftables
 ## explicit; go 1.18
 sigs.k8s.io/randfill
 sigs.k8s.io/randfill/bytesource
-# sigs.k8s.io/release-sdk v0.12.4-0.20250809110342-befb0e4cde00
+# sigs.k8s.io/release-sdk v0.12.4
 ## explicit; go 1.24.2
 sigs.k8s.io/release-sdk/git
 sigs.k8s.io/release-sdk/github
