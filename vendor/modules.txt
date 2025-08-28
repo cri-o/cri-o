@@ -539,7 +539,7 @@ github.com/fsnotify/fsnotify/internal
 # github.com/fxamacker/cbor/v2 v2.9.0
 ## explicit; go 1.20
 github.com/fxamacker/cbor/v2
-# github.com/go-chi/chi/v5 v5.2.2
+# github.com/go-chi/chi/v5 v5.2.3
 ## explicit; go 1.20
 github.com/go-chi/chi/v5
 # github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376
@@ -886,8 +886,8 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.38.1
-## explicit; go 1.24.0
+# github.com/onsi/gomega v1.38.2
+## explicit; go 1.23.0
 github.com/onsi/gomega
 github.com/onsi/gomega/format
 github.com/onsi/gomega/internal
@@ -1016,7 +1016,7 @@ github.com/spf13/pflag
 # github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6
 ## explicit; go 1.19
 github.com/stefanberger/go-pkcs11uri
-# github.com/stretchr/testify v1.11.0
+# github.com/stretchr/testify v1.11.1
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
@@ -1386,8 +1386,8 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.7
-## explicit; go 1.22
+# google.golang.org/protobuf v1.36.8
+## explicit; go 1.23
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
