@@ -33,7 +33,7 @@ require (
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/go-units v0.5.0
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/go-chi/chi/v5 v5.2.2
+	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-logr/logr v1.4.3
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466
 	github.com/google/go-cmp v0.7.0
@@ -48,7 +48,7 @@ require (
 	github.com/moby/sys/user v0.4.0
 	github.com/moby/sys/userns v0.1.0
 	github.com/onsi/ginkgo/v2 v2.25.1
-	github.com/onsi/gomega v1.38.1
+	github.com/onsi/gomega v1.38.2
 	github.com/opencontainers/cgroups v0.0.4
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
@@ -60,7 +60,7 @@ require (
 	github.com/seccomp/libseccomp-golang v0.11.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/soheilhy/cmux v0.1.5
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	github.com/uptrace/opentelemetry-go-extra/otellogrus v0.3.2
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/vishvananda/netlink v1.3.1
@@ -74,7 +74,7 @@ require (
 	golang.org/x/sync v0.16.0
 	golang.org/x/sys v0.35.0
 	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.7
+	google.golang.org/protobuf v1.36.8
 	k8s.io/api v0.34.0
 	k8s.io/apimachinery v0.34.0
 	k8s.io/client-go v0.34.0
