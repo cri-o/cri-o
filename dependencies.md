@@ -1,20 +1,16 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 28 Aug 2025 10:52:50 UTC for commit [d79c6c6][0]._
+_Generated on Thu, 28 Aug 2025 14:20:50 UTC for commit [66be6e6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d79c6c61664334a1f1248aa77dacfe3cf278cf55
+[0]: https://github.com/cri-o/cri-o/commit/66be6e64fbad0bf6cca7e5137930e89144bf9ecb
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.6                             | v0.0.7                             | true   | true             |
-| github.com/go-chi/chi/v5                                                    | v5.2.2                             | v5.2.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250827061515-08d2ba19693f | true   | true             |
-| github.com/onsi/gomega                                                      | v1.38.1                            | v1.38.2                            | true   | true             |
-| github.com/stretchr/testify                                                 | v1.11.0                            | v1.11.1                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.61.0                            | v0.62.0                            | true   | true             |
-| google.golang.org/protobuf                                                  | v1.36.7                            | v1.36.8                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20250604170112-4c0f3b243397 | v0.0.0-20250820121507-0af2bda4dd1d | true   | true             |
 
 ## All Dependencies
@@ -347,7 +343,7 @@ _Generated on Thu, 28 Aug 2025 10:52:50 UTC for commit [d79c6c6][0]._
 | github.com/fxamacker/cbor/v2                                                | v2.9.0                                |                                     | false  | true             |
 | github.com/gliderlabs/ssh                                                   | v0.3.8                                |                                     | false  | true             |
 | github.com/go-chi/chi                                                       | v4.1.2+incompatible                   |                                     | false  | true             |
-| github.com/go-chi/chi/v5                                                    | v5.2.2                                | v5.2.3                              | true   | true             |
+| github.com/go-chi/chi/v5                                                    | v5.2.3                                |                                     | true   | true             |
 | github.com/go-git/gcfg                                                      | v1.5.1-0.20230307220236-3a3c6141e376  |                                     | false  | true             |
 | github.com/go-git/go-billy/v5                                               | v5.6.2                                |                                     | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                        | v4.3.2-0.20231010084843-55a94097c399  |                                     | false  | true             |
@@ -531,7 +527,7 @@ _Generated on Thu, 28 Aug 2025 10:52:50 UTC for commit [d79c6c6][0]._
 | github.com/olekukonko/tablewriter                                           | v1.0.9                                |                                     | false  | true             |
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                     | false  | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.25.1                               |                                     | true   | true             |
-| github.com/onsi/gomega                                                      | v1.38.1                               | v1.38.2                             | true   | true             |
+| github.com/onsi/gomega                                                      | v1.38.2                               |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                            | v1.4.0                                | v1.7.1                              | false  | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.4                                |                                     | true   | true             |
 | github.com/opencontainers/go-digest                                         | v1.0.0                                |                                     | true   | true             |
@@ -612,7 +608,7 @@ _Generated on Thu, 28 Aug 2025 10:52:50 UTC for commit [d79c6c6][0]._
 | github.com/stefanberger/go-pkcs11uri                                        | v0.0.0-20230803200340-78284954bff6    |                                     | false  | true             |
 | github.com/stoewer/go-strcase                                               | v1.3.0                                | v1.3.1                              | false  | true             |
 | github.com/stretchr/objx                                                    | v0.5.2                                |                                     | false  | true             |
-| github.com/stretchr/testify                                                 | v1.11.0                               | v1.11.1                             | true   | true             |
+| github.com/stretchr/testify                                                 | v1.11.1                               |                                     | true   | true             |
 | github.com/subosito/gotenv                                                  | v1.6.0                                |                                     | false  | true             |
 | github.com/sylabs/sif/v2                                                    | v2.21.1                               | v2.22.0                             | false  | true             |
 | github.com/syndtr/gocapability                                              | v0.0.0-20200815063812-42c35b437635    |                                     | false  | true             |
@@ -726,7 +722,7 @@ _Generated on Thu, 28 Aug 2025 10:52:50 UTC for commit [d79c6c6][0]._
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20250707201910-8d1bb00bc6a7    | v0.0.0-20250826171959-ef028d996bc1  | false  | true             |
 | google.golang.org/grpc                                                      | v1.75.0                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                               | v1.5.1                                |                                     | false  | true             |
-| google.golang.org/protobuf                                                  | v1.36.7                               | v1.36.8                             | true   | true             |
+| google.golang.org/protobuf                                                  | v1.36.8                               |                                     | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                           | v1.0.0-20201130134442-10cb98267c6c    |                                     | false  | true             |
 | gopkg.in/evanphx/json-patch.v4                                              | v4.12.0                               | v4.13.0                             | false  | true             |
