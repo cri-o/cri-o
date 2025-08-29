@@ -1,10 +1,9 @@
-go 1.24.3
+go 1.24.6
 
 module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v1.5.0
-	github.com/CloudNativeAI/model-spec v0.0.6
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v1.3.0
@@ -42,11 +41,12 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/intel/goresctrl v0.9.0
 	github.com/json-iterator/go v1.1.12
-	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20240208092920-b99f57452225
+	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20250828155603-754f07cff239
 	github.com/moby/sys/capability v0.4.0
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/moby/sys/user v0.4.0
 	github.com/moby/sys/userns v0.1.0
+	github.com/modelpack/model-spec v0.0.7
 	github.com/onsi/ginkgo/v2 v2.25.1
 	github.com/onsi/gomega v1.38.2
 	github.com/opencontainers/cgroups v0.0.4
@@ -64,7 +64,7 @@ require (
 	github.com/uptrace/opentelemetry-go-extra/otellogrus v0.3.2
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/vishvananda/netlink v1.3.1
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.62.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.37.0
 	go.opentelemetry.io/otel/sdk v1.37.0
@@ -210,7 +210,7 @@ require (
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
-	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/ulikunitz/xz v0.5.14 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
 	github.com/vbauerster/mpb/v8 v8.10.2 // indirect

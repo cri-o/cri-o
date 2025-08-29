@@ -10,13 +10,13 @@ import (
 	"slices"
 	"strings"
 
-	modelSpec "github.com/CloudNativeAI/model-spec/specs-go/v1"
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/types"
+	modelSpec "github.com/modelpack/model-spec/specs-go/v1"
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 

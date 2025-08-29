@@ -1,5 +1,5 @@
 /*
- *     Copyright 2025 The CNAI Authors
+ *     Copyright 2025 The CNCF ModelPack Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ type ModelFS struct {
 	Type string `json:"type"`
 
 	// DiffIDs is an array of layer content hashes (DiffIDs), in order from bottom-most to top-most.
-	DiffIDs []digest.Digest `json:"diff_ids"`
+	DiffIDs []digest.Digest `json:"diffIds"`
 }
 
 // ModelDescriptor defines the general information of a model
@@ -109,24 +109,30 @@ const (
 // ModelCapabilities defines the special capabilities that the model supports
 type ModelCapabilities struct {
 	// The model supports the following input types
-	InputTypes []Modality `json:"input_types,omitempty"`
+	InputTypes []Modality `json:"inputTypes,omitempty"`
 
 	// The model supports the following output types
-	OutputTypes []Modality `json:"output_types,omitempty"`
+	OutputTypes []Modality `json:"outputTypes,omitempty"`
 
 	// KnowledgeCutoff is the date of the datasets that the model was trained on, formatted as defined by RFC 3339
-	KnowledgeCutoff *time.Time `json:"knowledge_cutoff,omitempty"`
+	KnowledgeCutoff *time.Time `json:"knowledgeCutoff,omitempty"`
 
 	// Reasoning indicates whether the model can perform reasoning tasks
 	Reasoning *bool `json:"reasoning,omitempty"`
 
 	// ToolUsage indicates whether the model can use external tools
 	// such as a calculator, a search engine, etc.
-	ToolUsage *bool `json:"tool_usage,omitempty"`
+	ToolUsage *bool `json:"toolUsage,omitempty"`
+
+	// Embedding indicates whether the model can perform embedding tasks
+	Embedding *bool `json:"embedding,omitempty"`
+
+	// Reward indicates whether the model is a reward model
+	Reward *bool `json:"reward,omitempty"`
 }
 
 // Model defines the basic information of a model.
-// It provides the `application/vnd.cnai.model.config.v1+json` mediatype when marshalled to JSON.
+// It provides the `application/vnd.cncf.model.config.v1+json` mediatype when marshalled to JSON.
 type Model struct {
 	// The model descriptor
 	Descriptor ModelDescriptor `json:"descriptor"`

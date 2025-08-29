@@ -31,9 +31,6 @@ dario.cat/mergo
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/CloudNativeAI/model-spec v0.0.6
-## explicit; go 1.23.1
-github.com/CloudNativeAI/model-spec/specs-go/v1
 # github.com/Masterminds/semver/v3 v3.4.0
 ## explicit; go 1.21
 github.com/Masterminds/semver/v3
@@ -745,8 +742,8 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/kata-containers/kata-containers/src/runtime v0.0.0-20240208092920-b99f57452225
-## explicit; go 1.19
+# github.com/kata-containers/kata-containers/src/runtime v0.0.0-20250828155603-754f07cff239
+## explicit; go 1.24.6
 github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/annotations
 github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/firecracker/client/models
 github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types
@@ -834,6 +831,9 @@ github.com/moby/sys/user
 # github.com/moby/sys/userns v0.1.0
 ## explicit; go 1.21
 github.com/moby/sys/userns
+# github.com/modelpack/model-spec v0.0.7
+## explicit; go 1.23.1
+github.com/modelpack/model-spec/specs-go/v1
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -1067,7 +1067,7 @@ github.com/tetratelabs/wazero/sys
 # github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 ## explicit
 github.com/titanous/rocacheck
-# github.com/ulikunitz/xz v0.5.12
+# github.com/ulikunitz/xz v0.5.14
 ## explicit; go 1.12
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
@@ -1129,7 +1129,7 @@ go.opencensus.io/trace/tracestate
 ## explicit; go 1.22.0
 go.opentelemetry.io/auto/sdk
 go.opentelemetry.io/auto/sdk/internal/telemetry
-# go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0
+# go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.62.0
 ## explicit; go 1.23.0
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc/internal
@@ -1155,8 +1155,8 @@ go.opentelemetry.io/otel/semconv/v1.12.0
 go.opentelemetry.io/otel/semconv/v1.17.0
 go.opentelemetry.io/otel/semconv/v1.20.0
 go.opentelemetry.io/otel/semconv/v1.26.0
-go.opentelemetry.io/otel/semconv/v1.30.0
 go.opentelemetry.io/otel/semconv/v1.34.0
+go.opentelemetry.io/otel/semconv/v1.34.0/rpcconv
 # go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0
 ## explicit; go 1.23.0
 go.opentelemetry.io/otel/exporters/otlp/otlptrace
