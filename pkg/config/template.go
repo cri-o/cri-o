@@ -1295,6 +1295,11 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   should be moved to the container's cgroup
 # - monitor_env (optional, array of strings): Environment variables to pass to the monitor.
 #   Replaces deprecated option "conmon_env".
+#   When using the pod runtime and conmon-rs, then the monitor_env can be used to further configure
+#   conmon-rs by using:
+#     - LOG_DRIVER=[none,systemd,stdout] - Enable logging to the configured target, defaults to none.
+#     - HEAPTRACK_OUTPUT_PATH=/path/to/dir - Enable heaptrack profiling and save the files to the set directory.
+#     - HEAPTRACK_BINARY_PATH=/path/to/heaptrack - Enable heaptrack profiling and use set heaptrack binary.
 # - platform_runtime_paths (optional, map): A mapping of platforms to the corresponding
 #   runtime executable paths for the runtime handler.
 # - container_min_memory (optional, string): The minimum memory that must be set for a container.
