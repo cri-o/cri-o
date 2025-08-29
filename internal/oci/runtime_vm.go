@@ -948,29 +948,10 @@ func (r *runtimeVM) createContainerIO(ctx context.Context, c *Container, cioOpts
 		}
 	}()
 
-	f, err := os.OpenFile(c.LogPath(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
+	stdout, stderr, err := r.createContainerLoggers(ctx, c.LogPath())
 	if err != nil {
 		return nil, err
 	}
-
-	var stdoutCh, stderrCh <-chan struct{}
-
-	wc := cioutil.NewSerialWriteCloser(f)
-	stdout, stdoutCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stdout, -1)
-	stderr, stderrCh := cio.NewCRILogger(c.LogPath(), wc, cio.Stderr, -1)
-
-	go func() {
-		if stdoutCh != nil {
-			<-stdoutCh
-		}
-
-		if stderrCh != nil {
-			<-stderrCh
-		}
-
-		log.Debugf(ctx, "Finish redirecting log file %q, closing it", c.LogPath())
-		f.Close()
-	}()
 
 	containerIO.AddOutput(c.LogPath(), stdout, stderr)
 	containerIO.Pipe()
@@ -982,6 +963,35 @@ func (r *runtimeVM) createContainerIO(ctx context.Context, c *Container, cioOpts
 	r.Unlock()
 
 	return containerIO, nil
+}
+
+// createContainerLoggers creates container loggers and return write closer for stdout and stderr.
+func (r *runtimeVM) createContainerLoggers(ctx context.Context, logPath string) (stdout, stderr io.WriteCloser, err error) {
+	f, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o600)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var stdoutCh, stderrCh <-chan struct{}
+
+	wc := cioutil.NewSerialWriteCloser(f)
+	stdout, stdoutCh = cio.NewCRILogger(logPath, wc, cio.Stdout, -1)
+	stderr, stderrCh = cio.NewCRILogger(logPath, wc, cio.Stderr, -1)
+
+	go func() {
+		if stdoutCh != nil {
+			<-stdoutCh
+		}
+
+		if stderrCh != nil {
+			<-stderrCh
+		}
+
+		log.Debugf(ctx, "Finish redirecting log file %q, closing it", logPath)
+		f.Close()
+	}()
+
+	return stdout, stderr, nil
 }
 
 // PauseContainer pauses a container.
@@ -1251,6 +1261,29 @@ func (r *runtimeVM) PortForwardContainer(ctx context.Context, c *Container, netN
 func (r *runtimeVM) ReopenContainerLog(ctx context.Context, c *Container) error {
 	log.Debugf(ctx, "RuntimeVM.ReopenContainerLog() start")
 	defer log.Debugf(ctx, "RuntimeVM.ReopenContainerLog() end")
+
+	r.Lock()
+	cInfo, ok := r.ctrs[c.ID()]
+	r.Unlock()
+
+	if !ok {
+		return errors.New("could not retrieve container information")
+	}
+
+	// Create new container logger and replace the existing ones.
+	stdoutWC, stderrWC, err := r.createContainerLoggers(ctx, c.LogPath())
+	if err != nil {
+		return err
+	}
+
+	oldStdoutWC, oldStderrWC := cInfo.cio.AddOutput(c.LogPath(), stdoutWC, stderrWC)
+	if oldStdoutWC != nil {
+		oldStdoutWC.Close()
+	}
+
+	if oldStderrWC != nil {
+		oldStderrWC.Close()
+	}
 
 	return nil
 }
