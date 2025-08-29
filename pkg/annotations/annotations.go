@@ -29,7 +29,9 @@ const (
 	// CPUQuotaAnnotation indicates that CPU quota should be disabled for CPUs used by the container.
 	CPUQuotaAnnotation = "cpu-quota.crio.io"
 
-	// IRQLoadBalancingAnnotation indicates that IRQ load balancing should be disabled for CPUs used by the container.
+	// IRQLoadBalancingAnnotation controls IRQ load balancing for container CPUs.
+	// Set to "disable" to turn off IRQ balancing on all container CPUs.
+	// Set to "housekeeping" to preserve interrupts on the first CPU core (all siblings).
 	IRQLoadBalancingAnnotation = "irq-load-balancing.crio.io"
 
 	// OCISeccompBPFHookAnnotation is the annotation used by the OCI seccomp BPF hook for tracing container syscalls.
