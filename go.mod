@@ -47,7 +47,7 @@ require (
 	github.com/moby/sys/user v0.4.0
 	github.com/moby/sys/userns v0.1.0
 	github.com/modelpack/model-spec v0.0.7
-	github.com/onsi/ginkgo/v2 v2.25.1
+	github.com/onsi/ginkgo/v2 v2.25.2
 	github.com/onsi/gomega v1.38.2
 	github.com/opencontainers/cgroups v0.0.4
 	github.com/opencontainers/go-digest v1.0.0
