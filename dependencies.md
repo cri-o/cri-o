@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 29 Aug 2025 08:34:45 UTC for commit [4c137b6][0]._
+_Generated on Fri, 29 Aug 2025 15:48:59 UTC for commit [5faaf01][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4c137b67932498bdf0c5cae72a337625ca90b625
+[0]: https://github.com/cri-o/cri-o/commit/5faaf0157b7b471d31075d7f3fc30e77d3326376
 
 ## Outdated Dependencies
 
@@ -582,7 +582,7 @@ _Generated on Fri, 29 Aug 2025 08:34:45 UTC for commit [4c137b6][0]._
 | github.com/sigstore/cosign/v2                                               | v2.5.0                                | v2.5.3                              | false  | true             |
 | github.com/sigstore/fulcio                                                  | v1.6.6                                | v1.7.1                              | false  | true             |
 | github.com/sigstore/protobuf-specs                                          | v0.5.0                                |                                     | false  | true             |
-| github.com/sigstore/rekor                                                   | v1.4.0                                |                                     | false  | true             |
+| github.com/sigstore/rekor                                                   | v1.4.0                                | v1.4.1                              | false  | true             |
 | github.com/sigstore/sigstore                                                | v1.9.5                                |                                     | false  | true             |
 | github.com/sigstore/sigstore-go                                             | v0.7.1                                | v1.1.1                              | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/aws                          | v1.8.12                               | v1.9.5                              | false  | true             |
