@@ -34,7 +34,7 @@ func (c *Config) Setup(
 	ctx context.Context,
 	sys *imagetypes.SystemContext,
 	msgChan chan Notification,
-	containerID, containerName string,
+	containerID, containerName, runtimeHandlerProfilePath string,
 	sandboxAnnotations, imageAnnotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,

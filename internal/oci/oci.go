@@ -192,6 +192,16 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 	return rh.RuntimeType, nil
 }
 
+// SeccompProfile returns the seccomp profile path for this runtime.
+func (r *Runtime) SeccompProfile(handler string) (string, error) {
+	rh, err := r.getRuntimeHandler(handler)
+	if err != nil {
+		return "", err
+	}
+
+	return rh.SeccompProfile, nil
+}
+
 // Timezone returns the timezone configured inside the container.
 func (r *Runtime) Timezone() string {
 	return r.config.Timezone

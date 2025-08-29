@@ -868,6 +868,46 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
 		})
+
+		It("should allow seccomp_profile to be empty", func() {
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:    validFilePath,
+				SeccompProfile: "",
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateRuntimeSeccompProfile(config.DefaultRuntime)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should succeed if seccomp_profile file exists", func() {
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:    validFilePath,
+				SeccompProfile: validFilePath,
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateRuntimeSeccompProfile(config.DefaultRuntime)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should fail if seccomp_profile file is not an absolute path", func() {
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:    validFilePath,
+				SeccompProfile: "relative-path",
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateRuntimeSeccompProfile(config.DefaultRuntime)
+			Expect(err.Error()).To(ContainSubstring(`seccomp_profile for runtime 'crun' is not absolute`))
+		})
+
+		It("should fail if seccomp_profile file does not exist", func() {
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:    validFilePath,
+				SeccompProfile: invalidPath,
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateRuntimeSeccompProfile(config.DefaultRuntime)
+			Expect(err.Error()).To(ContainSubstring(`no such file or directory`))
+		})
 	})
 
 	t.Describe("ValidateConmonPath", func() {

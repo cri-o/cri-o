@@ -232,7 +232,7 @@ func (c *Config) Setup(
 	ctx context.Context,
 	sys *imagetypes.SystemContext,
 	msgChan chan Notification,
-	containerID, containerName string,
+	containerID, containerName, runtimeHandlerProfilePath string,
 	sandboxAnnotations, imageAnnotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
@@ -287,6 +287,25 @@ func (c *Config) Setup(
 	}
 
 	if profileField.ProfileType == types.SecurityProfile_RuntimeDefault {
+		// Runtime handler seccomp profile takes precedence over runtime config seccomp profile.
+		if runtimeHandlerProfilePath != "" {
+			file, err := os.ReadFile(runtimeHandlerProfilePath)
+			if err != nil {
+				return nil, "", fmt.Errorf(
+					"unable to load runtime handler seccomp profile %q: %w", runtimeHandlerProfilePath, err,
+				)
+			}
+
+			notifier, err := c.applyProfileFromBytes(ctx, file, msgChan, containerID, sandboxAnnotations, specGenerator)
+			if err != nil {
+				return nil, "", fmt.Errorf("apply profile from bytes: %w", err)
+			}
+
+			log.Infof(ctx, "Applied runtime handler seccomp profile from %q", runtimeHandlerProfilePath)
+			return notifier, types.SecurityProfile_RuntimeDefault.String(), nil
+		}
+
+		// Fallback to runtime config seccomp profile, and then to the internal default seccomp profile.
 		linuxSpecs, err := seccomp.LoadProfileFromConfig(
 			c.Profile(), specGenerator.Config,
 		)

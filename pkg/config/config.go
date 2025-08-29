@@ -288,13 +288,20 @@ type RuntimeHandler struct {
 	//   When it has only exclusive cpuset, use the first CPU in the exclusive cpuset.
 	//   When it has both shared and exclusive cpusets, use first CPU in the shared cpuset.
 	ExecCPUAffinity ExecCPUAffinityType `toml:"exec_cpu_affinity,omitempty"`
+
+	// SeccompProfile is the absolute path of the seccomp.json profile which is used as the
+	// default for the runtime. This configuration takes precedence over runtime config seccomp_profile.
+	// If set to "", the runtime config seccomp_profile will be used.
+	// If that is also set to "", the internal default seccomp profile will be applied.
+	SeccompProfile string `toml:"seccomp_profile,omitempty"`
 }
 
 type ExecCPUAffinityType string
 
 const (
-	ExecCPUAffinityTypeDefault ExecCPUAffinityType = ""
-	ExecCPUAffinityTypeFirst   ExecCPUAffinityType = "first"
+	ExecCPUAffinityTypeDefault   ExecCPUAffinityType = ""
+	ExecCPUAffinityTypeFirst     ExecCPUAffinityType = "first"
+	runtimeSeccompProfileDefault string              = ""
 )
 
 // Multiple runtime Handlers in a map.
@@ -379,6 +386,7 @@ type RuntimeConfig struct {
 
 	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
+	// If set to "", the internal default seccomp profile will be used.
 	SeccompProfile string `toml:"seccomp_profile"`
 
 	// PrivilegedSeccompProfile can be set to enable a seccomp profile for
@@ -1394,6 +1402,7 @@ func defaultRuntimeHandler(isSystemd bool) *RuntimeHandler {
 		ContainerMinMemory: units.BytesSize(defaultContainerMinMemoryCrun),
 		MonitorCgroup:      getDefaultMonitorGroup(isSystemd),
 		ExecCPUAffinity:    ExecCPUAffinityTypeDefault,
+		SeccompProfile:     runtimeSeccompProfileDefault,
 	}
 }
 
@@ -1765,6 +1774,10 @@ func (r *RuntimeHandler) Validate(name string) error {
 		return err
 	}
 
+	if err := r.ValidateRuntimeSeccompProfile(name); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1997,6 +2010,23 @@ func (r *RuntimeHandler) validateRuntimeExecCPUAffinity() error {
 	}
 
 	return fmt.Errorf("invalid exec_cpu_affinity %q", r.ExecCPUAffinity)
+}
+
+// ValidateRuntimeSeccompProfile checks if the RuntimeHandler seccomp profile exists.
+func (r *RuntimeHandler) ValidateRuntimeSeccompProfile(name string) error {
+	if r.SeccompProfile == "" {
+		return nil
+	}
+
+	if !filepath.IsAbs(r.SeccompProfile) {
+		return fmt.Errorf("seccomp_profile for runtime '%s' is not absolute: %s", name, r.SeccompProfile)
+	}
+
+	if _, err := os.Stat(r.SeccompProfile); err != nil && os.IsNotExist(err) {
+		return fmt.Errorf("invalid seccomp_profile for runtime '%s': %w", name, err)
+	}
+
+	return nil
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
