@@ -1015,8 +1015,8 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 		sc = *systemContext // A shallow copy
 	}
 
-	disabled := types.ShortNameModeDisabled
-	sc.ShortNameMode = &disabled
+	enforcing := types.ShortNameModeEnforcing
+	sc.ShortNameMode = &enforcing
 
 	resolved, err := shortnames.Resolve(&sc, imageName)
 	if err != nil {
