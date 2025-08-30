@@ -113,6 +113,7 @@ func (r *runtimeOCI) getContainerFileDescriptors(ctx context.Context, c *Contain
 	pid, _, err := c.pid()
 	if err != nil {
 		log.Warnf(ctx, "Failed to get pid for container %s: %v", c.ID(), err)
+		return 0, nil
 	}
 
 	fdDir := fmt.Sprintf("/proc/%d/fd", pid)
