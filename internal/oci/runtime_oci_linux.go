@@ -110,7 +110,7 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 }
 
 func (r *runtimeOCI) getContainerFileDescriptors(ctx context.Context, c *Container) (uint64, error) {
-	pid, err := c.Pid()
+	pid, _, err := c.pid()
 	if err != nil {
 		log.Warnf(ctx, "Failed to get pid for container %s: %v", c.ID(), err)
 	}
