@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 01 Sep 2025 07:45:31 UTC for commit [39f30f2][0]._
+_Generated on Mon, 01 Sep 2025 12:07:51 UTC for commit [7d74024][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/39f30f216da3c960e2ab0ef979dcd5e6a1983271
+[0]: https://github.com/cri-o/cri-o/commit/7d740246144201c1373b4a2951904b016ce4af73
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
+| github.com/checkpoint-restore/checkpointctl                                 | v1.3.0                             | v1.4.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250829072946-f6ff9cf71769 | true   | true             |
-| github.com/onsi/ginkgo/v2                                                   | v2.25.1                            | v2.25.2                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.62.0                            | v0.63.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.37.0                            | v1.38.0                            | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.37.0                            | v1.38.0                            | true   | true             |
@@ -246,7 +246,7 @@ _Generated on Mon, 01 Sep 2025 07:45:31 UTC for commit [39f30f2][0]._
 | github.com/census-instrumentation/opencensus-proto                          | v0.2.1                                | v0.4.1                              | false  | true             |
 | github.com/cespare/xxhash/v2                                                | v2.3.0                                |                                     | false  | true             |
 | github.com/chainguard-dev/clog                                              | v1.5.1                                | v1.7.0                              | false  | true             |
-| github.com/checkpoint-restore/checkpointctl                                 | v1.3.0                                |                                     | true   | true             |
+| github.com/checkpoint-restore/checkpointctl                                 | v1.3.0                                | v1.4.0                              | true   | true             |
 | github.com/checkpoint-restore/go-criu/v6                                    | v6.3.0                                |                                     | false  | true             |
 | github.com/checkpoint-restore/go-criu/v7                                    | v7.2.0                                |                                     | true   | true             |
 | github.com/chrismellard/docker-credential-acr-env                           | v0.0.0-20230304212654-82a0ddb27589    |                                     | false  | true             |
@@ -528,7 +528,7 @@ _Generated on Mon, 01 Sep 2025 07:45:31 UTC for commit [39f30f2][0]._
 | github.com/olekukonko/ll                                                    | v0.0.9                                | v0.1.0                              | false  | true             |
 | github.com/olekukonko/tablewriter                                           | v1.0.9                                |                                     | false  | true             |
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                     | false  | true             |
-| github.com/onsi/ginkgo/v2                                                   | v2.25.1                               | v2.25.2                             | true   | true             |
+| github.com/onsi/ginkgo/v2                                                   | v2.25.2                               |                                     | true   | true             |
 | github.com/onsi/gomega                                                      | v1.38.2                               |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                            | v1.4.0                                | v1.8.0                              | false  | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.4                                |                                     | true   | true             |
