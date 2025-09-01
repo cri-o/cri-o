@@ -111,6 +111,10 @@ func updateVersionAndCreatePR(
 		return fmt.Errorf("unable to update version file: %w", err)
 	}
 
+	if err := updateDependenciesYAML(oldVersion, newVersion); err != nil {
+		return fmt.Errorf("unable to update dependencies YAML file: %w", err)
+	}
+
 	logrus.Info("Committing changes")
 
 	if err := repo.Add(utils.VersionFile); err != nil {
@@ -166,6 +170,26 @@ func modifyVersionFile(filePath, oldVersion, newVersion string) error {
 	err = os.WriteFile(filePath, modifiedContent, 0o644)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func updateDependenciesYAML(oldVersion, newVersion string) error {
+	const fileName = "dependencies.yaml"
+
+	content, err := os.ReadFile(fileName)
+	if err != nil {
+		return fmt.Errorf("read file %s: %w", fileName, err)
+	}
+
+	const developmentVersion = "name: development version\n    version: "
+
+	modifiedContent := bytes.ReplaceAll(content, []byte(developmentVersion+oldVersion), []byte(developmentVersion+newVersion))
+
+	err = os.WriteFile(fileName, modifiedContent, 0o644)
+	if err != nil {
+		return fmt.Errorf("update file %s: %w", fileName, err)
 	}
 
 	return nil
