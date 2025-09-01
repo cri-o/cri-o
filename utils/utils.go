@@ -203,6 +203,19 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 	return uid, gid, additionalGids, nil
 }
 
+// IsFullyNumeric checks if a string contains only digits
+func IsFullyNumeric(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 // GeneratePasswd generates a container specific passwd file,
 // iff uid is not defined in the containers /etc/passwd.
 func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir string) (string, error) {
@@ -226,6 +239,12 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 
 	if username == "" {
 		username = "default"
+	}
+
+	// Ensure username is not fully numeric to avoid issues on Fedora and Fedora Based systems
+	// See: https://github.com/shadow-maint/shadow/issues/1339
+	if IsFullyNumeric(username) {
+		username = "user" + username
 	}
 
 	if homedir == "" {
