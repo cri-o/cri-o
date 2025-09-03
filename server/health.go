@@ -24,6 +24,7 @@ func (s *Server) checkCRIHealth(ctx context.Context, timeout time.Duration) erro
 	if err != nil {
 		return fmt.Errorf("create remote runtime service: %w", err)
 	}
+	defer rrs.Close()
 
 	// Retrieve the runtime status using the socket
 	response, err := rrs.Status(ctx, false)

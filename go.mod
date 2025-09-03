@@ -78,8 +78,8 @@ require (
 	k8s.io/api v0.34.0
 	k8s.io/apimachinery v0.34.0
 	k8s.io/client-go v0.34.0
-	k8s.io/cri-api v0.34.0
-	k8s.io/cri-client v0.34.0
+	k8s.io/cri-api v0.35.0-alpha.0.0.20250903045904-5458ccb1136b
+	k8s.io/cri-client v0.31.0-alpha.0.0.20250903050039-254a78a6b94c
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubelet v0.34.0
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
@@ -204,7 +204,7 @@ require (
 	github.com/sigstore/sigstore v1.9.5 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/smallstep/pkcs7 v0.1.1 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.21.1 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
