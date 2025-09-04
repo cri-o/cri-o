@@ -51,3 +51,32 @@ function teardown() {
 	output=$(crictl inspect "$ctr_id" | jq -r ".status.state")
 	[[ "$output" == "CONTAINER_RUNNING" ]]
 }
+
+@test "Log file rotation should work" {
+	start_crio
+
+	jq '.metadata.name = "logger"
+		| .command = ["/bin/sh", "-c", "while true; do echo hello; sleep 1; done"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/logger.json
+
+	ctr_id=$(crictl run "$TESTDIR"/logger.json "$TESTDATA"/sandbox_config.json)
+	# Especially when using kata, it sometimes takes a few seconds to actually run container
+	sleep 5
+
+	logpath=$(crictl inspect "$ctr_id" | jq -r ".status.logPath")
+	[[ -f "$logpath" ]]
+
+	# Move log file away, then ask for re-open.
+	# It will fail if the new log file is not created
+	mv "$logpath" "$logpath".rotated
+	crictl logs -r "$ctr_id"
+
+	[[ -f "$logpath" ]]
+
+	# Verify that the rotated log file is not written to anymore
+	initial_size=$(stat -c %s "$logpath.rotated")
+	[ "$initial_size" -gt 0 ]
+	sleep 2 # our logger writes every second, leave enough time for at least one write
+	new_size=$(stat -c %s "$logpath.rotated")
+	[ "$new_size" -eq "$initial_size" ]
+}
