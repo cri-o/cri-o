@@ -66,6 +66,12 @@ Store newly pulled images in the specified path, rather than the path provided b
 Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts.
 If set to false, one must run `crio wipe` to wipe the containers and images in these situations.
 
+**never_wipe_images**=false
+Prevents image storage from being wiped under any circumstances, including startup and failed repair attempts.
+This is useful for disconnected environments where image storage integrity is crucial to preserve.
+When set to true, this setting takes precedence over other wiping mechanisms. Containers may still be wiped
+according to normal procedures, but image data will be preserved.
+
 **internal_repair**=true
 InternalRepair is whether CRI-O should check if the container and image storage was corrupted after a sudden restart.
 If it was, CRI-O also attempts to repair the storage.
