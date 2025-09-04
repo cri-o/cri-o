@@ -1,15 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 03 Sep 2025 09:54:26 UTC for commit [d355c05][0]._
+_Generated on Thu, 04 Sep 2025 08:24:14 UTC for commit [303c54a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d355c053239b58babc0f34b8d59fcbbd7620848c
+[0]: https://github.com/cri-o/cri-o/commit/303c54a35be28e472f755f177927665eb78811ea
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/image/v5                         | v5.36.1                            | v5.36.2                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250902145733-150c90e32aca | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250904051845-bdd98ec623bf | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250604170112-4c0f3b243397 | v0.0.0-20250820121507-0af2bda4dd1d | true   | true             |
 
 ## All Dependencies
@@ -163,7 +162,7 @@ _Generated on Wed, 03 Sep 2025 09:54:26 UTC for commit [d355c05][0]._
 | github.com/Azure/go-autorest/autorest/date                                  | v0.3.1                                |                                     | false  | true             |
 | github.com/Azure/go-autorest/logger                                         | v0.2.2                                |                                     | false  | true             |
 | github.com/Azure/go-autorest/tracing                                        | v0.6.1                                |                                     | false  | true             |
-| github.com/AzureAD/microsoft-authentication-library-for-go                  | v1.3.1                                | v1.4.2                              | false  | true             |
+| github.com/AzureAD/microsoft-authentication-library-for-go                  | v1.3.1                                | v1.5.0                              | false  | true             |
 | github.com/BurntSushi/toml                                                  | v1.5.0                                |                                     | true   | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp    | v1.29.0                               |                                     | false  | true             |
 | github.com/Masterminds/semver/v3                                            | v3.4.0                                |                                     | false  | true             |
@@ -286,10 +285,10 @@ _Generated on Wed, 03 Sep 2025 09:54:26 UTC for commit [d355c05][0]._
 | github.com/containerd/zfs                                                   | v1.1.0                                | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                          | v1.3.0                                |                                     | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.8.0                                |                                     | true   | true             |
-| github.com/containers/common                                                | v0.64.1                               |                                     | true   | true             |
+| github.com/containers/common                                                | v0.64.2                               |                                     | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.7.2                                |                                     | true   | true             |
-| github.com/containers/image/v5                                              | v5.36.1                               | v5.36.2                             | true   | true             |
+| github.com/containers/image/v5                                              | v5.36.2                               |                                     | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.2.1                                |                                     | true   | true             |
@@ -313,9 +312,9 @@ _Generated on Wed, 03 Sep 2025 09:54:26 UTC for commit [d355c05][0]._
 | github.com/dimchansky/utfbom                                                | v1.1.1                                |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                             | v3.0.2                                |                                     | false  | true             |
 | github.com/distribution/reference                                           | v0.6.0                                |                                     | false  | true             |
-| github.com/docker/cli                                                       | v28.3.2+incompatible                  | v28.3.3+incompatible                | false  | true             |
+| github.com/docker/cli                                                       | v28.3.2+incompatible                  | v28.4.0+incompatible                | false  | true             |
 | github.com/docker/distribution                                              | v2.8.3+incompatible                   |                                     | true   | true             |
-| github.com/docker/docker                                                    | v28.3.3+incompatible                  |                                     | false  | true             |
+| github.com/docker/docker                                                    | v28.3.3+incompatible                  | v28.4.0+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                 | v0.9.3                                |                                     | false  | true             |
 | github.com/docker/go-connections                                            | v0.5.0                                | v0.6.0                              | false  | true             |
 | github.com/docker/go-events                                                 | v0.0.0-20190806004212-e31b211e4f1c    | v0.0.0-20250808211157-605354379745  | false  | true             |
@@ -394,7 +393,7 @@ _Generated on Wed, 03 Sep 2025 09:54:26 UTC for commit [d355c05][0]._
 | github.com/google/go-intervals                                              | v0.0.2                                |                                     | false  | true             |
 | github.com/google/go-querystring                                            | v1.1.0                                |                                     | false  | true             |
 | github.com/google/gofuzz                                                    | v1.2.0                                |                                     | false  | true             |
-| github.com/google/pprof                                                     | v0.0.0-20250820193118-f64d9cf942d6    | v0.0.0-20250902232947-5eec23c92c42  | false  | true             |
+| github.com/google/pprof                                                     | v0.0.0-20250820193118-f64d9cf942d6    | v0.0.0-20250903194437-c28834ac2320  | false  | true             |
 | github.com/google/renameio                                                  | v1.0.1                                |                                     | true   | true             |
 | github.com/google/s2a-go                                                    | v0.1.9                                |                                     | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                                |                                     | true   | true             |
@@ -439,7 +438,7 @@ _Generated on Wed, 03 Sep 2025 09:54:26 UTC for commit [d355c05][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250902145733-150c90e32aca  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250904051845-bdd98ec623bf  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -553,13 +552,13 @@ _Generated on Wed, 03 Sep 2025 09:54:26 UTC for commit [d355c05][0]._
 | github.com/proglottis/gpgme                                                 | v0.1.4                                | v0.1.5                              | false  | true             |
 | github.com/prometheus/client_golang                                         | v1.23.0                               |                                     | true   | true             |
 | github.com/prometheus/client_model                                          | v0.6.2                                |                                     | false  | true             |
-| github.com/prometheus/common                                                | v0.65.0                               | v1.20.3                             | false  | false            |
+| github.com/prometheus/common                                                | v0.65.0                               | v0.66.0                             | false  | true             |
 | github.com/prometheus/procfs                                                | v0.16.1                               | v0.17.0                             | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                         | v0.0.0-20250218085312-1ee4910263ac    | v0.0.0-20250627152318-f293424e46b5  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                         | v0.0.0-20250218085312-1ee4910263ac    | v0.0.0-20250903173655-cf07efcaeff7  | false  | true             |
 | github.com/rcrowley/go-metrics                                              | v0.0.0-20201227073835-cf1acfcdf475    | v0.0.0-20250401214520-65e299d6c5c9  | false  | true             |
-| github.com/redis/go-redis/extra/rediscmd/v9                                 | v9.5.3                                | v9.12.1                             | false  | true             |
-| github.com/redis/go-redis/extra/redisotel/v9                                | v9.5.3                                | v9.12.1                             | false  | true             |
-| github.com/redis/go-redis/v9                                                | v9.5.3                                | v9.12.1                             | false  | true             |
+| github.com/redis/go-redis/extra/rediscmd/v9                                 | v9.5.3                                | v9.13.0                             | false  | true             |
+| github.com/redis/go-redis/extra/redisotel/v9                                | v9.5.3                                | v9.13.0                             | false  | true             |
+| github.com/redis/go-redis/v9                                                | v9.5.3                                | v9.13.0                             | false  | true             |
 | github.com/rivo/uniseg                                                      | v0.4.7                                |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/rogpeppe/go-internal                                             | v1.14.1                               |                                     | false  | true             |
@@ -741,7 +740,7 @@ _Generated on Wed, 03 Sep 2025 09:54:26 UTC for commit [d355c05][0]._
 | k8s.io/component-base                                                       | v0.34.0                               |                                     | false  | true             |
 | k8s.io/cri-api                                                              | v0.34.0                               |                                     | true   | true             |
 | k8s.io/cri-client                                                           | v0.34.0                               |                                     | true   | true             |
-| k8s.io/gengo/v2                                                             | v2.0.0-20250604051438-85fd79dbfd9f    | v2.0.0-20250829030910-f1dc67e67210  | false  | true             |
+| k8s.io/gengo/v2                                                             | v2.0.0-20250604051438-85fd79dbfd9f    | v2.0.0-20250903151518-081d64401ab4  | false  | true             |
 | k8s.io/klog/v2                                                              | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                  | v0.34.0                               |                                     | false  | true             |
 | k8s.io/kube-openapi                                                         | v0.0.0-20250710124328-f3f2b991d03b    | v0.0.0-20250902184714-7fc278399c7f  | false  | true             |
