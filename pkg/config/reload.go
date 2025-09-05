@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -232,15 +233,19 @@ func (c *Config) ReloadDecryptionKeyConfig(newConfig *Config) {
 func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 	// Reload the seccomp profile in any case because its content could have
 	// changed as well
-	if err := c.seccompConfig.LoadProfile(newConfig.SeccompProfile); err != nil {
+	if newConfig.SeccompProfile == "" {
+		if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
+			return fmt.Errorf("unable to load default seccomp profile: %w", err)
+		}
+	} else if err := c.seccompConfig.LoadProfile(newConfig.SeccompProfile); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("unable to load seccomp profile: %w", err)
 		}
 
-		logrus.Info("Specified profile does not exist on disk")
+		logrus.Info("Seccomp profile does not exist on disk, fallback to internal default profile")
 
 		if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
-			return fmt.Errorf("load default seccomp profile: %w", err)
+			return fmt.Errorf("unable to load default seccomp profile: %w", err)
 		}
 	}
 
@@ -329,6 +334,14 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 
 	if err := c.ValidateRuntimes(); err != nil {
 		return fmt.Errorf("unable to reload runtimes: %w", err)
+	}
+
+	for name := range c.Runtimes {
+		if c.Runtimes[name].seccompConfig != nil {
+			c.Runtimes[name].seccompConfig.SetNotifierPath(
+				filepath.Join(filepath.Dir(c.Listen), "seccomp"),
+			)
+		}
 	}
 
 	return nil

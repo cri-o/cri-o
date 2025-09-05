@@ -177,13 +177,6 @@ func (c *Config) LoadProfile(profilePath string) error {
 		return nil
 	}
 
-	if profilePath == "" {
-		if err := c.LoadDefaultProfile(); err != nil {
-			return fmt.Errorf("load default seccomp profile: %w", err)
-		}
-		return nil
-	}
-
 	profile, err := os.ReadFile(profilePath)
 	if err != nil {
 		return fmt.Errorf("open seccomp profile: %w", err)

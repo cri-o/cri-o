@@ -58,16 +58,6 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("LoadProfile", func() {
-		It("should succeed with default profile", func() {
-			// Given
-
-			// When
-			err := sut.LoadProfile("")
-
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		It("should succeed with profile", func() {
 			// Given
 			file := writeProfileFile()
@@ -89,6 +79,18 @@ var _ = t.Describe("Config", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 		}
+	})
+
+	t.Describe("LoadDefaultProfile", func() {
+		It("should succeed", func() {
+			// Given
+			// When
+			err := sut.LoadDefaultProfile()
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.Profile()).To(Equal(seccomp.DefaultProfile()))
+		})
 	})
 
 	t.Describe("Setup", func() {
