@@ -180,7 +180,7 @@ function expect_log_failure() {
 	reload_crio
 
 	# then
-	wait_for_log "Specified profile does not exist on disk"
+	wait_for_log "Seccomp profile does not exist on disk"
 }
 
 @test "reload config should succeed with 'apparmor_profile'" {
