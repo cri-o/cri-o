@@ -192,10 +192,23 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 		}
 
 		if resources.CPU.Shares != nil {
-			props = append(props, systemdDbus.Property{
-				Name:  "CPUShares",
-				Value: dbus.MakeVariant(resources.CPU.Shares),
-			})
+			// For cgroup v2, systemd should automatically convert CPUShares to CPUWeight,
+			// but there are cases where this conversion doesn't work properly.
+			// To ensure compatibility, we explicitly set CPUWeight for cgroup v2 systems.
+			if node.CgroupIsV2() {
+				cpuWeight := cgroups.ConvertCPUSharesToCgroupV2Value(*resources.CPU.Shares)
+				if cpuWeight > 0 {
+					props = append(props, systemdDbus.Property{
+						Name:  "CPUWeight",
+						Value: dbus.MakeVariant(cpuWeight),
+					})
+				}
+			} else {
+				props = append(props, systemdDbus.Property{
+					Name:  "CPUShares",
+					Value: dbus.MakeVariant(resources.CPU.Shares),
+				})
+			}
 		}
 
 		if resources.CPU.Quota != nil {
