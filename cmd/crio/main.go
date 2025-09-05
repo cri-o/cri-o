@@ -309,6 +309,11 @@ func main() {
 			logrus.Infof("FLAG: --%s=\"%v\"\n", flagName, flagValue)
 		}
 
+		// TODO: delete this check in future releases
+		if _, ok := os.LookupEnv("CONTAINER_INCLUDED_POD_METRCIS"); ok {
+			logrus.Warnf("CONTAINER_INCLUDED_POD_METRCIS (typo) will be ineffective in future releases. Use CONTAINER_INCLUDED_POD_METRICS instead.")
+		}
+
 		// Print the current configuration.
 		tomlConfig, err := config.ToString()
 		if err != nil {
