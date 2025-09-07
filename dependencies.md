@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sun, 07 Sep 2025 20:53:12 UTC for commit [a31d026][0]._
+_Generated on Sun, 07 Sep 2025 23:57:09 UTC for commit [aea52d6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a31d02640a3bf84b9f6d62baaa86cfae812f1f6b
+[0]: https://github.com/cri-o/cri-o/commit/aea52d676be36051617f2a6dc03a9daab762e3ea
 
 ## Outdated Dependencies
 
@@ -524,7 +524,7 @@ _Generated on Sun, 07 Sep 2025 20:53:12 UTC for commit [a31d026][0]._
 | github.com/oklog/ulid                                                       | v1.3.1                                |                                     | false  | true             |
 | github.com/oleiade/reflections                                              | v1.1.0                                |                                     | false  | true             |
 | github.com/olekukonko/errors                                                | v1.1.0                                |                                     | false  | true             |
-| github.com/olekukonko/ll                                                    | v0.0.9                                | v0.1.0                              | false  | true             |
+| github.com/olekukonko/ll                                                    | v0.0.9                                | v0.1.1                              | false  | true             |
 | github.com/olekukonko/tablewriter                                           | v1.0.9                                |                                     | false  | true             |
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                     | false  | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.25.3                               |                                     | true   | true             |
