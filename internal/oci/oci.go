@@ -18,6 +18,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -190,6 +191,20 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 	}
 
 	return rh.RuntimeType, nil
+}
+
+// Seccomp returns the seccomp config for the specified handler. Falls back to the runtime seccomp config if not exist.
+func (r *Runtime) Seccomp(handler string) (*seccomp.Config, error) {
+	rh, err := r.getRuntimeHandler(handler)
+	if err != nil {
+		return nil, err
+	}
+
+	if rh.RuntimeSeccomp() != nil {
+		return rh.RuntimeSeccomp(), nil
+	}
+
+	return r.config.Seccomp(), nil
 }
 
 // Timezone returns the timezone configured inside the container.

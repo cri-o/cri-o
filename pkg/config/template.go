@@ -941,8 +941,8 @@ const templateStringCrioRuntimeSelinux = `# If true, SELinux will be used for po
 `
 
 const templateStringCrioRuntimeSeccompProfile = `# Path to the seccomp.json profile which is used as the default seccomp profile
-# for the runtime. If not specified, then the internal default seccomp profile
-# will be used. This option supports live configuration reload.
+# for the runtime. If not specified or set to "", then the internal default seccomp profile will be used.
+# This option supports live configuration reload.
 {{ $.Comment }}seccomp_profile = "{{ .SeccompProfile }}"
 
 `
@@ -1251,6 +1251,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # no_sync_log = false
 # default_annotations = {}
 # stream_websockets = false
+# seccomp_profile = ""
 # Where:
 # - runtime-handler: Name used to identify the runtime.
 # - runtime_path (optional, string): Absolute path to the runtime executable in
@@ -1310,6 +1311,10 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   when a machine crash happens.
 # - default_annotations (optional, map): Default annotations if not overridden by the pod spec.
 # - stream_websockets (optional, bool): Enable the WebSocket protocol for container exec, attach and port forward.
+# - seccomp_profile (optional, string): The absolute path of the seccomp.json profile which is used as the default
+#   seccomp profile for the runtime.
+#   If not specified or set to "", the runtime seccomp_profile will be used.
+#   If that is also not specified or set to "", the internal default seccomp profile will be applied.
 #
 # Using the seccomp notifier feature:
 #

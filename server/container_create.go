@@ -1022,7 +1022,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 			}
 		}
 
-		notifier, ref, err := s.config.Seccomp().Setup(
+		seccompConfig, err := s.ContainerServer.Runtime().Seccomp(sb.RuntimeHandler())
+		if err != nil {
+			return nil, err
+		}
+
+		notifier, ref, err := seccompConfig.Setup(
 			ctx,
 			s.config.SystemContext,
 			s.seccompNotifierChan,

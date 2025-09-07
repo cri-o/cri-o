@@ -858,7 +858,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			}
 		}
 
-		_, ref, err := s.config.Seccomp().Setup(
+		seccompConfig, err := s.ContainerServer.Runtime().Seccomp(runtimeHandler)
+		if err != nil {
+			return nil, err
+		}
+
+		_, ref, err := seccompConfig.Setup(
 			ctx,
 			s.config.SystemContext,
 			nil,

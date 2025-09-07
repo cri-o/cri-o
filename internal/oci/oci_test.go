@@ -128,6 +128,22 @@ var _ = t.Describe("Oci", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(runtimeType).To(Equal(libconfig.RuntimeTypeVM))
 		})
+		It("Seccomp should return the runtime seccomp config", func() {
+			// Given
+			// When
+			_, err := sut.Seccomp(defaultRuntime)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("Seccomp should fail when runtime is not present", func() {
+			// Given
+			// When
+			_, err := sut.Seccomp(invalidRuntime)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
 		Context("AllowedAnnotations", func() {
 			It("should succeed to return allowed annotation", func() {
 				// Given
