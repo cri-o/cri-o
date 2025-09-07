@@ -1,17 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Sun, 07 Sep 2025 17:54:06 UTC for commit [8e6b182][0]._
+_Generated on Sun, 07 Sep 2025 20:53:12 UTC for commit [a31d026][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8e6b182f9e32af91c4028951be334bb9b413a8ef
+[0]: https://github.com/cri-o/cri-o/commit/a31d02640a3bf84b9f6d62baaa86cfae812f1f6b
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250907100102-4644a0287150 | true   | true             |
-| github.com/onsi/ginkgo/v2                              | v2.25.2                            | v2.25.3                            | true   | true             |
 | github.com/opencontainers/cgroups                      | v0.0.4                             | v0.0.5                             | true   | true             |
-| github.com/opencontainers/runc                         | v1.3.0                             | v1.3.1                             | true   | true             |
 | github.com/prometheus/client_golang                    | v1.23.1                            | v1.23.2                            | true   | true             |
 | golang.org/x/sync                                      | v0.16.0                            | v0.17.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.35.0                            | v0.36.0                            | true   | true             |
@@ -529,13 +527,13 @@ _Generated on Sun, 07 Sep 2025 17:54:06 UTC for commit [8e6b182][0]._
 | github.com/olekukonko/ll                                                    | v0.0.9                                | v0.1.0                              | false  | true             |
 | github.com/olekukonko/tablewriter                                           | v1.0.9                                |                                     | false  | true             |
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                     | false  | true             |
-| github.com/onsi/ginkgo/v2                                                   | v2.25.2                               | v2.25.3                             | true   | true             |
+| github.com/onsi/ginkgo/v2                                                   | v2.25.3                               |                                     | true   | true             |
 | github.com/onsi/gomega                                                      | v1.38.2                               |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                            | v1.4.0                                | v1.8.0                              | false  | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.4                                | v0.0.5                              | true   | true             |
 | github.com/opencontainers/go-digest                                         | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.1                                |                                     | true   | true             |
-| github.com/opencontainers/runc                                              | v1.3.0                                | v1.3.1                              | true   | true             |
+| github.com/opencontainers/runc                                              | v1.3.1                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.2.1                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                     | v0.9.1-0.20250523060157-0ea5ed0382a2  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.12.0                               |                                     | true   | true             |
