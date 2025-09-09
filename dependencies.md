@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 09 Sep 2025 07:28:31 UTC for commit [7083606][0]._
+_Generated on Tue, 09 Sep 2025 11:45:45 UTC for commit [d3b6c3c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7083606a381c0fa6c1827f354cb44a139df274dd
+[0]: https://github.com/cri-o/cri-o/commit/d3b6c3c910b38baba1f59ec92b8d7969afd3e2ee
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250909035925-c1ee0985ed31 | true   | true             |
+| google.golang.org/protobuf                             | v1.36.8                            | v1.36.9                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250604170112-4c0f3b243397 | v0.0.0-20250820121507-0af2bda4dd1d | true   | true             |
 
 ## All Dependencies
@@ -719,7 +720,7 @@ _Generated on Tue, 09 Sep 2025 07:28:31 UTC for commit [7083606][0]._
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20250825161204-c5933d9347a5    | v0.0.0-20250908214217-97024824d090  | false  | true             |
 | google.golang.org/grpc                                                      | v1.75.0                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                               | v1.5.1                                |                                     | false  | true             |
-| google.golang.org/protobuf                                                  | v1.36.8                               |                                     | true   | true             |
+| google.golang.org/protobuf                                                  | v1.36.8                               | v1.36.9                             | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                           | v1.0.0-20201130134442-10cb98267c6c    |                                     | false  | true             |
 | gopkg.in/evanphx/json-patch.v4                                              | v4.12.0                               | v4.13.0                             | false  | true             |
