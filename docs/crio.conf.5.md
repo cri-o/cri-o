@@ -388,6 +388,10 @@ A mapping of keys to values of annotations set on containers run by this runtime
 Enable the WebSocket protocol for container exec, attach and port forward.
 conmon-rs (`runtime_type = "pod"`) supports this configuration for exec and attach. Forwarding ports will be supported in future releases.
 
+**seccomp_profile**=""
+Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the `crio.runtime` seccomp profile will be used.
+If that is also not specified, then the internal default seccomp profile will be used.
+
 ### CRIO.RUNTIME.WORKLOADS TABLE
 
 The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.
