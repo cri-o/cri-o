@@ -78,8 +78,8 @@ require (
 	k8s.io/api v0.34.0
 	k8s.io/apimachinery v0.34.0
 	k8s.io/client-go v0.34.0
-	k8s.io/cri-api v0.34.0
-	k8s.io/cri-client v0.34.0
+	k8s.io/cri-api v0.35.0-alpha.0.0.20250903045904-5458ccb1136b
+	k8s.io/cri-client v0.31.0-alpha.0.0.20250903050039-254a78a6b94c
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubelet v0.34.0
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
