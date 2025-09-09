@@ -16,10 +16,9 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/grafana/regexp"
 )
 
 const (
