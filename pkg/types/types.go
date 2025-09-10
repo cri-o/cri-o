@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/containers/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 // ContainerInfo stores information about containers.

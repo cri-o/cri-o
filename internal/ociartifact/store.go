@@ -10,15 +10,15 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/common/libimage"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/oci/layout"
-	"github.com/containers/image/v5/pkg/blobinfocache"
-	"github.com/containers/image/v5/types"
 	modelSpec "github.com/modelpack/model-spec/specs-go/v1"
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/common/libimage"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/oci/layout"
+	"go.podman.io/image/v5/pkg/blobinfocache"
+	"go.podman.io/image/v5/types"
 
 	"github.com/cri-o/cri-o/internal/log"
 )

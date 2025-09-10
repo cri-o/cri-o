@@ -3,15 +3,15 @@ package main
 import (
 	"os"
 
-	"github.com/containers/image/v5/copy"
-	"github.com/containers/image/v5/signature"
-	"github.com/containers/image/v5/storage"
-	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/containers/image/v5/types"
-	sstorage "github.com/containers/storage"
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	"go.podman.io/image/v5/copy"
+	"go.podman.io/image/v5/signature"
+	"go.podman.io/image/v5/storage"
+	"go.podman.io/image/v5/transports/alltransports"
+	"go.podman.io/image/v5/types"
+	sstorage "go.podman.io/storage"
+	"go.podman.io/storage/pkg/reexec"
 
 	"github.com/cri-o/cri-o/internal/log"
 )

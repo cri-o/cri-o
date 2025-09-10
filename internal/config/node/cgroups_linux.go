@@ -9,8 +9,8 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/containers/common/pkg/cgroups"
 	libctrcgroups "github.com/opencontainers/cgroups"
+	"go.podman.io/common/pkg/cgroups"
 )
 
 var (

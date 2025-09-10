@@ -7,9 +7,9 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/containers/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/storage"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"

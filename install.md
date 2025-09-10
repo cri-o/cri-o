@@ -328,7 +328,7 @@ make BUILDTAGS='seccomp apparmor'
 | selinux   | selinux process and mount labeling | libselinux |
 | apparmor  | apparmor profile support           |            |
 
-`CRI-O` manages images with [containers/image](https://github.com/containers/image),
+`CRI-O` manages images with [container-libs/image](https://github.com/containers/container-libs/tree/main/image),
 which uses the following buildtags.
 
 <!-- markdownlint-disable MD013 -->
@@ -338,7 +338,7 @@ which uses the following buildtags.
 | containers_image_openpgp     | use native golang pgp instead of cgo        |            |
 | containers_image_ostree_stub | disable use of ostree as an image transport |            |
 
-`CRI-O` also uses [containers/storage](https://github.com/containers/storage) for managing container storage.
+`CRI-O` also uses [container-libs/storage](https://github.com/containers/container-libs/tree/main/storage) for managing container storage.
 
 | Build Tag                   | Feature                             | Dependency |
 | --------------------------- | ----------------------------------- | ---------- |
@@ -454,7 +454,7 @@ registries = []
 
 <!-- markdownlint-enable MD013 -->
 
-For more information about this file see [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md).
+For more information about this file see [registries.conf(5)](https://github.com/containers/container-libs/blob/main/image/docs/containers-registries.conf.5.md).
 
 ### Optional - Modify verbosity of logs
 

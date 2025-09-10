@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/idtools"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )

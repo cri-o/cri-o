@@ -8,7 +8,7 @@ as well as some of the options CRI-O supports for configuring user namespaces.
 ### /etc/sub{g,u}id
 
 To start, the host will have to have `/etc/subuid` and `/etc/subgid` files set correctly.
-By default, the [library CRI-O uses for container storage](https://github.com/containers/storage)
+By default, the [library CRI-O uses for container storage](https://github.com/containers/container-libs/tree/main/storage)
 assumes there will be entries in each of these files for the `containers` user.
 If one would like to have a different user's entries in `/etc/sub?id` files,
 then the field `remap-user` and `remap-group` can be configured in
