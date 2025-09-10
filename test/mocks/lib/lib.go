@@ -12,8 +12,8 @@ package libconfigmock
 import (
 	reflect "reflect"
 
-	storage "github.com/containers/storage"
 	config "github.com/cri-o/cri-o/pkg/config"
+	storage "go.podman.io/storage"
 	gomock "go.uber.org/mock/gomock"
 )
 

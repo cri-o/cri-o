@@ -9,10 +9,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/cgroups"
 	"github.com/opencontainers/cgroups/manager"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/storage/pkg/unshare"
 
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/utils"
