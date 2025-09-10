@@ -25,7 +25,7 @@ func (s *Sysctl) Value() string {
 }
 
 // Sysctls returns the parsed sysctl slice and an error if not parsable
-// Some validation based on https://github.com/containers/common/blob/main/pkg/sysctl/sysctl.go
+// Some validation based on https://go.podman.io/common/blob/main/pkg/sysctl/sysctl.go
 func (c *RuntimeConfig) Sysctls() ([]Sysctl, error) {
 	sysctls := make([]Sysctl, 0, len(c.DefaultSysctls))
 

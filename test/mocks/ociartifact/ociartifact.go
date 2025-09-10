@@ -14,12 +14,12 @@ import (
 	io "io"
 	reflect "reflect"
 
-	libimage "github.com/containers/common/libimage"
-	reference "github.com/containers/image/v5/docker/reference"
-	manifest "github.com/containers/image/v5/manifest"
-	layout "github.com/containers/image/v5/oci/layout"
-	types "github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
+	libimage "go.podman.io/common/libimage"
+	reference "go.podman.io/image/v5/docker/reference"
+	manifest "go.podman.io/image/v5/manifest"
+	layout "go.podman.io/image/v5/oci/layout"
+	types "go.podman.io/image/v5/types"
 	gomock "go.uber.org/mock/gomock"
 )
 

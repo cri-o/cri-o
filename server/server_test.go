@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	cstorage "github.com/containers/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	cstorage "go.podman.io/storage"
 	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/server"
