@@ -93,8 +93,8 @@ func getMockVersionFileContent(version string) []byte {
     "text/tabwriter"
 
     "github.com/blang/semver/v4"
-    "github.com/containers/common/pkg/apparmor"
-    "github.com/containers/common/pkg/seccomp"
+    "go.podman.io/common/pkg/apparmor"
+    "go.podman.io/common/pkg/seccomp"
     "github.com/google/renameio"
     json "github.com/json-iterator/go"
     "github.com/sirupsen/logrus"

@@ -6,9 +6,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/containers/storage/pkg/parsers/kernel"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/parsers/kernel"
 	"golang.org/x/sys/unix"
 )
 
