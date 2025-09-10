@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	common "github.com/containers/common/pkg/capabilities"
 	"github.com/sirupsen/logrus"
+	common "go.podman.io/common/pkg/capabilities"
 )
 
 // Capabilities is the default representation for capabilities.

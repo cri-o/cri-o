@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	cstorage "github.com/containers/storage"
 	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	cstorage "go.podman.io/storage"
 
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/storage"
