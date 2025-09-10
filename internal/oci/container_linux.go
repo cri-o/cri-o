@@ -7,9 +7,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/containers/common/pkg/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/cgroups"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/log"

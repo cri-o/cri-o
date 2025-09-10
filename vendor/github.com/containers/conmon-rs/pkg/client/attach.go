@@ -9,10 +9,10 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/containers/common/pkg/detach"
-	"github.com/containers/common/pkg/resize"
 	"github.com/containers/conmon-rs/internal/proto"
 	"github.com/google/uuid"
+	"go.podman.io/common/pkg/detach"
+	"go.podman.io/common/pkg/resize"
 )
 
 const (

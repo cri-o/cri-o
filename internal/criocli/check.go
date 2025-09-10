@@ -3,9 +3,9 @@ package criocli
 import (
 	"fmt"
 
-	"github.com/containers/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	"go.podman.io/storage"
 
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/utils"

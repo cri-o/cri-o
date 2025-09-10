@@ -8,9 +8,9 @@ import (
 	"io"
 	"os/exec"
 
-	"github.com/containers/storage/pkg/pools"
 	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/pools"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 

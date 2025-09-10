@@ -3,10 +3,10 @@ package storage_test
 import (
 	"context"
 
-	"github.com/containers/image/v5/types"
-	cs "github.com/containers/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/image/v5/types"
+	cs "go.podman.io/storage"
 	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/internal/mockutils"

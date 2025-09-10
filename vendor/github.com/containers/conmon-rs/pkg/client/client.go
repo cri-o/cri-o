@@ -21,11 +21,11 @@ import (
 	"capnproto.org/go/capnp/v3/rpc"
 	"github.com/blang/semver/v4"
 	"github.com/containers/conmon-rs/internal/proto"
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 const (
