@@ -397,3 +397,19 @@ EOF
 
 	crictl pull "$IMAGE_LIST_TAG"
 }
+
+@test "short name mode enabled should fail to pull ambiguous image" {
+	start_crio
+
+	# There should be many nginx images
+	run crictl pull nginx
+	[[ "$output" == *"short name mode is enforcing, but image name nginx returns ambiguous list"* ]]
+	[[ "$status" -ne 0 ]]
+}
+
+@test "short name mode disabled should succeed to pull ambiguous image" {
+	CONTAINER_SHORT_NAME_MODE="disabled" start_crio
+
+	# There should be many nginx images
+	crictl pull nginx
+}

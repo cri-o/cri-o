@@ -513,6 +513,12 @@ The timeout for an image pull to make progress until the pull operation gets can
 This option is whether CRI-O enables OCI Artifact mount.
 If true, CRI-O can mount OCI artifacts as volumes.
 
+**short_name_mode**="enforcing"
+This option describes the short name mode.
+The valid values are "enforcing" and "disabled", and the default is "enforcing".
+If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
+If "disabled", the first result will be chosen.
+
 ## CRIO.NETWORK TABLE
 
 The `crio.network` table containers settings pertaining to the management of CNI plugins.

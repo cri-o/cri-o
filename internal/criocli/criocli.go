@@ -597,6 +597,10 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.Timezone = ctx.String("timezone")
 	}
 
+	if ctx.IsSet("short-name-mode") {
+		config.ShortNameMode = ctx.String("short-name-mode")
+	}
+
 	return nil
 }
 
@@ -1446,6 +1450,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "To set the timezone for a container in CRI-O. If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.",
 			EnvVars: []string{"CONTAINER_TIME_ZONE"},
 			Value:   defConf.Timezone,
+		},
+		&cli.StringFlag{
+			Name:    "short-name-mode",
+			Usage:   "Describes the mode of short name resolution. Allowed values are 'enforcing' and 'disabled'.",
+			EnvVars: []string{"CONTAINER_SHORT_NAME_MODE"},
+			Value:   defConf.ShortNameMode,
 		},
 	}
 }
