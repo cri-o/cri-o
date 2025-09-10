@@ -1215,8 +1215,8 @@ go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/crypto v0.41.0
-## explicit; go 1.23.0
+# golang.org/x/crypto v0.42.0
+## explicit; go 1.24.0
 golang.org/x/crypto/argon2
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
@@ -1247,8 +1247,8 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.27.0
 ## explicit; go 1.23.0
 golang.org/x/mod/semver
-# golang.org/x/net v0.43.0
-## explicit; go 1.23.0
+# golang.org/x/net v0.44.0
+## explicit; go 1.24.0
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -1279,11 +1279,11 @@ golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.34.0
-## explicit; go 1.23.0
+# golang.org/x/term v0.35.0
+## explicit; go 1.24.0
 golang.org/x/term
-# golang.org/x/text v0.28.0
-## explicit; go 1.23.0
+# golang.org/x/text v0.29.0
+## explicit; go 1.24.0
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
@@ -1324,7 +1324,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.75.0
+# google.golang.org/grpc v1.75.1
 ## explicit; go 1.23.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1388,7 +1388,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.8
+# google.golang.org/protobuf v1.36.9
 ## explicit; go 1.23
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
@@ -1444,7 +1444,7 @@ gopkg.in/warnings.v0
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.34.0
+# k8s.io/api v0.34.1
 ## explicit; go 1.24.0
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1alpha1
@@ -1503,7 +1503,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/storagemigration/v1alpha1
-# k8s.io/apimachinery v0.34.0
+# k8s.io/apimachinery v0.34.1
 ## explicit; go 1.24.0
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -1565,10 +1565,10 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.34.0
+# k8s.io/apiserver v0.34.1
 ## explicit; go 1.24.0
 k8s.io/apiserver/pkg/endpoints/responsewriter
-# k8s.io/client-go v0.34.0
+# k8s.io/client-go v0.34.1
 ## explicit; go 1.24.0
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1alpha1
@@ -1706,7 +1706,7 @@ k8s.io/client-go/util/exec
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
-# k8s.io/component-base v0.34.0
+# k8s.io/component-base v0.34.1
 ## explicit; go 1.24.0
 k8s.io/component-base/featuregate
 k8s.io/component-base/logs/logreduction
@@ -1717,12 +1717,12 @@ k8s.io/component-base/metrics/prometheusextension
 k8s.io/component-base/tracing
 k8s.io/component-base/tracing/api/v1
 k8s.io/component-base/version
-# k8s.io/cri-api v0.34.0
+# k8s.io/cri-api v0.34.1
 ## explicit; go 1.24.0
 k8s.io/cri-api/pkg/apis
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
-# k8s.io/cri-client v0.34.0
+# k8s.io/cri-client v0.34.1
 ## explicit; go 1.24.0
 k8s.io/cri-client/pkg
 k8s.io/cri-client/pkg/internal
@@ -1747,7 +1747,7 @@ k8s.io/kube-openapi/pkg/schemaconv
 k8s.io/kube-openapi/pkg/spec3
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/validation/spec
-# k8s.io/kubelet v0.34.0
+# k8s.io/kubelet v0.34.1
 ## explicit; go 1.24.0
 k8s.io/kubelet/pkg/cri/streaming
 k8s.io/kubelet/pkg/cri/streaming/portforward
