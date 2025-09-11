@@ -136,7 +136,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	sourceCtx, err := s.contextForNamespace(pullArgs.namespace)
+	sourceCtx, err := s.contextForNamespace(ctx, pullArgs.namespace)
 	if err != nil {
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
@@ -206,19 +206,25 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 
 // contextForNamespace takes the provided namespace and returns a modifiable
 // copy of the servers system context.
-func (s *Server) contextForNamespace(namespace string) (imageTypes.SystemContext, error) {
-	ctx := *s.config.SystemContext // A shallow copy we can modify
+func (s *Server) contextForNamespace(ctx context.Context, namespace string) (imageTypes.SystemContext, error) {
+	sysCtx := *s.config.SystemContext // A shallow copy we can modify
 
 	if namespace != "" {
 		policyPath := filepath.Join(s.config.SignaturePolicyDir, namespace+".json")
 		if _, err := os.Stat(policyPath); err == nil {
-			ctx.SignaturePolicyPath = policyPath
+			sysCtx.SignaturePolicyPath = policyPath
 		} else if !os.IsNotExist(err) {
-			return ctx, fmt.Errorf("read policy path %s: %w", policyPath, err)
+			return sysCtx, fmt.Errorf("read policy path %s: %w", policyPath, err)
+		}
+
+		authFilePath := filepath.Join(os.TempDir(), namespace+"-auth.json")
+		if _, err := os.Stat(authFilePath); err == nil {
+			log.Infof(ctx, "Using auth file for namespace %s: %s", namespace, authFilePath)
+			sysCtx.AuthFilePath = authFilePath
 		}
 	}
 
-	return ctx, nil
+	return sysCtx, nil
 }
 
 func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) (storage.RegistryImageReference, error) {
