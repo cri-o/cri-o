@@ -10,18 +10,19 @@ import (
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 )
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequest) (*types.StopContainerResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
 
-	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.GetContainerId(), req.GetTimeout())
-
-	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		// The StopContainer RPC is idempotent, and must not return an error if
 		// the container has already been stopped. Ref:
@@ -30,10 +31,10 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 			return &types.StopContainerResponse{}, nil
 		}
 
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
+		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	if err := s.stopContainer(ctx, c, req.GetTimeout()); err != nil {
+	if err := s.stopContainer(ctx, c, req.Timeout); err != nil {
 		return nil, err
 	}
 
@@ -59,13 +60,14 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	if err := s.ContainerServer.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
 		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 	}
+	s.postStopCleanup(ctx, ctr, sb, hooks)
 
+	return nil
+}
+
+func (s *Server) postStopCleanup(ctx context.Context, ctr *oci.Container, sb *sandbox.Sandbox, hooks runtimehandlerhooks.RuntimeHandlerHooks) {
 	if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, ctr.ID()); err != nil {
-		return fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
-	}
-
-	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
-		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
+		log.Errorf(ctx, "Failed to unmount container %s: %v", ctr.ID(), err)
 	}
 
 	if hooks != nil {
@@ -76,8 +78,11 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	}
 
 	if err := s.nri.stopContainer(ctx, sb, ctr); err != nil {
-		return err
+		log.Warnf(ctx, "NRI stop container request of %s failed: %v", ctr.ID(), err)
 	}
-
-	return nil
+	// persist container state at the end, so there's no window where CRI-O reports the container
+	// as stopped, but hasn't run post stop hooks.
+	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
+		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
+	}
 }
