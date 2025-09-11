@@ -813,6 +813,60 @@ var _ = Describe("high_performance_hooks", func() {
 		)
 	})
 
+	Describe("updateNewIRQSMPAffinityMask rollback", func() {
+		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
+		irqSMPAffinityFile := filepath.Join(fixturesDir, "irqsmpaffinity")
+
+		h := &HighPerformanceHooks{
+			irqSMPAffinityFile:   irqSMPAffinityFile,
+			irqBalanceConfigFile: irqBalanceConfigFile,
+		}
+
+		type parameters struct {
+			irqBalanceFileRO           bool
+			originalIRQSMPAffinityMask string
+			expectedIRQSMPAffinityMask string
+		}
+
+		DescribeTable("test rollback",
+			func(p parameters) {
+				err := os.WriteFile(irqSMPAffinityFile, []byte(p.originalIRQSMPAffinityMask), 0o644)
+				Expect(err).ToNot(HaveOccurred())
+
+				if p.irqBalanceFileRO {
+					err = os.Symlink("/proc/version", irqBalanceConfigFile)
+					Expect(err).ToNot(HaveOccurred())
+				} else {
+					err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
+					Expect(err).ToNot(HaveOccurred())
+				}
+
+				_, err = h.updateNewIRQSMPAffinityMask(context.TODO(), "cID", "CName", "2-3", false)
+				if p.irqBalanceFileRO {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				writtenMask, err := os.ReadFile(irqSMPAffinityFile)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(writtenMask)).To(Equal(p.expectedIRQSMPAffinityMask))
+			},
+			Entry("writing IRQ balance file fails",
+				parameters{
+					irqBalanceFileRO:           true,
+					originalIRQSMPAffinityMask: "ffffffff",
+					expectedIRQSMPAffinityMask: "ffffffff",
+				}),
+			Entry("writing IRQ balance file succeeds",
+				parameters{
+					irqBalanceFileRO:           false,
+					originalIRQSMPAffinityMask: "ffffffff",
+					expectedIRQSMPAffinityMask: "fffffff3",
+				}),
+		)
+	})
+
 	Describe("convertAnnotationToLatency", func() {
 		verifyConvertAnnotationToLatency := func(annotation string, expected string, expect_error bool) {
 			latency, err := convertAnnotationToLatency(annotation)
