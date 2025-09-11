@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 10 Sep 2025 19:58:24 UTC for commit [5a8ee8e][0]._
+_Generated on Thu, 11 Sep 2025 18:08:46 UTC for commit [81e69a5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5a8ee8e16e813eafbc4b9cda48e601c1f8647486
+[0]: https://github.com/cri-o/cri-o/commit/81e69a58c7e6ec8699b3bdd8696b1d0e25e32bfb
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250910131133-58259aa5f411 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250911165206-760b465bb056 | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250604170112-4c0f3b243397 | v0.0.0-20250820121507-0af2bda4dd1d | true   | true             |
 
 ## All Dependencies
@@ -191,7 +191,7 @@ _Generated on Wed, 10 Sep 2025 19:58:24 UTC for commit [5a8ee8e][0]._
 | github.com/alibabacloud-go/debug                                            | v1.0.1                                |                                     | false  | true             |
 | github.com/alibabacloud-go/endpoint-util                                    | v1.1.1                                |                                     | false  | true             |
 | github.com/alibabacloud-go/openapi-util                                     | v0.1.1                                |                                     | false  | true             |
-| github.com/alibabacloud-go/tea                                              | v1.3.2                                | v1.3.11                             | false  | true             |
+| github.com/alibabacloud-go/tea                                              | v1.3.2                                | v1.3.12                             | false  | true             |
 | github.com/alibabacloud-go/tea-utils                                        | v1.4.5                                |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-utils/v2                                     | v2.0.7                                |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                          | v1.1.3                                |                                     | false  | true             |
@@ -230,7 +230,7 @@ _Generated on Wed, 10 Sep 2025 19:58:24 UTC for commit [5a8ee8e][0]._
 | github.com/blang/semver                                                     | v3.5.1+incompatible                   |                                     | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                |                                     | true   | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.104.0                            | false  | true             |
+| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.105.0                            | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.13.3                               | v0.15.0                             | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                |                                     | false  | true             |
 | github.com/buildkite/roko                                                   | v1.3.1                                | v1.4.0                              | false  | true             |
@@ -438,7 +438,7 @@ _Generated on Wed, 10 Sep 2025 19:58:24 UTC for commit [5a8ee8e][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250910131133-58259aa5f411  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250911165206-760b465bb056  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -672,7 +672,7 @@ _Generated on Wed, 10 Sep 2025 19:58:24 UTC for commit [5a8ee8e][0]._
 | go.mongodb.org/mongo-driver                                                 | v1.17.3                               | v1.17.4                             | false  | true             |
 | go.mozilla.org/pkcs7                                                        | v0.0.0-20200128120323-432b2356ecb1    | v0.9.0                              | false  | true             |
 | go.opencensus.io                                                            | v0.24.0                               |                                     | false  | true             |
-| go.opentelemetry.io/auto/sdk                                                | v1.1.0                                |                                     | false  | true             |
+| go.opentelemetry.io/auto/sdk                                                | v1.1.0                                | v1.2.0                              | false  | true             |
 | go.opentelemetry.io/contrib/detectors/gcp                                   | v1.36.0                               | v1.38.0                             | false  | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.63.0                               |                                     | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp               | v0.61.0                               | v0.63.0                             | false  | true             |
@@ -694,11 +694,11 @@ _Generated on Wed, 10 Sep 2025 19:58:24 UTC for commit [5a8ee8e][0]._
 | go.uber.org/mock                                                            | v0.6.0                                |                                     | true   | true             |
 | go.uber.org/multierr                                                        | v1.11.0                               |                                     | false  | true             |
 | go.uber.org/zap                                                             | v1.27.0                               |                                     | false  | true             |
-| go.yaml.in/yaml/v2                                                          | v2.4.2                                |                                     | false  | true             |
+| go.yaml.in/yaml/v2                                                          | v2.4.2                                | v2.4.3                              | false  | true             |
 | go.yaml.in/yaml/v3                                                          | v3.0.4                                |                                     | false  | true             |
 | goa.design/goa                                                              | v2.2.5+incompatible                   |                                     | false  | true             |
 | golang.org/x/crypto                                                         | v0.42.0                               |                                     | false  | true             |
-| golang.org/x/exp                                                            | v0.0.0-20250408133849-7e4ce0ab07d0    | v0.0.0-20250819193227-8b4c13bb791b  | false  | true             |
+| golang.org/x/exp                                                            | v0.0.0-20250408133849-7e4ce0ab07d0    | v0.0.0-20250911091902-df9299821621  | false  | true             |
 | golang.org/x/lint                                                           | v0.0.0-20190930215403-16217165b5de    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mod                                                            | v0.27.0                               | v0.28.0                             | false  | true             |
 | golang.org/x/net                                                            | v0.44.0                               |                                     | true   | true             |
