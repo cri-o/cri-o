@@ -748,7 +748,7 @@ func (h *HighPerformanceHooks) handleIRQBalanceOneShot(ctx context.Context, cNam
 }
 
 // updateNewIRQSMPAffinityMask updates SMP IRQ affinity and IRQ balance configuration files.
-func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, cID, cName, cpus string, enable bool) (string, error) {
+func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, cID, cName, cpus string, enable bool) (newIRQBalanceSetting string, err error) {
 	content, err := os.ReadFile(h.irqSMPAffinityFile)
 	if err != nil {
 		return "", err
@@ -771,17 +771,22 @@ func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, 
 		return "", err
 	}
 
+	// Rollback IRQ SMP affinity file to maintain consistency if something goes wrong.
+	defer func() {
+		if err != nil {
+			if rollbackErr := os.WriteFile(h.irqSMPAffinityFile, []byte(originalIRQSMPSetting), 0o644); rollbackErr != nil {
+				log.Errorf(ctx, "Failed to rollback IRQ SMP affinity file after config update failure: err: %q, rollback err: %q",
+					err, rollbackErr)
+			}
+		}
+	}()
+
 	// Nothing else to do if irq balance config file does not exist.
 	if !fileExists(h.irqBalanceConfigFile) {
 		return newIRQBalanceSetting, nil
 	}
 
 	if err := updateIrqBalanceConfigFile(h.irqBalanceConfigFile, newIRQBalanceSetting); err != nil {
-		// Rollback IRQ SMP affinity file to maintain consistency
-		if rollbackErr := os.WriteFile(h.irqSMPAffinityFile, []byte(originalIRQSMPSetting), 0o644); rollbackErr != nil {
-			log.Errorf(ctx, "Failed to rollback IRQ SMP affinity file after config update failure: %v", rollbackErr)
-		}
-
 		return "", err
 	}
 
