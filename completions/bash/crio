@@ -88,6 +88,7 @@ h
 --metrics-socket
 --minimum-mappable-gid
 --minimum-mappable-uid
+--namespaced-auth-dir
 --namespaces-dir
 --no-pivot
 --nri-disable-connections
