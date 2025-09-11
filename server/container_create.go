@@ -1459,7 +1459,7 @@ func configureTimezone(tz, containerRunDir, mountPoint, mountLabel, etcPath, con
 
 // verifyImageSignature verifies the signature of a container image.
 func (s *Server) verifyImageSignature(ctx context.Context, namespace, userSpecifiedImage string, status *storage.ImageResult) error {
-	systemCtx, err := s.contextForNamespace(namespace)
+	systemCtx, err := s.contextForNamespace(ctx, userSpecifiedImage, namespace)
 	if err != nil {
 		return fmt.Errorf("get context for namespace: %w", err)
 	}
