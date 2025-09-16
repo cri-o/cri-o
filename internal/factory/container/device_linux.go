@@ -24,7 +24,9 @@ func getDeviceFileMode(devicePath string) *os.FileMode {
 	if err != nil {
 		return nil
 	}
+
 	mode := stat.Mode()
+
 	return &mode
 }
 
