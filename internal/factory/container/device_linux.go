@@ -19,6 +19,15 @@ import (
 	"github.com/cri-o/cri-o/utils"
 )
 
+func getDeviceFileMode(devicePath string) *os.FileMode {
+	stat, err := os.Stat(devicePath)
+	if err != nil {
+		return nil
+	}
+	mode := stat.Mode()
+	return &mode
+}
+
 func (c *container) SpecAddDevices(configuredDevices, annotationDevices []devicecfg.Device, privilegedWithoutHostDevices, enableDeviceOwnershipFromSecurityContext bool) error {
 	// First, clear the existing devices from the spec
 	c.Spec().Config.Linux.Devices = []rspec.LinuxDevice{}
@@ -64,12 +73,13 @@ func (c *container) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices 
 
 	for _, hostDevice := range hostDevices {
 		rd := rspec.LinuxDevice{
-			Path:  hostDevice.Path,
-			Type:  string(hostDevice.Type),
-			Major: hostDevice.Major,
-			Minor: hostDevice.Minor,
-			UID:   &hostDevice.Uid,
-			GID:   &hostDevice.Gid,
+			Path:     hostDevice.Path,
+			Type:     string(hostDevice.Type),
+			Major:    hostDevice.Major,
+			Minor:    hostDevice.Minor,
+			FileMode: getDeviceFileMode(hostDevice.Path),
+			UID:      &hostDevice.Uid,
+			GID:      &hostDevice.Gid,
 		}
 
 		if hostDevice.Major == 0 && hostDevice.Minor == 0 {
@@ -118,12 +128,13 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 		// if there was no error, return the device
 		if err == nil {
 			rd := rspec.LinuxDevice{
-				Path:  device.GetContainerPath(),
-				Type:  string(dev.Type),
-				Major: dev.Major,
-				Minor: dev.Minor,
-				UID:   getDeviceUserGroupID(c.Config().GetLinux().GetSecurityContext().GetRunAsUser(), dev.Uid, enableDeviceOwnershipFromSecurityContext),
-				GID:   getDeviceUserGroupID(c.Config().GetLinux().GetSecurityContext().GetRunAsGroup(), dev.Gid, enableDeviceOwnershipFromSecurityContext),
+				Path:     device.GetContainerPath(),
+				Type:     string(dev.Type),
+				Major:    dev.Major,
+				Minor:    dev.Minor,
+				FileMode: getDeviceFileMode(path),
+				UID:      getDeviceUserGroupID(c.Config().GetLinux().GetSecurityContext().GetRunAsUser(), dev.Uid, enableDeviceOwnershipFromSecurityContext),
+				GID:      getDeviceUserGroupID(c.Config().GetLinux().GetSecurityContext().GetRunAsGroup(), dev.Gid, enableDeviceOwnershipFromSecurityContext),
 			}
 			c.Spec().AddDevice(rd)
 
@@ -158,12 +169,13 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 
 					cPath := strings.Replace(dpath, path, device.GetContainerPath(), 1)
 					rd := rspec.LinuxDevice{
-						Path:  cPath,
-						Type:  string(childDevice.Type),
-						Major: childDevice.Major,
-						Minor: childDevice.Minor,
-						UID:   &childDevice.Uid,
-						GID:   &childDevice.Gid,
+						Path:     cPath,
+						Type:     string(childDevice.Type),
+						Major:    childDevice.Major,
+						Minor:    childDevice.Minor,
+						FileMode: getDeviceFileMode(dpath),
+						UID:      &childDevice.Uid,
+						GID:      &childDevice.Gid,
 					}
 					c.Spec().AddDevice(rd)
 
