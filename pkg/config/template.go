@@ -1408,6 +1408,9 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 {{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}]
 {{ $.Comment }}activation_annotation = "{{ $workload_config.ActivationAnnotation }}"
 {{ $.Comment }}annotation_prefix = "{{ $workload_config.AnnotationPrefix }}"
+{{ if gt (len $workload_config.AllowedAnnotations) 0 }}{{ $.Comment }}allowed_annotations = [
+{{ range $opt := $workload_config.AllowedAnnotations }}{{ $.Comment }}{{ printf "\t%q," $opt }}
+{{ end }}{{ $.Comment }}]{{ end }}
 {{ if $workload_config.Resources }}{{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}.resources]
 {{ $.Comment }}cpuset = "{{ $workload_config.Resources.CPUSet }}"
 {{ $.Comment }}cpuquota = {{ $workload_config.Resources.CPUQuota }}
