@@ -75,6 +75,9 @@ Location for CRI-O to lay down the clean shutdown file.
 It is used to check whether crio had time to sync before shutting down.
 If not found, crio wipe will clear the storage directory.
 
+**goroutines_monitor**=false
+Enable periodic monitoring of goroutines. CRI-O will monitor goroutine counts every 60 seconds and create stack dumps when the count exceeds 500 goroutines.
+
 ## CRIO.API TABLE
 
 The `crio.api` table contains settings for the kubelet/gRPC interface.
@@ -539,7 +542,7 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 **enable_metrics**=false
 Globally enable or disable metrics support.
 
-**metrics_collectors**=["image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage"]
+**metrics_collectors**=["image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "goroutines_active"]
 Specify enabled metrics collectors. Per default all metrics are enabled.
 
 **metrics_host**="127.0.0.1"

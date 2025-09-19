@@ -186,6 +186,11 @@ type RootConfig struct {
 
 	// InternalRepair is used to repair the affected images.
 	InternalRepair bool `toml:"internal_repair"`
+
+	// GoroutinesMonitor enables periodic monitoring of goroutines.
+	// and automatic stack dumps when thresholds are exceeded.
+	// Uses internal threshold of 500 goroutines and 60-second check interval.
+	GoroutinesMonitor bool `toml:"goroutines_monitor"`
 }
 
 // GetStore returns the container storage for a given configuration.
@@ -975,6 +980,7 @@ func DefaultConfig() (*Config, error) {
 			CleanShutdownFile: CrioCleanShutdownFile,
 			InternalWipe:      true,
 			InternalRepair:    true,
+			GoroutinesMonitor: false,
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,
