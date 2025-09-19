@@ -81,7 +81,7 @@ func (s *Server) CRImportCheckpoint(
 	var restoreArchivePath string
 
 	if restoreStorageImageID != nil {
-		systemCtx, err := s.contextForNamespace(sb.Metadata().GetNamespace())
+		systemCtx, err := s.contextForNamespace(ctx, inputImage, sb.Metadata().GetNamespace())
 		if err != nil {
 			return "", fmt.Errorf("get context for namespace: %w", err)
 		}

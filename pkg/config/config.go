@@ -568,6 +568,18 @@ type ImageConfig struct {
 	// containing credentials necessary for pulling images from secure
 	// registries.
 	GlobalAuthFile string `toml:"global_auth_file"`
+	// NamespacedAuthDir is the root path for pod namespace-separated
+	// auth files, which is intended to be used together with CRI-O's credential provider:
+	// https://github.com/cri-o/credential-provider
+	// The final auth file will be <NAMESPACED_AUTH_DIR>/<NAMESPACE>-<IMAGE_NAME_SHA256>.json.
+	// The image name does not contain any specific tag or digest, only the normalized repository
+	// as well as the image name.
+	// This temporary auth file will be used instead of any configured GlobalAuthFile.
+	// If no pod namespace is being provided on image pull (via the sandbox
+	// config), or the concatenated path is non existent, then the system wide
+	// auth file will be used as fallback.
+	// Must be an absolute path.
+	NamespacedAuthDir string `toml:"namespaced_auth_dir"`
 	// PauseImage is the name of an image on a registry which we use to instantiate infra
 	// containers. It should start with a registry host name.
 	// Format is enforced by validation.
@@ -993,6 +1005,7 @@ func DefaultConfig() (*Config, error) {
 			PullProgressTimeout:     0,
 			OCIArtifactMountSupport: true,
 			ShortNameMode:           "enforcing",
+			NamespacedAuthDir:       "/etc/crio/auth",
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
@@ -1694,8 +1707,19 @@ func validateExecutablePath(executable, currentPath string) (string, error) {
 // Validate is the main entry point for image configuration validation.
 // It returns an error on validation failure, otherwise nil.
 func (c *ImageConfig) Validate(onExecution bool) error {
-	if !filepath.IsAbs(c.SignaturePolicyDir) {
-		return fmt.Errorf("signature policy dir %q is not absolute", c.SignaturePolicyDir)
+	for key, value := range map[string]string{
+		"signature policy": c.SignaturePolicyDir,
+		"namespaced auth":  c.NamespacedAuthDir,
+	} {
+		if !filepath.IsAbs(value) {
+			return fmt.Errorf("%s dir %q is not absolute", key, value)
+		}
+
+		if onExecution {
+			if err := os.MkdirAll(value, 0o755); err != nil {
+				return fmt.Errorf("cannot create %s dir: %w", key, err)
+			}
+		}
 	}
 
 	if _, err := c.ParsePauseImage(); err != nil {
@@ -1706,12 +1730,6 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 	case "enforcing", "disabled", "":
 	default:
 		return fmt.Errorf("invalid short name mode %q", c.ShortNameMode)
-	}
-
-	if onExecution {
-		if err := os.MkdirAll(c.SignaturePolicyDir, 0o755); err != nil {
-			return fmt.Errorf("cannot create signature policy dir: %w", err)
-		}
 	}
 
 	return nil

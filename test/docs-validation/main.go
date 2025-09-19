@@ -33,6 +33,7 @@ var (
 		"workloads",                   // printed as separate table
 		"manage_network_ns_lifecycle", // deprecated
 		"default_validator",           // printed as a separate table
+		"namespaced_auth_dir",         // hidden
 	}
 
 	// Tags where it should not validate the values.
@@ -47,6 +48,7 @@ var (
 	excludedCLI = []string{
 		"workloads", // too complex an option for a CLI flag
 		"default_validator",
+		"namespaced_auth_dir", // hidden
 	}
 
 	// Mapping for inconsistencies between tags and CLI arguments.
