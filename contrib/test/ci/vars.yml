@@ -179,4 +179,4 @@ kata_skip_seccomp_oci_artifacts_tests:
   - 'test "seccomp OCI artifact with missing artifact"'
 
 runc_git_version: main
-crun_git_version: main
+crun_git_version: 1.23.1
