@@ -11,7 +11,7 @@
 
 - name: download parallel sources
   unarchive:
-    src: https://ftp.gnu.org/gnu/parallel/parallel-20190322.tar.bz2
+    src: https://ftpmirror.gnu.org/gnu/parallel/parallel-20190322.tar.bz2
     dest: "{{ ansible_env.HOME }}"
     remote_src: yes
     validate_certs: False
