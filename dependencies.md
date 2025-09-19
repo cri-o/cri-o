@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 19 Sep 2025 12:47:25 UTC for commit [34aa5b8][0]._
+_Generated on Fri, 19 Sep 2025 17:01:07 UTC for commit [f88753a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/34aa5b8d9478b3cd2cea795fb827abcec65eea32
+[0]: https://github.com/cri-o/cri-o/commit/f88753ab2beec2a3296c9161468bdb25a71c5e21
 
 ## Outdated Dependencies
 
@@ -10,6 +10,7 @@ _Generated on Fri, 19 Sep 2025 12:47:25 UTC for commit [34aa5b8][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250918153101-0fb40eda12fc | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250604170112-4c0f3b243397 | v0.0.0-20250820121507-0af2bda4dd1d | true   | true             |
+| sigs.k8s.io/knftables                                  | v0.0.18                            | v0.0.19                            | true   | true             |
 
 ## All Dependencies
 
@@ -393,7 +394,7 @@ _Generated on Fri, 19 Sep 2025 12:47:25 UTC for commit [34aa5b8][0]._
 | github.com/google/go-intervals                                              | v0.0.2                                |                                     | false  | true             |
 | github.com/google/go-querystring                                            | v1.1.0                                |                                     | false  | true             |
 | github.com/google/gofuzz                                                    | v1.2.0                                |                                     | false  | true             |
-| github.com/google/pprof                                                     | v0.0.0-20250820193118-f64d9cf942d6    | v0.0.0-20250903194437-c28834ac2320  | false  | true             |
+| github.com/google/pprof                                                     | v0.0.0-20250820193118-f64d9cf942d6    | v0.0.0-20250919162441-8b542baf5bcf  | false  | true             |
 | github.com/google/renameio                                                  | v1.0.1                                |                                     | true   | true             |
 | github.com/google/s2a-go                                                    | v0.1.9                                |                                     | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                                |                                     | true   | true             |
@@ -748,7 +749,7 @@ _Generated on Fri, 19 Sep 2025 12:47:25 UTC for commit [34aa5b8][0]._
 | k8s.io/utils                                                                | v0.0.0-20250604170112-4c0f3b243397    | v0.0.0-20250820121507-0af2bda4dd1d  | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                     | v0.31.2                               | v0.33.0                             | false  | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20241014173422-cfa47c3a1cc8    | v0.0.0-20250730193827-2d320260d730  | false  | true             |
-| sigs.k8s.io/knftables                                                       | v0.0.18                               |                                     | true   | true             |
+| sigs.k8s.io/knftables                                                       | v0.0.18                               | v0.0.19                             | true   | true             |
 | sigs.k8s.io/randfill                                                        | v1.0.0                                |                                     | false  | true             |
 | sigs.k8s.io/release-sdk                                                     | v0.12.4                               |                                     | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.12.1                               |                                     | true   | true             |
