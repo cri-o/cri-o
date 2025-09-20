@@ -54,8 +54,7 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 			hr.highPerformanceHooks = &HighPerformanceHooks{
 				irqBalanceConfigFile:     hr.config.IrqBalanceConfigFile,
 				cpusetLock:               sync.Mutex{},
-				irqSMPAffinityFileLock:   sync.Mutex{},
-				irqBalanceConfigFileLock: sync.Mutex{},
+				updateIRQSMPAffinityLock: sync.Mutex{},
 				sharedCPUs:               hr.config.SharedCPUSet,
 				irqSMPAffinityFile:       IrqSmpAffinityProcFile,
 				execCPUAffinity:          runtimeConfig.ExecCPUAffinity,
