@@ -65,8 +65,9 @@ type HugetlbStats struct {
 }
 
 type PidsStats struct {
-	Current uint64
-	Limit   uint64
+	Current         uint64
+	Limit           uint64
+	FileDescriptors uint64
 }
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup
