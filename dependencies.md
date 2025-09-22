@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 19 Sep 2025 17:01:07 UTC for commit [f88753a][0]._
+_Generated on Mon, 22 Sep 2025 12:35:26 UTC for commit [47e0b60][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f88753ab2beec2a3296c9161468bdb25a71c5e21
+[0]: https://github.com/cri-o/cri-o/commit/47e0b60d7227f864980ee7dfdd17b3d43bf6cfc6
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250918153101-0fb40eda12fc | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250922120138-16c2dd7c9613 | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250604170112-4c0f3b243397 | v0.0.0-20250820121507-0af2bda4dd1d | true   | true             |
 | sigs.k8s.io/knftables                                  | v0.0.18                            | v0.0.19                            | true   | true             |
 
@@ -439,7 +439,7 @@ _Generated on Fri, 19 Sep 2025 17:01:07 UTC for commit [f88753a][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250918153101-0fb40eda12fc  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250922120138-16c2dd7c9613  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -521,7 +521,7 @@ _Generated on Fri, 19 Sep 2025 17:01:07 UTC for commit [f88753a][0]._
 | github.com/oleiade/reflections                                              | v1.1.0                                |                                     | false  | true             |
 | github.com/olekukonko/errors                                                | v1.1.0                                |                                     | false  | true             |
 | github.com/olekukonko/ll                                                    | v0.0.9                                | v0.1.1                              | false  | true             |
-| github.com/olekukonko/tablewriter                                           | v1.0.9                                |                                     | false  | true             |
+| github.com/olekukonko/tablewriter                                           | v1.0.9                                | v1.1.0                              | false  | true             |
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                     | false  | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.25.3                               |                                     | true   | true             |
 | github.com/onsi/gomega                                                      | v1.38.2                               |                                     | true   | true             |
@@ -568,7 +568,7 @@ _Generated on Fri, 19 Sep 2025 17:01:07 UTC for commit [f88753a][0]._
 | github.com/russross/blackfriday/v2                                          | v2.1.0                                |                                     | false  | true             |
 | github.com/ryanuber/go-glob                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/safchain/ethtool                                                 | v0.6.2                                |                                     | false  | true             |
-| github.com/sagikazarmark/locafero                                           | v0.7.0                                | v0.11.0                             | false  | true             |
+| github.com/sagikazarmark/locafero                                           | v0.7.0                                | v0.12.0                             | false  | true             |
 | github.com/sagikazarmark/slog-shim                                          | v0.1.0                                |                                     | false  | true             |
 | github.com/santhosh-tekuri/jsonschema/v5                                    | v5.3.1                                |                                     | false  | true             |
 | github.com/santhosh-tekuri/jsonschema/v6                                    | v6.0.2                                |                                     | false  | true             |
@@ -661,14 +661,14 @@ _Generated on Fri, 19 Sep 2025 17:01:07 UTC for commit [f88753a][0]._
 | github.com/zeebo/errs                                                       | v1.4.0                                |                                     | false  | true             |
 | github.com/zmap/zcrypto                                                     | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20250830192831-dcac38cad4c0  | false  | true             |
 | github.com/zmap/zlint/v3                                                    | v3.6.4                                | v3.6.7                              | false  | true             |
-| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v0.146.0                            | false  | true             |
+| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v0.147.0                            | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.2                                | v1.4.3                              | false  | true             |
-| go.etcd.io/etcd/api/v3                                                      | v3.6.4                                |                                     | false  | true             |
-| go.etcd.io/etcd/client/pkg/v3                                               | v3.6.4                                |                                     | false  | true             |
-| go.etcd.io/etcd/client/v3                                                   | v3.6.4                                |                                     | false  | true             |
-| go.etcd.io/etcd/pkg/v3                                                      | v3.6.4                                |                                     | false  | true             |
-| go.etcd.io/etcd/server/v3                                                   | v3.6.4                                |                                     | false  | true             |
+| go.etcd.io/etcd/api/v3                                                      | v3.6.4                                | v3.6.5                              | false  | true             |
+| go.etcd.io/etcd/client/pkg/v3                                               | v3.6.4                                | v3.6.5                              | false  | true             |
+| go.etcd.io/etcd/client/v3                                                   | v3.6.4                                | v3.6.5                              | false  | true             |
+| go.etcd.io/etcd/pkg/v3                                                      | v3.6.4                                | v3.6.5                              | false  | true             |
+| go.etcd.io/etcd/server/v3                                                   | v3.6.4                                | v3.6.5                              | false  | true             |
 | go.etcd.io/raft/v3                                                          | v3.6.0                                |                                     | false  | true             |
 | go.mongodb.org/mongo-driver                                                 | v1.17.3                               | v1.17.4                             | false  | true             |
 | go.mozilla.org/pkcs7                                                        | v0.0.0-20200128120323-432b2356ecb1    | v0.9.0                              | false  | true             |
