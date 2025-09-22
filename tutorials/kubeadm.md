@@ -50,7 +50,7 @@ user.private.repo/etcd:3.4.3-0
 user.private.repo/coredns:1.6.7
 ```
 
-The user needs to configure the [registries.conf](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)
+The user needs to configure the [registries.conf](https://github.com/containers/container-libs/blob/main/image/docs/containers-registries.conf.5.md)
 file.
 
 Sample of configurations:

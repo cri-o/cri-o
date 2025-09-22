@@ -3,9 +3,9 @@ package ociartifact
 import (
 	"fmt"
 
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/manifest"
 	critypes "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

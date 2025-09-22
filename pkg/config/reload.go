@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
 	"github.com/cri-o/cri-o/internal/log"
