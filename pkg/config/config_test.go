@@ -930,18 +930,39 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed on execution and writing permissions", func() {
 			// Given
-			sut.SignaturePolicyDir = os.TempDir()
+			signaturePolicyDir := t.MustTempDir("signature-policy-dir-")
+			Expect(os.RemoveAll(signaturePolicyDir)).NotTo(HaveOccurred())
+			sut.SignaturePolicyDir = signaturePolicyDir
+
+			namespacedAuthDir := t.MustTempDir("namespaced-auth-dir-")
+			Expect(os.RemoveAll(namespacedAuthDir)).NotTo(HaveOccurred())
+			sut.NamespacedAuthDir = namespacedAuthDir
 
 			// When
 			err := sut.ImageConfig.Validate(true)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
+			for _, dir := range []string{signaturePolicyDir, namespacedAuthDir} {
+				_, err := os.Stat(dir)
+				Expect(err).NotTo(HaveOccurred())
+			}
 		})
 
 		It("should fail when SignaturePolicyDir is not absolute", func() {
 			// Given
 			sut.SignaturePolicyDir = "./wrong/path"
+
+			// When
+			err := sut.ImageConfig.Validate(false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail when NamespacedAuthDir is not absolute", func() {
+			// Given
+			sut.NamespacedAuthDir = "./wrong/path"
 
 			// When
 			err := sut.ImageConfig.Validate(false)
