@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # The govulncheck version should match supported Go version.
-GOVULNCHECK_VERSION="v1.1.3"
+GOVULNCHECK_VERSION="v1.1.4"
 
 # Install build time dependencies.
 sudo apt-get update

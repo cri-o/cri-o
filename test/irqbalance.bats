@@ -75,6 +75,7 @@ function teardown_serial_test() {
 }
 
 # irqbalance tests have to run in sequence
+# shellcheck disable=SC2218
 @test "irqbalance tests (in sequence)" {
 	irqbalance_cpu_ban_list_save
 	irqbalance_cpu_ban_list_restore_default

@@ -25,7 +25,7 @@ dependencies:
         match: ReleaseMinorVersions
 
   - name: golangci-lint
-    version: v2.2.1
+    version: v2.5.0
     refPaths:
       - path: .github/workflows/verify.yml
         match: GOLANGCI_LINT_VERSION
@@ -33,13 +33,13 @@ dependencies:
         match: GOLANGCI_LINT_VERSION
 
   - name: shellcheck
-    version: v0.10.0
+    version: v0.11.0
     refPaths:
       - path: Makefile
         match: SHELLCHECK_VERSION
 
   - name: cni-plugins
-    version: v1.7.1
+    version: v1.8.0
     refPaths:
       - path: scripts/versions
         match: cni-plugins
@@ -71,7 +71,7 @@ dependencies:
         match: runc
 
   - name: bats
-    version: v1.11.1
+    version: v1.12.0
     refPaths:
       - path: scripts/versions
         match: bats
@@ -85,7 +85,7 @@ dependencies:
         match: ZEITGEIST_VERSION
 
   - name: nix
-    version: 2.25.4
+    version: 2.31.2
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
@@ -101,7 +101,7 @@ dependencies:
         match: RELEASE_NOTES_VERSION
 
   - name: shfmt
-    version: 3.10.0
+    version: 3.12.0
     refPaths:
       - path: Makefile
         match: SHFMT_VERSION
@@ -113,13 +113,13 @@ dependencies:
         match: GO_MOD_OUTDATED_VERSION
 
   - name: govulncheck
-    version: v1.1.3
+    version: v1.1.4
     refPaths:
       - path: hack/govulncheck.sh
         match: GOVULNCHECK_VERSION
 
   - name: gosec
-    version: 2.21.4
+    version: 2.22.8
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
