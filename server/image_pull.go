@@ -16,6 +16,7 @@ import (
 	imageTypes "github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/google/uuid"
 	"github.com/opencontainers/go-digest"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
@@ -138,10 +139,16 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	sourceCtx, err := s.contextForNamespace(ctx, pullArgs.image, pullArgs.namespace)
+	sourceCtx, err := s.contextForNamespace(pullArgs.namespace)
 	if err != nil {
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
+
+	authCleanup, err := s.prepareTempAuthFile(ctx, &sourceCtx, pullArgs.image, pullArgs.namespace)
+	if err != nil {
+		return storage.RegistryImageReference{}, fmt.Errorf("prepare temp auth file: %w", err)
+	}
+	defer authCleanup()
 
 	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
@@ -208,7 +215,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 
 // contextForNamespace takes the provided namespace and returns a modifiable
 // copy of the servers system context.
-func (s *Server) contextForNamespace(ctx context.Context, imageRef, namespace string) (imageTypes.SystemContext, error) {
+func (s *Server) contextForNamespace(namespace string) (imageTypes.SystemContext, error) {
 	sysCtx := *s.config.SystemContext // A shallow copy we can modify
 
 	if namespace != "" {
@@ -218,28 +225,58 @@ func (s *Server) contextForNamespace(ctx context.Context, imageRef, namespace st
 		} else if !os.IsNotExist(err) {
 			return sysCtx, fmt.Errorf("read policy path %s: %w", policyPath, err)
 		}
-
-		// Normalize the image ref to use the same format as the credential provider, see:
-		// https://github.com/kubernetes/kubernetes/blob/6070f5a/pkg/kubelet/images/image_manager.go#L192-L195
-		// which calls into:
-		// https://github.com/kubernetes/kubernetes/blob/6070f5a/pkg/util/parsers/parsers.go#L29-L37
-		image, err := reference.ParseNormalizedNamed(imageRef)
-		if err != nil {
-			return sysCtx, fmt.Errorf("parse image name: %w", err)
-		}
-
-		// Follow the strict format of <NAMESPACE>-<IMAGE_NAME_SHA256>.json to resolve possible auth files.
-		hash := sha256.Sum256([]byte(image.Name()))
-		authFilePath := filepath.Join(s.config.NamespacedAuthDir, fmt.Sprintf("%s-%x.json", namespace, hash))
-		log.Debugf(ctx, "Looking for namespaced auth JSON file in: %s", authFilePath)
-
-		if _, err := os.Stat(authFilePath); err == nil {
-			log.Infof(ctx, "Using auth file for namespace %s: %s", namespace, authFilePath)
-			sysCtx.AuthFilePath = authFilePath
-		}
 	}
 
 	return sysCtx, nil
+}
+
+// prepareTempAuthFile checks is a namespaced auth file is available for the
+// provided imageRef and namespace. If that's the case, then it moves it to a
+// temporary location for singular usage, modifies the provided system context
+// and returns a cleanup function to remove the file if the pull has been done.
+func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.SystemContext, imageRef, namespace string) (cleanup func(), err error) {
+	cleanup = func() {}
+
+	// Normalize the image ref to use the same format as the credential provider, see:
+	// https://github.com/kubernetes/kubernetes/blob/6070f5a/pkg/kubelet/images/image_manager.go#L192-L195
+	// which calls into:
+	// https://github.com/kubernetes/kubernetes/blob/6070f5a/pkg/util/parsers/parsers.go#L29-L37
+	image, err := reference.ParseNormalizedNamed(imageRef)
+	if err != nil {
+		return cleanup, fmt.Errorf("parse image name: %w", err)
+	}
+
+	// Follow the strict format of <NAMESPACE>-<IMAGE_NAME_SHA256>.json to resolve possible auth files.
+	hash := sha256.Sum256([]byte(image.Name()))
+	authFilePath := filepath.Join(s.config.NamespacedAuthDir, fmt.Sprintf("%s-%x.json", namespace, hash))
+	log.Debugf(ctx, "Looking for namespaced auth JSON file in: %s", authFilePath)
+
+	if _, err := os.Stat(authFilePath); err != nil {
+		return cleanup, nil
+	}
+
+	log.Infof(ctx, "Using auth file for namespace %s: %s", namespace, authFilePath)
+
+	inUseAuthDirPath := filepath.Join(s.config.NamespacedAuthDir, "in-use")
+	if err := os.MkdirAll(inUseAuthDirPath, 0o700); err != nil {
+		return cleanup, fmt.Errorf("unable to ensure in-use auth dir: %w", err)
+	}
+
+	tempAuthFilePath := filepath.Join(inUseAuthDirPath, fmt.Sprintf("%s-%x-%s.json", namespace, hash, uuid.New()))
+	if err := os.Rename(authFilePath, tempAuthFilePath); err != nil {
+		return cleanup, fmt.Errorf("unable to move auth file path to temporary location: %w", err)
+	}
+
+	sysCtx.AuthFilePath = tempAuthFilePath
+	cleanup = func() {
+		if err := os.RemoveAll(tempAuthFilePath); err != nil {
+			log.Warnf(ctx, "Unable to remove auth file: %s", tempAuthFilePath)
+		} else {
+			log.Debugf(ctx, "Removed temp auth file: %s", tempAuthFilePath)
+		}
+	}
+
+	return cleanup, nil
 }
 
 func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) (storage.RegistryImageReference, error) {
