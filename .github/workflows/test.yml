@@ -10,7 +10,7 @@ on:
       - nixpkgs
   pull_request:
 env:
-  NIX_VERSION: "2.25.4"
+  NIX_VERSION: "2.31.2"
 permissions:
   contents: read
 jobs:

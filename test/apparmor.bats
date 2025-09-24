@@ -7,7 +7,7 @@ function teardown() {
 }
 
 # AppArmor tests have to run in sequence since they modify the system state
-# shellcheck disable=SC2030
+# shellcheck disable=SC2030,SC2218
 @test "apparmor tests (in sequence)" {
 	if ! is_apparmor_enabled; then
 		skip "apparmor not enabled"

@@ -38,6 +38,7 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 						metricType: types.MetricType_COUNTER,
 					}}
 				}
+
 				metricValues := make(metricValues, 0, len(cpu.PerCPUUsage))
 				for i, value := range cpu.PerCPUUsage {
 					if value > 0 {

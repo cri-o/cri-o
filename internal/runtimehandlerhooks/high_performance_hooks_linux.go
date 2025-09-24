@@ -329,13 +329,13 @@ func shouldIRQLoadBalancingBeDisabled(ctx context.Context, annotations fields.Se
 func shouldCStatesBeConfigured(annotations fields.Set) (present bool, value string) {
 	value, present = annotations[crioannotations.CPUCStatesAnnotation]
 
-	return
+	return present, value
 }
 
 func shouldFreqGovernorBeConfigured(annotations fields.Set) (present bool, value string) {
 	value, present = annotations[crioannotations.CPUFreqGovernorAnnotation]
 
-	return
+	return present, value
 }
 
 func annotationValueDeprecationWarning(annotation string) string {
@@ -1303,12 +1303,12 @@ func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, co
 func calculateMaximalQuota(cpus *cpuset.CPUSet, period uint64) (quota int64, err error) {
 	quan, err := resource.ParseQuantity(strconv.Itoa(cpus.Size()))
 	if err != nil {
-		return
+		return quota, err
 	}
 	// after we divide in milliCPUToCPU, it's safe to convert into int64
 	quota = int64((uint64(quan.MilliValue()) * period) / milliCPUToCPU)
 
-	return
+	return quota, err
 }
 
 func calculatePodQuota(sharedCpus *cpuset.CPUSet, podManager cgroups.Manager, period uint64) (int64, error) {
