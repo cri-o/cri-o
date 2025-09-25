@@ -7,7 +7,11 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/pprof"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/containers/common/pkg/hooks"
@@ -33,11 +37,16 @@ import (
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/utils"
 )
 
 const (
 	probeInterval = 10 * time.Second
 	probeJitter   = probeInterval / 10
+
+	goroutineThreshold     = 500
+	goroutineStackCooldown = 5 * time.Minute
+	goroutineCheckInterval = 60 * time.Second
 )
 
 // ContainerServer implements the ImageServer.
@@ -59,6 +68,8 @@ type ContainerServer struct {
 
 	// monitorCh is used to signal the monitor goroutine to exit.
 	monitorCh chan struct{}
+
+	lastGoroutineStackDumpUnix int64
 }
 
 // Runtime returns the oci runtime for the ContainerServer.
@@ -147,7 +158,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, nil)
 
-	runtime, err := oci.New(config)
+	ociRuntime, err := oci.New(config)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +169,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	}
 
 	c := &ContainerServer{
-		runtime:              runtime,
+		runtime:              ociRuntime,
 		store:                store,
 		storageImageServer:   imageService,
 		storageRuntimeServer: storageRuntimeService,
@@ -180,6 +191,11 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	c.StatsServer = statsserver.New(ctx, c)
 
 	go c.probeMonitorProcesses(ctx)
+
+	// Start goroutine monitoring if enabled.
+	if config.GoroutinesMonitor {
+		go c.monitorGoroutines(ctx)
+	}
 
 	return c, nil
 }
@@ -1025,5 +1041,90 @@ func (c *ContainerServer) probeMonitorProcesses(ctx context.Context) {
 		}
 
 		timer.Reset(probeInterval + time.Duration(rand.Int63n(probeJitter.Nanoseconds())))
+	}
+}
+
+// monitorGoroutines runs a dedicated goroutine monitoring loop.
+func (c *ContainerServer) monitorGoroutines(ctx context.Context) {
+	log.Infof(ctx, "Starting dedicated goroutine monitor (threshold: %d, interval: %v)",
+		goroutineThreshold, goroutineCheckInterval)
+
+	ticker := time.NewTicker(goroutineCheckInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.monitorCh:
+			log.Debugf(ctx, "Goroutine monitor shutting down")
+
+			return
+		case <-ctx.Done():
+			log.Debugf(ctx, "Goroutine monitor shutting down due to context cancellation")
+
+			return
+		case <-ticker.C:
+			c.checkGoroutines(ctx)
+		}
+	}
+}
+
+// checkGoroutines monitors the current goroutine count and takes action if threshold is exceeded.
+func (c *ContainerServer) checkGoroutines(ctx context.Context) {
+	count := runtime.NumGoroutine()
+
+	log.Tracef(ctx, "Current goroutine count: %d (threshold: %d)", count, goroutineThreshold)
+
+	if count > goroutineThreshold {
+		log.WithFields(ctx, logrus.Fields{
+			"goroutine_count": count,
+			"threshold":       goroutineThreshold,
+		}).Warnf("High goroutine count detected: %d goroutines (threshold: %d) - potential deadlock or goroutine leak",
+			count, goroutineThreshold)
+
+		// Only dump stacks if we haven't done so recently to avoid spam.
+		if time.Since(time.Unix(0, atomic.LoadInt64(&c.lastGoroutineStackDumpUnix))) > goroutineStackCooldown {
+			c.dumpGoroutineStacks(ctx, count)
+			atomic.StoreInt64(&c.lastGoroutineStackDumpUnix, time.Now().UnixNano())
+		} else {
+			log.Debugf(ctx, "Skipping goroutine stack dump due to cooldown period")
+		}
+	}
+}
+
+// dumpGoroutineStacks writes goroutine stacks to files for debugging.
+func (c *ContainerServer) dumpGoroutineStacks(ctx context.Context, count int) {
+	// Use the same timestamp format as CRI-O's existing stack dumps
+	timestamp := strings.ReplaceAll(time.Now().Format(time.RFC3339), ":", "")
+
+	textFilename := fmt.Sprintf("crio-high-goroutines-%d-%s.log", count, timestamp)
+	textPath := filepath.Join(os.TempDir(), textFilename)
+
+	if err := utils.WriteGoroutineStacksToFile(textPath); err != nil {
+		log.WithFields(ctx, logrus.Fields{
+			"error": err,
+			"path":  textPath,
+		}).Warnf("Failed to write goroutine stacks to file")
+
+		return
+	}
+
+	pprofFilename := fmt.Sprintf("crio-goroutines-%d-%s.pprof", count, timestamp)
+	pprofPath := filepath.Join(os.TempDir(), pprofFilename)
+
+	if file, err := os.OpenFile(pprofPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o640); err == nil {
+		defer file.Close()
+
+		if err := pprof.Lookup("goroutine").WriteTo(file, 2); err != nil {
+			log.WithFields(ctx, logrus.Fields{
+				"error": err,
+				"path":  pprofPath,
+			}).Warnf("Failed to write pprof goroutine profile")
+		} else {
+			log.WithFields(ctx, logrus.Fields{
+				"goroutine_count": count,
+				"text_dump_file":  textPath,
+				"pprof_file":      pprofPath,
+			}).Infof("Goroutine stacks dumped due to high goroutine count")
+		}
 	}
 }
