@@ -87,11 +87,6 @@ var _ = t.Describe("ImagePull", func() {
 
 		It("should fail when resolve names errors", func() {
 			// Given
-			gomock.InOrder(
-				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
-					gomock.Any(), "").
-					Return(nil, t.TestError),
-			)
 			// When
 			response, err := sut.PullImage(context.Background(),
 				&types.PullImageRequest{})

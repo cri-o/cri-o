@@ -24,6 +24,8 @@ function teardown() {
 
 	grep -q "Looking for namespaced auth JSON file in: .*$IMAGE_SHA256" "$CRIO_LOG"
 	grep -q "Using auth file for namespace $NAMESPACE" "$CRIO_LOG"
+	run ! test -f "$(sed -n 's;.*Removed temp auth file: \(.*\.json\).*;\1;p' "$CRIO_LOG")"
+	[[ $(find "$TESTDIR/auth" -type f) == "" ]]
 }
 
 @test "should fail with invalid credentials" {
@@ -35,14 +37,19 @@ function teardown() {
 	grep -q "Looking for namespaced auth JSON file in: .*$IMAGE_SHA256" "$CRIO_LOG"
 	grep -q "Using auth file for namespace $NAMESPACE" "$CRIO_LOG"
 	grep -q "invalid username/password: unauthorized" "$CRIO_LOG"
+	run ! test -f "$(sed -n 's;.*Removed temp auth file: \(.*\.json\).*;\1;p' "$CRIO_LOG")"
+	[[ $(find "$TESTDIR/auth" -type f) == "" ]]
 }
 
 @test "should not use auth file if namespace does not match" {
-	echo '{}' > "$TESTDIR/auth/$NAMESPACE-$IMAGE_SHA256.json"
+	AUTHFILE="$TESTDIR/auth/$NAMESPACE-$IMAGE_SHA256.json"
+	echo '{}' > "$AUTHFILE"
 	crictl pull --pod-config "$TESTDATA/sandbox_config.json" $IMAGE
 
 	grep -q "Looking for namespaced auth JSON file in: .*$IMAGE_SHA256" "$CRIO_LOG"
 	grep -vq "Using auth file for namespace $NAMESPACE" "$CRIO_LOG"
+	grep -vq "Removed temp auth file:" "$CRIO_LOG"
+	test -f "$AUTHFILE"
 }
 
 @test "should fail to pull if auth file is malformed" {
@@ -54,4 +61,6 @@ function teardown() {
 	grep -q "Looking for namespaced auth JSON file in: .*$IMAGE_SHA256" "$CRIO_LOG"
 	grep -q "Using auth file for namespace $NAMESPACE" "$CRIO_LOG"
 	grep -q "invalid character 'w' looking for beginning of value" "$CRIO_LOG"
+	run ! test -f "$(sed -n 's;.*Removed temp auth file: \(.*\.json\).*;\1;p' "$CRIO_LOG")"
+	[[ $(find "$TESTDIR/auth" -type f) == "" ]]
 }
