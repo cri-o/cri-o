@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 24 Sep 2025 05:43:27 UTC for commit [64b6fc8][0]._
+_Generated on Thu, 25 Sep 2025 07:46:48 UTC for commit [4fb3ffc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/64b6fc8f09711dd842442e8cb993d1f78bcf1265
+[0]: https://github.com/cri-o/cri-o/commit/4fb3ffc46572c9deb3ca51ee2983e5203d381245
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250923211411-38a28b273af4 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250925020345-7c58ec7daa3e | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250604170112-4c0f3b243397 | v0.0.0-20250820121507-0af2bda4dd1d | true   | true             |
 | sigs.k8s.io/knftables                                  | v0.0.18                            | v0.0.19                            | true   | true             |
 | sigs.k8s.io/release-utils                              | v0.12.1                            | v0.12.2                            | true   | true             |
@@ -50,7 +50,7 @@ _Generated on Wed, 24 Sep 2025 05:43:27 UTC for commit [64b6fc8][0]._
 | cloud.google.com/go/clouddms                                                | v1.8.4                                | v1.8.8                              | false  | true             |
 | cloud.google.com/go/cloudtasks                                              | v1.13.3                               | v1.13.7                             | false  | true             |
 | cloud.google.com/go/compute                                                 | v1.34.0                               | v1.47.0                             | false  | true             |
-| cloud.google.com/go/compute/metadata                                        | v0.7.0                                | v0.8.4                              | false  | true             |
+| cloud.google.com/go/compute/metadata                                        | v0.7.0                                | v0.9.0                              | false  | true             |
 | cloud.google.com/go/contactcenterinsights                                   | v1.17.1                               | v1.17.4                             | false  | true             |
 | cloud.google.com/go/container                                               | v1.42.2                               | v1.44.0                             | false  | true             |
 | cloud.google.com/go/containeranalysis                                       | v0.13.3                               | v0.14.1                             | false  | true             |
@@ -220,7 +220,7 @@ _Generated on Wed, 24 Sep 2025 05:43:27 UTC for commit [64b6fc8][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/checksum                      | v1.4.2                                | v1.8.8                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                 | v1.12.16                              | v1.13.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                      | v1.18.2                               | v1.19.8                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/kms                                    | v1.37.8                               | v1.45.4                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/kms                                    | v1.37.8                               | v1.45.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/s3                                     | v1.65.3                               | v1.88.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                    | v1.25.4                               | v1.29.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                | v1.30.2                               | v1.35.0                             | false  | true             |
@@ -361,7 +361,7 @@ _Generated on Wed, 24 Sep 2025 05:43:27 UTC for commit [64b6fc8][0]._
 | github.com/go-openapi/runtime                                               | v0.28.0                               |                                     | false  | true             |
 | github.com/go-openapi/spec                                                  | v0.21.0                               |                                     | false  | true             |
 | github.com/go-openapi/strfmt                                                | v0.23.0                               |                                     | false  | true             |
-| github.com/go-openapi/swag                                                  | v0.23.1                               | v0.24.1                             | false  | true             |
+| github.com/go-openapi/swag                                                  | v0.23.1                               | v0.25.0                             | false  | true             |
 | github.com/go-openapi/validate                                              | v0.24.0                               |                                     | false  | true             |
 | github.com/go-piv/piv-go/v2                                                 | v2.3.0                                | v2.4.0                              | false  | true             |
 | github.com/go-playground/locales                                            | v0.14.1                               |                                     | false  | true             |
@@ -440,7 +440,7 @@ _Generated on Wed, 24 Sep 2025 05:43:27 UTC for commit [64b6fc8][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250923211411-38a28b273af4  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250925020345-7c58ec7daa3e  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
