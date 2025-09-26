@@ -1,5 +1,33 @@
 # ChangeLog
 
+## v0.0.19
+
+- Added the ability to use a single `knftables.Interface` (and a
+  single `knftables.Transaction`) with multiple tables/families. To do
+  this, pass `""` for the family and table name to `knftables.New`,
+  and then manually fill in the `Table` and `Family` fields in all
+  `Object`s you create. (`@danwinship`)
+
+- Added `tx.Destroy()`, corresponding to `nft destroy`. Since `nft
+  destroy` requires a new-ish kernel (6.3) and CLI (1.0.8), there are
+  also two new `knftables.New()` options: `RequireDestroy` if you want
+  construction to fail on older systems, or `EmulateDestroy` if you
+  want knftables to try to emulate "destroy" on older systems, with
+  some limitations. See [README.md](./README.md#destroy-operations)
+  for more details. (`@danwinship`)
+
+- Added `Counter` objects and the `tx.Reset()` verb, to support
+  nftables counters. (`@aroradaman`)
+
+- Added `Table.Flags` and `Chain.Policy`. (Note that at this time the
+  "owner" and "persist" table flags can't usefully be used with
+  knftables, since knftables opens a new connection to the kernel for
+  each transaction and so the table would become un-owned immediately
+  after it was created.) (`@danwinship`)
+
+- Fixed `Fake.ParseDump()` to correctly parse rules with raw payload
+  expressions (`@danwinship`) and `flow add` rules (`hongliangl`).
+
 ## v0.0.18
 
 - Added locking to `Fake` to allow it to be safely used concurrently.
