@@ -155,8 +155,8 @@ func calcIRQSMPAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUM
 	return maskStringWithComma, invertedMaskStringWithComma, nil
 }
 
-func restartIrqBalanceService() error {
-	return cmdrunner.Command("systemctl", "restart", "irqbalance").Run()
+func restartService(serviceName string) error {
+	return cmdrunner.Command("systemctl", "restart", serviceName).Run()
 }
 
 func isServiceEnabled(serviceName string) bool {
