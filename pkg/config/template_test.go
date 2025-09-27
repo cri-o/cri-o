@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"bytes"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -22,6 +23,68 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should include workload allowed_annotations in template output", func() {
+			// Given
+			sut.Workloads = config.Workloads{
+				"test-workload": &config.WorkloadConfig{
+					ActivationAnnotation: "io.test.workload",
+					AnnotationPrefix:     "io.test.prefix",
+					AllowedAnnotations: []string{
+						"io.kubernetes.cri-o.userns-mode",
+						"io.kubernetes.cri-o.umask",
+						"io.kubernetes.cri-o.Devices",
+					},
+				},
+			}
+			var wr bytes.Buffer
+
+			// When
+			err := sut.WriteTemplate(true, &wr)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			output := wr.String()
+			Expect(output).To(ContainSubstring("allowed_annotations = ["))
+			Expect(output).To(ContainSubstring(`"io.kubernetes.cri-o.userns-mode",`))
+			Expect(output).To(ContainSubstring(`"io.kubernetes.cri-o.umask",`))
+			Expect(output).To(ContainSubstring(`"io.kubernetes.cri-o.Devices",`))
+		})
+
+		It("should not include workload allowed_annotations when empty", func() {
+			// Given
+			sut.Workloads = config.Workloads{
+				"test-workload": &config.WorkloadConfig{
+					ActivationAnnotation: "io.test.workload",
+					AnnotationPrefix:     "io.test.prefix",
+					AllowedAnnotations:   []string{},
+				},
+			}
+			var wr bytes.Buffer
+
+			// When
+			err := sut.WriteTemplate(true, &wr)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			output := wr.String()
+
+			// Extract just the workload section to verify allowed_annotations is not present
+			lines := strings.Split(output, "\n")
+			workloadSection := ""
+			inWorkloadSection := false
+			for _, line := range lines {
+				if strings.Contains(line, "[crio.runtime.workloads.test-workload]") {
+					inWorkloadSection = true
+				} else if strings.HasPrefix(line, "[") && inWorkloadSection {
+					break // End of workload section
+				}
+				if inWorkloadSection {
+					workloadSection += line + "\n"
+				}
+			}
+			Expect(workloadSection).ToNot(ContainSubstring("allowed_annotations = ["))
 		})
 	})
 	t.Describe("RuntimesEqual", func() {
