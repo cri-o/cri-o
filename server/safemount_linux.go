@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/cyphar/filepath-securejoin/pathrs-lite"
 	"golang.org/x/sys/unix"
 )
 
@@ -31,7 +31,7 @@ func (s *safeMountInfo) Close() {
 // The caller is responsible for closing the file descriptor and unmounting the subpath
 // when it's no longer needed.
 func safeMountSubPath(mountPoint, subpath, runDir string) (s *safeMountInfo, err error) {
-	file, err := securejoin.OpenInRoot(mountPoint, subpath)
+	file, err := pathrs.OpenInRoot(mountPoint, subpath)
 	if err != nil {
 		return nil, err
 	}
