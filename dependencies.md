@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 30 Sep 2025 10:19:12 UTC for commit [279df6c][0]._
+_Generated on Wed, 01 Oct 2025 07:13:34 UTC for commit [5984e9e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/279df6c2754242adf938b1fa64016f631659d5a5
+[0]: https://github.com/cri-o/cri-o/commit/5984e9edc4d6e7e5e94ba89055bf14b2fb82f8d5
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250930074705-6f45a7f9379b | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250930204510-20c60b21bd7b | true   | true             |
 
 ## All Dependencies
 
@@ -21,7 +21,7 @@ _Generated on Tue, 30 Sep 2025 10:19:12 UTC for commit [279df6c][0]._
 | cloud.google.com/go                                                         | v0.118.3                              | v0.123.0                            | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.3                                | v1.8.7                              | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.3                                | v1.9.6                              | false  | true             |
-| cloud.google.com/go/aiplatform                                              | v1.74.0                               | v1.102.0                            | false  | true             |
+| cloud.google.com/go/aiplatform                                              | v1.74.0                               | v1.103.0                            | false  | true             |
 | cloud.google.com/go/analytics                                               | v0.26.0                               | v0.30.0                             | false  | true             |
 | cloud.google.com/go/apigateway                                              | v1.7.3                                | v1.7.7                              | false  | true             |
 | cloud.google.com/go/apigeeconnect                                           | v1.7.3                                | v1.7.7                              | false  | true             |
@@ -37,7 +37,7 @@ _Generated on Tue, 30 Sep 2025 10:19:12 UTC for commit [279df6c][0]._
 | cloud.google.com/go/baremetalsolution                                       | v1.3.3                                | v1.3.6                              | false  | true             |
 | cloud.google.com/go/batch                                                   | v1.12.0                               | v1.12.2                             | false  | true             |
 | cloud.google.com/go/beyondcorp                                              | v1.1.3                                | v1.1.6                              | false  | true             |
-| cloud.google.com/go/bigquery                                                | v1.66.2                               | v1.70.0                             | false  | true             |
+| cloud.google.com/go/bigquery                                                | v1.66.2                               | v1.71.0                             | false  | true             |
 | cloud.google.com/go/bigtable                                                | v1.35.0                               | v1.40.1                             | false  | true             |
 | cloud.google.com/go/billing                                                 | v1.20.1                               | v1.20.4                             | false  | true             |
 | cloud.google.com/go/binaryauthorization                                     | v1.9.3                                | v1.9.5                              | false  | true             |
@@ -46,7 +46,7 @@ _Generated on Tue, 30 Sep 2025 10:19:12 UTC for commit [279df6c][0]._
 | cloud.google.com/go/cloudbuild                                              | v1.22.0                               | v1.23.0                             | false  | true             |
 | cloud.google.com/go/clouddms                                                | v1.8.4                                | v1.8.8                              | false  | true             |
 | cloud.google.com/go/cloudtasks                                              | v1.13.3                               | v1.13.7                             | false  | true             |
-| cloud.google.com/go/compute                                                 | v1.34.0                               | v1.47.0                             | false  | true             |
+| cloud.google.com/go/compute                                                 | v1.34.0                               | v1.48.0                             | false  | true             |
 | cloud.google.com/go/compute/metadata                                        | v0.7.0                                | v0.9.0                              | false  | true             |
 | cloud.google.com/go/contactcenterinsights                                   | v1.17.1                               | v1.17.4                             | false  | true             |
 | cloud.google.com/go/container                                               | v1.42.2                               | v1.44.0                             | false  | true             |
@@ -437,7 +437,7 @@ _Generated on Tue, 30 Sep 2025 10:19:12 UTC for commit [279df6c][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250930074705-6f45a7f9379b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250930204510-20c60b21bd7b  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -704,14 +704,14 @@ _Generated on Tue, 30 Sep 2025 10:19:12 UTC for commit [279df6c][0]._
 | golang.org/x/oauth2                                                         | v0.30.0                               | v0.31.0                             | false  | true             |
 | golang.org/x/sync                                                           | v0.17.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                            | v0.36.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20250807160809-1a19826ec488    | v0.0.0-20250908211612-aef8a434d053  | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20250807160809-1a19826ec488    | v0.0.0-20250930190813-8e6447515a8c  | false  | true             |
 | golang.org/x/term                                                           | v0.35.0                               |                                     | false  | true             |
 | golang.org/x/text                                                           | v0.29.0                               |                                     | false  | true             |
 | golang.org/x/time                                                           | v0.12.0                               | v0.13.0                             | false  | true             |
 | golang.org/x/tools                                                          | v0.36.0                               | v0.37.0                             | false  | true             |
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.16.0                               |                                     | false  | true             |
-| google.golang.org/api                                                       | v0.242.0                              | v0.250.0                            | false  | true             |
+| google.golang.org/api                                                       | v0.242.0                              | v0.251.0                            | false  | true             |
 | google.golang.org/appengine                                                 | v1.4.0                                | v1.6.8                              | false  | true             |
 | google.golang.org/genproto                                                  | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250929231259-57b25ae835d4  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                   | v0.0.0-20250825161204-c5933d9347a5    | v0.0.0-20250929231259-57b25ae835d4  | false  | true             |
