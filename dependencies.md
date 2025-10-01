@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 01 Oct 2025 12:58:46 UTC for commit [85191e7][0]._
+_Generated on Wed, 01 Oct 2025 18:59:07 UTC for commit [feeac08][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/85191e7c68b0b5b3fecfca48c1591bdd04d8a3e7
+[0]: https://github.com/cri-o/cri-o/commit/feeac080e6e935af44e98d4e7e952149227b84c5
 
 ## Outdated Dependencies
 
@@ -704,7 +704,7 @@ _Generated on Wed, 01 Oct 2025 12:58:46 UTC for commit [85191e7][0]._
 | golang.org/x/oauth2                                                         | v0.30.0                               | v0.31.0                             | false  | true             |
 | golang.org/x/sync                                                           | v0.17.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                            | v0.36.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20250807160809-1a19826ec488    | v0.0.0-20250930190813-8e6447515a8c  | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20250807160809-1a19826ec488    | v0.0.0-20251001141935-4eae98a72453  | false  | true             |
 | golang.org/x/term                                                           | v0.35.0                               |                                     | false  | true             |
 | golang.org/x/text                                                           | v0.29.0                               |                                     | false  | true             |
 | golang.org/x/time                                                           | v0.12.0                               | v0.13.0                             | false  | true             |
