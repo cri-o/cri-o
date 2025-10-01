@@ -27,7 +27,6 @@
       # Waiting for CentOS / RHEL 9 kernel to be fixed.
       # TODO(saschagrunert) remove if https://github.com/cri-o/cri-o/issues/8270 got resolved
       - "[sig-network] KubeProxy should update metric for tracking accepted packets destined for localhost nodeports"
-      - "[FeatureGate:InPlacePodVerticalScaling]"
   set_fact:
     e2e_shell_cmd: >
       DBUS_SESSION_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket" KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
