@@ -46,10 +46,12 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			output := wr.String()
-			Expect(output).To(ContainSubstring("allowed_annotations = ["))
-			Expect(output).To(ContainSubstring(`"io.kubernetes.cri-o.userns-mode",`))
-			Expect(output).To(ContainSubstring(`"io.kubernetes.cri-o.umask",`))
-			Expect(output).To(ContainSubstring(`"io.kubernetes.cri-o.Devices",`))
+			expected := `allowed_annotations = [
+						"io.kubernetes.cri-o.userns-mode",
+						"io.kubernetes.cri-o.umask",
+						"io.kubernetes.cri-o.Devices",
+						]`
+			Expect(output).To(ContainSubstring(expected))
 		})
 
 		It("should not include workload allowed_annotations when empty", func() {
