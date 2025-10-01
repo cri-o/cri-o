@@ -1,9 +1,9 @@
 dependencies:
   - name: go
-    version: 1.24
+    version: 1.25
     refPaths:
       - path: nix/derivation.nix
-        match: buildGo124Module
+        match: buildGo125Module
       - path: go.mod
         match: go
 

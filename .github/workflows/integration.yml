@@ -220,7 +220,9 @@ jobs:
           TEST_USERNS: ${{ matrix.run.userns }}
           CONTAINER_DEFAULT_RUNTIME: ${{ matrix.run.defaultRuntime }}
       # Codecov
-      - run: sudo go tool covdata textfmt -i="$GOCOVERDIR" -o build/coverage/coverprofile
+      - run: |
+          sudo chown -R $(id -u):$(id -g) build
+          go tool covdata textfmt -i="$GOCOVERDIR" -o build/coverage/coverprofile
       - uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.1
         with:
           files: build/coverage/coverprofile
