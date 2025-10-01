@@ -13,6 +13,9 @@ env:
   GOLANGCI_LINT_VERSION: v2.5.0
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
