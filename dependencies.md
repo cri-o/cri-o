@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 01 Oct 2025 07:13:34 UTC for commit [5984e9e][0]._
+_Generated on Wed, 01 Oct 2025 12:58:46 UTC for commit [85191e7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5984e9edc4d6e7e5e94ba89055bf14b2fb82f8d5
+[0]: https://github.com/cri-o/cri-o/commit/85191e7c68b0b5b3fecfca48c1591bdd04d8a3e7
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20250930204510-20c60b21bd7b | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251001123418-285aaad13e42 | true   | true             |
 
 ## All Dependencies
 
@@ -437,7 +437,7 @@ _Generated on Wed, 01 Oct 2025 07:13:34 UTC for commit [5984e9e][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20250930204510-20c60b21bd7b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251001123418-285aaad13e42  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
