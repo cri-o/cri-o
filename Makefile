@@ -66,14 +66,6 @@ SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
 SHELLCHECK_VERSION := v0.11.0
 BATS_FILES := $(wildcard test/*.bats)
 
-ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
-	COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
-	GIT_TREE_STATE := $(if $(shell git status --porcelain --untracked-files=no),dirty,clean)
-else
-	COMMIT_NO := unknown
-	GIT_TREE_STATE := unknown
-endif
-
 # pass crio CLI options to generate custom configuration options at build time
 CONF_OVERRIDES ?=
 
