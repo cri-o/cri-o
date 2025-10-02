@@ -1,15 +1,17 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 02 Oct 2025 10:34:01 UTC for commit [9936691][0]._
+_Generated on Thu, 02 Oct 2025 16:25:48 UTC for commit [b434608][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9936691859542208b6b01e8884b9abf104d79fbc
+[0]: https://github.com/cri-o/cri-o/commit/b434608d592eba9e8a3d0e07383d5706ee6bc576
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251002094049-4b7c1db06495 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251002160513-2693daf503c8 | true   | true             |
+| github.com/onsi/ginkgo/v2                              | v2.25.3                            | v2.26.0                            | true   | true             |
 | google.golang.org/protobuf                             | v1.36.9                            | v1.36.10                           | true   | true             |
+| k8s.io/utils                                           | v0.0.0-20250820121507-0af2bda4dd1d | v0.0.0-20251002143259-bc988d571ff4 | true   | true             |
 
 ## All Dependencies
 
@@ -438,7 +440,7 @@ _Generated on Thu, 02 Oct 2025 10:34:01 UTC for commit [9936691][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251002094049-4b7c1db06495  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251002160513-2693daf503c8  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -522,7 +524,7 @@ _Generated on Thu, 02 Oct 2025 10:34:01 UTC for commit [9936691][0]._
 | github.com/olekukonko/ll                                                    | v0.0.9                                | v0.1.1                              | false  | true             |
 | github.com/olekukonko/tablewriter                                           | v1.1.0                                |                                     | false  | true             |
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                     | false  | true             |
-| github.com/onsi/ginkgo/v2                                                   | v2.25.3                               |                                     | true   | true             |
+| github.com/onsi/ginkgo/v2                                                   | v2.25.3                               | v2.26.0                             | true   | true             |
 | github.com/onsi/gomega                                                      | v1.38.2                               |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                            | v1.4.0                                | v1.9.0                              | false  | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.5                                |                                     | true   | true             |
@@ -745,7 +747,7 @@ _Generated on Thu, 02 Oct 2025 10:34:01 UTC for commit [9936691][0]._
 | k8s.io/kms                                                                  | v0.34.1                               |                                     | false  | true             |
 | k8s.io/kube-openapi                                                         | v0.0.0-20250710124328-f3f2b991d03b    | v0.0.0-20250910181357-589584f1c912  | false  | true             |
 | k8s.io/kubelet                                                              | v0.34.1                               |                                     | true   | true             |
-| k8s.io/utils                                                                | v0.0.0-20250820121507-0af2bda4dd1d    |                                     | true   | true             |
+| k8s.io/utils                                                                | v0.0.0-20250820121507-0af2bda4dd1d    | v0.0.0-20251002143259-bc988d571ff4  | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                     | v0.31.2                               | v0.33.0                             | false  | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20241014173422-cfa47c3a1cc8    | v0.0.0-20250730193827-2d320260d730  | false  | true             |
 | sigs.k8s.io/knftables                                                       | v0.0.19                               |                                     | true   | true             |
