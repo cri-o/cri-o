@@ -18,7 +18,6 @@ import (
 
 	"github.com/containers/kubensmnt"
 	"github.com/containers/storage/pkg/reexec"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
 	"github.com/uptrace/opentelemetry-go-extra/otellogrus"
@@ -348,12 +347,8 @@ func main() {
 		}
 
 		grpcServer := grpc.NewServer(
-			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-				interceptors.UnaryInterceptor(),
-			)),
-			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-				interceptors.StreamInterceptor(),
-			)),
+			grpc.UnaryInterceptor(interceptors.UnaryInterceptor()),
+			grpc.StreamInterceptor(interceptors.StreamInterceptor()),
 			grpc.StatsHandler(otelgrpc.NewServerHandler(opts...)),
 			grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
