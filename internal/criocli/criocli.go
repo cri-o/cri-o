@@ -441,6 +441,10 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.InternalRepair = ctx.Bool("internal-repair")
 	}
 
+	if ctx.IsSet("goroutines-monitor") {
+		config.GoroutinesMonitor = ctx.Bool("goroutines-monitor")
+	}
+
 	if ctx.IsSet("oci-artifact-mount-support") {
 		config.OCIArtifactMountSupport = ctx.Bool("oci-artifact-mount-support")
 	}
@@ -1369,6 +1373,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "If true, CRI-O will check if the container and image storage was corrupted after a sudden restart, and attempt to repair the storage if it was.",
 			EnvVars: []string{"CONTAINER_INTERNAL_REPAIR"},
 			Value:   defConf.InternalRepair,
+		},
+		&cli.BoolFlag{
+			Name:    "goroutines-monitor",
+			Usage:   "Enable periodic monitoring of goroutines. CRI-O will monitor goroutine counts every 60 seconds and create stack dumps when the count exceeds 500 goroutines.",
+			EnvVars: []string{"CONTAINER_GOROUTINES_MONITOR"},
+			Value:   defConf.GoroutinesMonitor,
 		},
 		&cli.BoolFlag{
 			Name:    "oci-artifact-mount-support",
