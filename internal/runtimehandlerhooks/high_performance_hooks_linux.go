@@ -1515,10 +1515,8 @@ func getPodQuotaV2(mng cgroups.Manager) (string, error) {
 }
 
 func injectCpusetEnv(specgen *generate.Generator, isolated, shared *cpuset.CPUSet) {
-	spec := specgen.Config
-	spec.Process.Env = append(spec.Process.Env,
-		fmt.Sprintf("%s=%s", IsolatedCPUsEnvVar, isolated.String()),
-		fmt.Sprintf("%s=%s", SharedCPUsEnvVar, shared.String()))
+	specgen.AddProcessEnv(IsolatedCPUsEnvVar, isolated.String())
+	specgen.AddProcessEnv(SharedCPUsEnvVar, shared.String())
 }
 
 // isRequestedHousekeepingCPUs checks if sandbox annotation "irq-load-balancing.crio.io" equals "housekeeping".

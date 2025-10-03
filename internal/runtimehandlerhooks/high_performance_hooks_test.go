@@ -1182,8 +1182,8 @@ var _ = Describe("high_performance_hooks", func() {
 	Describe("PreCreate Hook", func() {
 		shares := uint64(2048)
 		baseGenerator := func() *generate.Generator {
-			return &generate.Generator{
-				Config: &specs.Spec{
+			g := generate.NewFromSpec(
+				&specs.Spec{
 					Process: &specs.Process{
 						Env: make([]string, 0),
 					},
@@ -1195,7 +1195,9 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				},
-			}
+			)
+
+			return &g
 		}
 
 		buildContainer := func(g *generate.Generator) (*oci.Container, error) {
