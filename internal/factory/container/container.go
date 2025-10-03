@@ -849,7 +849,20 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 	specgen := c.Spec()
 	specgen.SetLinuxResourcesCPUPeriod(uint64(resources.GetCpuPeriod()))
 	specgen.SetLinuxResourcesCPUQuota(resources.GetCpuQuota())
-	specgen.SetLinuxResourcesCPUShares(uint64(resources.GetCpuShares()))
+
+	shares := uint64(resources.GetCpuShares())
+	if shares > 0 {
+		// Always set CPU.Shares for compatibility.
+		specgen.SetLinuxResourcesCPUShares(shares)
+
+		// For cgroup v2, also set cpu.weight via unified interface.
+		if node.CgroupIsV2() {
+			unified := map[string]string{
+				"cpu.weight": convertCPUSharesToCgroupV2Weight(shares),
+			}
+			specgen.SetLinuxResourcesUnified(unified)
+		}
+	}
 
 	memoryLimit := resources.GetMemoryLimitInBytes()
 	if memoryLimit != 0 {
