@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/containers/kubensmnt"
-	"github.com/containers/storage/pkg/reexec"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
@@ -25,6 +24,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
