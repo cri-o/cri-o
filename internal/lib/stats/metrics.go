@@ -93,6 +93,7 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 		},
 		ProcessMetrics: {
 			containerProcesses,
+			containerFileDescriptors,
 		},
 	}
 
