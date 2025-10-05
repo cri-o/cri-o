@@ -241,7 +241,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		}
 	case <-time.After(timeout):
 		if err := r.remove(c.ID(), ""); err != nil {
-			return err
+			return fmt.Errorf("failed to cleanup container after creation timeout has reached: %w", err)
 		}
 
 		<-createdCh
