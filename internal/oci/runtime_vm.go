@@ -220,9 +220,13 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	// Use buffered channel to allow goroutine to complete asynchronously without blocking
 	createdCh := make(chan error, 1)
 
+	// Create a context with timeout for the task creation
+	taskCtx, taskCancel := context.WithTimeout(ctx, timeout)
+	defer taskCancel()
+
 	go func() {
 		// Create the container
-		if resp, err := r.task.Create(r.ctx, request); err != nil {
+		if resp, err := r.task.Create(taskCtx, request); err != nil {
 			createdCh <- errdefs.FromGRPC(err)
 		} else if err := c.state.SetInitPid(int(resp.GetPid())); err != nil {
 			createdCh <- err
