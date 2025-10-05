@@ -61,6 +61,7 @@ type runtimeVM struct {
 	ctx        context.Context
 	client     *ttrpc.Client
 	task       task.TaskService
+	handler    *config.RuntimeHandler
 
 	sync.Mutex
 	ctrs map[string]containerInfo
@@ -103,6 +104,7 @@ func newRuntimeVM(handler *config.RuntimeHandler, exitsPath string) RuntimeImpl 
 		pullImage:  handler.RuntimePullImage,
 		fifoDir:    filepath.Join(handler.RuntimeRoot, "crio", "fifo"),
 		ctx:        context.Background(),
+		handler:    handler,
 		ctrs:       make(map[string]containerInfo),
 	}
 }
@@ -150,6 +152,9 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	// Lock the container
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	// Get the container create timeout for this runtime handler
+	timeout := time.Duration(r.handler.ContainerCreateTimeout) * time.Second
 
 	// Lets ensure we're able to properly get construct the Options
 	// that we'll pass to the ContainerCreateTask, as admins can set
@@ -230,14 +235,14 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		if err != nil {
 			return fmt.Errorf("CreateContainer failed: %w", err)
 		}
-	case <-time.After(ContainerCreateTimeout):
+	case <-time.After(timeout):
 		if err := r.remove(c.ID(), ""); err != nil {
 			return err
 		}
 
 		<-createdCh
 
-		return fmt.Errorf("CreateContainer timeout (%v)", ContainerCreateTimeout)
+		return fmt.Errorf("CreateContainer timeout (%v)", timeout)
 	}
 
 	return nil
