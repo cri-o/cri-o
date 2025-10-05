@@ -110,6 +110,11 @@ func newRuntimeVM(handler *config.RuntimeHandler, exitsPath string) RuntimeImpl 
 	}
 }
 
+// getFIFOPath returns the FIFO path for the container.
+func (r *runtimeVM) getFIFOPath() string {
+	return filepath.Join(r.handler.RuntimeRoot, "crio", "fifo")
+}
+
 func addVolumeMountsToCreateRequest(ctx context.Context, request *task.CreateTaskRequest, c *Container) error {
 	// To make the kata agent pull the image{"volume_type":"image_guest_pull","source":"quay.io/kata-containers/confidential-containers:unsigned","fs_type":"overlayfs","image_pull":{"metadata":{}}}
 	someNameOfTheImageSource := c.Spec().Annotations[annotations.SomeNameOfTheImage]
@@ -163,9 +168,9 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	// fail early if something goes wrong.
 	var opts *anypb.Any = nil
 
-	if r.configPath != "" {
+	if r.handler.RuntimeConfigPath != "" {
 		runtimeOptions := &runtimeoptions.Options{
-			ConfigPath: r.configPath,
+			ConfigPath: r.handler.RuntimeConfigPath,
 		}
 
 		marshaledOtps, err := typeurl.MarshalAny(runtimeOptions)
@@ -181,7 +186,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		return err
 	}
 
-	containerIO, err := r.createContainerIO(ctx, c, cio.WithNewFIFOs(r.fifoDir, c.terminal, c.stdin))
+	containerIO, err := r.createContainerIO(ctx, c, cio.WithNewFIFOs(r.getFIFOPath(), c.terminal, c.stdin))
 	if err != nil {
 		return err
 	}
@@ -211,7 +216,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		Options:  opts,
 	}
 
-	if r.pullImage {
+	if r.handler.RuntimePullImage {
 		err := addVolumeMountsToCreateRequest(ctx, request, c)
 		if err != nil {
 			log.Warnf(ctx, "Failed to add KataVirtualVolume information to CreateContainer: %v", err)
@@ -221,9 +226,13 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	// Use buffered channel to allow goroutine to complete asynchronously without blocking
 	createdCh := make(chan error, 1)
 
+	// Create a context with timeout for the task creation
+	taskCtx, taskCancel := context.WithTimeout(ctx, timeout)
+	defer taskCancel()
+
 	go func() {
 		// Create the container
-		if resp, err := r.task.Create(r.ctx, request); err != nil {
+		if resp, err := r.task.Create(taskCtx, request); err != nil {
 			createdCh <- errdefs.FromGRPC(err)
 		} else if err := c.state.SetInitPid(int(resp.GetPid())); err != nil {
 			createdCh <- err
@@ -268,7 +277,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	cmd, err := client.Command(
 		r.ctx,
 		&client.CommandConfig{
-			Runtime: r.path,
+			Runtime: r.handler.RuntimePath,
 			Path:    c.BundlePath(),
 			Args:    args,
 		},
@@ -473,7 +482,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	}
 
 	// Create IO fifos
-	execIO, err := cio.NewExecIO(c.ID(), r.fifoDir, tty, stdin != nil)
+	execIO, err := cio.NewExecIO(c.ID(), r.getFIFOPath(), tty, stdin != nil)
 	if err != nil {
 		return execError, errdefs.FromGRPC(err)
 	}
@@ -907,7 +916,7 @@ func (r *runtimeVM) restoreContainerIO(ctx context.Context, c *Container, state 
 		Stderr:   state.GetStderr(),
 	}
 	// The existing fifos is created by NewFIFOSetInDir. stdin, stdout, stderr should exist
-	// in a same temporary directory under r.fifoDir. crio is responsible for removing these
+	// in a same temporary directory under the fifo directory. crio is responsible for removing these
 	// files after container io is closed.
 	var iofiles []string
 	if cioCfg.Stdin != "" {
