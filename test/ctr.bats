@@ -166,6 +166,9 @@ function assert_log_linking() {
 	[[ "$output" == "$pod_id" ]]
 
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	# Make sure the GRPC debug log includes the container config.
+	# https://github.com/cri-o/cri-o/pull/9501.
+	wait_for_log "v1\\.CreateContainerRequest.*podsandbox1-redis"
 	output=$(crictl ps --quiet --state created)
 	[[ "$output" == "$ctr_id" ]]
 
