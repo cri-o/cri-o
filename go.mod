@@ -38,7 +38,6 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/renameio v1.0.1
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/intel/goresctrl v0.9.0
 	github.com/json-iterator/go v1.1.12
 	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20250828155603-754f07cff239
