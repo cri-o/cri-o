@@ -1270,6 +1270,10 @@ func isCgroupParentBestEffort(s *sandbox.Sandbox) bool {
 }
 
 func isContainerRequestWholeCPU(cSpec *specs.Spec) bool {
+	if isContainerCPUEmpty(cSpec) || cSpec.Linux.Resources.CPU.Shares == nil {
+		return false
+	}
+
 	return *(cSpec.Linux.Resources.CPU.Shares)%1024 == 0
 }
 
