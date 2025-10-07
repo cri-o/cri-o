@@ -21,6 +21,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
+	cpConfig "github.com/cri-o/crio-credential-provider/pkg/config"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go/features"
@@ -570,10 +571,14 @@ type ImageConfig struct {
 	GlobalAuthFile string `toml:"global_auth_file"`
 	// NamespacedAuthDir is the root path for pod namespace-separated
 	// auth files, which is intended to be used together with CRI-O's credential provider:
-	// https://github.com/cri-o/credential-provider
-	// The final auth file will be <NAMESPACED_AUTH_DIR>/<NAMESPACE>-<IMAGE_NAME_SHA256>.json.
-	// The image name does not contain any specific tag or digest, only the normalized repository
-	// as well as the image name.
+	// https://github.com/cri-o/crio-credential-provider
+	// The namespaced auth file will be <NAMESPACED_AUTH_DIR>/<NAMESPACE>-<IMAGE_NAME_SHA256>.json,
+	// where CRI-O moves them into a dedicated location to mark them as "used" during image pull:
+	// <NAMESPACED_AUTH_DIR>/in-use/<NAMESPACE>-<IMAGE_NAME_SHA256>-<UUID>.json
+	// Note that image name provided to the credential provider does not
+	// contain any specific tag or digest, only the normalized repository
+	// as well as the image name, which can cause races if the same image
+	// prefix get's pulled on a single node.
 	// This temporary auth file will be used instead of any configured GlobalAuthFile.
 	// If no pod namespace is being provided on image pull (via the sandbox
 	// config), or the concatenated path is non existent, then the system wide
@@ -1005,7 +1010,7 @@ func DefaultConfig() (*Config, error) {
 			PullProgressTimeout:     0,
 			OCIArtifactMountSupport: true,
 			ShortNameMode:           "enforcing",
-			NamespacedAuthDir:       "/etc/crio/auth",
+			NamespacedAuthDir:       cpConfig.AuthDir,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
