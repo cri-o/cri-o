@@ -774,7 +774,16 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(*sut.Spec().Config.Linux.Resources.CPU.Period).To(Equal(uint64(resources.GetCpuPeriod())))
 			Expect(*sut.Spec().Config.Linux.Resources.CPU.Quota).To(Equal(resources.GetCpuQuota()))
-			Expect(*sut.Spec().Config.Linux.Resources.CPU.Shares).To(Equal(uint64(resources.GetCpuShares())))
+
+			if sut.Spec().Config.Linux.Resources.CPU.Shares != nil {
+				Expect(*sut.Spec().Config.Linux.Resources.CPU.Shares).To(Equal(uint64(resources.GetCpuShares())))
+			} else {
+				// For cgroup v2, check if cpu.weight is set in unified cgroups
+				if sut.Spec().Config.Linux.Resources.Unified != nil {
+					Expect(sut.Spec().Config.Linux.Resources.Unified).To(HaveKey("cpu.weight"))
+				}
+			}
+
 			Expect(*sut.Spec().Config.Process.OOMScoreAdj).To(Equal(int(resources.GetOomScoreAdj())))
 			Expect(sut.Spec().Config.Linux.Resources.CPU.Cpus).To(Equal(resources.GetCpusetCpus()))
 			Expect(sut.Spec().Config.Linux.Resources.CPU.Mems).To(Equal(resources.GetCpusetMems()))

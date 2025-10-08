@@ -1,8 +1,10 @@
 package container
 
 import (
+	"strconv"
 	"strings"
 
+	"github.com/opencontainers/cgroups"
 	"github.com/opencontainers/selinux/go-selinux"
 
 	"github.com/cri-o/cri-o/utils"
@@ -38,4 +40,11 @@ func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 	}
 
 	return ret, nil
+}
+
+// convertCPUSharesToCgroupV2Weight converts CPU shares to cgroup v2 weight using OCI standard conversion.
+func convertCPUSharesToCgroupV2Weight(shares uint64) string {
+	weight := cgroups.ConvertCPUSharesToCgroupV2Value(shares)
+
+	return strconv.FormatUint(weight, 10)
 }
