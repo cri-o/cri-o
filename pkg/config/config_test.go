@@ -1780,4 +1780,102 @@ var _ = t.Describe("Config", func() {
 			Expect(ok).To(BeTrue())
 		})
 	})
+
+	t.Describe("ValidateContainerCreateTimeout", func() {
+		It("should set default timeout when not configured", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			// When
+			handler.ValidateContainerCreateTimeout("test-runtime")
+
+			// Then
+			Expect(handler.ContainerCreateTimeout).To(Equal(int64(240)))
+		})
+
+		It("should use configured timeout when valid", func() {
+			// Given
+			handler := &config.RuntimeHandler{
+				ContainerCreateTimeout: 600, // 10 minutes
+			}
+
+			// When
+			handler.ValidateContainerCreateTimeout("test-runtime")
+
+			// Then
+			Expect(handler.ContainerCreateTimeout).To(Equal(int64(600)))
+		})
+
+		It("should set minimum timeout when below minimum", func() {
+			// Given
+			handler := &config.RuntimeHandler{
+				ContainerCreateTimeout: 15, // Below minimum of 30
+			}
+
+			// When
+			handler.ValidateContainerCreateTimeout("test-runtime")
+
+			// Then
+			Expect(handler.ContainerCreateTimeout).To(Equal(int64(30)))
+		})
+
+		It("should allow minimum timeout", func() {
+			// Given
+			handler := &config.RuntimeHandler{
+				ContainerCreateTimeout: 30, // Exactly minimum
+			}
+
+			// When
+			handler.ValidateContainerCreateTimeout("test-runtime")
+
+			// Then
+			Expect(handler.ContainerCreateTimeout).To(Equal(int64(30)))
+		})
+
+		It("should handle zero timeout by setting default", func() {
+			// Given
+			handler := &config.RuntimeHandler{
+				ContainerCreateTimeout: 0,
+			}
+
+			// When
+			handler.ValidateContainerCreateTimeout("test-runtime")
+
+			// Then
+			Expect(handler.ContainerCreateTimeout).To(Equal(int64(240)))
+		})
+
+		It("should handle negative timeout by setting minimum", func() {
+			// Given
+			handler := &config.RuntimeHandler{
+				ContainerCreateTimeout: -10,
+			}
+
+			// When
+			handler.ValidateContainerCreateTimeout("test-runtime")
+
+			// Then
+			Expect(handler.ContainerCreateTimeout).To(Equal(int64(30)))
+		})
+
+		It("should set different timeouts for different runtime handlers", func() {
+			// Given
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath:            validFilePath,
+				ContainerCreateTimeout: 300, // 5 minutes for OCI runtime
+			}
+			sut.Runtimes["kata"] = &config.RuntimeHandler{
+				RuntimePath:            validFilePath,
+				ContainerCreateTimeout: 600, // 10 minutes for VM runtime
+			}
+
+			// When
+			err := sut.ValidateRuntimes()
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.Runtimes[config.DefaultRuntime].ContainerCreateTimeout).To(Equal(int64(300)))
+			Expect(sut.Runtimes["kata"].ContainerCreateTimeout).To(Equal(int64(600)))
+		})
+	})
 })
