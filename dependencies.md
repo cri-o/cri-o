@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 08 Oct 2025 16:52:03 UTC for commit [aff681b][0]._
+_Generated on Wed, 08 Oct 2025 19:42:15 UTC for commit [612ea98][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/aff681b2855781b23039134afbe88f34e387d65f
+[0]: https://github.com/cri-o/cri-o/commit/612ea98d68d9406d817523a936400f16b7d61715
 
 ## Outdated Dependencies
 
@@ -79,7 +79,7 @@ _Generated on Wed, 08 Oct 2025 16:52:03 UTC for commit [aff681b][0]._
 | cloud.google.com/go/gkehub                                                  | v0.15.3                               | v0.16.0                             | false  | true             |
 | cloud.google.com/go/gkemulticloud                                           | v1.5.1                                | v1.5.4                              | false  | true             |
 | cloud.google.com/go/gsuiteaddons                                            | v1.7.4                                | v1.7.8                              | false  | true             |
-| cloud.google.com/go/iam                                                     | v1.4.0                                | v1.5.2                              | false  | true             |
+| cloud.google.com/go/iam                                                     | v1.4.0                                | v1.5.3                              | false  | true             |
 | cloud.google.com/go/iap                                                     | v1.10.3                               | v1.11.3                             | false  | true             |
 | cloud.google.com/go/ids                                                     | v1.5.3                                | v1.5.7                              | false  | true             |
 | cloud.google.com/go/iot                                                     | v1.8.3                                | v1.8.7                              | false  | true             |
@@ -93,7 +93,7 @@ _Generated on Wed, 08 Oct 2025 16:52:03 UTC for commit [aff681b][0]._
 | cloud.google.com/go/mediatranslation                                        | v0.9.3                                | v0.9.7                              | false  | true             |
 | cloud.google.com/go/memcache                                                | v1.11.3                               | v1.11.7                             | false  | true             |
 | cloud.google.com/go/metastore                                               | v1.14.3                               | v1.14.8                             | false  | true             |
-| cloud.google.com/go/monitoring                                              | v1.24.0                               | v1.24.2                             | false  | true             |
+| cloud.google.com/go/monitoring                                              | v1.24.0                               | v1.24.3                             | false  | true             |
 | cloud.google.com/go/networkconnectivity                                     | v1.16.1                               | v1.19.1                             | false  | true             |
 | cloud.google.com/go/networkmanagement                                       | v1.18.0                               | v1.20.1                             | false  | true             |
 | cloud.google.com/go/networksecurity                                         | v0.10.3                               | v0.10.7                             | false  | true             |
@@ -705,7 +705,7 @@ _Generated on Wed, 08 Oct 2025 16:52:03 UTC for commit [aff681b][0]._
 | go.yaml.in/yaml/v2                                                          | v2.4.2                                | v2.4.3                              | false  | true             |
 | go.yaml.in/yaml/v3                                                          | v3.0.4                                |                                     | false  | true             |
 | goa.design/goa                                                              | v2.2.5+incompatible                   |                                     | false  | true             |
-| golang.org/x/crypto                                                         | v0.42.0                               |                                     | false  | true             |
+| golang.org/x/crypto                                                         | v0.42.0                               | v0.43.0                             | false  | true             |
 | golang.org/x/exp                                                            | v0.0.0-20250408133849-7e4ce0ab07d0    | v0.0.0-20251002181428-27f1f14c8bb9  | false  | true             |
 | golang.org/x/lint                                                           | v0.0.0-20190313153728-d0100b6bd8b3    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mod                                                            | v0.27.0                               | v0.29.0                             | false  | true             |
