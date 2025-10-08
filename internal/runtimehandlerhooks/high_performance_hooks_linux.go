@@ -39,26 +39,28 @@ const (
 )
 
 const (
-	annotationTrue       = "true"
-	annotationDisable    = "disable"
-	annotationEnable     = "enable"
-	schedDomainDir       = "/proc/sys/kernel/sched_domain"
-	cgroupMountPoint     = "/sys/fs/cgroup"
-	irqBalanceBannedCpus = "IRQBALANCE_BANNED_CPUS"
-	irqBalancedName      = "irqbalance"
-	sysCPUDir            = "/sys/devices/system/cpu"
-	sysCPUSaveDir        = "/var/run/crio/cpu"
-	milliCPUToCPU        = 1000
+	annotationTrue         = "true"
+	annotationDisable      = "disable"
+	annotationEnable       = "enable"
+	annotationHousekeeping = "housekeeping"
+	schedDomainDir         = "/proc/sys/kernel/sched_domain"
+	cgroupMountPoint       = "/sys/fs/cgroup"
+	irqBalanceBannedCpus   = "IRQBALANCE_BANNED_CPUS"
+	irqBalancedName        = "irqbalance"
+	sysCPUDir              = "/sys/devices/system/cpu"
+	sysCPUSaveDir          = "/var/run/crio/cpu"
+	milliCPUToCPU          = 1000
 )
 
 const (
-	cgroupSubTreeControl = "cgroup.subtree_control"
-	cgroupV1QuotaFile    = "cpu.cfs_quota_us"
-	cgroupV2QuotaFile    = "cpu.max"
-	cpusetCpus           = "cpuset.cpus"
-	cpusetCpusExclusive  = "cpuset.cpus.exclusive"
-	IsolatedCPUsEnvVar   = "OPENSHIFT_ISOLATED_CPUS"
-	SharedCPUsEnvVar     = "OPENSHIFT_SHARED_CPUS"
+	cgroupSubTreeControl   = "cgroup.subtree_control"
+	cgroupV1QuotaFile      = "cpu.cfs_quota_us"
+	cgroupV2QuotaFile      = "cpu.max"
+	cpusetCpus             = "cpuset.cpus"
+	cpusetCpusExclusive    = "cpuset.cpus.exclusive"
+	IsolatedCPUsEnvVar     = "OPENSHIFT_ISOLATED_CPUS"
+	SharedCPUsEnvVar       = "OPENSHIFT_SHARED_CPUS"
+	HousekeepingCPUsEnvVar = "OPENSHIFT_HOUSEKEEPING_CPUS"
 )
 
 // ServiceManager interface for managing system services.
@@ -112,10 +114,20 @@ type HighPerformanceHooks struct {
 	sharedCPUs               string
 	execCPUAffinity          config.ExecCPUAffinityType
 	irqSMPAffinityFile       string
+	sysCPUDir                string
 }
 
 func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
 	log.Infof(ctx, "Run %q runtime handler pre-create hook for the container %q", HighPerformance, c.ID())
+
+	// Catch any nil pointer issues here. Neither c nor specgen should ever be empty.
+	if c == nil {
+		return errors.New("PreCreate received empty container")
+	}
+
+	if specgen == nil {
+		return errors.New("PreCreate received empty specgen")
+	}
 
 	if !shouldRunHooks(ctx, c.ID(), specgen.Config, s) {
 		return nil
@@ -127,9 +139,7 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		err             error
 	)
 
-	if !isContainerCPUsSpecEmpty(specgen.Config) {
-		cpusString := specgen.Config.Linux.Resources.CPU.Cpus
-
+	if cpusString := getContainerCPUsFromSpec(specgen.Config); cpusString != "" {
 		exclusiveCPUSet, err = cpuset.Parse(cpusString)
 		if err != nil {
 			return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
@@ -154,6 +164,17 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		// because in the PreStart stage the process is already constructed.
 		// by the low-level runtime and the environment variables are already finalized.
 		injectCpusetEnv(specgen, &exclusiveCPUSet, &sharedCPUSet)
+	}
+
+	housekeepingSiblings, err := h.getHousekeepingCPUs(specgen.Config, s.Annotations())
+	if err != nil {
+		return err
+	}
+
+	if !housekeepingSiblings.IsEmpty() {
+		if err := injectHousekeepingEnv(specgen, housekeepingSiblings); err != nil {
+			return err
+		}
 	}
 
 	return h.setExecCPUAffinity(ctx, specgen, &exclusiveCPUSet, &sharedCPUSet)
@@ -236,7 +257,12 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
 
-		if err := h.setIRQLoadBalancing(ctx, c, false); err != nil {
+		housekeepingSiblings, err := h.getHousekeepingCPUs(&cSpec, s.Annotations())
+		if err != nil {
+			return err
+		}
+
+		if err := h.setIRQLoadBalancing(ctx, c, housekeepingSiblings, false); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
 	}
@@ -330,7 +356,7 @@ func (h *HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s
 	if shouldRunHooks(ctx, c.ID(), &cSpec, s) {
 		// enable the IRQ smp balancing for the container CPUs
 		if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
-			if err := h.setIRQLoadBalancing(ctx, c, true); err != nil {
+			if err := h.setIRQLoadBalancing(ctx, c, cpuset.CPUSet{}, true); err != nil {
 				return fmt.Errorf("set IRQ load balancing: %w", err)
 			}
 		}
@@ -368,7 +394,8 @@ func shouldIRQLoadBalancingBeDisabled(ctx context.Context, annotations fields.Se
 	}
 
 	return annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue ||
-		annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationDisable
+		annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationDisable ||
+		annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationHousekeeping
 }
 
 func shouldCStatesBeConfigured(annotations fields.Set) (present bool, value string) {
@@ -670,14 +697,17 @@ func disableCPULoadBalancingV1(containerManagers []cgroups.Manager) error {
 // setIRQLoadBalancing configures interrupt load balancing for container CPUs by updating
 // the IRQ SMP affinity mask and IRQ balance service configuration. It then handles IRQ balance restart.
 // When enable is false (= container added), removes container CPUs from interrupt handling to reduce latency;
-// when true (= container removed), restores them.
+// when true (= container removed), restores them. If cpuset housekeepingSiblings is not empty then it will be excluded
+// from the list of container CPUs before taking any action.
 // The entire function after reading IRQ SMP affinity must be wrapped inside a single lock to avoid race conditions.
 // The reason for this is that once we read from the SMP IRQ affinity file, we have to calculate new masks and
 // write those masks to /proc/irq/default_smp_affinity and /etc/sysconfig/irqbalance.
 // We also must restart irqbalance or run irqbalance --oneshot within the same lock.
 // Without this lock, 2 threads could read from the file and calculate the new mask but overwrite the
 // results of each other, or start irbalance --oneshot with different values.
-func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool) error {
+func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.Container,
+	housekeepingSiblings cpuset.CPUSet, enable bool,
+) error {
 	lspec := c.Spec().Linux
 	if lspec == nil ||
 		lspec.Resources == nil ||
@@ -686,10 +716,15 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 		return fmt.Errorf("find container %s CPUs", c.ID())
 	}
 
+	cpuSet, err := excludeHousekeepingCPUs(lspec.Resources.CPU.Cpus, housekeepingSiblings)
+	if err != nil {
+		return err
+	}
+
 	h.updateIRQSMPAffinityLock.Lock()
 	defer h.updateIRQSMPAffinityLock.Unlock()
 
-	newIRQBalanceSetting, err := h.updateNewIRQSMPAffinityMask(ctx, c.ID(), c.Name(), lspec.Resources.CPU.Cpus, enable)
+	newIRQBalanceSetting, err := h.updateNewIRQSMPAffinityMask(ctx, c.ID(), c.Name(), cpuSet, enable)
 	if err != nil {
 		return err
 	}
@@ -748,7 +783,9 @@ func (h *HighPerformanceHooks) handleIRQBalanceOneShot(ctx context.Context, cNam
 }
 
 // updateNewIRQSMPAffinityMask updates SMP IRQ affinity and IRQ balance configuration files.
-func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, cID, cName, cpus string, enable bool) (newIRQBalanceSetting string, err error) {
+func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, cID, cName string,
+	cpus cpuset.CPUSet, enable bool,
+) (newIRQBalanceSetting string, err error) {
 	content, err := os.ReadFile(h.irqSMPAffinityFile)
 	if err != nil {
 		return "", err
@@ -1233,6 +1270,10 @@ func isCgroupParentBestEffort(s *sandbox.Sandbox) bool {
 }
 
 func isContainerRequestWholeCPU(cSpec *specs.Spec) bool {
+	if isContainerCPUEmpty(cSpec) || cSpec.Linux.Resources.CPU.Shares == nil {
+		return false
+	}
+
 	return *(cSpec.Linux.Resources.CPU.Shares)%1024 == 0
 }
 
@@ -1277,11 +1318,11 @@ func convertAnnotationToLatency(annotation string) (maxLatency string, err error
 
 func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, sharedCPUs string) ([]cgroups.Manager, error) {
 	cSpec := c.Spec()
-	if isContainerCPUsSpecEmpty(&cSpec) {
+
+	cpusString := getContainerCPUsFromSpec(&cSpec)
+	if cpusString == "" {
 		return nil, fmt.Errorf("no cpus found for container %q", c.Name())
 	}
-
-	cpusString := cSpec.Linux.Resources.CPU.Cpus
 
 	exclusiveCPUs, err := cpuset.Parse(cpusString)
 	if err != nil {
@@ -1341,11 +1382,18 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 	return containerManagers, nil
 }
 
-func isContainerCPUsSpecEmpty(spec *specs.Spec) bool {
-	return spec.Linux == nil ||
+func isContainerCPUEmpty(spec *specs.Spec) bool {
+	return spec == nil || spec.Linux == nil ||
 		spec.Linux.Resources == nil ||
-		spec.Linux.Resources.CPU == nil ||
-		spec.Linux.Resources.CPU.Cpus == ""
+		spec.Linux.Resources.CPU == nil
+}
+
+func getContainerCPUsFromSpec(spec *specs.Spec) string {
+	if isContainerCPUEmpty(spec) {
+		return ""
+	}
+
+	return spec.Linux.Resources.CPU.Cpus
 }
 
 func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, sharedCPUs string) error {
@@ -1467,8 +1515,92 @@ func getPodQuotaV2(mng cgroups.Manager) (string, error) {
 }
 
 func injectCpusetEnv(specgen *generate.Generator, isolated, shared *cpuset.CPUSet) {
-	spec := specgen.Config
-	spec.Process.Env = append(spec.Process.Env,
-		fmt.Sprintf("%s=%s", IsolatedCPUsEnvVar, isolated.String()),
-		fmt.Sprintf("%s=%s", SharedCPUsEnvVar, shared.String()))
+	specgen.AddProcessEnv(IsolatedCPUsEnvVar, isolated.String())
+	specgen.AddProcessEnv(SharedCPUsEnvVar, shared.String())
+}
+
+// isRequestedHousekeepingCPUs checks if sandbox annotation "irq-load-balancing.crio.io" equals "housekeeping".
+func isRequestedHousekeepingCPUs(annotations fields.Set) bool {
+	return annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationHousekeeping
+}
+
+// getHousekeepingCPUs determines which CPUs should be preserved for housekeeping tasks.
+// When housekeeping mode is enabled, it returns the thread siblings of the first container CPU.
+// These CPUs will continue to handle interrupts while other container CPUs are isolated.
+func (h *HighPerformanceHooks) getHousekeepingCPUs(containerSpec *specs.Spec, annotations map[string]string) (cpuset.CPUSet, error) {
+	if !isRequestedHousekeepingCPUs(annotations) {
+		return cpuset.CPUSet{}, nil
+	}
+
+	cpus := getContainerCPUsFromSpec(containerSpec)
+
+	set, err := cpuset.Parse(cpus)
+	if err != nil {
+		return cpuset.CPUSet{}, err
+	}
+
+	if set.IsEmpty() {
+		return cpuset.CPUSet{}, nil
+	}
+
+	housekeepingSiblings, err := getThreadSiblings(set.List()[0], h.sysCPUDir)
+	if err != nil {
+		return cpuset.CPUSet{}, fmt.Errorf("could not get thread siblings for first core, err: %w", err)
+	}
+
+	// By using the intersection, we make sure that we only return thread siblings that actually live inside the
+	// container.
+	return set.Intersection(housekeepingSiblings), nil
+}
+
+// excludeHousekeepingCPUs parses a CPU string and removes housekeeping CPUs from the set.
+// This returns the CPUs that should be isolated from interrupt handling.
+func excludeHousekeepingCPUs(cpus string, housekeepingSiblings cpuset.CPUSet) (cpuset.CPUSet, error) {
+	set, err := cpuset.Parse(cpus)
+	if err != nil {
+		return cpuset.CPUSet{}, err
+	}
+
+	return set.Difference(housekeepingSiblings), nil
+}
+
+// injectHousekeepingEnv adds the OPENSHIFT_HOUSEKEEPING_CPUS environment variable to the container.
+// This allows the container to be aware of which CPUs are designated for housekeeping tasks.
+func injectHousekeepingEnv(specgen *generate.Generator, housekeeping cpuset.CPUSet) error {
+	if specgen == nil {
+		return errors.New("specgen is nil, specgen")
+	}
+
+	specgen.AddProcessEnv(HousekeepingCPUsEnvVar, housekeeping.String())
+
+	return nil
+}
+
+// getThreadSiblings returns thread siblings for the given CPU by reading
+// currentSysCPUDir/cpuX/topology/thread_siblings_list. The returned set includes the original input CPU.
+func getThreadSiblings(cpu int, sysCPUDir string) (cpuset.CPUSet, error) {
+	originalCPUSet := cpuset.New(cpu)
+
+	siblingsFile := filepath.Join(sysCPUDir, fmt.Sprintf("cpu%d", cpu), "topology", "thread_siblings_list")
+
+	content, err := os.ReadFile(siblingsFile)
+	if err != nil {
+		// If the file doesn't exist, this CPU has no siblings (or is not hyperthreaded),
+		// so return the original CPU.
+		return originalCPUSet, nil
+	}
+
+	siblingsStr := strings.TrimSpace(string(content))
+
+	cpuSiblings, err := cpuset.Parse(siblingsStr)
+	if err != nil {
+		return cpuset.New(), fmt.Errorf("failed to parse thread siblings %q for CPU %d: %w", siblingsStr, cpu, err)
+	}
+
+	// If the content of the siblings file yields an empty CPU set, we return the original CPU's set.
+	if cpuSiblings.IsEmpty() {
+		return originalCPUSet, nil
+	}
+
+	return cpuSiblings, nil
 }

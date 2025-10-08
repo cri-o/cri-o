@@ -58,6 +58,7 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 				sharedCPUs:               hr.config.SharedCPUSet,
 				irqSMPAffinityFile:       IrqSmpAffinityProcFile,
 				execCPUAffinity:          runtimeConfig.ExecCPUAffinity,
+				sysCPUDir:                sysCPUDir,
 			}
 		}
 
