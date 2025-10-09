@@ -614,6 +614,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.MetricsKey, c.MetricsKey),
 		},
 		{
+			templateString: templateStringCrioGoroutinesMonitor,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.GoroutinesMonitor, c.GoroutinesMonitor),
+		},
+		{
 			templateString: templateStringCrioTracingEnableTracing,
 			group:          crioTracingConfig,
 			isDefaultValue: simpleEqual(dc.EnableTracing, c.EnableTracing),
@@ -1615,6 +1620,12 @@ const templateStringCrioMetricsMetricsCert = `# The certificate for the secure m
 const templateStringCrioMetricsMetricsKey = `# The certificate key for the secure metrics server.
 # Behaves in the same way as the metrics_cert.
 {{ $.Comment }}metrics_key = "{{ .MetricsKey }}"
+
+`
+
+const templateStringCrioGoroutinesMonitor = `# Enable periodic monitoring of goroutines. CRI-O will monitor goroutine counts
+# every 60 seconds and create stack dumps when the count exceeds 500 goroutines.
+{{ $.Comment }}goroutines_monitor = {{ .GoroutinesMonitor }}
 
 `
 

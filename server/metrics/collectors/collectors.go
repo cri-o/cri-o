@@ -66,6 +66,9 @@ const (
 
 	// ContainersStoppedMonitorCount is the key for the containers whose monitor is stopped per container name.
 	ContainersStoppedMonitorCount Collector = crioPrefix + "containers_stopped_monitor_count"
+
+	// GoroutinesActive is the key for the number of active goroutines in CRI-O.
+	GoroutinesActive Collector = crioPrefix + "goroutines_active"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -107,6 +110,7 @@ func All() Collectors {
 		ContainersSeccompNotifierCountTotal.Stripped(),
 		ResourcesStalledAtStage.Stripped(),
 		ContainersStoppedMonitorCount.Stripped(),
+		GoroutinesActive.Stripped(),
 	}
 }
 

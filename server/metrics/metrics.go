@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -82,6 +83,7 @@ type Metrics struct {
 	metricContainersSeccompNotifierCountTotal *prometheus.CounterVec
 	metricResourcesStalledAtStage             *prometheus.CounterVec
 	metricContainersStoppedMonitorCount       *prometheus.CounterVec
+	metricGoroutinesActive                    prometheus.GaugeFunc
 }
 
 var instance *Metrics
@@ -247,6 +249,16 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Amount of containers whose monitor process has exited by their name",
 			},
 			[]string{"name"},
+		),
+		metricGoroutinesActive: prometheus.NewGaugeFunc(
+			prometheus.GaugeOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.GoroutinesActive.String(),
+				Help:      "Number of active goroutines in CRI-O",
+			},
+			func() float64 {
+				return float64(runtime.NumGoroutine())
+			},
 		),
 	}
 
@@ -466,6 +478,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ProcessesDefunct:                    m.metricProcessesDefunct,
 		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
 		collectors.ContainersStoppedMonitorCount:       m.metricContainersStoppedMonitorCount,
+		collectors.GoroutinesActive:                    m.metricGoroutinesActive,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())
