@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	imageTypes "github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
+	"github.com/cri-o/crio-credential-provider/pkg/auth"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/google/uuid"
 	"github.com/opencontainers/go-digest"
@@ -144,11 +144,13 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
 
-	authCleanup, err := s.prepareTempAuthFile(ctx, &sourceCtx, pullArgs.image, pullArgs.namespace)
-	if err != nil {
-		return storage.RegistryImageReference{}, fmt.Errorf("prepare temp auth file: %w", err)
+	if pullArgs.namespace != "" {
+		authCleanup, err := s.prepareTempAuthFile(ctx, &sourceCtx, pullArgs.image, pullArgs.namespace)
+		if err != nil {
+			return storage.RegistryImageReference{}, fmt.Errorf("prepare temp auth file: %w", err)
+		}
+		defer authCleanup()
 	}
-	defer authCleanup()
 
 	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
@@ -241,14 +243,27 @@ func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.Sys
 	// https://github.com/kubernetes/kubernetes/blob/6070f5a/pkg/kubelet/images/image_manager.go#L192-L195
 	// which calls into:
 	// https://github.com/kubernetes/kubernetes/blob/6070f5a/pkg/util/parsers/parsers.go#L29-L37
+	//
+	// This can cause (for our use case acceptable) races, if multiple images
+	// with the same prefix are pulled on the same node, for example:
+	// registry.local/image:latest and registry.local/image:tag will both
+	// resolve to the image.Name(): registry.local/image
+	// This could lead into the credential provider writing just a single temp
+	// auth file instead of two, while CRI-O would be just able to take one
+	// during the pull, causing the other image pull to fail. If that happens,
+	// then the backoff of the kubelet should re-initiate the pull cycle by
+	// calling the credential provider again and writing a new auth file.
 	image, err := reference.ParseNormalizedNamed(imageRef)
 	if err != nil {
 		return cleanup, fmt.Errorf("parse image name: %w", err)
 	}
 
 	// Follow the strict format of <NAMESPACE>-<IMAGE_NAME_SHA256>.json to resolve possible auth files.
-	hash := sha256.Sum256([]byte(image.Name()))
-	authFilePath := filepath.Join(s.config.NamespacedAuthDir, fmt.Sprintf("%s-%x.json", namespace, hash))
+	authFilePath, err := auth.FilePath(s.config.NamespacedAuthDir, namespace, image.Name())
+	if err != nil {
+		return cleanup, fmt.Errorf("get auth file path: %w", err)
+	}
+
 	log.Debugf(ctx, "Looking for namespaced auth JSON file in: %s", authFilePath)
 
 	if _, err := os.Stat(authFilePath); err != nil {
@@ -257,13 +272,26 @@ func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.Sys
 
 	log.Infof(ctx, "Using auth file for namespace %s: %s", namespace, authFilePath)
 
+	removeAuthFilePath := func() {
+		if err := os.RemoveAll(authFilePath); err != nil {
+			log.Errorf(ctx, "Unable to remove auth file path due to error in temp auth file prep: %v", err)
+		}
+	}
+
 	inUseAuthDirPath := filepath.Join(s.config.NamespacedAuthDir, "in-use")
 	if err := os.MkdirAll(inUseAuthDirPath, 0o700); err != nil {
+		removeAuthFilePath()
+
 		return cleanup, fmt.Errorf("unable to ensure in-use auth dir: %w", err)
 	}
 
-	tempAuthFilePath := filepath.Join(inUseAuthDirPath, fmt.Sprintf("%s-%x-%s.json", namespace, hash, uuid.New()))
+	ext := filepath.Ext(authFilePath)
+	newAuthFileName := fmt.Sprintf("%s-%s%s", strings.TrimSuffix(filepath.Base(authFilePath), ext), uuid.New(), ext)
+
+	tempAuthFilePath := filepath.Join(inUseAuthDirPath, newAuthFileName)
 	if err := os.Rename(authFilePath, tempAuthFilePath); err != nil {
+		removeAuthFilePath()
+
 		return cleanup, fmt.Errorf("unable to move auth file path to temporary location: %w", err)
 	}
 
