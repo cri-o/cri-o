@@ -53,14 +53,11 @@ import (
 // runtimeVM is the Runtime interface implementation that is more appropriate
 // for VM based container runtimes.
 type runtimeVM struct {
-	path       string
-	fifoDir    string
-	configPath string
-	exitsPath  string
-	pullImage  bool
-	ctx        context.Context
-	client     *ttrpc.Client
-	task       task.TaskService
+	exitsPath string
+	ctx       context.Context
+	client    *ttrpc.Client
+	task      task.TaskService
+	handler   *config.RuntimeHandler
 
 	sync.Mutex
 	ctrs map[string]containerInfo
@@ -97,13 +94,10 @@ func newRuntimeVM(handler *config.RuntimeHandler, exitsPath string) RuntimeImpl 
 	typeurl.Register(&rspec.WindowsResources{}, prefix, "opencontainers/runtime-spec", major, "WindowsResources")
 
 	return &runtimeVM{
-		path:       handler.RuntimePath,
-		configPath: handler.RuntimeConfigPath,
-		exitsPath:  exitsPath,
-		pullImage:  handler.RuntimePullImage,
-		fifoDir:    filepath.Join(handler.RuntimeRoot, "crio", "fifo"),
-		ctx:        context.Background(),
-		ctrs:       make(map[string]containerInfo),
+		exitsPath: exitsPath,
+		ctx:       context.Background(),
+		handler:   handler,
+		ctrs:      make(map[string]containerInfo),
 	}
 }
 
@@ -151,15 +145,18 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	// Get the container create timeout for this runtime handler
+	timeout := time.Duration(r.handler.ContainerCreateTimeout) * time.Second
+
 	// Lets ensure we're able to properly get construct the Options
 	// that we'll pass to the ContainerCreateTask, as admins can set
 	// the runtime_config_path to an arbitrary location.  Also, lets
 	// fail early if something goes wrong.
 	var opts *anypb.Any = nil
 
-	if r.configPath != "" {
+	if r.handler.RuntimeConfigPath != "" {
 		runtimeOptions := &runtimeoptions.Options{
-			ConfigPath: r.configPath,
+			ConfigPath: r.handler.RuntimeConfigPath,
 		}
 
 		marshaledOtps, err := typeurl.MarshalAny(runtimeOptions)
@@ -175,7 +172,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		return err
 	}
 
-	containerIO, err := r.createContainerIO(ctx, c, cio.WithNewFIFOs(r.fifoDir, c.terminal, c.stdin))
+	containerIO, err := r.createContainerIO(ctx, c, cio.WithNewFIFOs(filepath.Join(r.handler.RuntimeRoot, "crio", "fifo"), c.terminal, c.stdin))
 	if err != nil {
 		return err
 	}
@@ -205,7 +202,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		Options:  opts,
 	}
 
-	if r.pullImage {
+	if r.handler.RuntimePullImage {
 		err := addVolumeMountsToCreateRequest(ctx, request, c)
 		if err != nil {
 			log.Warnf(ctx, "Failed to add KataVirtualVolume information to CreateContainer: %v", err)
@@ -214,9 +211,13 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 
 	createdCh := make(chan error)
 
+	// Create a context with timeout for the task creation
+	taskCtx, taskCancel := context.WithTimeout(ctx, timeout)
+	defer taskCancel()
+
 	go func() {
 		// Create the container
-		if resp, err := r.task.Create(r.ctx, request); err != nil {
+		if resp, err := r.task.Create(taskCtx, request); err != nil {
 			createdCh <- errdefs.FromGRPC(err)
 		} else if err := c.state.SetInitPid(int(resp.GetPid())); err != nil {
 			createdCh <- err
@@ -230,14 +231,14 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		if err != nil {
 			return fmt.Errorf("CreateContainer failed: %w", err)
 		}
-	case <-time.After(ContainerCreateTimeout):
+	case <-time.After(timeout):
 		if err := r.remove(c.ID(), ""); err != nil {
-			return err
+			return fmt.Errorf("failed to cleanup container after creation timeout has reached: %w", err)
 		}
 
 		<-createdCh
 
-		return fmt.Errorf("CreateContainer timeout (%v)", ContainerCreateTimeout)
+		return fmt.Errorf("CreateContainer timeout (%v)", timeout)
 	}
 
 	return nil
@@ -263,7 +264,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	cmd, err := client.Command(
 		r.ctx,
 		&client.CommandConfig{
-			Runtime: r.path,
+			Runtime: r.handler.RuntimePath,
 			Path:    c.BundlePath(),
 			Args:    args,
 		},
@@ -468,7 +469,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	}
 
 	// Create IO fifos
-	execIO, err := cio.NewExecIO(c.ID(), r.fifoDir, tty, stdin != nil)
+	execIO, err := cio.NewExecIO(c.ID(), filepath.Join(r.handler.RuntimeRoot, "crio", "fifo"), tty, stdin != nil)
 	if err != nil {
 		return execError, errdefs.FromGRPC(err)
 	}
@@ -902,7 +903,7 @@ func (r *runtimeVM) restoreContainerIO(ctx context.Context, c *Container, state 
 		Stderr:   state.GetStderr(),
 	}
 	// The existing fifos is created by NewFIFOSetInDir. stdin, stdout, stderr should exist
-	// in a same temporary directory under r.fifoDir. crio is responsible for removing these
+	// in a same temporary directory under the fifo directory. crio is responsible for removing these
 	// files after container io is closed.
 	var iofiles []string
 	if cioCfg.Stdin != "" {

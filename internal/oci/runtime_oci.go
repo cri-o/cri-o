@@ -110,6 +110,9 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		return nil
 	}
 
+	// Get the container create timeout for this runtime handler
+	timeout := time.Duration(r.handler.ContainerCreateTimeout) * time.Second
+
 	var stderrBuf bytes.Buffer
 
 	parentPipe, childPipe, err := newPipe()
@@ -330,8 +333,8 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 			return errors.New("container create failed")
 		}
-	case <-time.After(ContainerCreateTimeout):
-		log.Errorf(ctx, "Container creation timeout (%v)", ContainerCreateTimeout)
+	case <-time.After(timeout):
+		log.Errorf(ctx, "Container creation timeout (%v)", timeout)
 
 		return errors.New("create container timeout")
 	}
