@@ -144,6 +144,8 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
 
+	log.Infof(ctx, "Using pull args: %+v", pullArgs)
+
 	if pullArgs.namespace != "" {
 		authCleanup, err := s.prepareTempAuthFile(ctx, &sourceCtx, pullArgs.image, pullArgs.namespace)
 		if err != nil {
