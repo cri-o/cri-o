@@ -67,8 +67,7 @@ var _ = t.Describe("Image", func() {
 				SystemRegistriesConfPath: t.MustTempFile("registries"),
 			},
 			ImageConfig: config.ImageConfig{
-				DefaultTransport:   "docker://",
-				InsecureRegistries: []string{},
+				DefaultTransport: "docker://",
 			},
 		}
 
@@ -104,8 +103,7 @@ var _ = t.Describe("Image", func() {
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
 				ImageConfig: config.ImageConfig{
-					DefaultTransport:   "",
-					InsecureRegistries: []string{},
+					DefaultTransport: "",
 				},
 			}
 			imageService, err := storage.GetImageService(
@@ -283,8 +281,7 @@ var _ = t.Describe("Image", func() {
 			config := &config.Config{
 				SystemContext: ctx,
 				ImageConfig: config.ImageConfig{
-					DefaultTransport:   "",
-					InsecureRegistries: []string{},
+					DefaultTransport: "",
 				},
 			}
 			// Create an empty file for the registries config path

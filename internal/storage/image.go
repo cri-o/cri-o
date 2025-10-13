@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"regexp"
 	"sort"
@@ -71,11 +70,6 @@ type ImageResult struct {
 	MountPoint          string
 }
 
-type indexInfo struct {
-	name   string
-	secure bool
-}
-
 // A set of information that we prefer to cache about images, so that we can
 // avoid having to reread them every time we need to return information about
 // images.
@@ -92,9 +86,7 @@ type imageCache map[string]imageCacheItem
 
 // WARNING: All of imageLookupService must be JSON-representable because it is included in pullImageArgs.
 type imageLookupService struct {
-	DefaultTransport      string
-	InsecureRegistryCIDRs []*net.IPNet
-	IndexConfigs          map[string]*indexInfo
+	DefaultTransport string
 }
 
 type imageService struct {
@@ -854,10 +846,6 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		srcSystemContext = *options.SourceCtx // A shallow copy
 	}
 
-	if secure := lookup.isSecureIndex(imageName.Registry()); !secure {
-		srcSystemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
-	}
-
 	destRef, err := istorage.Transport.NewStoreReference(store, imageName.Raw(), "")
 	if err != nil {
 		return RegistryImageReference{}, err
@@ -950,41 +938,6 @@ func (svc *imageService) GetStore() storage.Store {
 	return svc.store
 }
 
-func (svc *imageLookupService) isSecureIndex(indexName string) bool {
-	if index, ok := svc.IndexConfigs[indexName]; ok {
-		return index.secure
-	}
-
-	host, _, err := net.SplitHostPort(indexName)
-	if err != nil {
-		// assume indexName is of the form `host` without the port and go on.
-		host = indexName
-	}
-
-	addrs, err := net.LookupIP(host)
-	if err != nil {
-		ip := net.ParseIP(host)
-		// if ip == nil, then `host` is neither an IP nor it could be looked up,
-		// either because the index is unreachable, or because the index is behind an HTTP proxy.
-		// So, len(addrs) == 0 and we're not aborting.
-		if ip != nil {
-			addrs = []net.IP{ip}
-		}
-	}
-
-	// Try CIDR notation only if addrs has any elements, i.e. if `host`'s IP could be determined.
-	for _, addr := range addrs {
-		for _, ipnet := range svc.InsecureRegistryCIDRs {
-			// check if the addr falls in the subnet
-			if ipnet.Contains(addr) {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
 // HeuristicallyTryResolvingStringAsIDPrefix checks if heuristicInput could be a valid image ID or a prefix, and returns
 // a StorageImageID if so, or nil if the input can be something else.
 // DO NOT CALL THIS from in-process callers who know what their input is and don't NEED to involve heuristics.
@@ -1063,9 +1016,7 @@ func GetImageService(ctx context.Context, store storage.Store, storageTransport 
 	}
 
 	ils := &imageLookupService{
-		DefaultTransport:      serverConfig.DefaultTransport,
-		IndexConfigs:          make(map[string]*indexInfo),
-		InsecureRegistryCIDRs: make([]*net.IPNet, 0),
+		DefaultTransport: serverConfig.DefaultTransport,
 	}
 	// add the sandbox/pause image configured by the user (if any) to the list of pinned_images.
 	if serverConfig.PauseImage != "" {
@@ -1083,24 +1034,7 @@ func GetImageService(ctx context.Context, store storage.Store, storageTransport 
 	}
 
 	if len(serverConfig.InsecureRegistries) > 0 {
-		log.Warnf(ctx, "Insecure registries option is deprecated and will not have any effect in a future release")
-	}
-
-	serverConfig.InsecureRegistries = append(serverConfig.InsecureRegistries, "127.0.0.0/8")
-	// Split --insecure-registry into CIDR and registry-specific settings.
-	for _, r := range serverConfig.InsecureRegistries {
-		// Check if CIDR was passed to --insecure-registry
-		_, ipnet, err := net.ParseCIDR(r)
-		if err == nil {
-			// Valid CIDR.
-			is.lookup.InsecureRegistryCIDRs = append(is.lookup.InsecureRegistryCIDRs, ipnet)
-		} else {
-			// Assume `host:port` if not CIDR.
-			is.lookup.IndexConfigs[r] = &indexInfo{
-				name:   r,
-				secure: false,
-			}
-		}
+		log.Errorf(ctx, "Insecure registries option is deprecated and no longer effective. Please use `insecure` in `registries.conf` instead.")
 	}
 
 	return is, nil

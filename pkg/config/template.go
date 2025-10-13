@@ -1509,7 +1509,7 @@ const templateStringCrioImageSignaturePolicyDir = `# Root path for pod namespace
 const templateStringCrioImageInsecureRegistries = `# List of registries to skip TLS verification for pulling images. Please
 # consider configuring the registries via /etc/containers/registries.conf before
 # changing them here.
-# This option is deprecated. Use registries.conf file instead.
+# This option is deprecated and no longer effective. Use registries.conf file instead.
 {{ $.Comment }}insecure_registries = [
 {{ range $opt := .InsecureRegistries }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
