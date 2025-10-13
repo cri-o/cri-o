@@ -13,7 +13,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	imageTypes "github.com/containers/image/v5/types"
-	encconfig "github.com/containers/ocicrypt/config"
+	encconfig "github.com/containers/ocicrypt/config" zp
 	"github.com/cri-o/crio-credential-provider/pkg/auth"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/google/uuid"
@@ -143,6 +143,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	if err != nil {
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
+	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	if pullArgs.namespace != "" {
 		authCleanup, err := s.prepareTempAuthFile(ctx, &sourceCtx, pullArgs.image, pullArgs.namespace)
@@ -156,8 +157,6 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	if pullArgs.credentials.Username != "" {
 		sourceCtx.DockerAuthConfig = &pullArgs.credentials
 	}
-
-	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	decryptConfig, err := getDecryptionKeys(s.config.DecryptionKeysPath)
 	if err != nil {
