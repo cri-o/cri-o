@@ -47,10 +47,11 @@ func ConnectRuntime() (*runtime, error) {
 
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-		grpc.FailOnNonTempDialError(true),
+		grpc.WithBlock(),                  //nolint:staticcheck // use it until an appropriate alternative is present
+		grpc.FailOnNonTempDialError(true), //nolint:staticcheck // use it until an appropriate alternative is present
 	}
 
+	//nolint:staticcheck // use it until an appropriate alternative is present
 	cc, err := grpc.DialContext(ctx, *crioSocket, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("runtime connection failed: %w", err)
