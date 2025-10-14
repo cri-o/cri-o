@@ -13,7 +13,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	imageTypes "github.com/containers/image/v5/types"
-	encconfig "github.com/containers/ocicrypt/config" zp
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/cri-o/crio-credential-provider/pkg/auth"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/google/uuid"
