@@ -143,6 +143,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	if err != nil {
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
+
 	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	if pullArgs.namespace != "" {
