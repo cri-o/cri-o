@@ -144,6 +144,8 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
 
+	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
+
 	if pullArgs.namespace != "" {
 		authCleanup, err := s.prepareTempAuthFile(ctx, &sourceCtx, pullArgs.image, pullArgs.namespace)
 		if err != nil {
@@ -152,23 +154,10 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 		defer authCleanup()
 	}
 
-	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
-
 	sourceCtx.DockerLogMirrorChoice = true // Add info level log of the pull source
 	if pullArgs.credentials.Username != "" {
 		sourceCtx.DockerAuthConfig = &pullArgs.credentials
 	}
-
-	if pullArgs.namespace != "" {
-		policyPath := filepath.Join(s.config.SignaturePolicyDir, pullArgs.namespace+".json")
-		if _, err := os.Stat(policyPath); err == nil {
-			sourceCtx.SignaturePolicyPath = policyPath
-		} else if !os.IsNotExist(err) {
-			return storage.RegistryImageReference{}, fmt.Errorf("read policy path %s: %w", policyPath, err)
-		}
-	}
-
-	log.Debugf(ctx, "Using pull policy path for image %s: %s", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	decryptConfig, err := getDecryptionKeys(s.config.DecryptionKeysPath)
 	if err != nil {
