@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 15 Oct 2025 15:11:33 UTC for commit [794aa7f][0]._
+_Generated on Wed, 15 Oct 2025 21:03:24 UTC for commit [f165449][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/794aa7f1087f5cf8cbd6c63b4fc259a6055e5ca4
+[0]: https://github.com/cri-o/cri-o/commit/f165449c4d4463d8213edf7e63195895999c9893
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/cri-o/crio-credential-provider              | v0.0.0-20251006142348-3efae95599fb | v0.0.0-20251015144015-c77e1599070f | true   | true             |
+| github.com/cri-o/crio-credential-provider              | v0.0.0-20251006142348-3efae95599fb | v0.0.0-20251015163925-dc7184f8df05 | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251015113543-aa7e46b5ed3a | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250820121507-0af2bda4dd1d | v0.0.0-20251002143259-bc988d571ff4 | true   | true             |
 | sigs.k8s.io/release-sdk                                | v0.12.4                            | v0.12.5                            | true   | true             |
@@ -24,7 +24,7 @@ _Generated on Wed, 15 Oct 2025 15:11:33 UTC for commit [794aa7f][0]._
 | cloud.google.com/go                                                         | v0.118.3                              | v0.123.0                            | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.3                                | v1.8.7                              | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.3                                | v1.9.7                              | false  | true             |
-| cloud.google.com/go/aiplatform                                              | v1.74.0                               | v1.106.0                            | false  | true             |
+| cloud.google.com/go/aiplatform                                              | v1.74.0                               | v1.107.0                            | false  | true             |
 | cloud.google.com/go/analytics                                               | v0.26.0                               | v0.30.1                             | false  | true             |
 | cloud.google.com/go/apigateway                                              | v1.7.3                                | v1.7.7                              | false  | true             |
 | cloud.google.com/go/apigeeconnect                                           | v1.7.3                                | v1.7.7                              | false  | true             |
@@ -225,7 +225,7 @@ _Generated on Wed, 15 Oct 2025 15:11:33 UTC for commit [794aa7f][0]._
 | github.com/aws/aws-sdk-go-v2/service/sso                                    | v1.25.4                               | v1.29.6                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                | v1.30.2                               | v1.35.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                    | v1.33.21                              | v1.38.6                             | false  | true             |
-| github.com/aws/smithy-go                                                    | v1.22.3                               | v1.23.0                             | false  | true             |
+| github.com/aws/smithy-go                                                    | v1.22.3                               | v1.23.1                             | false  | true             |
 | github.com/awslabs/amazon-ecr-credential-helper/ecr-login                   | v0.9.1                                | v0.10.1                             | false  | true             |
 | github.com/beorn7/perks                                                     | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                     | v3.5.1+incompatible                   |                                     | false  | true             |
@@ -301,7 +301,7 @@ _Generated on Wed, 15 Oct 2025 15:11:33 UTC for commit [794aa7f][0]._
 | github.com/coreos/go-systemd/v22                                            | v22.6.0                               |                                     | true   | true             |
 | github.com/cpuguy83/go-md2man/v2                                            | v2.0.7                                |                                     | false  | true             |
 | github.com/creack/pty                                                       | v1.1.24                               |                                     | true   | true             |
-| github.com/cri-o/crio-credential-provider                                   | v0.0.0-20251006142348-3efae95599fb    | v0.0.0-20251015144015-c77e1599070f  | true   | true             |
+| github.com/cri-o/crio-credential-provider                                   | v0.0.0-20251006142348-3efae95599fb    | v0.0.0-20251015163925-dc7184f8df05  | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.3                                |                                     | true   | true             |
 | github.com/cyberphone/json-canonicalization                                 | v0.0.0-20241213102144-19d51d7fe467    |                                     | false  | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.5.0                                |                                     | true   | true             |
