@@ -236,6 +236,7 @@ apt-get update -qq && apt-get install -y \
 ```shell
 apt update -qq && apt install -y \
   libbtrfs-dev \
+  golang-go \
   golang-github-containers-common \
   git \
   libassuan-dev \
