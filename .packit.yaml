@@ -26,7 +26,6 @@ packages:
         # Remove downstream patches (if any)
         - sed -ri "/^Patch[0-9].*/d" .packit_rpm/cri-o.spec
   fedora-40:
-    # v1.29.x
     # Propose minor and patch releases downstream
     version_update_mask: '\d+\.\d+\.'
     specfile_path: .packit_rpm/cri-o.spec
@@ -56,45 +55,6 @@ jobs:
       - fedora-latest-stable-x86_64
     packages:
       - fedora-rawhide
-
-  - job: copr_build
-    trigger: pull_request
-    branch: release-1.30
-    targets:
-      - centos-stream-9-aarch64
-      - centos-stream-9-x86_64
-      - fedora-development-aarch64
-      - fedora-development-x86_64
-      - fedora-latest-stable-aarch64
-      - fedora-latest-stable-x86_64
-    packages:
-      - fedora-rawhide
-
-  - job: copr_build
-    trigger: pull_request
-    branch: release-1.29
-    targets:
-      - centos-stream-9-aarch64
-      - centos-stream-9-x86_64
-      - fedora-rawhide-aarch64
-      - fedora-rawhide-x86_64
-      - fedora-40-aarch64
-      - fedora-40-x86_64
-    packages:
-      - fedora-40
-
-  - job: copr_build
-    trigger: pull_request
-    branch: release-1.28
-    targets:
-      - centos-stream-9-aarch64
-      - centos-stream-9-x86_64
-      - fedora-rawhide-aarch64
-      - fedora-rawhide-x86_64
-      - fedora-40-aarch64
-      - fedora-40-x86_64
-    packages:
-      - fedora-40
 
   - job: propose_downstream
     trigger: release
