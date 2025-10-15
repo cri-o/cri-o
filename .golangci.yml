@@ -51,6 +51,7 @@ linters:
     - importas
     - ineffassign
     - intrange
+    - iotamixing
     - loggercheck
     - makezero
     - mirror
@@ -59,7 +60,6 @@ linters:
     - nakedret
     - nilnesserr
     - nlreturn
-    - noctx
     - nolintlint
     - nosprintfhostport
     - perfsprint
@@ -78,6 +78,7 @@ linters:
     - tparallel
     - unconvert
     - unparam
+    - unqueryvet
     - unused
     - usestdlibvars
     - usetesting
@@ -97,6 +98,7 @@ linters:
     # - funlen
     # - gochecknoglobals
     # - gocognit
+    # - godoclint
     # - godox
     # - gosec
     # - inamedparam
@@ -108,6 +110,7 @@ linters:
     # - nestif
     # - nilerr
     # - nilnil
+    # - noctx
     # - noinlineerr
     # - nonamedreturns
     # - paralleltest
