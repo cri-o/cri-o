@@ -27,7 +27,7 @@ require (
 	github.com/containers/storage v1.59.1
 	github.com/coreos/go-systemd/v22 v22.6.0
 	github.com/creack/pty v1.1.24
-	github.com/cri-o/crio-credential-provider v0.0.0-20251014185809-500d3866ad45
+	github.com/cri-o/crio-credential-provider v0.1.1
 	github.com/cri-o/ocicni v0.4.3
 	github.com/cyphar/filepath-securejoin v0.4.1
 	github.com/docker/distribution v2.8.3+incompatible
