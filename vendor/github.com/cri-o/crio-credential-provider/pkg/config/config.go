@@ -10,4 +10,7 @@ var (
 
 	// KubeletAuthFilePath is the main path for the kubelet global auth file.
 	KubeletAuthFilePath = "/var/lib/kubelet/config.json"
+
+	// KubernetesConfigDir is the configuration directory for Kubernetes.
+	KubernetesConfigDir = "/etc/kubernetes"
 )
