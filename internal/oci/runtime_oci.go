@@ -1279,7 +1279,19 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	return r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
+	cgroupStats, err := r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	fileDescriptors, err := r.getContainerFileDescriptors(ctx, c)
+	if err != nil {
+		log.Warnf(ctx, "Failed to get file descriptor stats for container %s: %v", c.ID(), err)
+	}
+
+	cgroupStats.Pid.FileDescriptors = fileDescriptors
+
+	return cgroupStats, nil
 }
 
 // SignalContainer sends a signal to a container process.
