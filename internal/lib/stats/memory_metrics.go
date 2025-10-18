@@ -59,6 +59,17 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 			},
 		},
 		{
+			desc: containerSpecMemoryReservationLimitBytes, // New metric for reservation limit
+			valueFunc: func() metricValues {
+				// Report reservation limit as 0 if above maxMemorySize (unlimited)
+				reservation := mem.Reservation
+				if reservation > maxMemorySize {
+					return metricValues{{value: 0, metricType: types.MetricType_GAUGE}}
+				}
+				return metricValues{{value: reservation, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
 			desc: containerMemoryFailcnt,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.Failcnt, metricType: types.MetricType_COUNTER}}
