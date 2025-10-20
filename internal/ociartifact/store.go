@@ -15,6 +15,7 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
 	libartStore "go.podman.io/common/pkg/libartifact/store"
+	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
@@ -510,16 +511,9 @@ func (s *Store) getImageReference(nameOrDigest string) (types.ImageReference, er
 	return ref, nil
 }
 
-// BlobMountPath represents a mapping of a source path in the blob directory to a file name in the artifact.
-type BlobMountPath struct {
-	// Source path of the blob, i.e. full path in the blob dir.
-	SourcePath string
-	// Name of the file in the artifact.
-	Name string
-}
-
 // BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
-func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]BlobMountPath, error) {
+// This should be replaced by BlobMountPaths in c/common, but it doesn't support modelpack, so we keep it here for now.
+func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]libartTypes.BlobMountPath, error) {
 	ref, err := layout.NewReference(s.rootPath, artifact.Reference())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
@@ -532,7 +526,7 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 
 	defer src.Close()
 
-	mountPaths := make([]BlobMountPath, 0, len(artifact.Manifest().Layers))
+	mountPaths := make([]libartTypes.BlobMountPath, 0, len(artifact.Manifest().Layers))
 
 	for _, l := range artifact.Manifest().Layers {
 		path, err := layout.GetLocalBlobPath(ctx, src, l.Digest)
@@ -547,7 +541,7 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 			continue
 		}
 
-		mountPaths = append(mountPaths, BlobMountPath{
+		mountPaths = append(mountPaths, libartTypes.BlobMountPath{
 			SourcePath: path,
 			Name:       name,
 		})

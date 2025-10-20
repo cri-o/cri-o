@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/server"
+	libartTypes "go.podman.io/common/pkg/libartifact/types"
 )
 
 // The actual test suite.
@@ -15,7 +15,7 @@ var _ = t.Describe("Artifacts", func() {
 	const artifact = "my-artifact"
 	var (
 		ctx   = context.Background()
-		paths = []ociartifact.BlobMountPath{
+		paths = []libartTypes.BlobMountPath{
 			{Name: "1"},
 			{Name: "dir-1/2"},
 			{Name: "dir-1/3"},
@@ -43,7 +43,7 @@ var _ = t.Describe("Artifacts", func() {
 
 		// Then
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res).To(Equal([]ociartifact.BlobMountPath{
+		Expect(res).To(Equal([]libartTypes.BlobMountPath{
 			{Name: "2"},
 			{Name: "3"},
 		}))
@@ -68,7 +68,7 @@ var _ = t.Describe("Artifacts", func() {
 
 		// Then
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res).To(Equal([]ociartifact.BlobMountPath{
+		Expect(res).To(Equal([]libartTypes.BlobMountPath{
 			{Name: "2"},
 			{Name: "3"},
 		}))
