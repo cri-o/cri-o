@@ -31,14 +31,19 @@ var _ = t.Describe("OCIArtifact", func() {
 			testArtifactDigest = digest.Digest("sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81")
 			testImageRef       types.ImageReference
 			testArtifact       = []byte{1, 2, 3}
+			tempDir            string
 
 			errTest = errors.New("test")
+			err     error
 		)
 
 		BeforeEach(func() {
 			logrus.SetOutput(io.Discard)
 
-			sut = ociartifact.NewStore("", nil)
+			tempDir = t.MustTempDir("ociartifact")
+
+			sut, err = ociartifact.NewStore(tempDir, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(sut).NotTo(BeNil())
 
 			mockCtrl = gomock.NewController(GinkgoT())

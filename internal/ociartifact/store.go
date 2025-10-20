@@ -14,6 +14,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
+	libartStore "go.podman.io/common/pkg/libartifact/store"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
@@ -38,16 +39,23 @@ var (
 type Store struct {
 	rootPath      string
 	systemContext *types.SystemContext
+	store         *libartStore.ArtifactStore
 	impl          Impl
 }
 
 // NewStore creates a new OCI artifact store.
-func NewStore(rootPath string, systemContext *types.SystemContext) *Store {
-	return &Store{
-		rootPath:      filepath.Join(rootPath, "artifacts"),
-		systemContext: systemContext,
-		impl:          &defaultImpl{},
+func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, error) {
+	storePath := filepath.Join(rootPath, "artifacts")
+	store, err := libartStore.NewArtifactStore(storePath, systemContext)
+	if err != nil {
+		return nil, err
 	}
+	return &Store{
+		rootPath:      storePath,
+		systemContext: systemContext,
+		store:         store,
+		impl:          &defaultImpl{},
+	}, nil
 }
 
 type unknownRef struct{}
