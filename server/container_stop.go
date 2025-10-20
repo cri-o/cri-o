@@ -61,7 +61,11 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	if err := s.ContainerServer.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
 		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 	}
-	s.postStopCleanup(ctx, ctr, sb, hooks)
+	// Don't do post stop cleanup here. Instead, allow the inotify code in server/server.go to catch the exit and run post stop.
+	// This has a couple of advantages:
+	// - If the container is removed, but the sandbox is not considered stopped, then we stop each container first, even if it's already stopped, thus
+	//   redoing this cleanup
+	// - Conceptually, it's straightforward to expect these post stop actions to happen in just one place, and the inotify loop can be that single source.
 
 	return nil
 }

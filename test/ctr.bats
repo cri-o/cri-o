@@ -1552,6 +1552,7 @@ EOF
 
 	# Attempt to issue another crictl stop command while the first one is still active.
 	crictl stop --timeout 0 "$ctr_id" &> /dev/null
+	sleep 1
 
 	# Verify that the container has either stopped or exited.
 	final_state=$(crictl inspect "$ctr_id" | grep -Po '(?<="state": ")[^"]*')
