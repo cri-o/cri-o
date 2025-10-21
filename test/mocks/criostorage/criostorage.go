@@ -13,9 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	types "github.com/containers/image/v5/types"
-	storage "github.com/containers/storage"
-	storage0 "github.com/cri-o/cri-o/internal/storage"
+	storage "github.com/cri-o/cri-o/internal/storage"
+	types "go.podman.io/image/v5/types"
+	storage0 "go.podman.io/storage"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -44,10 +44,10 @@ func (m *MockImageServer) EXPECT() *MockImageServerMockRecorder {
 }
 
 // CandidatesForPotentiallyShortImageName mocks base method.
-func (m *MockImageServer) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]storage0.RegistryImageReference, error) {
+func (m *MockImageServer) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]storage.RegistryImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CandidatesForPotentiallyShortImageName", systemContext, imageName)
-	ret0, _ := ret[0].([]storage0.RegistryImageReference)
+	ret0, _ := ret[0].([]storage.RegistryImageReference)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -59,7 +59,7 @@ func (mr *MockImageServerMockRecorder) CandidatesForPotentiallyShortImageName(sy
 }
 
 // DeleteImage mocks base method.
-func (m *MockImageServer) DeleteImage(systemContext *types.SystemContext, id storage0.StorageImageID) error {
+func (m *MockImageServer) DeleteImage(systemContext *types.SystemContext, id storage.StorageImageID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteImage", systemContext, id)
 	ret0, _ := ret[0].(error)
@@ -73,10 +73,10 @@ func (mr *MockImageServerMockRecorder) DeleteImage(systemContext, id any) *gomoc
 }
 
 // GetStore mocks base method.
-func (m *MockImageServer) GetStore() storage.Store {
+func (m *MockImageServer) GetStore() storage0.Store {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStore")
-	ret0, _ := ret[0].(storage.Store)
+	ret0, _ := ret[0].(storage0.Store)
 	return ret0
 }
 
@@ -87,10 +87,10 @@ func (mr *MockImageServerMockRecorder) GetStore() *gomock.Call {
 }
 
 // HeuristicallyTryResolvingStringAsIDPrefix mocks base method.
-func (m *MockImageServer) HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput string) *storage0.StorageImageID {
+func (m *MockImageServer) HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput string) *storage.StorageImageID {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HeuristicallyTryResolvingStringAsIDPrefix", heuristicInput)
-	ret0, _ := ret[0].(*storage0.StorageImageID)
+	ret0, _ := ret[0].(*storage.StorageImageID)
 	return ret0
 }
 
@@ -101,10 +101,10 @@ func (mr *MockImageServerMockRecorder) HeuristicallyTryResolvingStringAsIDPrefix
 }
 
 // ImageStatusByID mocks base method.
-func (m *MockImageServer) ImageStatusByID(systemContext *types.SystemContext, id storage0.StorageImageID) (*storage0.ImageResult, error) {
+func (m *MockImageServer) ImageStatusByID(systemContext *types.SystemContext, id storage.StorageImageID) (*storage.ImageResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImageStatusByID", systemContext, id)
-	ret0, _ := ret[0].(*storage0.ImageResult)
+	ret0, _ := ret[0].(*storage.ImageResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -116,10 +116,10 @@ func (mr *MockImageServerMockRecorder) ImageStatusByID(systemContext, id any) *g
 }
 
 // ImageStatusByName mocks base method.
-func (m *MockImageServer) ImageStatusByName(systemContext *types.SystemContext, name storage0.RegistryImageReference) (*storage0.ImageResult, error) {
+func (m *MockImageServer) ImageStatusByName(systemContext *types.SystemContext, name storage.RegistryImageReference) (*storage.ImageResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImageStatusByName", systemContext, name)
-	ret0, _ := ret[0].(*storage0.ImageResult)
+	ret0, _ := ret[0].(*storage.ImageResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -131,7 +131,7 @@ func (mr *MockImageServerMockRecorder) ImageStatusByName(systemContext, name any
 }
 
 // IsRunningImageAllowed mocks base method.
-func (m *MockImageServer) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage storage0.RegistryImageReference, imageID storage0.StorageImageID) error {
+func (m *MockImageServer) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage storage.RegistryImageReference, imageID storage.StorageImageID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsRunningImageAllowed", ctx, systemContext, userSpecifiedImage, imageID)
 	ret0, _ := ret[0].(error)
@@ -145,10 +145,10 @@ func (mr *MockImageServerMockRecorder) IsRunningImageAllowed(ctx, systemContext,
 }
 
 // ListImages mocks base method.
-func (m *MockImageServer) ListImages(systemContext *types.SystemContext) ([]storage0.ImageResult, error) {
+func (m *MockImageServer) ListImages(systemContext *types.SystemContext) ([]storage.ImageResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListImages", systemContext)
-	ret0, _ := ret[0].([]storage0.ImageResult)
+	ret0, _ := ret[0].([]storage.ImageResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -160,10 +160,10 @@ func (mr *MockImageServerMockRecorder) ListImages(systemContext any) *gomock.Cal
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(ctx context.Context, imageName storage0.RegistryImageReference, options *storage0.ImageCopyOptions) (storage0.RegistryImageReference, error) {
+func (m *MockImageServer) PullImage(ctx context.Context, imageName storage.RegistryImageReference, options *storage.ImageCopyOptions) (storage.RegistryImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", ctx, imageName, options)
-	ret0, _ := ret[0].(storage0.RegistryImageReference)
+	ret0, _ := ret[0].(storage.RegistryImageReference)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -175,7 +175,7 @@ func (mr *MockImageServerMockRecorder) PullImage(ctx, imageName, options any) *g
 }
 
 // UntagImage mocks base method.
-func (m *MockImageServer) UntagImage(systemContext *types.SystemContext, name storage0.RegistryImageReference) error {
+func (m *MockImageServer) UntagImage(systemContext *types.SystemContext, name storage.RegistryImageReference) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UntagImage", systemContext, name)
 	ret0, _ := ret[0].(error)
@@ -225,10 +225,10 @@ func (m *MockRuntimeServer) EXPECT() *MockRuntimeServerMockRecorder {
 }
 
 // CreateContainer mocks base method.
-func (m *MockRuntimeServer) CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID storage0.StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID storage.StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage0.IDMappingOptions, labelOptions []string, privileged bool) (storage.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateContainer", systemContext, podName, podID, userRequestedImage, imageID, containerName, containerID, metadataName, attempt, idMappingsOptions, labelOptions, privileged)
-	ret0, _ := ret[0].(storage0.ContainerInfo)
+	ret0, _ := ret[0].(storage.ContainerInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -240,10 +240,10 @@ func (mr *MockRuntimeServerMockRecorder) CreateContainer(systemContext, podName,
 }
 
 // CreatePodSandbox mocks base method.
-func (m *MockRuntimeServer) CreatePodSandbox(systemContext *types.SystemContext, podName, podID string, pauseImage storage0.RegistryImageReference, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreatePodSandbox(systemContext *types.SystemContext, podName, podID string, pauseImage storage.RegistryImageReference, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage0.IDMappingOptions, labelOptions []string, privileged bool) (storage.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreatePodSandbox", systemContext, podName, podID, pauseImage, imageAuthFile, containerName, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, privileged)
-	ret0, _ := ret[0].(storage0.ContainerInfo)
+	ret0, _ := ret[0].(storage.ContainerInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -269,10 +269,10 @@ func (mr *MockRuntimeServerMockRecorder) DeleteContainer(ctx, idOrName any) *gom
 }
 
 // GetContainerMetadata mocks base method.
-func (m *MockRuntimeServer) GetContainerMetadata(idOrName string) (storage0.RuntimeContainerMetadata, error) {
+func (m *MockRuntimeServer) GetContainerMetadata(idOrName string) (storage.RuntimeContainerMetadata, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetContainerMetadata", idOrName)
-	ret0, _ := ret[0].(storage0.RuntimeContainerMetadata)
+	ret0, _ := ret[0].(storage.RuntimeContainerMetadata)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -314,7 +314,7 @@ func (mr *MockRuntimeServerMockRecorder) GetWorkDir(id any) *gomock.Call {
 }
 
 // SetContainerMetadata mocks base method.
-func (m *MockRuntimeServer) SetContainerMetadata(idOrName string, metadata *storage0.RuntimeContainerMetadata) error {
+func (m *MockRuntimeServer) SetContainerMetadata(idOrName string, metadata *storage.RuntimeContainerMetadata) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetContainerMetadata", idOrName, metadata)
 	ret0, _ := ret[0].(error)
@@ -381,11 +381,11 @@ func (m *MockStorageTransport) EXPECT() *MockStorageTransportMockRecorder {
 }
 
 // ResolveReference mocks base method.
-func (m *MockStorageTransport) ResolveReference(ref types.ImageReference) (types.ImageReference, *storage.Image, error) {
+func (m *MockStorageTransport) ResolveReference(ref types.ImageReference) (types.ImageReference, *storage0.Image, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveReference", ref)
 	ret0, _ := ret[0].(types.ImageReference)
-	ret1, _ := ret[1].(*storage.Image)
+	ret1, _ := ret[1].(*storage0.Image)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }

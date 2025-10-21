@@ -113,8 +113,8 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 
 - Runtime: [runc](https://github.com/opencontainers/runc)
   (or any OCI runtime-spec implementation) and [oci runtime tools](https://github.com/opencontainers/runtime-tools)
-- Images: Image management using [containers/image](https://github.com/containers/image)
-- Storage: Storage and management of image layers using [containers/storage](https://github.com/containers/storage)
+- Images: Image management using [container-libs/image](https://github.com/containers/container-libs/tree/main/image)
+- Storage: Storage and management of image layers using [container-libs/storage](https://github.com/containers/container-libs/tree/main/storage)
 - Networking: Networking support through the use of [CNI](https://github.com/containernetworking/cni)
 
 It is currently in active development in the Kubernetes community through the
@@ -158,12 +158,12 @@ and [Podman](https://github.com/containers/podman).
 
 <!-- markdownlint-disable MD013 -->
 
-| File                                                                                                     | Description                           |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| [crio.conf(5)](/docs/crio.conf.5.md)                                                                     | CRI-O Configuration file              |
-| [policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)         | Signature Verification Policy File(s) |
-| [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md) | Registries Configuration file         |
-| [storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)     | Storage Configuration file            |
+| File                                                                                                                    | Description                           |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| [crio.conf(5)](/docs/crio.conf.5.md)                                                                                    | CRI-O Configuration file              |
+| [policy.json(5)](https://github.com/containers/container-libs/blob/main/image/docs/containers-policy.json.5.md)         | Signature Verification Policy File(s) |
+| [registries.conf(5)](https://github.com/containers/container-libs/blob/main/image/docs/containers-registries.conf.5.md) | Registries Configuration file         |
+| [storage.conf(5)](https://github.com/containers/container-libs/blob/main/storage/docs/containers-storage.conf.5.md)     | Storage Configuration file            |
 
 <!-- markdownlint-enable MD013 -->
 
