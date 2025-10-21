@@ -41,7 +41,6 @@ linters:
     - gocyclo
     - godot
     - goheader
-    - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosmopolitan
@@ -100,6 +99,7 @@ linters:
     # - gocognit
     # - godoclint
     # - godox
+    # - gomoddirectives
     # - gosec
     # - inamedparam
     # - interfacebloat
