@@ -478,17 +478,9 @@ func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact
 		return artifacts[idx], true, nil
 	}
 
-	// if strRef is named reference
-	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.systemContext, strRef)
-	if err != nil {
-		return nil, false, fmt.Errorf("get candidates for potentially short image name: %w", err)
-	}
-
-	for _, candidate := range candidates {
-		for _, artifact := range artifacts {
-			if candidate.String() == artifact.Reference() || candidate.String() == artifact.CanonicalName() {
-				return artifact, false, nil
-			}
+	for _, artifact := range artifacts {
+		if strRef == artifact.Reference() || strRef == artifact.CanonicalName() {
+			return artifact, false, nil
 		}
 	}
 

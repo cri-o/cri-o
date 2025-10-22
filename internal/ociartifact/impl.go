@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/opencontainers/go-digest"
 	"go.podman.io/common/libimage"
@@ -16,7 +14,6 @@ import (
 	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
-	"go.podman.io/image/v5/pkg/shortnames"
 	"go.podman.io/image/v5/types"
 )
 
@@ -42,7 +39,6 @@ type Impl interface {
 	CloseCopier(*libimage.Copier) error
 	List(string) ([]layout.ListResult, error)
 	DeleteImage(context.Context, types.ImageReference, *types.SystemContext) error
-	CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]reference.Named, error)
 	ChooseInstance(manifest.List, *types.SystemContext) (digest.Digest, error)
 }
 
@@ -139,28 +135,6 @@ func (d *defaultImpl) List(dir string) ([]layout.ListResult, error) {
 
 func (d *defaultImpl) DeleteImage(ctx context.Context, ref types.ImageReference, sys *types.SystemContext) error {
 	return ref.DeleteImage(ctx, sys)
-}
-
-// CandidatesForPotentiallyShortImageName resolves locally an artifact name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
-// It will only return an empty slice if err != nil.
-func (d *defaultImpl) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]reference.Named, error) {
-	// Always resolve unqualified names to all candidates. We should use a more secure mode once we settle on a shortname alias table.
-	sc := types.SystemContext{}
-	if systemContext != nil {
-		sc = *systemContext // A shallow copy
-	}
-
-	resolved, err := shortnames.ResolveLocally(&sc, imageName)
-	if err != nil {
-		// Error is not very clear in this context, and unfortunately is also not a variable.
-		if strings.Contains(err.Error(), "short-name resolution enforced but cannot prompt without a TTY") {
-			return nil, fmt.Errorf("short name mode is enforcing, but image name %s returns ambiguous list", imageName)
-		}
-
-		return nil, err
-	}
-
-	return resolved, nil
 }
 
 func (d *defaultImpl) ChooseInstance(manifestList manifest.List, systemContext *types.SystemContext) (digest.Digest, error) {
