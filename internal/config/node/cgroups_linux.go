@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
@@ -109,12 +110,8 @@ func checkRelevantControllers() {
 		}
 
 		for _, toCheck := range relevantControllers {
-			for _, ctrl := range ctrls {
-				if ctrl == toCheck.name {
-					*toCheck.enabled = true
-
-					break
-				}
+			if slices.Contains(ctrls, toCheck.name) {
+				*toCheck.enabled = true
 			}
 		}
 	})

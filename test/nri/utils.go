@@ -54,7 +54,7 @@ func getXxxset(t *testing.T, kind, path string) []string {
 		return nil
 	}
 
-	for _, rng := range strings.Split(strings.TrimSpace(string(data)), ",") {
+	for rng := range strings.SplitSeq(strings.TrimSpace(string(data)), ",") {
 		var (
 			lo int
 			hi = -1
@@ -112,8 +112,8 @@ func getTestNamespace() string {
 			name = modAndName[cnt-1]
 		}
 
-		if strings.HasPrefix(name, "Test") {
-			name = strings.TrimPrefix(name, "Test")
+		if after, ok := strings.CutPrefix(name, "Test"); ok {
+			name = after
 
 			return name
 		}

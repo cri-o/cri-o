@@ -129,7 +129,7 @@ func getAvailableV2Controllers() map[string]struct{} {
 	}
 
 	result := make(map[string]struct{})
-	for _, controller := range strings.Split(strings.TrimSpace(string(controllersBytes)), " ") {
+	for controller := range strings.SplitSeq(strings.TrimSpace(string(controllersBytes)), " ") {
 		result[controller] = struct{}{}
 	}
 

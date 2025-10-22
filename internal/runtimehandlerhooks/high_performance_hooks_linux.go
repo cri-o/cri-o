@@ -1061,10 +1061,8 @@ func isCPUGovernorSupported(governor, cpuDir string, cpu int) error {
 	}
 
 	// Is the scaling governor supported?
-	for _, availableGovernor := range strings.Fields(string(availGovernors)) {
-		if availableGovernor == governor {
-			return nil
-		}
+	if slices.Contains(strings.Fields(string(availGovernors)), governor) {
+		return nil
 	}
 
 	return fmt.Errorf("governor %s not available for cpu %d", governor, cpu)
@@ -1293,16 +1291,15 @@ func isContainerRequestWholeCPU(cSpec *specs.Spec) bool {
 // cpu-c-states.crio.io: "enable" (enable all c-states)
 // cpu-c-states.crio.io: "max_latency:10" (use a max latency of 10us).
 func convertAnnotationToLatency(annotation string) (maxLatency string, err error) {
-	//nolint:gocritic // this would not be better as a switch statement
 	if annotation == annotationEnable {
 		// Enable all c-states.
 		return "0", nil
 	} else if annotation == annotationDisable {
 		// Disable all c-states.
 		return "n/a", nil
-	} else if strings.HasPrefix(annotation, "max_latency:") {
+	} else if after, ok := strings.CutPrefix(annotation, "max_latency:"); ok {
 		// Use the latency provided
-		latency, err := strconv.Atoi(strings.TrimPrefix(annotation, "max_latency:"))
+		latency, err := strconv.Atoi(after)
 		if err != nil {
 			return "", err
 		}
