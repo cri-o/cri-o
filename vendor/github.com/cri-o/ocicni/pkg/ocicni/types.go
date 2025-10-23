@@ -28,8 +28,6 @@ type PortMapping struct {
 
 // IpRange maps to the standard CNI ipRanges Capability
 // see: https://github.com/containernetworking/cni/blob/master/CONVENTIONS.md
-//
-//nolint:stylecheck // already define API
 type IpRange struct {
 	// Subnet is the whole CIDR
 	Subnet string `json:"subnet"`
@@ -56,7 +54,6 @@ type RuntimeConfig struct {
 	// Bandwidth is the bandwidth limiting of the pod
 	Bandwidth *BandwidthConfig
 	// IpRanges is the ip range gather which is used for address allocation
-	//nolint:stylecheck // already define API
 	IpRanges [][]IpRange
 	// CgroupPath is the path to the pod's cgroup
 	// e.g. "/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod28ce45bc_63f8_48a3_a99b_cfb9e63c856c.slice"

@@ -28,7 +28,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.6.0
 	github.com/creack/pty v1.1.24
 	github.com/cri-o/crio-credential-provider v0.1.1
-	github.com/cri-o/ocicni v0.4.3
+	github.com/cri-o/ocicni v0.5.0
 	github.com/cyphar/filepath-securejoin v0.5.0
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/go-units v0.5.0
@@ -47,7 +47,7 @@ require (
 	github.com/moby/sys/user v0.4.0
 	github.com/moby/sys/userns v0.1.0
 	github.com/modelpack/model-spec v0.0.7
-	github.com/onsi/ginkgo/v2 v2.26.0
+	github.com/onsi/ginkgo/v2 v2.27.1
 	github.com/onsi/gomega v1.38.2
 	github.com/opencontainers/cgroups v0.0.5
 	github.com/opencontainers/go-digest v1.0.0
