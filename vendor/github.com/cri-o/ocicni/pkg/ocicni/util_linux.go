@@ -23,6 +23,7 @@ type nsManager struct {
 func (nsm *nsManager) init() error {
 	var err error
 	nsm.nsenterPath, err = exec.LookPath(defaultNamespaceEnterCommandName)
+
 	return err
 }
 
@@ -38,14 +39,17 @@ func getContainerDetails(nsm *nsManager, netnsPath, interfaceName, addrType stri
 	if len(lines) < 1 {
 		return nil, nil, fmt.Errorf("unexpected command output %s", output)
 	}
+
 	fields := strings.Fields(lines[0])
 	if len(fields) < 4 {
 		return nil, nil, fmt.Errorf("unexpected address output %s ", lines[0])
 	}
+
 	ip, ipNet, err := net.ParseCIDR(fields[3])
 	if err != nil {
 		return nil, nil, fmt.Errorf("CNI failed to parse ip from output %s due to %w", output, err)
 	}
+
 	if ip.To4() == nil {
 		ipNet.IP = ip
 	} else {
@@ -63,10 +67,12 @@ func getContainerDetails(nsm *nsManager, netnsPath, interfaceName, addrType stri
 	if len(lines) < 2 {
 		return nil, nil, fmt.Errorf("unexpected 'ip link' command output %s", output)
 	}
+
 	fields = strings.Fields(lines[1])
 	if len(fields) < 4 {
 		return nil, nil, fmt.Errorf("unexpected link output %s ", lines[0])
 	}
+
 	mac, err := net.ParseMAC(fields[1])
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse MAC from output %s due to %w", output, err)
@@ -115,6 +121,7 @@ func bringUpLoopback(netns string) error {
 	}); err != nil {
 		return fmt.Errorf("error adding loopback interface: %w", err)
 	}
+
 	return nil
 }
 
@@ -134,5 +141,6 @@ func checkLoopback(netns string) error {
 	}); err != nil {
 		return fmt.Errorf("error checking loopback interface: %w", err)
 	}
+
 	return nil
 }
