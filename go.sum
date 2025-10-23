@@ -811,8 +811,8 @@ honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 k8s.io/api v0.35.0-alpha.1 h1:aL5Q6ZV4MQ2NZMmlnAsV7wj9a30gLhlLnGbx6GUmuBs=
 k8s.io/api v0.35.0-alpha.1/go.mod h1:BoZqpN+rs1nX+WI4b+iOCpHIAZT1A5Cx29nfk4Kn4DY=
-k8s.io/apimachinery v0.35.0-alpha.1 h1:FZCO78xXJf7Bb7oLzw5p6nakz/SWaGTi4+IaOl7uAYk=
-k8s.io/apimachinery v0.35.0-alpha.1/go.mod h1:1YSL0XujdSTcnuHOR73D16EdW+d49JOdd8TXjCo6Dhc=
+k8s.io/apimachinery v0.35.0-alpha.2 h1:K4D4c2UF7A5fImwIO5wWK8n4JcHC0dhQX+l72nMm+4E=
+k8s.io/apimachinery v0.35.0-alpha.2/go.mod h1:wE5nOmI8k5gdg4Nuo6Csst6CE+WgeB7ZNhh7K5lLUbs=
 k8s.io/apiserver v0.35.0-alpha.1 h1:y30xMnHnusLzP3IU5rn9prng1dBNdWIXWnDbpEKT914=
 k8s.io/apiserver v0.35.0-alpha.1/go.mod h1:Xeoi42Em6YeTr+yx3kFByqlCMIP4nbArQBWSblaH7Vs=
 k8s.io/client-go v0.35.0-alpha.1 h1:DbQuaoETvFkhWfIckZj3hj1iNnBvEIdiWjSlosmtlX4=
