@@ -14,6 +14,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/libartifact"
 	libartStore "go.podman.io/common/pkg/libartifact/store"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/docker/reference"
@@ -242,13 +243,13 @@ func (s *Store) getManifestFromRef(ctx context.Context, ref types.ImageReference
 
 // List creates a slice of all available artifacts.
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
-	listResult, err := s.impl.List(s.rootPath)
+	arts, err := s.store.List(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("list store root: %w", err)
+		return nil, fmt.Errorf("list artifacts: %w", err)
 	}
 
-	for i := range listResult {
-		artifact, err := s.buildArtifact(ctx, &listResult[i])
+	for _, art := range arts {
+		artifact, err := s.buildArtifact(ctx, art)
 		if err != nil {
 			return nil, fmt.Errorf("build artifact: %w", err)
 		}
@@ -310,45 +311,23 @@ func sanitizeOptions(opts *PullOptions) *PullOptions {
 	return opts
 }
 
-func (s *Store) buildArtifact(ctx context.Context, item *layout.ListResult) (*Artifact, error) {
-	ref := item.Reference
-
-	rawSource, err := s.impl.NewImageSource(ctx, ref, s.systemContext)
-	if err != nil {
-		return nil, fmt.Errorf("create new image source: %w", err)
-	}
-
-	defer func() {
-		if err := s.impl.CloseImageSource(rawSource); err != nil {
-			log.Warnf(ctx, "Unable to close image source: %v", err)
-		}
-	}()
-
-	topManifestBlob, _, err := s.impl.GetManifest(ctx, rawSource, nil)
-	if err != nil {
-		return nil, fmt.Errorf("get manifest: %w", err)
-	}
-
-	mani, err := s.impl.OCI1FromManifest(topManifestBlob)
-	if err != nil {
-		return nil, fmt.Errorf("convert manifest: %w", err)
-	}
-
-	manifestBytes, err := s.impl.ToJSON(mani)
+func (s *Store) buildArtifact(ctx context.Context, libartifact *libartifact.Artifact) (*Artifact, error) {
+	manifestBytes, err := s.impl.ToJSON(libartifact.Manifest)
 	if err != nil {
 		return nil, fmt.Errorf("marshal manifest: %w", err)
 	}
 
 	artifact := &Artifact{
 		namedRef: unknownRef{},
-		manifest: mani,
+		manifest: libartifact.Manifest,
 		digest:   digest.FromBytes(manifestBytes),
+		artifact: libartifact,
 	}
 
-	if val, ok := item.ManifestDescriptor.Annotations[specs.AnnotationRefName]; ok {
-		namedRef, err := reference.ParseNormalizedNamed(val)
+	if libartifact.Name != "" {
+		namedRef, err := reference.ParseNormalizedNamed(libartifact.Name)
 		if err != nil {
-			log.Warnf(ctx, "Failed to parse annotation ref %s with the error %s", val, err)
+			log.Warnf(ctx, "Failed to parse artifact name %s with the error %s", libartifact.Name, err)
 
 			namedRef = unknownRef{}
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/opencontainers/go-digest"
+	"go.podman.io/common/pkg/libartifact"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/manifest"
 	critypes "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -14,6 +15,7 @@ type Artifact struct {
 	namedRef reference.Named
 	manifest *manifest.OCI1
 	digest   digest.Digest
+	artifact *libartifact.Artifact
 }
 
 // ArtifactData separates the artifact metadata from the actual content.
@@ -51,20 +53,11 @@ func (a *Artifact) CRIImage() *critypes.Image {
 
 	return &critypes.Image{
 		Id:          a.Digest().Encoded(),
-		Size:        a.size(),
+		Size:        uint64(a.artifact.TotalSizeBytes()),
 		RepoTags:    repoTags,
 		RepoDigests: []string{a.CanonicalName()},
 		Pinned:      true,
 	}
-}
-
-// size calculates the artifact layer size.
-func (a *Artifact) size() (res uint64) {
-	for _, layer := range a.Manifest().Layers {
-		res += uint64(layer.Size)
-	}
-
-	return res
 }
 
 // Title returns the title of the artifact data.
