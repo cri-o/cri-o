@@ -17,6 +17,7 @@ const (
 	NetworkMetrics = "network"
 	OOMMetrics     = "oom"
 	ProcessMetrics = "process"
+	SpecMetrics    = "spec"
 )
 
 type metricValue struct {
@@ -74,7 +75,6 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			containerMemoryKernelUsage,
 			containerMemoryMappedFile,
 			containerMemorySwap,
-			containerSpecMemoryLimitBytes,
 			containerMemoryFailcnt,
 			containerMemoryUsageBytes,
 			containerMemoryMaxUsageBytes,
@@ -97,6 +97,14 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 		ProcessMetrics: {
 			containerProcesses,
 		},
+		SpecMetrics: {
+			containerSpecCpuPeriod,
+			containerSpecCpuShares,
+			containerSpecCpuQuota,
+			containerSpecMemoryLimitBytes,
+			containerSpecMemoryReservationLimitBytes,
+			containerSpecMemorySwapLimitBytes,
+		},
 	}
 
 	return descriptorsMap
@@ -113,6 +121,7 @@ func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric, metr
 	if metricName != "" {
 		baseLabels = append(baseLabels, metricName)
 	}
+
 	calculatedMetrics := make([]*types.Metric, 0, len(metrics))
 
 	for _, m := range metrics {
