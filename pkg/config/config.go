@@ -38,6 +38,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/cnimgr"
 	"github.com/cri-o/cri-o/internal/config/conmonmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
+	"github.com/cri-o/cri-o/internal/config/diskmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nri"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
@@ -539,6 +540,9 @@ type RuntimeConfig struct {
 
 	// cgroupManager is the internal CgroupManager configuration
 	cgroupManager cgmgr.CgroupManager
+
+	// diskManager is the internal DiskManager configuration
+	diskManager diskmgr.DiskManager
 
 	// conmonManager is the internal ConmonManager configuration
 	conmonManager *conmonmgr.ConmonManager
@@ -1295,6 +1299,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 		c.cgroupManager = cgroupManager
 
+		// Initialize disk manager
+		diskManager := diskmgr.New()
+		c.diskManager = diskManager
+
 		if err := c.ValidateRuntimes(); err != nil {
 			return fmt.Errorf("runtime validation: %w", err)
 		}
@@ -1668,6 +1676,11 @@ func (c *RuntimeConfig) Rdt() *rdt.Config {
 // CgroupManager returns the CgroupManager configuration.
 func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
 	return c.cgroupManager
+}
+
+// DiskManager returns the DiskManager configuration.
+func (c *RuntimeConfig) DiskManager() diskmgr.DiskManager {
+	return c.diskManager
 }
 
 // NamespaceManager returns the NamespaceManager configuration.

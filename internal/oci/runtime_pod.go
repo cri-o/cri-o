@@ -18,6 +18,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/diskmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -300,6 +301,9 @@ func (r *runtimePod) UnpauseContainer(ctx context.Context, c *Container) error {
 
 func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
 	return r.oci.ContainerStats(ctx, c, cgroup)
+}
+func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*diskmgr.DiskMetrics, error) {
+	return r.oci.DiskStats(ctx, c, cgroup)
 }
 
 func (r *runtimePod) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {

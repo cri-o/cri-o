@@ -1,3 +1,5 @@
+//go:build linux
+
 package oci
 
 import (
@@ -8,7 +10,9 @@ import (
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/google/cadvisor/fs"
 
+	"github.com/cri-o/cri-o/internal/config/diskmgr"
 	"github.com/cri-o/cri-o/internal/log"
 )
 
@@ -106,4 +110,47 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 	log.Infof(ctx, "Finished port forwarding for %q on port %d", c.ID(), port)
 
 	return nil
+}
+
+// getContainerDiskStats collects disk metrics for a container on Linux.
+func (r *runtimeOCI) getContainerDiskStats(c *Container) (*diskmgr.DiskMetrics, error) {
+	mountPoint := c.MountPoint()
+	if mountPoint == "" {
+		return nil, fmt.Errorf("container %s has no mount point", c.ID())
+	}
+
+	fsInfo, err := fs.NewFsInfo(fs.Context{Crio: fs.CrioContext{Root: r.config.Root, ImageStore: r.config.ImageStore, Driver: r.config.Storage}})
+	if err != nil {
+		return nil, fmt.Errorf("failed to init fs info: %w", err)
+	}
+
+	pathSet := map[string]struct{}{mountPoint: {}}
+
+	infos, err := fsInfo.GetFsInfoForPath(pathSet)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get fs info for %s: %w", mountPoint, err)
+	}
+
+	if len(infos) == 0 {
+		return nil, fmt.Errorf("no fs info returned for mount point %s", mountPoint)
+	}
+
+	info := infos[0]
+
+	var inodesFree, inodesTotal uint64
+	if info.InodesFree != nil {
+		inodesFree = *info.InodesFree
+	}
+
+	if info.Inodes != nil {
+		inodesTotal = *info.Inodes
+	}
+
+	return &diskmgr.DiskMetrics{
+		Filesystem: diskmgr.FilesystemMetrics{
+			UsageBytes:  info.Capacity - info.Free,
+			LimitBytes:  info.Capacity,
+			InodesFree:  inodesFree,
+			InodesTotal: inodesTotal,
+		}}, nil
 }

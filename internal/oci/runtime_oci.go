@@ -33,6 +33,7 @@ import (
 	utilexec "k8s.io/utils/exec"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/diskmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -1280,6 +1281,24 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 	defer c.opLock.Unlock()
 
 	return r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
+}
+
+// DiskStats provides disk usage statistics of a container.
+func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*diskmgr.DiskMetrics, error) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
+
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	// Get disk usage from the container's mount point, not from cgroup
+	mountPoint := c.MountPoint()
+	if mountPoint == "" {
+		return nil, fmt.Errorf("container %s has no mount point", c.ID())
+	}
+
+	// Use the disk usage function to get real filesystem statistics
+	return diskmgr.GetDiskUsageForPath(mountPoint)
 }
 
 // SignalContainer sends a signal to a container process.
