@@ -6,10 +6,6 @@ import (
 	"github.com/containers/storage/pkg/system"
 )
 
-type ContainerRuntimeStats struct {
-	Cgroup *CgroupStats
-	Disk   *DiskMetrics
-}
 type CgroupStats struct {
 	Memory     *MemoryStats
 	CPU        *CPUStats
@@ -57,13 +53,6 @@ type HugetlbStats struct {
 type PidsStats struct {
 	Current uint64
 	Limit   uint64
-}
-
-type DiskMetrics struct {
-	UsageBytes  uint64
-	LimitBytes  uint64
-	InodesFree  uint64
-	InodesTotal uint64
 }
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup

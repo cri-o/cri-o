@@ -298,8 +298,12 @@ func (r *runtimePod) UnpauseContainer(ctx context.Context, c *Container) error {
 	return r.oci.UnpauseContainer(ctx, c)
 }
 
-func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.ContainerRuntimeStats, error) {
+func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
 	return r.oci.ContainerStats(ctx, c, cgroup)
+}
+
+func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
+	return r.oci.DiskStats(ctx, c, cgroup)
 }
 
 func (r *runtimePod) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {

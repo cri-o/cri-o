@@ -1272,27 +1272,32 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.ContainerRuntimeStats, error) {
+func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
-	cgroupStats, err := r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
-	if err != nil {
-		return nil, err
+	return r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
+}
+
+// DiskStats provides disk usage statistics of a container.
+func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
+
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	// Get disk usage from the container's mount point
+	mountPoint := c.MountPoint()
+	if mountPoint == "" {
+		return nil, fmt.Errorf("container %s has no mount point", c.ID())
 	}
 
-	diskStats, err := r.getContainerDiskStats(c)
-	if err != nil {
-		log.Warnf(ctx, "Failed to get disk stats for container %s: %v", c.ID(), err)
-	}
-
-	return &cgmgr.ContainerRuntimeStats{
-		Cgroup: cgroupStats,
-		Disk:   diskStats,
-	}, nil
+	// Get disk usage statistics directly
+	return GetDiskUsageForPath(mountPoint)
 }
 
 // SignalContainer sends a signal to a container process.

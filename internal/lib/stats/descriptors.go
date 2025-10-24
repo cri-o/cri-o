@@ -37,6 +37,7 @@ var (
 )
 
 // Disk metrics.
+// TODO: Add remaining container filesystem metrics.
 var (
 	containerFsInodesFree = &types.MetricDescriptor{
 		Name:      "container_fs_inodes_free",

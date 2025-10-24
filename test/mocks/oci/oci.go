@@ -76,10 +76,10 @@ func (mr *MockRuntimeImplMockRecorder) CheckpointContainer(arg0, arg1, arg2, arg
 }
 
 // ContainerStats mocks base method.
-func (m *MockRuntimeImpl) ContainerStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*cgmgr.ContainerRuntimeStats, error) {
+func (m *MockRuntimeImpl) ContainerStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*cgmgr.CgroupStats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerStats", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*cgmgr.ContainerRuntimeStats)
+	ret0, _ := ret[0].(*cgmgr.CgroupStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -116,6 +116,21 @@ func (m *MockRuntimeImpl) DeleteContainer(arg0 context.Context, arg1 *oci.Contai
 func (mr *MockRuntimeImplMockRecorder) DeleteContainer(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).DeleteContainer), arg0, arg1)
+}
+
+// DiskStats mocks base method.
+func (m *MockRuntimeImpl) DiskStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*oci.DiskMetrics, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DiskStats", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*oci.DiskMetrics)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DiskStats indicates an expected call of DiskStats.
+func (mr *MockRuntimeImplMockRecorder) DiskStats(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskStats", reflect.TypeOf((*MockRuntimeImpl)(nil).DiskStats), arg0, arg1, arg2)
 }
 
 // ExecContainer mocks base method.

@@ -11,6 +11,24 @@ function teardown() {
 	cleanup_test
 }
 
+# wait_for_metric polls crictl metricsp until the given metric name appears
+function wait_for_metric() {
+	local metric_name="$1"
+	local timeout=60
+	local i
+
+	for i in $(seq 1 $timeout); do
+		if crictl metricsp 2> /dev/null | grep -q "$metric_name"; then
+			return 0
+		fi
+		sleep 1
+	done
+
+	echo "Timed out waiting for metric: $metric_name" >&2
+	crictl metricsp || true
+	return 1
+}
+
 function metrics_setup() {
 	# start sandbox
 	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
@@ -246,12 +264,11 @@ included_pod_metrics = [
 EOF
 	start_crio_no_setup
 	check_images
-	sleep 10
 
 	metrics_setup
 	set_container_pod_cgroup_root "" "$CONTAINER_ID"
 
-	sleep 5 # Allow disk stats collection
+	wait_for_metric "container_fs_usage_bytes"
 
 	metrics=$(crictl metricsp)
 
