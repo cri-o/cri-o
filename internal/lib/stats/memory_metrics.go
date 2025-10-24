@@ -8,10 +8,6 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-// Size after which we consider memory to be "unlimited". This is not
-// MaxInt64 due to rounding by the kernel.
-const maxMemorySize = uint64(1 << 62)
-
 func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) []*types.Metric {
 	memoryMetrics := []*containerMetric{
 		{
@@ -42,20 +38,6 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 			desc: containerMemorySwap,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.SwapUsage, metricType: types.MetricType_GAUGE}}
-			},
-		},
-		{
-			desc: containerSpecMemoryLimitBytes,
-			valueFunc: func() metricValues {
-				// For consistency with cAdvisor and Kubernetes, consider memory to be "unlimited"
-				// when above a certain threshold (2^62) and report it as 0 in the metrics.
-				// This approach is more useful for monitoring tools than reporting the physical limit.
-				limit := mem.Limit
-				if limit > maxMemorySize {
-					return metricValues{{value: 0, metricType: types.MetricType_GAUGE}}
-				}
-
-				return metricValues{{value: limit, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{

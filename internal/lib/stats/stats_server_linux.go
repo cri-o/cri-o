@@ -244,6 +244,7 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 			},
 		},
 	}, "")
+
 	for _, m := range ss.Config().IncludedPodMetrics {
 		switch m {
 		case CPUMetrics:
@@ -280,6 +281,10 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 		case ProcessMetrics:
 			if processMetrics := generateSandboxProcessMetrics(sb, cgstats.Pid); processMetrics != nil {
 				metrics = append(metrics, processMetrics...)
+			}
+		case SpecMetrics:
+			if specMetrics := generateSandboxSpecMetrics(sb, c); specMetrics != nil {
+				metrics = append(metrics, specMetrics...)
 			}
 		default:
 			log.Warnf(ss.ctx, "Unknown metric: %s", m)
