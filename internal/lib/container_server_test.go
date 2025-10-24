@@ -612,8 +612,8 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 			manifest := bytes.Replace(testManifest,
 				[]byte(`"io.kubernetes.cri-o.Annotations": "{}",`),
-				[]byte(fmt.Sprintf("%q: %q,", annotations.ContainerManager,
-					annotations.ContainerManagerLibpod)), 1,
+				fmt.Appendf(nil, "%q: %q,", annotations.ContainerManager,
+					annotations.ContainerManagerLibpod), 1,
 			)
 			gomock.InOrder(
 				storeMock.EXPECT().

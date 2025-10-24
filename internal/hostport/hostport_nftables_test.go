@@ -63,7 +63,7 @@ func checkNFTablesElements(nft *knftables.Fake, expectedElements []string) {
 
 	matched := sets.New[string]()
 
-	for _, line := range strings.Split(dump, "\n") {
+	for line := range strings.SplitSeq(dump, "\n") {
 		if strings.HasPrefix(line, "add element") {
 			matched.Insert(line)
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -98,7 +99,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 	values := map[string]string{}
 
 	if len(parts) > 1 {
-		for _, r := range strings.Split(parts[1], ";") {
+		for r := range strings.SplitSeq(parts[1], ";") {
 			kv := strings.SplitN(r, "=", 2)
 			if len(kv) != 2 {
 				return nil, fmt.Errorf("invalid argument: %q", r)
@@ -488,9 +489,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	kubeAnnotations := map[string]string{}
 	// Deep copy to prevent writing to the same map in the config
-	for k, v := range defaultAnnotations {
-		kubeAnnotations[k] = v
-	}
+	maps.Copy(kubeAnnotations, defaultAnnotations)
 
 	if err := s.FilterDisallowedAnnotations(sbox.Config().GetAnnotations(), sbox.Config().GetAnnotations(), runtimeHandler); err != nil {
 		return nil, err

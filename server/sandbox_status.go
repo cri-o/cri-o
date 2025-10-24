@@ -96,7 +96,7 @@ func createSandboxInfo(c *oci.Container) (map[string]string, error) {
 	var info any
 	if c.Spoofed() {
 		info = struct {
-			RuntimeSpec spec.Spec `json:"runtimeSpec,omitempty"`
+			RuntimeSpec spec.Spec `json:"runtimeSpec"`
 		}{
 			c.Spec(),
 		}
@@ -104,7 +104,7 @@ func createSandboxInfo(c *oci.Container) (map[string]string, error) {
 		info = struct {
 			Image       string    `json:"image"`
 			Pid         int       `json:"pid"`
-			RuntimeSpec spec.Spec `json:"runtimeSpec,omitempty"`
+			RuntimeSpec spec.Spec `json:"runtimeSpec"`
 		}{
 			c.UserRequestedImage(),
 			c.State().Pid,

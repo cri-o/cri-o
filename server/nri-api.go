@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	"github.com/containerd/nri/pkg/api"
 	nrigen "github.com/containerd/nri/pkg/runtime-tools/generate"
@@ -552,9 +553,7 @@ func (p *criPodSandbox) GetAnnotations() map[string]string {
 	}
 
 	anns := map[string]string{}
-	for key, value := range p.Annotations() {
-		anns[key] = value
-	}
+	maps.Copy(anns, p.Annotations())
 
 	return anns
 }
@@ -565,9 +564,7 @@ func (p *criPodSandbox) GetLabels() map[string]string {
 	}
 
 	labels := map[string]string{}
-	for key, value := range p.Labels() {
-		labels[key] = value
-	}
+	maps.Copy(labels, p.Labels())
 
 	return labels
 }
@@ -817,9 +814,7 @@ func fromCRILinuxResources(c *cri.LinuxContainerResources) *api.LinuxResources {
 
 	if u := c.GetUnified(); len(u) != 0 {
 		r.Unified = make(map[string]string)
-		for k, v := range u {
-			r.Unified[k] = v
-		}
+		maps.Copy(r.GetUnified(), u)
 	}
 
 	return r
@@ -854,9 +849,7 @@ func toCRIResources(r *api.LinuxResources, oomScoreAdj int64) *cri.LinuxContaine
 
 	if u := r.GetUnified(); len(u) != 0 {
 		o.Unified = make(map[string]string)
-		for k, v := range u {
-			o.Unified[k] = v
-		}
+		maps.Copy(o.GetUnified(), u)
 	}
 
 	return o

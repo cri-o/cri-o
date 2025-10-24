@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -106,8 +107,8 @@ func ensureShared(path string, mountInfos []*mount.Info) error {
 	}
 
 	// Make sure source mount point is shared.
-	optsSplit := strings.Split(optionalOpts, " ")
-	for _, opt := range optsSplit {
+	optsSplit := strings.SplitSeq(optionalOpts, " ")
+	for opt := range optsSplit {
 		if strings.HasPrefix(opt, "shared:") {
 			return nil
 		}
@@ -123,8 +124,8 @@ func ensureSharedOrSlave(path string, mountInfos []*mount.Info) error {
 		return err
 	}
 	// Make sure source mount point is shared.
-	optsSplit := strings.Split(optionalOpts, " ")
-	for _, opt := range optsSplit {
+	optsSplit := strings.SplitSeq(optionalOpts, " ")
+	for opt := range optsSplit {
 		if strings.HasPrefix(opt, "shared:") {
 			return nil
 		} else if strings.HasPrefix(opt, "master:") {
@@ -229,8 +230,8 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 	homedir := ""
 
 	for _, env := range specgen.Config.Process.Env {
-		if strings.HasPrefix(env, "HOME=") {
-			homedir = strings.TrimPrefix(env, "HOME=")
+		if after, ok := strings.CutPrefix(env, "HOME="); ok {
+			homedir = after
 			if idx := strings.Index(homedir, `\n`); idx > -1 {
 				return errors.New("invalid HOME environment; newline not allowed")
 			}
@@ -1188,13 +1189,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	if s.Hooks != nil {
 		newAnnotations := map[string]string{}
-		for key, value := range containerConfig.GetAnnotations() {
-			newAnnotations[key] = value
-		}
+		maps.Copy(newAnnotations, containerConfig.GetAnnotations())
 
-		for key, value := range sb.Annotations() {
-			newAnnotations[key] = value
-		}
+		maps.Copy(newAnnotations, sb.Annotations())
 
 		if _, err := s.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.GetMounts()) > 0); err != nil {
 			return nil, err

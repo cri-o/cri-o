@@ -73,8 +73,8 @@ func DetectUID() (int, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(b))
 	for scanner.Scan() {
 		s := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(s, "OwnerUID=") {
-			uidStr := strings.TrimPrefix(s, "OwnerUID=")
+		if after, ok := strings.CutPrefix(s, "OwnerUID="); ok {
+			uidStr := after
 
 			i, err := strconv.Atoi(uidStr)
 			if err != nil {
@@ -117,8 +117,8 @@ func DetectUserDbusSessionBusAddress() (string, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(b))
 	for scanner.Scan() {
 		s := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(s, "DBUS_SESSION_BUS_ADDRESS=") {
-			return strings.TrimPrefix(s, "DBUS_SESSION_BUS_ADDRESS="), nil
+		if after, ok := strings.CutPrefix(s, "DBUS_SESSION_BUS_ADDRESS="); ok {
+			return after, nil
 		}
 	}
 
