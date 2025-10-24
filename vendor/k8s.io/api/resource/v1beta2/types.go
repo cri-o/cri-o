@@ -650,6 +650,7 @@ type DeviceTaint struct {
 }
 
 // +enum
+// +k8s:enum
 type DeviceTaintEffect string
 
 const (
@@ -697,6 +698,7 @@ type ResourceClaim struct {
 
 	// Spec describes what is being requested and how to configure it.
 	// The spec is immutable.
+	// +k8s:immutable
 	Spec ResourceClaimSpec `json:"spec" protobuf:"bytes,2,name=spec"`
 
 	// Status describes whether the claim is ready to use and what has been allocated.
@@ -724,6 +726,9 @@ type DeviceClaim struct {
 	//
 	// +optional
 	// +listType=atomic
+	// +k8s:listType=atomic
+	// +k8s:unique=map
+	// +k8s:listMapKey=name
 	// +k8s:maxItems=32
 	Requests []DeviceRequest `json:"requests" protobuf:"bytes,1,name=requests"`
 
@@ -813,6 +818,9 @@ type DeviceRequest struct {
 	// +oneOf=deviceRequestType
 	// +listType=atomic
 	// +featureGate=DRAPrioritizedList
+	// +k8s:listType=atomic
+	// +k8s:unique=map
+	// +k8s:listMapKey=name
 	// +k8s:maxItems=8
 	FirstAvailable []DeviceSubRequest `json:"firstAvailable,omitempty" protobuf:"bytes,3,name=firstAvailable"`
 }
@@ -864,6 +872,7 @@ type ExactDeviceRequest struct {
 	// requests with unknown modes.
 	//
 	// +optional
+	// +k8s:optional
 	AllocationMode DeviceAllocationMode `json:"allocationMode,omitempty" protobuf:"bytes,3,opt,name=allocationMode"`
 
 	// Count is used only when the count mode is "ExactCount". Must be greater than zero.
@@ -959,6 +968,8 @@ type DeviceSubRequest struct {
 	// to reference.
 	//
 	// +required
+	// +k8s:required
+	// +k8s:format=k8s-long-name
 	DeviceClassName string `json:"deviceClassName" protobuf:"bytes,2,name=deviceClassName"`
 
 	// Selectors define criteria which must be satisfied by a specific
@@ -1076,6 +1087,7 @@ const (
 )
 
 // +enum
+// +k8s:enum
 type DeviceAllocationMode string
 
 // Valid [DeviceRequest.CountMode] values.
@@ -1194,6 +1206,8 @@ type DeviceConstraint struct {
 	//
 	// +optional
 	// +listType=atomic
+	// +k8s:listType=atomic
+	// +k8s:unique=set
 	// +k8s:maxItems=32
 	Requests []string `json:"requests,omitempty" protobuf:"bytes,1,opt,name=requests"`
 
@@ -1252,6 +1266,8 @@ type DeviceClaimConfiguration struct {
 	//
 	// +optional
 	// +listType=atomic
+	// +k8s:listType=atomic
+	// +k8s:unique=set
 	// +k8s:maxItems=32
 	Requests []string `json:"requests,omitempty" protobuf:"bytes,1,opt,name=requests"`
 
@@ -1266,6 +1282,7 @@ type DeviceConfiguration struct {
 	//
 	// +optional
 	// +oneOf=ConfigurationType
+	// +k8s:optional
 	Opaque *OpaqueDeviceConfiguration `json:"opaque,omitempty" protobuf:"bytes,1,opt,name=opaque"`
 }
 
@@ -1282,6 +1299,8 @@ type OpaqueDeviceConfiguration struct {
 	// vendor of the driver. It should use only lower case characters.
 	//
 	// +required
+	// +k8s:required
+	// +k8s:format=k8s-long-name-caseless
 	Driver string `json:"driver" protobuf:"bytes,1,name=driver"`
 
 	// Parameters can contain arbitrary data. It is the responsibility of
@@ -1307,6 +1326,8 @@ type DeviceToleration struct {
 	// Must be a label name.
 	//
 	// +optional
+	// +k8s:optional
+	// +k8s:format=k8s-label-key
 	Key string `json:"key,omitempty" protobuf:"bytes,1,opt,name=key"`
 
 	// Operator represents a key's relationship to the value.
@@ -1345,6 +1366,7 @@ type DeviceToleration struct {
 // A toleration operator is the set of operators that can be used in a toleration.
 //
 // +enum
+// +k8s:enum
 type DeviceTolerationOperator string
 
 const (
@@ -1359,6 +1381,7 @@ type ResourceClaimStatus struct {
 	//
 	// +optional
 	// +k8s:optional
+	// +k8s:update=NoModify
 	Allocation *AllocationResult `json:"allocation,omitempty" protobuf:"bytes,1,opt,name=allocation"`
 
 	// ReservedFor indicates which entities are currently allowed to use
@@ -1389,6 +1412,7 @@ type ResourceClaimStatus struct {
 	// +k8s:optional
 	// +k8s:listType=map
 	// +k8s:listMapKey=uid
+	// +k8s:maxItems=256
 	ReservedFor []ResourceClaimConsumerReference `json:"reservedFor,omitempty" protobuf:"bytes,2,opt,name=reservedFor" patchStrategy:"merge" patchMergeKey:"uid"`
 
 	// DeallocationRequested is tombstoned since Kubernetes 1.32 where
@@ -1408,6 +1432,11 @@ type ResourceClaimStatus struct {
 	// +listMapKey=pool
 	// +listMapKey=shareID
 	// +featureGate=DRAResourceClaimDeviceStatus
+	// +k8s:listType=map
+	// +k8s:listMapKey=driver
+	// +k8s:listMapKey=device
+	// +k8s:listMapKey=pool
+	// +k8s:listMapKey=shareID
 	Devices []AllocatedDeviceStatus `json:"devices,omitempty" protobuf:"bytes,4,opt,name=devices"`
 }
 
@@ -1470,6 +1499,7 @@ type DeviceAllocationResult struct {
 	//
 	// +optional
 	// +listType=atomic
+	// +k8s:maxItems=32
 	Results []DeviceRequestAllocationResult `json:"results,omitempty" protobuf:"bytes,1,opt,name=results"`
 
 	// This field is a combination of all the claim and class configuration parameters.
@@ -1482,6 +1512,7 @@ type DeviceAllocationResult struct {
 	//
 	// +optional
 	// +listType=atomic
+	// +k8s:maxItems=64
 	Config []DeviceAllocationConfiguration `json:"config,omitempty" protobuf:"bytes,2,opt,name=config"`
 }
 
@@ -1510,6 +1541,8 @@ type DeviceRequestAllocationResult struct {
 	// vendor of the driver. It should use only lower case characters.
 	//
 	// +required
+	// +k8s:format=k8s-long-name-caseless
+	// +k8s:required
 	Driver string `json:"driver" protobuf:"bytes,2,name=driver"`
 
 	// This name together with the driver name and the device name field
@@ -1563,6 +1596,7 @@ type DeviceRequestAllocationResult struct {
 	// +optional
 	// +listType=atomic
 	// +featureGate=DRADeviceBindingConditions,DRAResourceClaimDeviceStatus
+	// +k8s:maxItems=4
 	BindingConditions []string `json:"bindingConditions,omitempty" protobuf:"bytes,7,rep,name=bindingConditions"`
 
 	// BindingFailureConditions contains a copy of the BindingFailureConditions
@@ -1574,6 +1608,7 @@ type DeviceRequestAllocationResult struct {
 	// +optional
 	// +listType=atomic
 	// +featureGate=DRADeviceBindingConditions,DRAResourceClaimDeviceStatus
+	// +k8s:maxItems=4
 	BindingFailureConditions []string `json:"bindingFailureConditions,omitempty" protobuf:"bytes,8,rep,name=bindingFailureConditions"`
 
 	// ShareID uniquely identifies an individual allocation share of the device,
@@ -1608,6 +1643,7 @@ type DeviceAllocationConfiguration struct {
 	// or from a claim.
 	//
 	// +required
+	// +k8s:required
 	Source AllocationConfigSource `json:"source" protobuf:"bytes,1,name=source"`
 
 	// Requests lists the names of requests where the configuration applies.
@@ -1624,12 +1660,14 @@ type DeviceAllocationConfiguration struct {
 	DeviceConfiguration `json:",inline" protobuf:"bytes,3,name=deviceConfiguration"`
 }
 
+// +enum
+// +k8s:enum
 type AllocationConfigSource string
 
 // Valid [DeviceAllocationConfiguration.Source] values.
 const (
-	AllocationConfigSourceClass = "FromClass"
-	AllocationConfigSourceClaim = "FromClaim"
+	AllocationConfigSourceClass AllocationConfigSource = "FromClass"
+	AllocationConfigSourceClaim AllocationConfigSource = "FromClaim"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -1715,6 +1753,8 @@ type DeviceClassSpec struct {
 	// This is an alpha field.
 	// +optional
 	// +featureGate=DRAExtendedResource
+	// +k8s:optional
+	// +k8s:format=k8s-extended-resource-name
 	ExtendedResourceName *string `json:"extendedResourceName,omitempty" protobuf:"bytes,4,opt,name=extendedResourceName"`
 }
 
