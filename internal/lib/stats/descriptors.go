@@ -172,3 +172,12 @@ var (
 		LabelKeys: baseLabelKeys,
 	}
 )
+
+// Miscellaneous metrics.
+var (
+	containerLastSeen = &types.MetricDescriptor{
+		Name:      "container_last_seen",
+		Help:      "Last time a container was seen by the exporter",
+		LabelKeys: baseLabelKeys,
+	}
+)
