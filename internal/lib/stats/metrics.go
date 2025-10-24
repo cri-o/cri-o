@@ -17,6 +17,7 @@ const (
 	NetworkMetrics = "network"
 	OOMMetrics     = "oom"
 	ProcessMetrics = "process"
+	SpecMetrics    = "spec"
 )
 
 type metricValue struct {
@@ -53,6 +54,9 @@ func NewSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 // PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
 func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
 	descriptorsMap := map[string][]*types.MetricDescriptor{
+		"": {
+			containerLastSeen,
+		},
 		CPUMetrics: {
 			containerCpuUserSecondsTotal,
 			containerCpuSystemSecondsTotal,
@@ -71,7 +75,6 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			containerMemoryKernelUsage,
 			containerMemoryMappedFile,
 			containerMemorySwap,
-			containerSpecMemoryLimitBytes,
 			containerMemoryFailcnt,
 			containerMemoryUsageBytes,
 			containerMemoryMaxUsageBytes,
@@ -94,6 +97,14 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 		ProcessMetrics: {
 			containerProcesses,
 		},
+		SpecMetrics: {
+			containerSpecCpuPeriod,
+			containerSpecCpuShares,
+			containerSpecCpuQuota,
+			containerSpecMemoryLimitBytes,
+			containerSpecMemoryReservationLimitBytes,
+			containerSpecMemorySwapLimitBytes,
+		},
 	}
 
 	return descriptorsMap
@@ -106,7 +117,11 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 
 // ComputeSandboxMetrics computes the metrics for both pod and container sandbox.
 func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric, metricName string) []*types.Metric {
-	baseLabels := append(sandboxBaseLabelValues(sb), metricName)
+	baseLabels := sandboxBaseLabelValues(sb)
+	if metricName != "" {
+		baseLabels = append(baseLabels, metricName)
+	}
+
 	calculatedMetrics := make([]*types.Metric, 0, len(metrics))
 
 	for _, m := range metrics {

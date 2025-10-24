@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/vishvananda/netlink"
@@ -232,7 +233,17 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *o
 }
 
 func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.Container, cgstats *cgmgr.CgroupStats) *types.ContainerMetrics {
-	var metrics []*types.Metric
+	metrics := computeSandboxMetrics(sb, []*containerMetric{
+		{
+			desc: containerLastSeen,
+			valueFunc: func() metricValues {
+				return metricValues{{
+					value:      uint64(time.Now().Unix()),
+					metricType: types.MetricType_GAUGE,
+				}}
+			},
+		},
+	}, "")
 
 	for _, m := range ss.Config().IncludedPodMetrics {
 		switch m {
@@ -270,6 +281,10 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 		case ProcessMetrics:
 			if processMetrics := generateSandboxProcessMetrics(sb, cgstats.Pid); processMetrics != nil {
 				metrics = append(metrics, processMetrics...)
+			}
+		case SpecMetrics:
+			if specMetrics := generateSandboxSpecMetrics(sb, c); specMetrics != nil {
+				metrics = append(metrics, specMetrics...)
 			}
 		default:
 			log.Warnf(ss.ctx, "Unknown metric: %s", m)

@@ -77,11 +77,6 @@ var (
 		Help:      "Container swap usage in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
-	containerSpecMemoryLimitBytes = &types.MetricDescriptor{
-		Name:      "container_spec_memory_limit_bytes",
-		Help:      "Memory limit for the container in bytes.",
-		LabelKeys: baseLabelKeys,
-	}
 	containerMemoryFailcnt = &types.MetricDescriptor{
 		Name:      "container_memory_failcnt",
 		Help:      "Number of memory usage hits limits",
@@ -169,6 +164,49 @@ var (
 	containerProcesses = &types.MetricDescriptor{
 		Name:      "container_processes",
 		Help:      "Number of processes running inside the container",
+		LabelKeys: baseLabelKeys,
+	}
+)
+
+// Miscellaneous metrics.
+var (
+	containerLastSeen = &types.MetricDescriptor{
+		Name:      "container_last_seen",
+		Help:      "Last time a container was seen by the exporter",
+		LabelKeys: baseLabelKeys,
+	}
+)
+
+// Spec metrics.
+var (
+	containerSpecMemoryLimitBytes = &types.MetricDescriptor{
+		Name:      "container_spec_memory_limit_bytes",
+		Help:      "Memory limit for the container in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerSpecCpuPeriod = &types.MetricDescriptor{
+		Name:      "container_spec_cpu_period",
+		Help:      "CPU period of the container.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerSpecCpuShares = &types.MetricDescriptor{
+		Name:      "container_spec_cpu_shares",
+		Help:      "CPU share of the container.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerSpecCpuQuota = &types.MetricDescriptor{
+		Name:      "container_spec_cpu_quota",
+		Help:      "CPU quota of the container.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerSpecMemoryReservationLimitBytes = &types.MetricDescriptor{
+		Name:      "container_spec_memory_reservation_limit_bytes",
+		Help:      "Memory reservation limit for the container.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerSpecMemorySwapLimitBytes = &types.MetricDescriptor{
+		Name:      "container_spec_memory_swap_limit_bytes",
+		Help:      "Memory swap limit for the container.",
 		LabelKeys: baseLabelKeys,
 	}
 )
