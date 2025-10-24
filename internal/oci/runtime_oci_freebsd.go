@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/diskmgr"
 )
 
 // getContainerDiskStats collects disk metrics for a container on FreeBSD.
-func (r *runtimeOCI) getContainerDiskStats(c *Container) (*cgmgr.DiskMetrics, error) {
+func (r *runtimeOCI) getContainerDiskStats(c *Container) (*diskmgr.DiskMetrics, error) {
 	mountPoint := c.MountPoint()
 	if mountPoint == "" {
 		return nil, fmt.Errorf("container %s has no mount point", c.ID())
@@ -31,7 +31,7 @@ func (r *runtimeOCI) getContainerDiskStats(c *Container) (*cgmgr.DiskMetrics, er
 	inodesTotal := uint64(stat.Files)
 	inodesFree := uint64(stat.Ffree)
 
-	return &cgmgr.DiskMetrics{
+	return &diskmgr.DiskMetrics{
 		UsageBytes:  usageBytes,
 		LimitBytes:  limitBytes,
 		InodesTotal: inodesTotal,

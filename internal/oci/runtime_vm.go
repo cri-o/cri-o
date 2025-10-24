@@ -42,6 +42,7 @@ import (
 	utilexec "k8s.io/utils/exec"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/diskmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -1031,7 +1032,7 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*cgmgr.ContainerRuntimeStats, error) {
+func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*cgmgr.CgroupStats, error) {
 	log.Debugf(ctx, "RuntimeVM.ContainerStats() start")
 	defer log.Debugf(ctx, "RuntimeVM.ContainerStats() end")
 
@@ -1058,26 +1059,22 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 	// We can't assume the version of metrics we will get based on the host system,
 	// because the guest VM may be using a different version.
 	// Trying to retrieve the V1 metrics first, and if it fails, try the v2
-	var cgroupStats *cgmgr.CgroupStats
 
 	m, ok := stats.(*cgroupsV1.Metrics)
 	if ok {
-		cgroupStats = metricsV1ToCgroupStats(ctx, m)
+		return metricsV1ToCgroupStats(ctx, m), nil
 	} else {
 		m, ok := stats.(*cgroupsV2.Metrics)
 		if ok {
-			cgroupStats = metricsV2ToCgroupStats(ctx, m)
+			return metricsV2ToCgroupStats(ctx, m), nil
 		} else {
 			return nil, fmt.Errorf("unknown stats type %T", stats)
 		}
 	}
+}
 
-	// For VM runtime, disk stats are not available from the VM metrics
-	// so we return nil for disk stats
-	return &cgmgr.ContainerRuntimeStats{
-		Cgroup: cgroupStats,
-		Disk:   nil,
-	}, nil
+func (r *runtimeVM) DiskStats(ctx context.Context, c *Container, _ string) (*diskmgr.DiskMetrics, error) {
+	return nil, errors.New("DiskStats not implemented for runtimeVM")
 }
 
 func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.CgroupStats {

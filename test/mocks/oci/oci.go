@@ -16,6 +16,7 @@ import (
 	syscall "syscall"
 
 	cgmgr "github.com/cri-o/cri-o/internal/config/cgmgr"
+	diskmgr "github.com/cri-o/cri-o/internal/config/diskmgr"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	gomock "go.uber.org/mock/gomock"
@@ -76,10 +77,17 @@ func (mr *MockRuntimeImplMockRecorder) CheckpointContainer(arg0, arg1, arg2, arg
 }
 
 // ContainerStats mocks base method.
-func (m *MockRuntimeImpl) ContainerStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*cgmgr.ContainerRuntimeStats, error) {
+func (m *MockRuntimeImpl) ContainerStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*cgmgr.CgroupStats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerStats", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*cgmgr.ContainerRuntimeStats)
+	ret0, _ := ret[0].(*cgmgr.CgroupStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+func (m *MockRuntimeImpl) DiskStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*diskmgr.DiskMetrics, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DiskStats", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*diskmgr.DiskMetrics)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

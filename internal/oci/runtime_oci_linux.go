@@ -12,7 +12,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/google/cadvisor/fs"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/diskmgr"
 	"github.com/cri-o/cri-o/internal/log"
 )
 
@@ -113,7 +113,7 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 }
 
 // getContainerDiskStats collects disk metrics for a container on Linux.
-func (r *runtimeOCI) getContainerDiskStats(c *Container) (*cgmgr.DiskMetrics, error) {
+func (r *runtimeOCI) getContainerDiskStats(c *Container) (*diskmgr.DiskMetrics, error) {
 	mountPoint := c.MountPoint()
 	if mountPoint == "" {
 		return nil, fmt.Errorf("container %s has no mount point", c.ID())
@@ -146,10 +146,11 @@ func (r *runtimeOCI) getContainerDiskStats(c *Container) (*cgmgr.DiskMetrics, er
 		inodesTotal = *info.Inodes
 	}
 
-	return &cgmgr.DiskMetrics{
-		UsageBytes:  info.Capacity - info.Free,
-		LimitBytes:  info.Capacity,
-		InodesFree:  inodesFree,
-		InodesTotal: inodesTotal,
-	}, nil
+	return &diskmgr.DiskMetrics{
+		Filesystem: diskmgr.FilesystemMetrics{
+			UsageBytes:  info.Capacity - info.Free,
+			LimitBytes:  info.Capacity,
+			InodesFree:  inodesFree,
+			InodesTotal: inodesTotal,
+		}}, nil
 }

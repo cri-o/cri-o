@@ -3,12 +3,12 @@ package statsserver
 import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/diskmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 )
 
 // generateSandboxDiskMetrics computes filesystem disk metrics from DiskMetrics for a container sandbox.
-func generateSandboxDiskMetrics(sb *sandbox.Sandbox, diskStats *cgmgr.DiskMetrics) []*types.Metric {
+func generateSandboxDiskMetrics(sb *sandbox.Sandbox, diskStats *diskmgr.FilesystemMetrics) []*types.Metric {
 	diskMetrics := []*containerMetric{
 		{
 			desc: containerFsInodesFree,
