@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -478,6 +479,16 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 	// Handle https://issues.k8s.io/44043
 	if err := utils.EnsureSaneLogPath(logPath); err != nil {
 		return "", err
+	}
+
+	// Ensure the parent directory exists for the log file if logPath is set
+	// This addresses the issue where conmon fails to create log files
+	// because the container-specific subdirectory doesn't exist
+	if logPath != "" {
+		containerLogDir := filepath.Dir(logPath)
+		if err := os.MkdirAll(containerLogDir, 0755); err != nil {
+			logrus.Warnf("Failed to create container log directory %s: %v", containerLogDir, err)
+		}
 	}
 
 	logrus.Debugf("Setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
