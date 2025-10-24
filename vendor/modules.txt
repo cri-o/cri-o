@@ -1617,7 +1617,7 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.35.0-alpha.1
+# k8s.io/apiserver v0.35.0-alpha.2
 ## explicit; go 1.25.0
 k8s.io/apiserver/pkg/endpoints/responsewriter
 # k8s.io/client-go v0.35.0-alpha.2
@@ -1800,7 +1800,7 @@ k8s.io/kube-openapi/pkg/spec3
 k8s.io/kube-openapi/pkg/util
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/validation/spec
-# k8s.io/kubelet v0.35.0-alpha.1
+# k8s.io/kubelet v0.35.0-alpha.2
 ## explicit; go 1.25.0
 k8s.io/kubelet/pkg/cri/streaming
 k8s.io/kubelet/pkg/cri/streaming/portforward

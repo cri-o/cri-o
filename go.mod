@@ -81,7 +81,7 @@ require (
 	k8s.io/cri-api v0.35.0-alpha.2
 	k8s.io/cri-client v0.35.0-alpha.2
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubelet v0.35.0-alpha.1
+	k8s.io/kubelet v0.35.0-alpha.2
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 	sigs.k8s.io/knftables v0.0.19
 	sigs.k8s.io/release-sdk v0.12.5
@@ -254,7 +254,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.35.0-alpha.1 // indirect
+	k8s.io/apiserver v0.35.0-alpha.2 // indirect
 	k8s.io/component-base v0.35.0-alpha.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
