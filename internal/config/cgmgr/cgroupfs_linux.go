@@ -101,12 +101,7 @@ func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*C
 		return nil, err
 	}
 
-	stats, err := cgMgr.GetStats()
-	if err != nil {
-		return nil, err
-	}
-
-	return libctrStatsToCgroupStats(stats), nil
+	return statsFromLibctrMgr(cgMgr)
 }
 
 // RemoveContainerCgManager removes the cgroup manager for the container.
@@ -173,12 +168,7 @@ func (m *CgroupfsManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStat
 		return nil, err
 	}
 
-	stats, err := cgMgr.GetStats()
-	if err != nil {
-		return nil, err
-	}
-
-	return libctrStatsToCgroupStats(stats), nil
+	return statsFromLibctrMgr(cgMgr)
 }
 
 // RemoveSandboxCgroupManager removes the cgroup manager for the sandbox.
