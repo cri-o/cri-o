@@ -18,6 +18,15 @@ func generateSandboxProcessMetrics(sb *sandbox.Sandbox, pids *cgmgr.PidsStats) [
 				}}
 			},
 		},
+		{
+			desc: containerFileDescriptors,
+			valueFunc: func() metricValues {
+				return metricValues{{
+					value:      pids.FileDescriptors,
+					metricType: types.MetricType_GAUGE,
+				}}
+			},
+		},
 	}
 
 	return computeSandboxMetrics(sb, processMetrics, "process")
