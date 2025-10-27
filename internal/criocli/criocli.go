@@ -46,6 +46,38 @@ func GetAndMergeConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
 }
 
 func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
+	if err := mergeConfigFiles(config, ctx); err != nil {
+		return err
+	}
+
+	mergeImageConfig(config, ctx)
+
+	if err := mergeRuntimeConfig(config, ctx); err != nil {
+		return err
+	}
+
+	mergeStorageConfig(config, ctx)
+	mergeNetworkConfig(config, ctx)
+	mergeSecurityConfig(config, ctx)
+	mergeCgroupConfig(config, ctx)
+	mergeResourceConfig(config, ctx)
+	mergeLoggingConfig(config, ctx)
+	mergeDeviceConfig(config, ctx)
+	mergeContainerConfig(config, ctx)
+	mergeGRPCConfig(config, ctx)
+	mergeStreamConfig(config, ctx)
+	mergeVersionConfig(config, ctx)
+	mergeMetricsConfig(config, ctx)
+	mergeTracingConfig(config, ctx)
+	mergeNRIConfig(config, ctx)
+	mergeMiscConfig(config, ctx)
+
+	return nil
+}
+
+// mergeConfigFiles loads and merges configuration from the config file and config directory
+// specified in the CLI context into the provided config object.
+func mergeConfigFiles(config *libconfig.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
 	path := ctx.String("config")
 	if path != "" {
@@ -72,11 +104,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.SetSingleConfigPath(path)
 	}
 
-	// Override options set with the CLI.
-	if ctx.IsSet("conmon") {
-		config.Conmon = ctx.String("conmon")
-	}
+	return nil
+}
 
+// mergeImageConfig merges image-related CLI flags into the config, including pause image,
+// image pull settings, registries configuration, and signature verification settings.
+func mergeImageConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("pause-command") {
 		config.PauseCommand = ctx.String("pause-command")
 	}
@@ -105,6 +138,134 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.SignaturePolicyDir = ctx.String("signature-policy-dir")
 	}
 
+	if ctx.IsSet("insecure-registry") {
+		config.InsecureRegistries = StringSliceTrySplit(ctx, "insecure-registry")
+	}
+
+	if ctx.IsSet("default-transport") {
+		config.DefaultTransport = ctx.String("default-transport")
+	}
+
+	if ctx.IsSet("decryption-keys-path") {
+		config.DecryptionKeysPath = ctx.String("decryption-keys-path")
+	}
+
+	if ctx.IsSet("imagestore") {
+		config.ImageStore = ctx.String("imagestore")
+	}
+
+	if ctx.IsSet("image-volumes") {
+		config.ImageVolumes = libconfig.ImageVolumesType(ctx.String("image-volumes"))
+	}
+
+	if ctx.IsSet("auto-reload-registries") {
+		config.AutoReloadRegistries = ctx.Bool("auto-reload-registries")
+	}
+
+	if ctx.IsSet("pull-progress-timeout") {
+		config.PullProgressTimeout = ctx.Duration("pull-progress-timeout")
+	}
+
+	if ctx.IsSet("pinned-images") {
+		config.PinnedImages = StringSliceTrySplit(ctx, "pinned-images")
+	}
+
+	if ctx.IsSet("short-name-mode") {
+		config.ShortNameMode = ctx.String("short-name-mode")
+	}
+}
+
+// mergeRuntimeConfig merges runtime-related CLI flags into the config, including conmon path,
+// default runtime, runtime handlers, hooks, mounts, and pivot root settings.
+func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
+	if ctx.IsSet("conmon") {
+		config.Conmon = ctx.String("conmon")
+	}
+
+	if ctx.IsSet("default-runtime") {
+		config.DefaultRuntime = ctx.String("default-runtime")
+	}
+
+	if ctx.IsSet("runtimes") {
+		if err := mergeRuntimesConfig(config, ctx); err != nil {
+			return err
+		}
+	}
+
+	if ctx.IsSet("hooks-dir") {
+		config.HooksDir = StringSliceTrySplit(ctx, "hooks-dir")
+	}
+
+	if ctx.IsSet("default-mounts-file") {
+		config.DefaultMountsFile = ctx.String("default-mounts-file")
+	}
+
+	if ctx.IsSet("conmon-cgroup") {
+		config.ConmonCgroup = ctx.String("conmon-cgroup")
+	}
+
+	if ctx.IsSet("conmon-env") {
+		config.ConmonEnv = StringSliceTrySplit(ctx, "conmon-env")
+	}
+
+	if ctx.IsSet("no-pivot") {
+		config.NoPivot = ctx.Bool("no-pivot")
+	}
+
+	return nil
+}
+
+// mergeRuntimesConfig parses and merges the --runtimes flag which specifies OCI runtime
+// configurations in the format: runtime_name:runtime_path:runtime_root:runtime_type:...
+func mergeRuntimesConfig(config *libconfig.Config, ctx *cli.Context) error {
+	runtimes := StringSliceTrySplit(ctx, "runtimes")
+	for _, r := range runtimes {
+		fields := strings.Split(r, ":")
+		runtimeType := libconfig.DefaultRuntimeType
+		privilegedWithoutHostDevices := false
+		runtimeConfigPath := ""
+		containerMinMemory := ""
+
+		switch len(fields) {
+		case 7:
+			containerMinMemory = fields[6]
+			if _, err := units.RAMInBytes(containerMinMemory); err != nil {
+				return fmt.Errorf("invalid value %q for --runtimes:container_min_memory: %w", containerMinMemory, err)
+			}
+
+			fallthrough
+		case 6:
+			runtimeConfigPath = fields[5]
+
+			fallthrough
+		case 5:
+			if fields[4] == "true" {
+				privilegedWithoutHostDevices = true
+			}
+
+			fallthrough
+		case 4:
+			runtimeType = fields[3]
+
+			fallthrough
+		case 3:
+			config.Runtimes[fields[0]] = &libconfig.RuntimeHandler{
+				RuntimePath:                  fields[1],
+				RuntimeRoot:                  fields[2],
+				RuntimeType:                  runtimeType,
+				PrivilegedWithoutHostDevices: privilegedWithoutHostDevices,
+				RuntimeConfigPath:            runtimeConfigPath,
+				ContainerMinMemory:           containerMinMemory,
+			}
+		default:
+			return fmt.Errorf("invalid format for --runtimes: %q", r)
+		}
+	}
+
+	return nil
+}
+
+func mergeStorageConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("root") {
 		config.Root = ctx.String("root")
 	}
@@ -120,161 +281,11 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("storage-opt") {
 		config.StorageOptions = StringSliceTrySplit(ctx, "storage-opt")
 	}
+}
 
-	if ctx.IsSet("insecure-registry") {
-		config.InsecureRegistries = StringSliceTrySplit(ctx, "insecure-registry")
-	}
-
-	if ctx.IsSet("default-transport") {
-		config.DefaultTransport = ctx.String("default-transport")
-	}
-
+func mergeNetworkConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("listen") {
 		config.Listen = ctx.String("listen")
-	}
-
-	if ctx.IsSet("stream-address") {
-		config.StreamAddress = ctx.String("stream-address")
-	}
-
-	if ctx.IsSet("stream-port") {
-		config.StreamPort = ctx.String("stream-port")
-	}
-
-	if ctx.IsSet("default-runtime") {
-		config.DefaultRuntime = ctx.String("default-runtime")
-	}
-
-	if ctx.IsSet("decryption-keys-path") {
-		config.DecryptionKeysPath = ctx.String("decryption-keys-path")
-	}
-
-	if ctx.IsSet("runtimes") {
-		runtimes := StringSliceTrySplit(ctx, "runtimes")
-		for _, r := range runtimes {
-			fields := strings.Split(r, ":")
-
-			runtimeType := libconfig.DefaultRuntimeType
-			privilegedWithoutHostDevices := false
-			runtimeConfigPath := ""
-			containerMinMemory := ""
-
-			switch len(fields) {
-			case 7:
-				containerMinMemory = fields[6]
-
-				if _, err := units.RAMInBytes(containerMinMemory); err != nil {
-					return fmt.Errorf("invalid value %q for --runtimes:container_min_memory: %w", containerMinMemory, err)
-				}
-
-				fallthrough
-			case 6:
-				runtimeConfigPath = fields[5]
-
-				fallthrough
-			case 5:
-				if fields[4] == "true" {
-					privilegedWithoutHostDevices = true
-				}
-
-				fallthrough
-			case 4:
-				runtimeType = fields[3]
-
-				fallthrough
-			case 3:
-				config.Runtimes[fields[0]] = &libconfig.RuntimeHandler{
-					RuntimePath:                  fields[1],
-					RuntimeRoot:                  fields[2],
-					RuntimeType:                  runtimeType,
-					PrivilegedWithoutHostDevices: privilegedWithoutHostDevices,
-					RuntimeConfigPath:            runtimeConfigPath,
-					ContainerMinMemory:           containerMinMemory,
-				}
-			default:
-				return fmt.Errorf("invalid format for --runtimes: %q", r)
-			}
-		}
-	}
-
-	if ctx.IsSet("selinux") {
-		config.SELinux = ctx.Bool("selinux")
-	}
-
-	if ctx.IsSet("imagestore") {
-		config.ImageStore = ctx.String("imagestore")
-	}
-
-	if ctx.IsSet("seccomp-profile") {
-		config.SeccompProfile = ctx.String("seccomp-profile")
-	}
-
-	if ctx.IsSet("privileged-seccomp-profile") {
-		config.PrivilegedSeccompProfile = ctx.String("privileged-seccomp-profile")
-	}
-
-	if ctx.IsSet("apparmor-profile") {
-		config.ApparmorProfile = ctx.String("apparmor-profile")
-	}
-
-	if ctx.IsSet("blockio-config-file") {
-		config.BlockIOConfigFile = ctx.String("blockio-config-file")
-	}
-
-	if ctx.IsSet("blockio-reload") {
-		config.BlockIOReload = ctx.Bool("blockio-reload")
-	}
-
-	if ctx.IsSet("irqbalance-config-file") {
-		config.IrqBalanceConfigFile = ctx.String("irqbalance-config-file")
-	}
-
-	if ctx.IsSet("rdt-config-file") {
-		config.RdtConfigFile = ctx.String("rdt-config-file")
-	}
-
-	if ctx.IsSet("cgroup-manager") {
-		config.CgroupManagerName = ctx.String("cgroup-manager")
-	}
-
-	if ctx.IsSet("conmon-cgroup") {
-		config.ConmonCgroup = ctx.String("conmon-cgroup")
-	}
-
-	if ctx.IsSet("hooks-dir") {
-		config.HooksDir = StringSliceTrySplit(ctx, "hooks-dir")
-	}
-
-	if ctx.IsSet("default-mounts-file") {
-		config.DefaultMountsFile = ctx.String("default-mounts-file")
-	}
-
-	if ctx.IsSet("default-capabilities") {
-		config.DefaultCapabilities = StringSliceTrySplit(ctx, "default-capabilities")
-	}
-
-	if ctx.IsSet("add-inheritable-capabilities") {
-		config.AddInheritableCapabilities = ctx.Bool("add-inheritable-capabilities")
-	}
-
-	if ctx.IsSet("default-sysctls") {
-		config.DefaultSysctls = StringSliceTrySplit(ctx, "default-sysctls")
-	}
-
-	if ctx.IsSet("default-ulimits") {
-		config.DefaultUlimits = StringSliceTrySplit(ctx, "default-ulimits")
-	}
-
-	if ctx.IsSet("pids-limit") {
-		config.PidsLimit = ctx.Int64("pids-limit")
-	}
-
-	if ctx.IsSet("log-size-max") {
-		config.LogSizeMax = ctx.Int64("log-size-max")
-	}
-
-	if ctx.IsSet("log-journald") {
-		config.LogToJournald = ctx.Bool("log-journald")
 	}
 
 	if ctx.IsSet("cni-default-network") {
@@ -289,16 +300,38 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.PluginDirs = StringSliceTrySplit(ctx, "cni-plugin-dir")
 	}
 
-	if ctx.IsSet("image-volumes") {
-		config.ImageVolumes = libconfig.ImageVolumesType(ctx.String("image-volumes"))
+	if ctx.IsSet("disable-hostport-mapping") {
+		config.DisableHostPortMapping = ctx.Bool("disable-hostport-mapping")
 	}
 
-	if ctx.IsSet("read-only") {
-		config.ReadOnly = ctx.Bool("read-only")
+	if ctx.IsSet("hostnetwork-disable-selinux") {
+		config.HostNetworkDisableSELinux = ctx.Bool("hostnetwork-disable-selinux")
+	}
+}
+
+func mergeSecurityConfig(config *libconfig.Config, ctx *cli.Context) {
+	if ctx.IsSet("selinux") {
+		config.SELinux = ctx.Bool("selinux")
 	}
 
-	if ctx.IsSet("bind-mount-prefix") {
-		config.BindMountPrefix = ctx.String("bind-mount-prefix")
+	if ctx.IsSet("seccomp-profile") {
+		config.SeccompProfile = ctx.String("seccomp-profile")
+	}
+
+	if ctx.IsSet("privileged-seccomp-profile") {
+		config.PrivilegedSeccompProfile = ctx.String("privileged-seccomp-profile")
+	}
+
+	if ctx.IsSet("apparmor-profile") {
+		config.ApparmorProfile = ctx.String("apparmor-profile")
+	}
+
+	if ctx.IsSet("default-capabilities") {
+		config.DefaultCapabilities = StringSliceTrySplit(ctx, "default-capabilities")
+	}
+
+	if ctx.IsSet("add-inheritable-capabilities") {
+		config.AddInheritableCapabilities = ctx.Bool("add-inheritable-capabilities")
 	}
 
 	if ctx.IsSet("uid-mappings") {
@@ -316,7 +349,61 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("minimum-mappable-gid") {
 		config.MinimumMappableGID = ctx.Int64("minimum-mappable-gid")
 	}
+}
 
+func mergeCgroupConfig(config *libconfig.Config, ctx *cli.Context) {
+	if ctx.IsSet("cgroup-manager") {
+		config.CgroupManagerName = ctx.String("cgroup-manager")
+	}
+
+	if ctx.IsSet("blockio-config-file") {
+		config.BlockIOConfigFile = ctx.String("blockio-config-file")
+	}
+
+	if ctx.IsSet("blockio-reload") {
+		config.BlockIOReload = ctx.Bool("blockio-reload")
+	}
+
+	if ctx.IsSet("irqbalance-config-file") {
+		config.IrqBalanceConfigFile = ctx.String("irqbalance-config-file")
+	}
+
+	if ctx.IsSet("irqbalance-config-restore-file") {
+		config.IrqBalanceConfigRestoreFile = ctx.String("irqbalance-config-restore-file")
+	}
+
+	if ctx.IsSet("rdt-config-file") {
+		config.RdtConfigFile = ctx.String("rdt-config-file")
+	}
+
+	if ctx.IsSet("separate-pull-cgroup") {
+		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
+	}
+
+	if ctx.IsSet("infra-ctr-cpuset") {
+		config.InfraCtrCPUSet = ctx.String("infra-ctr-cpuset")
+	}
+
+	if ctx.IsSet("shared-cpuset") {
+		config.SharedCPUSet = ctx.String("shared-cpuset")
+	}
+}
+
+func mergeResourceConfig(config *libconfig.Config, ctx *cli.Context) {
+	if ctx.IsSet("pids-limit") {
+		config.PidsLimit = ctx.Int64("pids-limit")
+	}
+
+	if ctx.IsSet("default-sysctls") {
+		config.DefaultSysctls = StringSliceTrySplit(ctx, "default-sysctls")
+	}
+
+	if ctx.IsSet("default-ulimits") {
+		config.DefaultUlimits = StringSliceTrySplit(ctx, "default-ulimits")
+	}
+}
+
+func mergeLoggingConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("log-level") {
 		config.LogLevel = ctx.String("log-level")
 	}
@@ -329,6 +416,16 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.LogDir = ctx.String("log-dir")
 	}
 
+	if ctx.IsSet("log-size-max") {
+		config.LogSizeMax = ctx.Int64("log-size-max")
+	}
+
+	if ctx.IsSet("log-journald") {
+		config.LogToJournald = ctx.Bool("log-journald")
+	}
+}
+
+func mergeDeviceConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("additional-devices") {
 		config.AdditionalDevices = StringSliceTrySplit(ctx, "additional-devices")
 	}
@@ -344,11 +441,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("device-ownership-from-security-context") {
 		config.DeviceOwnershipFromSecurityContext = ctx.Bool("device-ownership-from-security-context")
 	}
+}
 
-	if ctx.IsSet("conmon-env") {
-		config.ConmonEnv = StringSliceTrySplit(ctx, "conmon-env")
-	}
-
+func mergeContainerConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("default-env") {
 		config.DefaultEnv = StringSliceTrySplit(ctx, "default-env")
 	}
@@ -369,14 +464,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.CtrStopTimeout = ctx.Int64("ctr-stop-timeout")
 	}
 
-	if ctx.IsSet("grpc-max-recv-msg-size") {
-		config.GRPCMaxRecvMsgSize = ctx.Int("grpc-max-recv-msg-size")
-	}
-
-	if ctx.IsSet("grpc-max-send-msg-size") {
-		config.GRPCMaxSendMsgSize = ctx.Int("grpc-max-send-msg-size")
-	}
-
 	if ctx.IsSet("drop-infra-ctr") {
 		config.DropInfraCtr = ctx.Bool("drop-infra-ctr")
 	}
@@ -389,8 +476,36 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.PinnsPath = ctx.String("pinns-path")
 	}
 
-	if ctx.IsSet("no-pivot") {
-		config.NoPivot = ctx.Bool("no-pivot")
+	if ctx.IsSet("read-only") {
+		config.ReadOnly = ctx.Bool("read-only")
+	}
+
+	if ctx.IsSet("bind-mount-prefix") {
+		config.BindMountPrefix = ctx.String("bind-mount-prefix")
+	}
+
+	if ctx.IsSet("absent-mount-sources-to-reject") {
+		config.AbsentMountSourcesToReject = StringSliceTrySplit(ctx, "absent-mount-sources-to-reject")
+	}
+}
+
+func mergeGRPCConfig(config *libconfig.Config, ctx *cli.Context) {
+	if ctx.IsSet("grpc-max-recv-msg-size") {
+		config.GRPCMaxRecvMsgSize = ctx.Int("grpc-max-recv-msg-size")
+	}
+
+	if ctx.IsSet("grpc-max-send-msg-size") {
+		config.GRPCMaxSendMsgSize = ctx.Int("grpc-max-send-msg-size")
+	}
+}
+
+func mergeStreamConfig(config *libconfig.Config, ctx *cli.Context) {
+	if ctx.IsSet("stream-address") {
+		config.StreamAddress = ctx.String("stream-address")
+	}
+
+	if ctx.IsSet("stream-port") {
+		config.StreamPort = ctx.String("stream-port")
 	}
 
 	if ctx.IsSet("stream-enable-tls") {
@@ -412,7 +527,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("stream-idle-timeout") {
 		config.StreamIdleTimeout = ctx.String("stream-idle-timeout")
 	}
+}
 
+func mergeVersionConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("version-file") {
 		config.VersionFile = ctx.String("version-file")
 	}
@@ -425,14 +542,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.CleanShutdownFile = ctx.String("clean-shutdown-file")
 	}
 
-	if ctx.IsSet("absent-mount-sources-to-reject") {
-		config.AbsentMountSourcesToReject = StringSliceTrySplit(ctx, "absent-mount-sources-to-reject")
-	}
-
-	if ctx.IsSet("irqbalance-config-restore-file") {
-		config.IrqBalanceConfigRestoreFile = ctx.String("irqbalance-config-restore-file")
-	}
-
 	if ctx.IsSet("internal-wipe") {
 		config.InternalWipe = ctx.Bool("internal-wipe")
 	}
@@ -440,11 +549,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("internal-repair") {
 		config.InternalRepair = ctx.Bool("internal-repair")
 	}
+}
 
-	if ctx.IsSet("oci-artifact-mount-support") {
-		config.OCIArtifactMountSupport = ctx.Bool("oci-artifact-mount-support")
-	}
-
+func mergeMetricsConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
@@ -473,6 +580,24 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.MetricsCollectors = collectors.FromSlice(ctx.StringSlice("metrics-collectors"))
 	}
 
+	if ctx.IsSet("stats-collection-period") {
+		config.StatsCollectionPeriod = ctx.Int("stats-collection-period")
+	}
+
+	if ctx.IsSet("collection-period") {
+		config.CollectionPeriod = ctx.Int("collection-period")
+	}
+
+	if ctx.IsSet("included-pod-metrics") {
+		config.IncludedPodMetrics = StringSliceTrySplit(ctx, "included-pod-metrics")
+	}
+
+	if ctx.IsSet("enable-pod-events") {
+		config.EnablePodEvents = ctx.Bool("enable-pod-events")
+	}
+}
+
+func mergeTracingConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("enable-tracing") {
 		config.EnableTracing = ctx.Bool("enable-tracing")
 	}
@@ -484,7 +609,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("tracing-sampling-rate-per-million") {
 		config.TracingSamplingRatePerMillion = ctx.Int("tracing-sampling-rate-per-million")
 	}
+}
 
+func mergeNRIConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("enable-nri") {
 		config.NRI.Enabled = ctx.Bool("enable-nri")
 	}
@@ -544,68 +671,20 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("nri-validator-tolerate-missing-plugins-annotation") {
 		config.NRI.DefaultValidator.TolerateMissingAnnotation = ctx.String("nri-validator-tolerate-missing-plugins-annotation")
 	}
+}
 
+func mergeMiscConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
 	}
 
-	if ctx.IsSet("auto-reload-registries") {
-		config.AutoReloadRegistries = ctx.Bool("auto-reload-registries")
-	}
-
-	if ctx.IsSet("pull-progress-timeout") {
-		config.PullProgressTimeout = ctx.Duration("pull-progress-timeout")
-	}
-
-	if ctx.IsSet("separate-pull-cgroup") {
-		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
-	}
-
-	if ctx.IsSet("infra-ctr-cpuset") {
-		config.InfraCtrCPUSet = ctx.String("infra-ctr-cpuset")
-	}
-
-	if ctx.IsSet("shared-cpuset") {
-		config.SharedCPUSet = ctx.String("shared-cpuset")
-	}
-
-	if ctx.IsSet("stats-collection-period") {
-		config.StatsCollectionPeriod = ctx.Int("stats-collection-period")
-	}
-
-	if ctx.IsSet("collection-period") {
-		config.CollectionPeriod = ctx.Int("collection-period")
-	}
-
-	if ctx.IsSet("included-pod-metrics") {
-		config.IncludedPodMetrics = StringSliceTrySplit(ctx, "included-pod-metrics")
-	}
-
-	if ctx.IsSet("enable-pod-events") {
-		config.EnablePodEvents = ctx.Bool("enable-pod-events")
-	}
-
-	if ctx.IsSet("hostnetwork-disable-selinux") {
-		config.HostNetworkDisableSELinux = ctx.Bool("hostnetwork-disable-selinux")
-	}
-
-	if ctx.IsSet("pinned-images") {
-		config.PinnedImages = StringSliceTrySplit(ctx, "pinned-images")
-	}
-
-	if ctx.IsSet("disable-hostport-mapping") {
-		config.DisableHostPortMapping = ctx.Bool("disable-hostport-mapping")
+	if ctx.IsSet("oci-artifact-mount-support") {
+		config.OCIArtifactMountSupport = ctx.Bool("oci-artifact-mount-support")
 	}
 
 	if ctx.IsSet("timezone") {
 		config.Timezone = ctx.String("timezone")
 	}
-
-	if ctx.IsSet("short-name-mode") {
-		config.ShortNameMode = ctx.String("short-name-mode")
-	}
-
-	return nil
 }
 
 func GetFlagsAndMetadata() ([]cli.Flag, map[string]any, error) {
