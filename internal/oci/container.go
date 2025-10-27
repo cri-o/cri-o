@@ -59,7 +59,8 @@ type Container struct {
 	conmonCgroupfsPath string
 	crioAnnotations    fields.Set
 	state              *ContainerState
-	opLock             sync.RWMutex
+	opLock             sync.RWMutex // For handling the container OCI runtime state transitions (i.e: anything that needs to call OCI runtime)
+	metaLock           sync.RWMutex // For handling the internal oci.Container metadata. Currently only used for Spec and Resources fields
 	spec               *specs.Spec
 	idMappings         *idtools.IDMappings
 	terminal           bool
@@ -251,6 +252,9 @@ func (c *Container) CRIContainer() *types.Container {
 
 // SetSpec loads the OCI spec in the container struct.
 func (c *Container) SetSpec(s *specs.Spec) {
+	c.metaLock.Lock()
+	defer c.metaLock.Unlock()
+
 	c.spec = s
 	c.SetResources(s)
 	c.SetRuntimeUser(s)
@@ -258,6 +262,9 @@ func (c *Container) SetSpec(s *specs.Spec) {
 
 // Spec returns a copy of the spec for the container.
 func (c *Container) Spec() specs.Spec {
+	c.metaLock.RLock()
+	defer c.metaLock.RUnlock()
+
 	if c.spec != nil {
 		return *c.spec
 	}
@@ -835,6 +842,9 @@ func (c *Container) SetResources(s *specs.Spec) {
 
 // GetResources returns a copy of the Linux resources from Container.
 func (c *Container) GetResources() *types.ContainerResources {
+	c.metaLock.RLock()
+	defer c.metaLock.RUnlock()
+
 	return c.resources
 }
 
