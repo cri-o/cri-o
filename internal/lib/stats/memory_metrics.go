@@ -4,11 +4,10 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) []*types.Metric {
+func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgmgr.MemoryStats) []*types.Metric {
 	memoryMetrics := []*containerMetric{
 		{
 			desc: containerMemoryCache,
@@ -106,10 +105,10 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 		},
 	}
 
-	return computeSandboxMetrics(sb, memoryMetrics, "memory")
+	return computeContainerMetrics(ctr, memoryMetrics, "memory")
 }
 
-func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount uint64) []*types.Metric {
+func GenerateContainerOOMMetrics(ctr *oci.Container, oomCount uint64) []*types.Metric {
 	oomMetrics := []*containerMetric{
 		{
 			desc: containerOomEventsTotal,
@@ -119,5 +118,5 @@ func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount u
 		},
 	}
 
-	return computeSandboxMetrics(sb, oomMetrics, "oom")
+	return computeContainerMetrics(ctr, oomMetrics, "oom")
 }

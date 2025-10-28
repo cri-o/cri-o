@@ -6,13 +6,12 @@ import (
 
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-func generateSandboxSpecMetrics(sb *sandbox.Sandbox, c *oci.Container) []*types.Metric {
-	resources := c.GetResources()
+func generateContainerSpecMetrics(ctr *oci.Container) []*types.Metric {
+	resources := ctr.GetResources()
 	if resources == nil || resources.GetLinux() == nil {
 		return []*types.Metric{}
 	}
@@ -66,7 +65,7 @@ func generateSandboxSpecMetrics(sb *sandbox.Sandbox, c *oci.Container) []*types.
 		}
 	}
 
-	return computeSandboxMetrics(sb, specMetrics, "spec")
+	return computeContainerMetrics(ctr, specMetrics, "spec")
 }
 
 func specMemoryValue(limit int64) uint64 {

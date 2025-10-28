@@ -6,6 +6,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
 var baseLabelKeys = []string{"id", "name", "image"}
@@ -110,14 +111,31 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 	return descriptorsMap
 }
 
+// ComputeSandboxMetrics computes the metrics for both pod and container sandbox.
+func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric, metricName string) []*types.Metric {
+	return computeMetrics(sandboxBaseLabelValues(sb), metrics, metricName)
+}
+
 func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 	// TODO FIXME: image?
 	return []string{sb.ID(), "POD", ""}
 }
 
-// ComputeSandboxMetrics computes the metrics for both pod and container sandbox.
-func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric, metricName string) []*types.Metric {
-	baseLabels := sandboxBaseLabelValues(sb)
+// computeContainerMetrics computes the metrics for container.
+func computeContainerMetrics(ctr *oci.Container, metrics []*containerMetric, metricName string) []*types.Metric {
+	return computeMetrics(containerBaseLabelValues(ctr), metrics, metricName)
+}
+
+func containerBaseLabelValues(ctr *oci.Container) []string {
+	image := ""
+	if someNameOfTheImage := ctr.SomeNameOfTheImage(); someNameOfTheImage != nil {
+		image = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
+	}
+
+	return []string{ctr.ID(), ctr.Name(), image}
+}
+
+func computeMetrics(baseLabels []string, metrics []*containerMetric, metricName string) []*types.Metric {
 	if metricName != "" {
 		baseLabels = append(baseLabels, metricName)
 	}
