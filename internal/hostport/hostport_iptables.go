@@ -311,7 +311,7 @@ func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[util
 		}
 	}
 
-	for _, line := range strings.Split(iptablesData.String(), "\n") {
+	for line := range strings.SplitSeq(iptablesData.String(), "\n") {
 		if strings.HasPrefix(line, "-A "+kubeHostportChainPrefix) ||
 			strings.HasPrefix(line, "-A "+crioMasqueradeChainPrefix) ||
 			strings.HasPrefix(line, fmt.Sprintf("-A %s ", string(kubeHostportsChain))) ||

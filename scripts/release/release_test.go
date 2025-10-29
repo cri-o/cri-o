@@ -77,7 +77,7 @@ var _ = t.Describe("Automated Releases", func() {
 })
 
 func getMockVersionFileContent(version string) []byte {
-	return []byte(fmt.Sprintf(`
+	return fmt.Appendf(nil, `
   package version
 
   import (
@@ -116,5 +116,5 @@ func getMockVersionFileContent(version string) []byte {
   func ShouldCrioWipe(versionFileName string) (bool, error) {
     return shouldCrioWipe(versionFileName, Version)
   }
-  `, version))
+  `, version)
 }

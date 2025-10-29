@@ -3,6 +3,7 @@ package registrar
 
 import (
 	"errors"
+	"maps"
 	"sync"
 )
 
@@ -127,9 +128,7 @@ func (r *Registrar) GetAll() map[string][]string {
 
 	r.mu.Lock()
 	// copy index into out
-	for id, names := range r.idx {
-		out[id] = names
-	}
+	maps.Copy(out, r.idx)
 
 	r.mu.Unlock()
 

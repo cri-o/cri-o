@@ -101,7 +101,7 @@ func updateVersion(versionFile, newVersion string) error {
 
 	// Replace the version string with the new version using regex
 	re := regexp.MustCompile(versionPattern)
-	newContent := re.ReplaceAll(content, []byte(fmt.Sprintf(`const Version = %q`, newVersion)))
+	newContent := re.ReplaceAll(content, fmt.Appendf(nil, `const Version = %q`, newVersion))
 
 	// Write the updated content back to the version file
 	if err := os.WriteFile(versionFile, newContent, 0o644); err != nil {

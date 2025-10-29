@@ -223,12 +223,9 @@ func milliCPUToQuota(milliCPU, period int64) (quota int64) {
 	}
 
 	// We then convert the milliCPU to a value normalized over a period.
-	quota = (milliCPU * period) / milliCPUToCPU
-
-	// quota needs to be a minimum of 1ms.
-	if quota < minQuotaPeriod {
-		quota = minQuotaPeriod
-	}
+	quota = max(
+		// quota needs to be a minimum of 1ms.
+		(milliCPU*period)/milliCPUToCPU, minQuotaPeriod)
 
 	return quota
 }

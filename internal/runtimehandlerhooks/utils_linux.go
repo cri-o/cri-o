@@ -205,8 +205,8 @@ func retrieveIrqBannedCPUMasks(irqBalanceConfigFile string) (string, error) {
 		return "", err
 	}
 
-	lines := strings.Split(string(input), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(input), "\n")
+	for line := range lines {
 		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
 			return strings.Trim(strings.Split(line, "=")[1], "\""), nil
 		}
