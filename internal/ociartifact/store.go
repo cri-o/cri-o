@@ -39,10 +39,10 @@ var (
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
-	rootPath      string
-	systemContext *types.SystemContext
-	store         *libartStore.ArtifactStore
-	impl          Impl
+	store *libartStore.ArtifactStore
+
+	rootPath string
+	impl     Impl
 }
 
 // NewStore creates a new OCI artifact store.
@@ -53,10 +53,10 @@ func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, erro
 		return nil, err
 	}
 	return &Store{
-		rootPath:      storePath,
-		systemContext: systemContext,
-		store:         store,
-		impl:          &defaultImpl{},
+		store: store,
+
+		rootPath: storePath,
+		impl:     &defaultImpl{},
 	}, nil
 }
 
@@ -148,7 +148,7 @@ func (s *Store) PullManifest(
 			return nil, fmt.Errorf("parse manifest from blob: %w", err)
 		}
 
-		instanceDigest, err := s.impl.ChooseInstance(manifestList, s.systemContext)
+		instanceDigest, err := s.impl.ChooseInstance(manifestList, s.store.SystemContext)
 		if err != nil {
 			return nil, fmt.Errorf("choose instance: %w", err)
 		}
@@ -204,7 +204,7 @@ func (s *Store) PullManifest(
 
 	log.Infof(ctx, "Pulling OCI artifact %s with manifest mime type %q and config media type %q", strRef, mimeType, mediaType)
 
-	copier, err := s.impl.NewCopier(opts.CopyOptions, s.systemContext)
+	copier, err := s.impl.NewCopier(opts.CopyOptions, s.store.SystemContext)
 	if err != nil {
 		return nil, fmt.Errorf("create libimage copier: %w", err)
 	}
@@ -227,7 +227,7 @@ func (s *Store) PullManifest(
 
 // getManifestFromRef retrieves the manifest from the given image reference.
 func (s *Store) getManifestFromRef(ctx context.Context, ref types.ImageReference) (manifestBytes []byte, mimeType string, err error) {
-	src, err := s.impl.NewImageSource(ctx, ref, s.systemContext)
+	src, err := s.impl.NewImageSource(ctx, ref, s.store.SystemContext)
 	if err != nil {
 		return nil, "", fmt.Errorf("build image source: %w", err)
 	}
@@ -288,7 +288,7 @@ func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
 		return fmt.Errorf("create new reference: %w", err)
 	}
 
-	if err := s.impl.DeleteImage(ctx, imageReference, s.systemContext); err != nil {
+	if err := s.impl.DeleteImage(ctx, imageReference, s.store.SystemContext); err != nil {
 		return fmt.Errorf("delete artifact: %w", err)
 	}
 
@@ -352,7 +352,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		return nil, fmt.Errorf("create new reference: %w", err)
 	}
 
-	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.systemContext)
+	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.store.SystemContext)
 	if err != nil {
 		return nil, fmt.Errorf("build image source: %w", err)
 	}
@@ -391,7 +391,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 }
 
 func (s *Store) readBlob(ctx context.Context, src types.ImageSource, layer *manifest.LayerInfo, maxArtifactSize uint64) ([]byte, error) {
-	bic := blobinfocache.DefaultCache(s.systemContext)
+	bic := blobinfocache.DefaultCache(s.store.SystemContext)
 
 	rc, size, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: layer.Digest}, bic)
 	if err != nil {
