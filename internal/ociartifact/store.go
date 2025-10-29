@@ -274,25 +274,14 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 // Remove deletes a name or digest from the artifact store.
 // Returns ErrNotFound if the artifact is not available.
 func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
-	artifact, nameIsDigest, err := s.getByNameOrDigest(ctx, nameOrDigest)
+	artifact, _, err := s.getByNameOrDigest(ctx, nameOrDigest)
 	if err != nil {
 		return fmt.Errorf("get artifact by name or digest: %w", err)
 	}
 
-	if nameIsDigest {
-		nameOrDigest = artifact.Reference()
-	}
+	_, err = s.store.Remove(ctx, artifact.Reference())
 
-	imageReference, err := s.impl.LayoutNewReference(s.rootPath, nameOrDigest)
-	if err != nil {
-		return fmt.Errorf("create new reference: %w", err)
-	}
-
-	if err := s.impl.DeleteImage(ctx, imageReference, s.store.SystemContext); err != nil {
-		return fmt.Errorf("delete artifact: %w", err)
-	}
-
-	return nil
+	return err
 }
 
 func sanitizeOptions(opts *PullOptions) *PullOptions {

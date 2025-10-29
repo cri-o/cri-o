@@ -2,10 +2,7 @@ package ociartifact
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"io"
-	"os"
 
 	"github.com/opencontainers/go-digest"
 	"go.podman.io/common/libimage"
@@ -29,16 +26,12 @@ type Impl interface {
 	LayerInfos(manifest.Manifest) []manifest.LayerInfo
 	GetBlob(context.Context, types.ImageSource, types.BlobInfo, types.BlobInfoCache) (io.ReadCloser, int64, error)
 	ReadAll(io.Reader) ([]byte, error)
-	OCI1FromManifest([]byte) (*manifest.OCI1, error)
-	ToJSON(any) ([]byte, error)
 	ManifestFromBlob([]byte, string) (manifest.Manifest, error)
 	ListFromBlob([]byte, string) (manifest.List, error)
 	ManifestConfigMediaType(manifest.Manifest) string
 	NewCopier(*libimage.CopyOptions, *types.SystemContext) (*libimage.Copier, error)
 	Copy(context.Context, *libimage.Copier, types.ImageReference, types.ImageReference) ([]byte, error)
 	CloseCopier(*libimage.Copier) error
-	List(string) ([]layout.ListResult, error)
-	DeleteImage(context.Context, types.ImageReference, *types.SystemContext) error
 	ChooseInstance(manifest.List, *types.SystemContext) (digest.Digest, error)
 }
 
@@ -94,10 +87,6 @@ func (*defaultImpl) OCI1FromManifest(manifestBlob []byte) (*manifest.OCI1, error
 	return manifest.OCI1FromManifest(manifestBlob)
 }
 
-func (*defaultImpl) ToJSON(v any) ([]byte, error) {
-	return json.Marshal(v)
-}
-
 func (*defaultImpl) ManifestFromBlob(manblob []byte, mt string) (manifest.Manifest, error) {
 	return manifest.FromBlob(manblob, mt)
 }
@@ -120,21 +109,6 @@ func (d *defaultImpl) Copy(ctx context.Context, copier *libimage.Copier, source,
 
 func (d *defaultImpl) CloseCopier(copier *libimage.Copier) error {
 	return copier.Close()
-}
-
-func (d *defaultImpl) List(dir string) ([]layout.ListResult, error) {
-	result, err := layout.List(dir)
-	// If the dir is empty, it returns os.ErrNotExist, but should return an empty list.
-	// This happens because the dir isn't initialized as an oci-layout dir until something is pulled.
-	if errors.Is(err, os.ErrNotExist) {
-		return []layout.ListResult{}, nil
-	}
-
-	return result, err
-}
-
-func (d *defaultImpl) DeleteImage(ctx context.Context, ref types.ImageReference, sys *types.SystemContext) error {
-	return ref.DeleteImage(ctx, sys)
 }
 
 func (d *defaultImpl) ChooseInstance(manifestList manifest.List, systemContext *types.SystemContext) (digest.Digest, error) {
