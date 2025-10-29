@@ -14,16 +14,17 @@ var baseLabelKeys = []string{"id", "name", "image"}
 // TODO: Because of cyclic dependency, we cannot export these metrics to "pkg/config/config.go".
 // Don't forget to update the list when adding new metrics in `func (c *StatsConfig) Validate()`.
 const (
-	AllMetrics     = "all"
-	CPUMetrics     = "cpu"
-	DiskMetrics    = "disk"
-	DiskIOMetrics  = "diskIO"
-	HugetlbMetrics = "hugetlb"
-	MemoryMetrics  = "memory"
-	NetworkMetrics = "network"
-	OOMMetrics     = "oom"
-	ProcessMetrics = "process"
-	SpecMetrics    = "spec"
+	AllMetrics      = "all"
+	CPUMetrics      = "cpu"
+	DiskMetrics     = "disk"
+	DiskIOMetrics   = "diskIO"
+	HugetlbMetrics  = "hugetlb"
+	MemoryMetrics   = "memory"
+	NetworkMetrics  = "network"
+	OOMMetrics      = "oom"
+	ProcessMetrics  = "process"
+	SpecMetrics     = "spec"
+	PressureMetrics = "pressure"
 )
 
 type metricValue struct {
@@ -129,6 +130,14 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 		containerSpecMemoryReservationLimitBytes,
 		containerSpecMemorySwapLimitBytes,
 		containerStartTimeSeconds,
+	},
+	PressureMetrics: {
+		containerPressureCPUStalledSecondsTotal,
+		containerPressureCPUWaitingSecondsTotal,
+		containerPressureMemoryStalledSecondsTotal,
+		containerPressureMemoryWaitingSecondsTotal,
+		containerPressureIOStalledSecondsTotal,
+		containerPressureIOWaitingSecondsTotal,
 	},
 }
 

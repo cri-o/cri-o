@@ -2154,7 +2154,7 @@ func (c *Config) SetSingleConfigPath(singleConfigPath string) {
 
 func (c *StatsConfig) Validate() error {
 	// TODO: Because of cyclic dependency, we cannot import the `internal/lib/stats/metrics` package here.
-	availableMetrics := []string{"cpu", "hugetlb", "memory", "network", "oom", "process", "spec", "disk", "diskIO"}
+	availableMetrics := []string{"cpu", "hugetlb", "memory", "network", "oom", "process", "spec", "disk", "diskIO", "pressure"}
 
 	for _, metrics := range c.IncludedPodMetrics {
 		if metrics == "all" && len(c.IncludedPodMetrics) != 1 {
