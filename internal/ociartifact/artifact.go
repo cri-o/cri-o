@@ -19,9 +19,7 @@ type Artifact struct {
 
 // ArtifactData separates the artifact metadata from the actual content.
 type ArtifactData struct {
-	title  string
-	digest digest.Digest
-	data   []byte
+	data []byte
 }
 
 // Reference returns the reference of the artifact.
@@ -57,16 +55,6 @@ func (a *Artifact) CRIImage() *critypes.Image {
 		RepoDigests: []string{a.CanonicalName()},
 		Pinned:      true,
 	}
-}
-
-// Title returns the title of the artifact data.
-func (a *ArtifactData) Title() string {
-	return a.title
-}
-
-// Digest returns the digest of the artifact data.
-func (a *ArtifactData) Digest() digest.Digest {
-	return a.digest
 }
 
 // Data returns the data of the artifact.

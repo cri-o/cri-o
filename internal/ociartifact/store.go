@@ -248,7 +248,6 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 	layerInfos := s.impl.LayerInfos(artifact.Manifest())
 	for i := range layerInfos {
 		layer := &layerInfos[i]
-		title := artifactName(layer.Annotations)
 
 		layerBytes, err := s.readBlob(ctx, imageSource, layer, maxArtifactSize)
 		if err != nil {
@@ -261,9 +260,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		}
 
 		res = append(res, ArtifactData{
-			title:  title,
-			digest: layer.Digest,
-			data:   layerBytes,
+			data: layerBytes,
 		})
 	}
 
