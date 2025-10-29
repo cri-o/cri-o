@@ -311,23 +311,22 @@ func sanitizeOptions(opts *PullOptions) *PullOptions {
 	return opts
 }
 
-func (s *Store) buildArtifact(ctx context.Context, libartifact *libartifact.Artifact) (*Artifact, error) {
-	manifestBytes, err := s.impl.ToJSON(libartifact.Manifest)
+func (s *Store) buildArtifact(ctx context.Context, art *libartifact.Artifact) (*Artifact, error) {
+	dgst, err := art.GetDigest()
 	if err != nil {
-		return nil, fmt.Errorf("marshal manifest: %w", err)
+		return nil, fmt.Errorf("get digest: %w", err)
 	}
 
 	artifact := &Artifact{
 		namedRef: unknownRef{},
-		manifest: libartifact.Manifest,
-		digest:   digest.FromBytes(manifestBytes),
-		artifact: libartifact,
+		digest:   *dgst,
+		artifact: art,
 	}
 
-	if libartifact.Name != "" {
-		namedRef, err := reference.ParseNormalizedNamed(libartifact.Name)
+	if art.Name != "" {
+		namedRef, err := reference.ParseNormalizedNamed(art.Name)
 		if err != nil {
-			log.Warnf(ctx, "Failed to parse artifact name %s with the error %s", libartifact.Name, err)
+			log.Warnf(ctx, "Failed to parse artifact name %s with the error %s", art.Name, err)
 
 			namedRef = unknownRef{}
 		}
@@ -366,7 +365,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 
 	readSize := uint64(0)
 
-	layerInfos := s.impl.LayerInfos(artifact.manifest)
+	layerInfos := s.impl.LayerInfos(artifact.Manifest())
 	for i := range layerInfos {
 		layer := &layerInfos[i]
 		title := artifactName(layer.Annotations)

@@ -13,7 +13,6 @@ import (
 // Artifact references an OCI artifact without its data.
 type Artifact struct {
 	namedRef reference.Named
-	manifest *manifest.OCI1
 	digest   digest.Digest
 	artifact *libartifact.Artifact
 }
@@ -36,7 +35,7 @@ func (a *Artifact) CanonicalName() string {
 
 // Manifest returns the manifest of the artifact.
 func (a *Artifact) Manifest() *manifest.OCI1 {
-	return a.manifest
+	return a.artifact.Manifest
 }
 
 // Digest returns the digest of the artifact.
