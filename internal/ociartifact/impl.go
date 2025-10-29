@@ -4,11 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/opencontainers/go-digest"
-	"go.podman.io/common/libimage"
 	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/docker/reference"
-	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
 	"go.podman.io/image/v5/types"
@@ -22,17 +19,9 @@ type Impl interface {
 	LayoutNewReference(string, string) (types.ImageReference, error)
 	NewImageSource(context.Context, types.ImageReference, *types.SystemContext) (types.ImageSource, error)
 	CloseImageSource(types.ImageSource) error
-	GetManifest(context.Context, types.ImageSource, *digest.Digest) ([]byte, string, error)
 	LayerInfos(manifest.Manifest) []manifest.LayerInfo
 	GetBlob(context.Context, types.ImageSource, types.BlobInfo, types.BlobInfoCache) (io.ReadCloser, int64, error)
 	ReadAll(io.Reader) ([]byte, error)
-	ManifestFromBlob([]byte, string) (manifest.Manifest, error)
-	ListFromBlob([]byte, string) (manifest.List, error)
-	ManifestConfigMediaType(manifest.Manifest) string
-	NewCopier(*libimage.CopyOptions, *types.SystemContext) (*libimage.Copier, error)
-	Copy(context.Context, *libimage.Copier, types.ImageReference, types.ImageReference) ([]byte, error)
-	CloseCopier(*libimage.Copier) error
-	ChooseInstance(manifest.List, *types.SystemContext) (digest.Digest, error)
 }
 
 // defaultImpl is the default implementation for the OCI artifact handling.
@@ -66,10 +55,6 @@ func (*defaultImpl) NewImageSource(ctx context.Context, ref types.ImageReference
 	return ref.NewImageSource(ctx, sys)
 }
 
-func (*defaultImpl) GetManifest(ctx context.Context, src types.ImageSource, instanceDigest *digest.Digest) (bytes []byte, mediaType string, err error) {
-	return image.UnparsedInstance(src, instanceDigest).Manifest(ctx)
-}
-
 func (*defaultImpl) LayerInfos(m manifest.Manifest) []manifest.LayerInfo {
 	return m.LayerInfos()
 }
@@ -81,36 +66,4 @@ func (*defaultImpl) GetBlob(ctx context.Context, src types.ImageSource, bi types
 
 func (*defaultImpl) ReadAll(r io.Reader) ([]byte, error) {
 	return io.ReadAll(r)
-}
-
-func (*defaultImpl) OCI1FromManifest(manifestBlob []byte) (*manifest.OCI1, error) {
-	return manifest.OCI1FromManifest(manifestBlob)
-}
-
-func (*defaultImpl) ManifestFromBlob(manblob []byte, mt string) (manifest.Manifest, error) {
-	return manifest.FromBlob(manblob, mt)
-}
-
-func (*defaultImpl) ListFromBlob(manblob []byte, mt string) (manifest.List, error) {
-	return manifest.ListFromBlob(manblob, mt)
-}
-
-func (*defaultImpl) ManifestConfigMediaType(parsedManifest manifest.Manifest) string {
-	return parsedManifest.ConfigInfo().MediaType
-}
-
-func (*defaultImpl) NewCopier(options *libimage.CopyOptions, sc *types.SystemContext) (*libimage.Copier, error) {
-	return libimage.NewCopier(options, sc)
-}
-
-func (d *defaultImpl) Copy(ctx context.Context, copier *libimage.Copier, source, destination types.ImageReference) ([]byte, error) {
-	return copier.Copy(ctx, source, destination)
-}
-
-func (d *defaultImpl) CloseCopier(copier *libimage.Copier) error {
-	return copier.Close()
-}
-
-func (d *defaultImpl) ChooseInstance(manifestList manifest.List, systemContext *types.SystemContext) (digest.Digest, error) {
-	return manifestList.ChooseInstance(systemContext)
 }
