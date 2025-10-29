@@ -30,9 +30,6 @@ import (
 const defaultMaxArtifactSize = 1 * 1024 * 1024 // 1 MiB
 
 var (
-	// ErrIsAnImage is indicating that the artifact is a container image.
-	ErrIsAnImage = errors.New("provided artifact is a container image")
-
 	// ErrNotFound is indicating that the artifact could not be found in the storage.
 	ErrNotFound = errors.New("no artifact found")
 )
