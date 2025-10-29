@@ -569,9 +569,7 @@ var _ = t.Describe("Image", func() {
 	})
 
 	t.Describe("PullImage", func() {
-		var (
-			graphRoot string
-		)
+		var graphRoot string
 		BeforeEach(func() {
 			graphRoot = t.MustTempDir("ociartifact")
 		})

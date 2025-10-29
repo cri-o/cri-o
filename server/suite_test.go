@@ -226,6 +226,7 @@ var setupSUT = func() {
 
 func mockNewServer() {
 	GinkgoHelper()
+
 	graphroot := t.MustTempDir("graphroot")
 	gomock.InOrder(
 		cniPluginMock.EXPECT().Status().Return(nil),

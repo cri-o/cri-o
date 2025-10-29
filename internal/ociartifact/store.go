@@ -48,10 +48,12 @@ type Store struct {
 // NewStore creates a new OCI artifact store.
 func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, error) {
 	storePath := filepath.Join(rootPath, "artifacts")
+
 	store, err := libartStore.NewArtifactStore(storePath, systemContext)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Store{
 		store: store,
 

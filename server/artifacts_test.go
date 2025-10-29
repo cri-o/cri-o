@@ -5,9 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	libartTypes "go.podman.io/common/pkg/libartifact/types"
 
 	"github.com/cri-o/cri-o/server"
-	libartTypes "go.podman.io/common/pkg/libartifact/types"
 )
 
 // The actual test suite.

@@ -24,6 +24,7 @@ func New(root string, systemContext *types.SystemContext) (*SeccompOCIArtifact, 
 	if err != nil {
 		return nil, err
 	}
+
 	return &SeccompOCIArtifact{
 		impl,
 	}, nil
