@@ -96,7 +96,7 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 		return nil, fmt.Errorf("failed to get image reference: %w", err)
 	}
 
-	manifestDigest, err := s.PullManifest(ctx, dockerRef, opts)
+	manifestDigest, err := s.PullManifest(ctx, dockerRef, *opts.CopyOptions)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -119,12 +119,11 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 func (s *Store) PullManifest(
 	ctx context.Context,
 	ref types.ImageReference,
-	opts *PullOptions,
+	opts libimage.CopyOptions,
 ) (manifestDigest *digest.Digest, err error) {
-	opts = sanitizeOptions(opts)
 	strRef := s.impl.DockerReferenceString(ref)
 
-	dgst, err := s.store.Pull(ctx, strRef, *opts.CopyOptions)
+	dgst, err := s.store.Pull(ctx, strRef, opts)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
