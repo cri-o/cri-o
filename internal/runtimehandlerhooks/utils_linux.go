@@ -2,6 +2,7 @@ package runtimehandlerhooks
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -126,7 +127,7 @@ func calcIRQSMPAffinityMask(containerCPUSet cpuset.CPUSet, current string, size 
 	var updatedSMPAffinityCPUs cpuset.CPUSet
 
 	if size == 0 {
-		return "", cpuset.New(), fmt.Errorf("cannot compute IRQ SMP affinity mask: cpu size is 0")
+		return "", cpuset.New(), errors.New("cannot compute IRQ SMP affinity mask: cpu size is 0")
 	}
 
 	// only ascii string supported
@@ -244,6 +245,7 @@ func retrieveIrqBannedCPUList(irqBalanceConfigFile string) (cpuset.CPUSet, error
 			}
 		}
 	}
+
 	return setFromOldValue.Union(setFromNewValue), nil
 }
 
