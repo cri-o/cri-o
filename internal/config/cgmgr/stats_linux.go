@@ -2,12 +2,17 @@ package cgmgr
 
 import (
 	"math"
+	"os"
+	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/opencontainers/cgroups"
 	"github.com/opencontainers/cgroups/manager"
+	"k8s.io/klog/v2"
 
 	"github.com/cri-o/cri-o/internal/config/node"
 )
@@ -65,8 +70,14 @@ type HugetlbStats struct {
 }
 
 type PidsStats struct {
-	Current uint64
-	Limit   uint64
+	Current         uint64
+	Limit           uint64
+	Pids            []int
+	FileDescriptors uint64
+	Sockets         uint64
+	Threads         uint64
+	ThreadsMax      uint64
+	UlimitsSoft     uint64
 }
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup
@@ -119,17 +130,24 @@ func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 	return manager.New(cg)
 }
 
-func libctrStatsToCgroupStats(stats *cgroups.Stats) *CgroupStats {
-	return &CgroupStats{
-		Memory:  cgroupMemStats(&stats.MemoryStats),
-		CPU:     cgroupCPUStats(&stats.CpuStats),
-		Hugetlb: cgroupHugetlbStats(stats.HugetlbStats),
-		Pid: &PidsStats{
-			Current: stats.PidsStats.Current,
-			Limit:   stats.PidsStats.Limit,
-		},
-		SystemNano: time.Now().UnixNano(),
+func statsFromLibctrMgr(cgMgr cgroups.Manager) (*CgroupStats, error) {
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
 	}
+
+	pids, err := cgMgr.GetPids()
+	if err != nil {
+		return nil, err
+	}
+
+	return &CgroupStats{
+		Memory:     cgroupMemStats(&stats.MemoryStats),
+		CPU:        cgroupCPUStats(&stats.CpuStats),
+		Hugetlb:    cgroupHugetlbStats(stats.HugetlbStats),
+		Pid:        cgroupPidStats(stats, pids),
+		SystemNano: time.Now().UnixNano(),
+	}, nil
 }
 
 func cgroupMemStats(memStats *cgroups.MemoryStats) *MemoryStats {
@@ -237,4 +255,76 @@ func isMemoryUnlimited(v uint64) bool {
 	// or the value of memory.limit_in_bytes (in cgroupv1) will be -1
 	// either way, libcontainer/cgroups will return math.MaxUint64
 	return v == math.MaxUint64
+}
+
+func cgroupPidStats(stats *cgroups.Stats, pids []int) *PidsStats {
+	var fdCount, socketCount, threadCount, threadsMax, ulimitsSoft uint64
+
+	// This is based on the cadvisor handler: https://github.com/google/cadvisor/blob/master/container/libcontainer/handler.go
+	for _, pid := range pids {
+		dirPath := path.Join("/proc", strconv.Itoa(pid), "fd")
+		fds, err := os.ReadDir(dirPath)
+		if err != nil {
+			klog.V(4).Infof("error while listing directory %q to measure fd count: %v", dirPath, err)
+			continue
+		}
+		fdCount += uint64(len(fds))
+		for _, fd := range fds {
+			fdPath := path.Join(dirPath, fd.Name())
+			linkName, err := os.Readlink(fdPath)
+			if err != nil {
+				klog.V(4).Infof("error while reading %q link: %v", fdPath, err)
+				continue
+			}
+			if strings.HasPrefix(linkName, "socket") {
+				socketCount++
+			}
+		}
+
+		threadsPath := path.Join("/proc", strconv.Itoa(pid), "task")
+		threads, err := os.ReadDir(threadsPath)
+		if err != nil {
+			klog.V(4).Infof("error while listing directory %q to measure thread count: %v", threadsPath, err)
+		} else {
+			threadCount += uint64(len(threads))
+		}
+
+		limitsPath := path.Join("/proc", strconv.Itoa(pid), "limits")
+		limitsData, err := os.ReadFile(limitsPath)
+		if err != nil {
+			klog.V(4).Infof("error while reading %q to get thread limits: %v", limitsPath, err)
+		} else {
+			lines := strings.Split(string(limitsData), "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "Max processes") {
+					fields := strings.Fields(line)
+					if len(fields) >= 3 {
+						if softLimit, err := strconv.ParseUint(fields[2], 10, 64); err == nil {
+							threadsMax += softLimit
+						}
+					}
+				} else if strings.HasPrefix(line, "Max open files") {
+					const maxOpenFilesPrefix = "Max open files"
+					remainingLine := strings.TrimSpace(line[len(maxOpenFilesPrefix):])
+					fields := strings.Fields(remainingLine)
+					if len(fields) >= 1 {
+						if softLimit, err := strconv.ParseUint(fields[0], 10, 64); err == nil {
+							ulimitsSoft += softLimit
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return &PidsStats{
+		Current:         stats.PidsStats.Current,
+		Limit:           stats.PidsStats.Limit,
+		Pids:            pids,
+		FileDescriptors: fdCount,
+		Sockets:         socketCount,
+		Threads:         threadCount,
+		ThreadsMax:      threadsMax,
+		UlimitsSoft:     ulimitsSoft,
+	}
 }

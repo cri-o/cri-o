@@ -256,6 +256,14 @@ EOF
 	# assert container_processes == 3
 	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_processes") | .value.value | tonumber')
 	[[ $metrics_container_processes == "3" ]]
+
+	container_pid=$(crictl inspect "$CONTAINER_ID" | jq -r '.info.pid')
+	file_descriptors=$(find "/proc/$container_pid/fd" | wc -l)
+	metrics_file_descriptors=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_file_descriptors") | .value.value | tonumber')
+	# assert container_file_descriptors metric == file descriptors files in /proc/$container_pid/fd
+	[[ "$file_descriptors" == "$metrics_file_descriptors" ]]
+
+	stop_crio
 }
 
 @test "container last seen metrics" {
