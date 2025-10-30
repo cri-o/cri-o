@@ -172,5 +172,5 @@ const confTemplate = `# irqbalance is a daemon process that distributes interrup
 #IRQBALANCE_ARGS=
 
 IRQBALANCE_BANNED_CPUS=
-IRQBALANCE_BANNED_CPU_LIST=
+IRQBALANCE_BANNED_CPULIST=
 `
