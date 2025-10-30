@@ -786,17 +786,17 @@ func (h *HighPerformanceHooks) handleIRQBalanceOneShot(ctx context.Context, cNam
 // updateNewIRQSMPAffinityMask updates SMP IRQ affinity and IRQ balance configuration files.
 func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(ctx context.Context, cID, cName string,
 	cpus cpuset.CPUSet, enable bool,
-) (cpuset.CPUSet, error) {
-	content, err := os.ReadFile(h.irqSMPAffinityFile)
-	if err != nil {
-		return cpuset.CPUSet{}, err
+) (newIRQBalanceSetting cpuset.CPUSet, err error) {
+	content, readErr := os.ReadFile(h.irqSMPAffinityFile)
+	if readErr != nil {
+		return cpuset.CPUSet{}, readErr
 	}
 
 	originalIRQSMPSetting := strings.TrimSpace(string(content))
 
-	newIRQSMPSetting, newIRQBalanceSetting, err := calcIRQSMPAffinityMask(cpus, originalIRQSMPSetting, calculateCPUSizeFromMask(originalIRQSMPSetting), enable)
-	if err != nil {
-		return cpuset.CPUSet{}, err
+	newIRQSMPSetting, newIRQBalanceSetting, calcErr := calcIRQSMPAffinityMask(cpus, originalIRQSMPSetting, calculateCPUSizeFromMask(originalIRQSMPSetting), enable)
+	if calcErr != nil {
+		return cpuset.CPUSet{}, calcErr
 	}
 
 	log.Debugf(ctx, "Container %q (%q) enable %t cpus %q set %q: %q -> %q; %q: %q",

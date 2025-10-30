@@ -415,7 +415,7 @@ var _ = Describe("high_performance_hooks", func() {
 		JustBeforeEach(func() {
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).ToNot(HaveOccurred())
-			bannedCPUSet, err := cpuset.Parse(bannedCPUFlags)
+			bannedCPUSet, err := mapHexCharToCPUSet(bannedCPUFlags)
 			Expect(err).ToNot(HaveOccurred())
 			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUSet)
 			Expect(err).ToNot(HaveOccurred())
@@ -437,7 +437,7 @@ var _ = Describe("high_performance_hooks", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, true, "00000000,ffffffff", "ffffffff,00000000", "", false)
+				verifySetIRQLoadBalancing(c, sb, true, "00000000,ffffffff", "32-63", "", false)
 			})
 		})
 
@@ -449,14 +449,14 @@ var _ = Describe("high_performance_hooks", func() {
 
 			It("should set the irq bit mask without housekeeping CPUs", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff0f", "ffffffff,000000f0", "", false)
+				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff0f", "4-7,32-63", "", false)
 			})
 
 			It("should set the irq bit mask with housekeeping CPUs when no thread siblings files are present", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff1f", "ffffffff,000000e0", "4", false)
+				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff1f", "5-7,32-63", "4", false)
 			})
 
 			It("should set the irq bit mask with housekeeping CPUs and no siblings", func() {
@@ -464,7 +464,7 @@ var _ = Describe("high_performance_hooks", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff1f", "ffffffff,000000e0", "4", false)
+				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff1f", "5-7,32-63", "4", false)
 			})
 
 			It("should set the irq bit mask with housekeeping CPUs and siblings (topology 2)", func() {
@@ -472,7 +472,7 @@ var _ = Describe("high_performance_hooks", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff3f", "ffffffff,000000c0", "4-5", false)
+				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff3f", "6-7,32-63", "4-5", false)
 			})
 
 			It("should set the irq bit mask with housekeeping CPUs and siblings (topology 4)", func() {
@@ -480,7 +480,7 @@ var _ = Describe("high_performance_hooks", func() {
 				c, sb := createContainerSandbox("4-11", map[string]string{
 					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,fffff0ff", "ffffffff,00000f00", "4-7", false)
+				verifySetIRQLoadBalancing(c, sb, false, "00000000,fffff0ff", "8-11,32-63", "4-7", false)
 			})
 
 			It("should fail with invalid siblings files", func() {
@@ -488,7 +488,7 @@ var _ = Describe("high_performance_hooks", func() {
 				c, sb := createContainerSandbox("4-11", map[string]string{
 					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,fffff0ff", "ffffffff,00000f00", "4-7", true)
+				verifySetIRQLoadBalancing(c, sb, false, "00000000,fffff0ff", "8-11,32-63", "4-7", true)
 			})
 		})
 	})
@@ -955,11 +955,11 @@ var _ = Describe("high_performance_hooks", func() {
 		}
 
 		type parameters struct {
-			isServiceEnabled         bool
-			irqBalanceFileExists     bool
-			restartServiceSucceeds   bool
-			pathLookupError          bool
-			calculatedIRQBalanceMask string
+			isServiceEnabled           bool
+			irqBalanceFileExists       bool
+			restartServiceSucceeds     bool
+			pathLookupError            bool
+			calculatedIRQBalanceCPUSet string
 		}
 
 		DescribeTable("handleIRQBalanceRestart scenarios",
@@ -1009,7 +1009,7 @@ var _ = Describe("high_performance_hooks", func() {
 				if p.irqBalanceFileExists {
 					err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 					Expect(err).ToNot(HaveOccurred())
-					calculatedIRQBalanceCPUSet, err := cpuset.Parse(p.calculatedIRQBalanceMask)
+					calculatedIRQBalanceCPUSet, err := cpuset.Parse(p.calculatedIRQBalanceCPUSet)
 					Expect(err).ToNot(HaveOccurred())
 					err = updateIrqBalanceConfigFile(irqBalanceConfigFile, calculatedIRQBalanceCPUSet)
 					Expect(err).ToNot(HaveOccurred())
@@ -1019,7 +1019,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 				// Execute application logic.
 				if !h.handleIRQBalanceRestart(context.TODO(), "container-name") {
-					h.handleIRQBalanceOneShot(context.TODO(), "container-name", p.calculatedIRQBalanceMask)
+					h.handleIRQBalanceOneShot(context.TODO(), "container-name", p.calculatedIRQBalanceCPUSet)
 				}
 
 				// Verify behavior based on scenario.
@@ -1027,42 +1027,42 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(mockCmdRunner.history).To(Equal(cmdRunnerHistory))
 			},
 			Entry("irqbalance is enabled and succeeds",
-				parameters{isServiceEnabled: true, irqBalanceFileExists: true, restartServiceSucceeds: true, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				parameters{isServiceEnabled: true, irqBalanceFileExists: true, restartServiceSucceeds: true, pathLookupError: false, calculatedIRQBalanceCPUSet: "0-31"},
 				[]string{
 					"systemctl is-enabled irqbalance",
 					"systemctl restart irqbalance",
 				},
 				[]string{}),
 			Entry("irqbalance is enabled but irqbalance file does not exist",
-				parameters{isServiceEnabled: true, irqBalanceFileExists: false, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				parameters{isServiceEnabled: true, irqBalanceFileExists: false, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceCPUSet: "0-31"},
 				[]string{
 					"systemctl is-enabled irqbalance",
 				},
 				[]string{
 					"which irqbalance",
-					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
+					"IRQBALANCE_BANNED_CPU_LIST=0-31 /usr/bin/irqbalance --oneshot",
 				}),
 			Entry("irqbalance is enabled and fails but oneshot works",
-				parameters{isServiceEnabled: true, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				parameters{isServiceEnabled: true, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceCPUSet: "0-31"},
 				[]string{
 					"systemctl is-enabled irqbalance",
 					"systemctl restart irqbalance",
 				},
 				[]string{
 					"which irqbalance",
-					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
+					"IRQBALANCE_BANNED_CPU_LIST=0-31 /usr/bin/irqbalance --oneshot",
 				}),
 			Entry("irqbalance is disabled but irqBalance file exists",
-				parameters{isServiceEnabled: false, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				parameters{isServiceEnabled: false, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceCPUSet: "0-31"},
 				[]string{
 					"systemctl is-enabled irqbalance",
 				},
 				[]string{
 					"which irqbalance",
-					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
+					"IRQBALANCE_BANNED_CPU_LIST=0-31 /usr/bin/irqbalance --oneshot",
 				}),
 			Entry("irqbalance is disabled, oneshot lookup fails",
-				parameters{isServiceEnabled: false, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: true, calculatedIRQBalanceMask: "ffff,ffff"},
+				parameters{isServiceEnabled: false, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: true, calculatedIRQBalanceCPUSet: "0-31"},
 				[]string{
 					"systemctl is-enabled irqbalance",
 				},
@@ -1436,7 +1436,9 @@ var _ = Describe("high_performance_hooks", func() {
 
 			content, err = os.ReadFile(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(strings.Trim(string(content), "\n")).To(Equal(formatIRQBalanceBannedCPUs(expectedIrqBalance)))
+			expectedIrqBalanceCPUSet, err := mapHexCharToCPUSet(expectedIrqBalance)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(strings.Trim(string(content), "\n")).To(Equal(formatIRQBalanceBannedCPUs(expectedIrqBalanceCPUSet.String())))
 		}
 
 		createContainer := func(cpus string) (*oci.Container, error) {
