@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 29 Oct 2025 21:36:54 UTC for commit [8ffb23c][0]._
+_Generated on Thu, 30 Oct 2025 14:23:17 UTC for commit [7b4dfcf][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8ffb23c47d611d0b00676a9341c7e23fb0638063
+[0]: https://github.com/cri-o/cri-o/commit/7b4dfcf34a8896fbd9ac3d41dccbe332b95c2b24
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251029161729-8878c46e8f85 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251030104659-e30e2b5f4527 | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.27.1                            | v2.27.2                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250820121507-0af2bda4dd1d | v0.0.0-20251002143259-bc988d571ff4 | true   | true             |
 
@@ -454,7 +454,7 @@ _Generated on Wed, 29 Oct 2025 21:36:54 UTC for commit [8ffb23c][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251029161729-8878c46e8f85  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251030104659-e30e2b5f4527  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -571,7 +571,7 @@ _Generated on Wed, 29 Oct 2025 21:36:54 UTC for commit [8ffb23c][0]._
 | github.com/prometheus/client_golang                                         | v1.23.2                               |                                     | true   | true             |
 | github.com/prometheus/client_model                                          | v0.6.2                                |                                     | false  | true             |
 | github.com/prometheus/common                                                | v0.66.1                               | v0.67.2                             | false  | true             |
-| github.com/prometheus/procfs                                                | v0.16.1                               | v0.19.1                             | false  | true             |
+| github.com/prometheus/procfs                                                | v0.16.1                               | v0.19.2                             | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                         | v0.0.0-20250218085312-1ee4910263ac    | v0.0.0-20251016062345-16587c79cd91  | false  | true             |
 | github.com/rcrowley/go-metrics                                              | v0.0.0-20201227073835-cf1acfcdf475    | v0.0.0-20250401214520-65e299d6c5c9  | false  | true             |
 | github.com/redis/go-redis/extra/rediscmd/v9                                 | v9.5.3                                | v9.16.0                             | false  | true             |
