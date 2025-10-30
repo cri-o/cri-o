@@ -17,10 +17,11 @@ function metrics_setup() {
 	# Make sure we get a non-empty metrics response
 	crictl metricsp | grep "podSandboxId"
 
+	# set memory.min for container_spec_memory_reservation_limit_bytes
 	jq --arg TESTDATA "$TESTDATA" '.mounts = [{
             host_path: $TESTDATA,
             container_path: "/testdata",
-          }]' \
+          }] | .linux.resources.unified["memory.min"] = "134217728"' \
 		"$TESTDATA/container_sleep.json" > "$TESTDIR/container_metrics.json"
 	CONTAINER_ID=$(crictl create "$POD_ID" "$TESTDIR/container_metrics.json" "$TESTDATA/sandbox_config.json")
 	crictl start "$CONTAINER_ID"
@@ -255,4 +256,62 @@ EOF
 	# assert container_processes == 3
 	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_processes") | .value.value | tonumber')
 	[[ $metrics_container_processes == "3" ]]
+}
+
+@test "container last seen metrics" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+    "memory",
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	metrics=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[]')
+
+	# assert container_processes == 3
+	metrics_last_seen=$(echo "$metrics" | jq 'select(.name == "container_last_seen") | .value.value | tonumber')
+	[[ $metrics_last_seen != "0" ]]
+}
+
+@test "container spec metrics" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+    "memory",
+    "spec",
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	metrics=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[]')
+
+	metrics_cpu_period=$(echo "$metrics" | jq 'select(.name == "container_spec_cpu_period") | .value.value | tonumber')
+	[[ "$metrics_cpu_period" == "10000" ]]
+	metrics_cpu_shares=$(echo "$metrics" | jq 'select(.name == "container_spec_cpu_shares") | .value.value | tonumber')
+	[[ "$metrics_cpu_shares" == "512" ]]
+	metrics_cpu_quota=$(echo "$metrics" | jq 'select(.name == "container_spec_cpu_quota") | .value.value | tonumber')
+	[[ "$metrics_cpu_quota" == "20000" ]]
+	metrics_memory_limit_bytes=$(echo "$metrics" | jq 'select(.name == "container_spec_memory_limit_bytes") | .value.value | tonumber')
+	[[ $metrics_memory_limit_bytes == "268435456" ]]
+	metrics_memory_swap_limit_bytes=$(echo "$metrics" | jq 'select(.name == "container_spec_memory_swap_limit_bytes") | .value.value | tonumber')
+	[[ "$metrics_memory_swap_limit_bytes" == "268435456" || "$metrics_memory_swap_limit_bytes" == "" ]]
+	if is_cgroup_v2; then
+		metrics_memory_reservation_limit_bytes=$(echo "$metrics" | jq 'select(.name == "container_spec_memory_reservation_limit_bytes") | .value.value | tonumber')
+		[[ $metrics_memory_reservation_limit_bytes == "134217728" ]]
+	fi
 }
