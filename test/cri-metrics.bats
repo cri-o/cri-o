@@ -257,11 +257,41 @@ EOF
 	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_processes") | .value.value | tonumber')
 	[[ $metrics_container_processes == "3" ]]
 
+	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_threads") | .value.value | tonumber')
+	[[ $metrics_container_processes == "3" ]]
+
 	container_pid=$(crictl inspect "$CONTAINER_ID" | jq -r '.info.pid')
 	file_descriptors=$(find "/proc/$container_pid/fd" | wc -l)
-	metrics_file_descriptors=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_file_descriptors") | .value.value | tonumber')
+	metrics_file_descriptors=$(echo "$metrics" | jq 'select(.name == "container_file_descriptors") | .value.value | tonumber')
 	# assert container_file_descriptors metric == file descriptors files in /proc/$container_pid/fd
 	[[ "$file_descriptors" == "$metrics_file_descriptors" ]]
+
+	socket_count=0
+	for fd in "/proc/$container_pid/fd"/*; do
+		if [[ -L "$fd" ]]; then
+			link_target=$(readlink "$fd" 2>/dev/null || true)
+			if [[ "$link_target" == socket:* ]]; then
+				((socket_count++))
+			fi
+		fi
+	done
+	metrics_sockets=$(echo "$metrics" | jq 'select(.name == "container_sockets") | .value.value | tonumber')
+	# assert container_sockets metric == socket file descriptors in /proc/$container_pid/fd
+	[[ "$socket_count" == "$metrics_sockets" ]]
+
+	
+	if is_cgroup_v2; then
+		cgroup_threads_max=$(cat "$CTR_CGROUP"/pids.max)
+	else
+		cgroup_threads_max=$(cat "$CTR_CGROUP"/pids.limit)
+	fi
+	metrics_threads_max=$(echo "$metrics" | jq 'select(.name == "container_threads_max") | .value.value | tonumber')
+	if [[ "$cgroup_threads_max" == "max" ]]; then
+		# limit is infinity if value is zero
+		[[ "$metrics_threads_max" == "0" ]]
+	else
+		[[ "$cgroup_threads_max" == "$metrics_threads_max" ]]
+	fi
 
 	stop_crio
 }
