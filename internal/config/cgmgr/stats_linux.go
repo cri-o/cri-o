@@ -258,7 +258,7 @@ func isMemoryUnlimited(v uint64) bool {
 }
 
 func cgroupPidStats(stats *cgroups.Stats, pids []int) *PidsStats {
-	var fdCount, socketCount, threadCount, threadsMax, ulimitsSoft uint64
+	var fdCount, socketCount, ulimitsSoft uint64
 
 	// This is based on the cadvisor handler: https://github.com/google/cadvisor/blob/master/container/libcontainer/handler.go
 	for _, pid := range pids {
@@ -281,14 +281,6 @@ func cgroupPidStats(stats *cgroups.Stats, pids []int) *PidsStats {
 			}
 		}
 
-		threadsPath := path.Join("/proc", strconv.Itoa(pid), "task")
-		threads, err := os.ReadDir(threadsPath)
-		if err != nil {
-			klog.V(4).Infof("error while listing directory %q to measure thread count: %v", threadsPath, err)
-		} else {
-			threadCount += uint64(len(threads))
-		}
-
 		limitsPath := path.Join("/proc", strconv.Itoa(pid), "limits")
 		limitsData, err := os.ReadFile(limitsPath)
 		if err != nil {
@@ -296,14 +288,7 @@ func cgroupPidStats(stats *cgroups.Stats, pids []int) *PidsStats {
 		} else {
 			lines := strings.Split(string(limitsData), "\n")
 			for _, line := range lines {
-				if strings.Contains(line, "Max processes") {
-					fields := strings.Fields(line)
-					if len(fields) >= 3 {
-						if softLimit, err := strconv.ParseUint(fields[2], 10, 64); err == nil {
-							threadsMax += softLimit
-						}
-					}
-				} else if strings.HasPrefix(line, "Max open files") {
+				if strings.HasPrefix(line, "Max open files") {
 					const maxOpenFilesPrefix = "Max open files"
 					remainingLine := strings.TrimSpace(line[len(maxOpenFilesPrefix):])
 					fields := strings.Fields(remainingLine)
@@ -323,8 +308,8 @@ func cgroupPidStats(stats *cgroups.Stats, pids []int) *PidsStats {
 		Pids:            pids,
 		FileDescriptors: fdCount,
 		Sockets:         socketCount,
-		Threads:         threadCount,
-		ThreadsMax:      threadsMax,
+		Threads:         stats.PidsStats.Current,
+		ThreadsMax:      stats.PidsStats.Limit,
 		UlimitsSoft:     ulimitsSoft,
 	}
 }
