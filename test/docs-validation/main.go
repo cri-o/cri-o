@@ -5,7 +5,6 @@ import (
 	"os"
 	"reflect"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -238,7 +237,13 @@ func openFile(path string) []byte {
 }
 
 func stringInSlice(a string, list []string) bool {
-	return slices.Contains(list, a)
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+
+	return false
 }
 
 func allEntries(c *config.Config) []entry {

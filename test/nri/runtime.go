@@ -4,8 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"maps"
-	"slices"
 	"sync"
 	"time"
 
@@ -121,8 +119,10 @@ func (r *runtime) PullImage(image string) (string, error) {
 	}
 
 	for _, img := range listReply.GetImages() {
-		if slices.Contains(img.GetRepoTags(), image) {
-			return img.GetId(), nil
+		for _, tag := range img.GetRepoTags() {
+			if tag == image {
+				return img.GetId(), nil
+			}
 		}
 	}
 
@@ -167,7 +167,9 @@ type PodOption func(*cri.PodSandboxConfig) error
 
 func WithPodAnnotations(annotations map[string]string) PodOption {
 	return func(cfg *cri.PodSandboxConfig) error {
-		maps.Copy(cfg.GetAnnotations(), annotations)
+		for k, v := range annotations {
+			cfg.Annotations[k] = v
+		}
 
 		return nil
 	}
@@ -175,7 +177,9 @@ func WithPodAnnotations(annotations map[string]string) PodOption {
 
 func WithPodLabels(labels map[string]string) PodOption {
 	return func(cfg *cri.PodSandboxConfig) error {
-		maps.Copy(cfg.GetLabels(), labels)
+		for k, v := range labels {
+			cfg.Labels[k] = v
+		}
 
 		return nil
 	}
@@ -401,7 +405,9 @@ func WithEnv(envs []*cri.KeyValue) ContainerOption {
 
 func WithAnnotations(annotations map[string]string) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
-		maps.Copy(cfg.GetAnnotations(), annotations)
+		for k, v := range annotations {
+			cfg.Annotations[k] = v
+		}
 
 		return nil
 	}
@@ -409,7 +415,9 @@ func WithAnnotations(annotations map[string]string) ContainerOption {
 
 func WithLabels(labels map[string]string) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
-		maps.Copy(cfg.GetLabels(), labels)
+		for k, v := range labels {
+			cfg.Labels[k] = v
+		}
 
 		return nil
 	}
