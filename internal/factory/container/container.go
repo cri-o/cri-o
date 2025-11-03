@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -555,7 +554,7 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 		c.spec.Config.Linux.Resources.Unified = make(map[string]string)
 	}
 
-	for r := range strings.SplitSeq(annotation, ";") {
+	for _, r := range strings.Split(annotation, ";") {
 		parts := strings.SplitN(r, "=", 2)
 		if len(parts) != 2 {
 			return fmt.Errorf("invalid annotation %q", annotations.UnifiedCgroupAnnotation)
@@ -896,7 +895,9 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 			specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.GetUnified()))
 		}
 
-		maps.Copy(specgen.Config.Linux.Resources.Unified, resources.GetUnified())
+		for key, value := range resources.GetUnified() {
+			specgen.Config.Linux.Resources.Unified[key] = value
+		}
 	}
 
 	return nil
