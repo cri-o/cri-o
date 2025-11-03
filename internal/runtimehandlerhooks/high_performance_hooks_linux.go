@@ -1061,10 +1061,8 @@ func isCPUGovernorSupported(governor, cpuDir string, cpu int) error {
 	}
 
 	// Is the scaling governor supported?
-	for _, availableGovernor := range strings.Fields(string(availGovernors)) {
-		if availableGovernor == governor {
-			return nil
-		}
+	if slices.Contains(strings.Fields(string(availGovernors)), governor) {
+		return nil
 	}
 
 	return fmt.Errorf("governor %s not available for cpu %d", governor, cpu)
@@ -1300,9 +1298,9 @@ func convertAnnotationToLatency(annotation string) (maxLatency string, err error
 	} else if annotation == annotationDisable {
 		// Disable all c-states.
 		return "n/a", nil
-	} else if strings.HasPrefix(annotation, "max_latency:") {
+	} else if after, ok := strings.CutPrefix(annotation, "max_latency:"); ok {
 		// Use the latency provided
-		latency, err := strconv.Atoi(strings.TrimPrefix(annotation, "max_latency:"))
+		latency, err := strconv.Atoi(after)
 		if err != nil {
 			return "", err
 		}
