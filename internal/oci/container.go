@@ -60,8 +60,7 @@ type Container struct {
 	conmonCgroupfsPath string
 	crioAnnotations    fields.Set
 	state              *ContainerState
-	opLock             sync.RWMutex // For handling the container OCI runtime state transitions (i.e: anything that needs to call OCI runtime)
-	metaLock           sync.RWMutex // For handling the internal oci.Container metadata. Currently only used for Spec and Resources fields
+	opLock             sync.RWMutex
 	spec               *specs.Spec
 	idMappings         *idtools.IDMappings
 	terminal           bool
@@ -115,8 +114,8 @@ type ContainerVolume struct {
 type ContainerState struct {
 	specs.State
 	Created       time.Time `json:"created"`
-	Started       time.Time `json:"started"`
-	Finished      time.Time `json:"finished"`
+	Started       time.Time `json:"started,omitempty"`
+	Finished      time.Time `json:"finished,omitempty"`
 	ExitCode      *int32    `json:"exitCode,omitempty"`
 	OOMKilled     bool      `json:"oomKilled,omitempty"`
 	SeccompKilled bool      `json:"seccompKilled,omitempty"`
@@ -127,7 +126,7 @@ type ContainerState struct {
 	// is the same as the corresponding PID on the host.
 	InitStartTime string `json:"initStartTime,omitempty"`
 	// Checkpoint/Restore related states
-	CheckpointedAt time.Time `json:"checkpointedTime"`
+	CheckpointedAt time.Time `json:"checkpointedTime,omitempty"`
 	// ContainerMonitorProcess is used to check the liveness of the container monitor.
 	// This is supposed to be immutable once set.
 	ContainerMonitorProcess *ContainerMonitorProcess `json:"containerMonitorProcess,omitempty"`
@@ -253,9 +252,6 @@ func (c *Container) CRIContainer() *types.Container {
 
 // SetSpec loads the OCI spec in the container struct.
 func (c *Container) SetSpec(s *specs.Spec) {
-	c.metaLock.Lock()
-	defer c.metaLock.Unlock()
-
 	c.spec = s
 	c.SetResources(s)
 	c.SetRuntimeUser(s)
@@ -263,9 +259,6 @@ func (c *Container) SetSpec(s *specs.Spec) {
 
 // Spec returns a copy of the spec for the container.
 func (c *Container) Spec() specs.Spec {
-	c.metaLock.RLock()
-	defer c.metaLock.RUnlock()
-
 	if c.spec != nil {
 		return *c.spec
 	}
@@ -825,7 +818,7 @@ func (c *Container) SetResources(s *specs.Spec) {
 		}
 
 		resourceStatus.Linux.Unified = make(map[string]string)
-		maps.Copy(resourceStatus.GetLinux().GetUnified(), linuxResources.Unified)
+		maps.Copy(resourceStatus.Linux.Unified, linuxResources.Unified)
 
 		resourceStatus.Linux.HugepageLimits = []*types.HugepageLimit{}
 		for _, entry := range linuxResources.HugepageLimits {
@@ -841,9 +834,6 @@ func (c *Container) SetResources(s *specs.Spec) {
 
 // GetResources returns a copy of the Linux resources from Container.
 func (c *Container) GetResources() *types.ContainerResources {
-	c.metaLock.RLock()
-	defer c.metaLock.RUnlock()
-
 	return c.resources
 }
 
