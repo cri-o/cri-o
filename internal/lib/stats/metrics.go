@@ -117,6 +117,7 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			containerSpecMemoryLimitBytes,
 			containerSpecMemoryReservationLimitBytes,
 			containerSpecMemorySwapLimitBytes,
+			containerStartTimeSeconds,
 		},
 	}
 
