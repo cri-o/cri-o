@@ -552,7 +552,7 @@ func (runner *runner) checkRuleWithoutCheck(table Table, chain Chain, args ...st
 
 	argset := sets.NewString(argsCopy...)
 
-	for line := range strings.SplitSeq(string(out), "\n") {
+	for _, line := range strings.Split(string(out), "\n") {
 		fields := strings.Fields(line)
 
 		// Check that this is a rule for the correct chain, and that it has
