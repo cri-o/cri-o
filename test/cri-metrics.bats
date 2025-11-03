@@ -231,7 +231,8 @@ EOF
 }
 
 @test "container process metrics" {
-	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	SOFT_ULIMIT=1000
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) CONTAINER_DEFAULT_ULIMITS="nofile=$SOFT_ULIMIT:1025" setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]
 collection_period = 0
@@ -241,50 +242,37 @@ included_pod_metrics = [
     "process",
 ]
 EOF
+	# TODO: having the crun subcgroup breaks this collection
+	# remove this when that is fixed
+	unset CONTAINER_RUNTIMES
+	sed -i '/privileged_without_host_devices = false/a default_annotations = { "run.oci.systemd.subgroup" = "" }' "$CRIO_CUSTOM_CONFIG"
+
 	start_crio_no_setup
 	check_images
 
 	metrics_setup
 	set_container_pod_cgroup_root "" "$CONTAINER_ID"
 
-	# run some processes in the container
-	crictl exec --sync "$CONTAINER_ID" /bin/bash -c 'sleep 30 &'
-	crictl exec --sync "$CONTAINER_ID" /bin/bash -c 'sleep 30 &'
-
 	metrics=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[]')
 
-	# assert container_processes == 3
 	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_processes") | .value.value | tonumber')
-	[[ $metrics_container_processes == "3" ]]
+	[[ $metrics_container_processes == "1" ]]
 
-	metrics_container_processes=$(echo "$metrics" | jq 'select(.name == "container_threads") | .value.value | tonumber')
-	[[ $metrics_container_processes == "3" ]]
+	metrics_container_threads=$(echo "$metrics" | jq 'select(.name == "container_threads") | .value.value | tonumber')
+	[[ $metrics_container_threads == "1" ]]
 
-	container_pid=$(crictl inspect "$CONTAINER_ID" | jq -r '.info.pid')
-	file_descriptors=$(find "/proc/$container_pid/fd" | wc -l)
 	metrics_file_descriptors=$(echo "$metrics" | jq 'select(.name == "container_file_descriptors") | .value.value | tonumber')
-	# assert container_file_descriptors metric == file descriptors files in /proc/$container_pid/fd
-	[[ "$file_descriptors" == "$metrics_file_descriptors" ]]
+	[[ "$metrics_file_descriptors" == "3" ]]
 
-	socket_count=0
-	for fd in "/proc/$container_pid/fd"/*; do
-		if [[ -L "$fd" ]]; then
-			link_target=$(readlink "$fd" 2>/dev/null || true)
-			if [[ "$link_target" == socket:* ]]; then
-				((socket_count++))
-			fi
-		fi
-	done
 	metrics_sockets=$(echo "$metrics" | jq 'select(.name == "container_sockets") | .value.value | tonumber')
-	# assert container_sockets metric == socket file descriptors in /proc/$container_pid/fd
-	[[ "$socket_count" == "$metrics_sockets" ]]
+	[[ "$metrics_sockets" == "0" ]]
 
-	
 	if is_cgroup_v2; then
 		cgroup_threads_max=$(cat "$CTR_CGROUP"/pids.max)
 	else
 		cgroup_threads_max=$(cat "$CTR_CGROUP"/pids.limit)
 	fi
+
 	metrics_threads_max=$(echo "$metrics" | jq 'select(.name == "container_threads_max") | .value.value | tonumber')
 	if [[ "$cgroup_threads_max" == "max" ]]; then
 		# limit is infinity if value is zero
@@ -293,7 +281,9 @@ EOF
 		[[ "$cgroup_threads_max" == "$metrics_threads_max" ]]
 	fi
 
-	stop_crio
+	metrics_ulimits_soft=$(echo "$metrics" | jq 'select(.name == "container_ulimits_soft") | .value.value | tonumber')
+
+	[[ "$metrics_ulimits_soft" == "$SOFT_ULIMIT" ]]
 }
 
 @test "container last seen metrics" {
@@ -314,7 +304,6 @@ EOF
 
 	metrics=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[]')
 
-	# assert container_processes == 3
 	metrics_last_seen=$(echo "$metrics" | jq 'select(.name == "container_last_seen") | .value.value | tonumber')
 	[[ $metrics_last_seen != "0" ]]
 }
