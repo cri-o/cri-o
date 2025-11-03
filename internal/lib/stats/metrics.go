@@ -7,23 +7,10 @@ import (
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 var baseLabelKeys = []string{"id", "name", "image"}
-
-// TODO: Because of cyclic dependency, we cannot export these metrics to "pkg/config/config.go".
-// Don't forget to update the list when adding new metrics in `func (c *StatsConfig) Validate()`.
-const (
-	CPUMetrics     = "cpu"
-	DiskMetrics    = "disk"
-	DiskIOMetrics  = "diskIO"
-	HugetlbMetrics = "hugetlb"
-	MemoryMetrics  = "memory"
-	NetworkMetrics = "network"
-	OOMMetrics     = "oom"
-	ProcessMetrics = "process"
-	SpecMetrics    = "spec"
-)
 
 type metricValue struct {
 	value      uint64
@@ -61,7 +48,8 @@ var alwaysOnMetrics = []*types.MetricDescriptor{
 }
 
 var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
-	CPUMetrics: {
+	"": alwaysOnMetrics,
+	config.CPUMetrics: {
 		containerCpuUserSecondsTotal,
 		containerCpuSystemSecondsTotal,
 		containerCpuUsageSecondsTotal,
@@ -69,24 +57,24 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 		containerCpuCfsThrottledPeriodsTotal,
 		containerCpuCfsThrottledSecondsTotal,
 	},
-	DiskMetrics: {
+	config.DiskMetrics: {
 		containerFsInodesFree,
 		containerFsInodesTotal,
 		containerFsLimitBytes,
 		containerFsUsageBytes,
 	},
-	DiskIOMetrics: {
+	config.DiskIOMetrics: {
 		containerFsReadsBytesTotal,
 		containerFsReadsTotal,
 		containerFsWritesBytesTotal,
 		containerFsWritesTotal,
 		containerBlkioDeviceUsageTotal,
 	},
-	HugetlbMetrics: {
+	config.HugetlbMetrics: {
 		containerHugetlbUsageBytes,
 		containerHugetlbMaxUsageBytes,
 	},
-	MemoryMetrics: {
+	config.MemoryMetrics: {
 		containerMemoryCache,
 		containerMemoryRss,
 		containerMemoryKernelUsage,
@@ -98,7 +86,7 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 		containerMemoryWorkingSetBytes,
 		containerMemoryFailuresTotal,
 	},
-	NetworkMetrics: {
+	config.NetworkMetrics: {
 		containerNetworkReceiveBytesTotal,
 		containerNetworkReceivePacketsTotal,
 		containerNetworkReceivePacketsDroppedTotal,
@@ -108,10 +96,10 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 		containerNetworkTransmitPacketsDroppedTotal,
 		containerNetworkTransmitErrorsTotal,
 	},
-	OOMMetrics: {
+	config.OOMMetrics: {
 		containerOomEventsTotal,
 	},
-	ProcessMetrics: {
+	config.ProcessMetrics: {
 		containerFileDescriptors,
 		containerProcesses,
 		containerSockets,
@@ -119,7 +107,7 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 		containerThreadsMax,
 		containerUlimitsSoft,
 	},
-	SpecMetrics: {
+	config.SpecMetrics: {
 		containerSpecCpuPeriod,
 		containerSpecCpuShares,
 		containerSpecCpuQuota,
@@ -132,6 +120,11 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 
 // PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
 func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
+	// It's guaranteed in config validation that if all is specified, it's the only one element in the slice.
+	if len(includedKeys) == 1 && includedKeys[0] == config.AllMetrics {
+		return availableMetricDescriptors
+	}
+
 	descriptorsMap := map[string][]*types.MetricDescriptor{
 		"": alwaysOnMetrics,
 	}
