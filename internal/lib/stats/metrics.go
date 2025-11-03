@@ -11,7 +11,10 @@ import (
 
 var baseLabelKeys = []string{"id", "name", "image"}
 
+// TODO: Because of cyclic dependency, we cannot export these metrics to "pkg/config/config.go".
+// Don't forget to update the list when adding new metrics in `func (c *StatsConfig) Validate()`.
 const (
+	AllMetrics     = "all"
 	CPUMetrics     = "cpu"
 	HugetlbMetrics = "hugetlb"
 	MemoryMetrics  = "memory"
@@ -52,60 +55,74 @@ func NewSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 	}
 }
 
+var alwaysOnMetrics = []*types.MetricDescriptor{
+	containerLastSeen,
+}
+
+var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
+	"": alwaysOnMetrics,
+	CPUMetrics: {
+		containerCpuUserSecondsTotal,
+		containerCpuSystemSecondsTotal,
+		containerCpuUsageSecondsTotal,
+		containerCpuCfsPeriodsTotal,
+		containerCpuCfsThrottledPeriodsTotal,
+		containerCpuCfsThrottledSecondsTotal,
+	},
+	HugetlbMetrics: {
+		containerHugetlbUsageBytes,
+		containerHugetlbMaxUsageBytes,
+	},
+	MemoryMetrics: {
+		containerMemoryCache,
+		containerMemoryRss,
+		containerMemoryKernelUsage,
+		containerMemoryMappedFile,
+		containerMemorySwap,
+		containerMemoryFailcnt,
+		containerMemoryUsageBytes,
+		containerMemoryMaxUsageBytes,
+		containerMemoryWorkingSetBytes,
+		containerMemoryFailuresTotal,
+	},
+	NetworkMetrics: {
+		containerNetworkReceiveBytesTotal,
+		containerNetworkReceivePacketsTotal,
+		containerNetworkReceivePacketsDroppedTotal,
+		containerNetworkReceiveErrorsTotal,
+		containerNetworkTransmitBytesTotal,
+		containerNetworkTransmitPacketsTotal,
+		containerNetworkTransmitPacketsDroppedTotal,
+		containerNetworkTransmitErrorsTotal,
+	},
+	OOMMetrics: {
+		containerOomEventsTotal,
+	},
+	ProcessMetrics: {
+		containerProcesses,
+	},
+	SpecMetrics: {
+		containerSpecCpuPeriod,
+		containerSpecCpuShares,
+		containerSpecCpuQuota,
+		containerSpecMemoryLimitBytes,
+		containerSpecMemoryReservationLimitBytes,
+		containerSpecMemorySwapLimitBytes,
+	},
+}
+
 // PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
-func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
+func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string, all bool) map[string][]*types.MetricDescriptor {
+	if all {
+		return availableMetricDescriptors
+	}
+
 	descriptorsMap := map[string][]*types.MetricDescriptor{
-		"": {
-			containerLastSeen,
-		},
-		CPUMetrics: {
-			containerCpuUserSecondsTotal,
-			containerCpuSystemSecondsTotal,
-			containerCpuUsageSecondsTotal,
-			containerCpuCfsPeriodsTotal,
-			containerCpuCfsThrottledPeriodsTotal,
-			containerCpuCfsThrottledSecondsTotal,
-		},
-		HugetlbMetrics: {
-			containerHugetlbUsageBytes,
-			containerHugetlbMaxUsageBytes,
-		},
-		MemoryMetrics: {
-			containerMemoryCache,
-			containerMemoryRss,
-			containerMemoryKernelUsage,
-			containerMemoryMappedFile,
-			containerMemorySwap,
-			containerMemoryFailcnt,
-			containerMemoryUsageBytes,
-			containerMemoryMaxUsageBytes,
-			containerMemoryWorkingSetBytes,
-			containerMemoryFailuresTotal,
-		},
-		NetworkMetrics: {
-			containerNetworkReceiveBytesTotal,
-			containerNetworkReceivePacketsTotal,
-			containerNetworkReceivePacketsDroppedTotal,
-			containerNetworkReceiveErrorsTotal,
-			containerNetworkTransmitBytesTotal,
-			containerNetworkTransmitPacketsTotal,
-			containerNetworkTransmitPacketsDroppedTotal,
-			containerNetworkTransmitErrorsTotal,
-		},
-		OOMMetrics: {
-			containerOomEventsTotal,
-		},
-		ProcessMetrics: {
-			containerProcesses,
-		},
-		SpecMetrics: {
-			containerSpecCpuPeriod,
-			containerSpecCpuShares,
-			containerSpecCpuQuota,
-			containerSpecMemoryLimitBytes,
-			containerSpecMemoryReservationLimitBytes,
-			containerSpecMemorySwapLimitBytes,
-		},
+		"": alwaysOnMetrics,
+	}
+
+	for _, k := range includedKeys {
+		descriptorsMap[k] = availableMetricDescriptors[k]
 	}
 
 	return descriptorsMap
