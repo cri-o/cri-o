@@ -14,6 +14,7 @@ var baseLabelKeys = []string{"id", "name", "image"}
 // TODO: Because of cyclic dependency, we cannot export these metrics to "pkg/config/config.go".
 // Don't forget to update the list when adding new metrics in `func (c *StatsConfig) Validate()`.
 const (
+	AllMetrics     = "all"
 	CPUMetrics     = "cpu"
 	DiskMetrics    = "disk"
 	DiskIOMetrics  = "diskIO"
@@ -61,6 +62,7 @@ var alwaysOnMetrics = []*types.MetricDescriptor{
 }
 
 var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
+	"": alwaysOnMetrics,
 	CPUMetrics: {
 		containerCpuUserSecondsTotal,
 		containerCpuSystemSecondsTotal,
@@ -131,7 +133,11 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 }
 
 // PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
-func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
+func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string, all bool) map[string][]*types.MetricDescriptor {
+	if all {
+		return availableMetricDescriptors
+	}
+
 	descriptorsMap := map[string][]*types.MetricDescriptor{
 		"": alwaysOnMetrics,
 	}
