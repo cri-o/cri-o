@@ -1,15 +1,16 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 03 Nov 2025 11:59:15 UTC for commit [75feb2f][0]._
+_Generated on Mon, 03 Nov 2025 16:53:11 UTC for commit [0a22ab8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/75feb2fb74656f0632469616fcc8954e638a2bfd
+[0]: https://github.com/cri-o/cri-o/commit/0a22ab84ff06df5667ebad9cbce5c8707af94e37
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                             | v0.6.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251103083417-897ecfb503ce | true   | true             |
+| github.com/intel/goresctrl                             | v0.9.0                             | v0.10.0                            | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251103163218-3107533953b2 | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250820121507-0af2bda4dd1d | v0.0.0-20251002143259-bc988d571ff4 | true   | true             |
 
 ## All Dependencies
@@ -438,7 +439,7 @@ _Generated on Mon, 03 Nov 2025 11:59:15 UTC for commit [75feb2f][0]._
 | github.com/inconshreveable/mousetrap                                        | v1.1.0                                |                                     | false  | true             |
 | github.com/insomniacslk/dhcp                                                | v0.0.0-20240829085014-a3a4c1f04475    | v0.0.0-20251020182700-175e84fbb167  | false  | true             |
 | github.com/intel-go/cpuid                                                   | v0.0.0-20210602155658-5747e5cec0d9    | v0.0.0-20240823053301-6c0fd109086b  | false  | true             |
-| github.com/intel/goresctrl                                                  | v0.9.0                                |                                     | true   | true             |
+| github.com/intel/goresctrl                                                  | v0.9.0                                | v0.10.0                             | true   | true             |
 | github.com/jbenet/go-context                                                | v0.0.0-20150711004518-d14ea06fba99    |                                     | false  | true             |
 | github.com/jedisct1/go-minisign                                             | v0.0.0-20241212093149-d2f9f49435c7    |                                     | false  | true             |
 | github.com/jellydator/ttlcache/v3                                           | v3.4.0                                |                                     | false  | true             |
@@ -454,7 +455,7 @@ _Generated on Mon, 03 Nov 2025 11:59:15 UTC for commit [75feb2f][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251103083417-897ecfb503ce  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251103163218-3107533953b2  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -707,7 +708,7 @@ _Generated on Mon, 03 Nov 2025 11:59:15 UTC for commit [75feb2f][0]._
 | go.opentelemetry.io/otel/sdk                                                | v1.38.0                               |                                     | true   | true             |
 | go.opentelemetry.io/otel/sdk/metric                                         | v1.38.0                               |                                     | false  | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.38.0                               |                                     | true   | true             |
-| go.opentelemetry.io/proto/otlp                                              | v1.7.1                                | v1.8.0                              | false  | true             |
+| go.opentelemetry.io/proto/otlp                                              | v1.7.1                                | v1.9.0                              | false  | true             |
 | go.podman.io/image/v5                                                       | v5.37.0                               | v5.38.0                             | false  | true             |
 | go.podman.io/storage                                                        | v1.60.0                               | v1.61.0                             | false  | true             |
 | go.step.sm/crypto                                                           | v0.57.0                               | v0.73.0                             | false  | true             |
