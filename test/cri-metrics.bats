@@ -30,6 +30,8 @@ function metrics_setup() {
 	crictl metricsp | grep "container_network_receive_bytes_total"
 	# assert container metrics are present
 	crictl metricsp | grep "container_memory_usage_bytes"
+	# assert metadata is there
+	crictl metricsp | grep "$CONTAINER_ID"
 }
 
 @test "container memory metrics" {

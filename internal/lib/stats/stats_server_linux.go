@@ -233,7 +233,7 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *o
 }
 
 func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.Container, cgstats *cgmgr.CgroupStats) *types.ContainerMetrics {
-	metrics := computeSandboxMetrics(sb, []*containerMetric{
+	metrics := computeContainerMetrics(c, []*containerMetric{
 		{
 			desc: containerLastSeen,
 			valueFunc: func() metricValues {
@@ -248,15 +248,15 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 	for _, m := range ss.Config().IncludedPodMetrics {
 		switch m {
 		case CPUMetrics:
-			if cpuMetrics := generateSandboxCPUMetrics(sb, cgstats.CPU); cpuMetrics != nil {
+			if cpuMetrics := generateContainerCPUMetrics(c, cgstats.CPU); cpuMetrics != nil {
 				metrics = append(metrics, cpuMetrics...)
 			}
 		case HugetlbMetrics:
-			if hugetlbMetrics := generateSandboxHugetlbMetrics(sb, cgstats.Hugetlb); hugetlbMetrics != nil {
+			if hugetlbMetrics := generateContainerHugetlbMetrics(c, cgstats.Hugetlb); hugetlbMetrics != nil {
 				metrics = append(metrics, hugetlbMetrics...)
 			}
 		case MemoryMetrics:
-			if memoryMetrics := generateSandboxMemoryMetrics(sb, cgstats.Memory); memoryMetrics != nil {
+			if memoryMetrics := generateContainerMemoryMetrics(c, cgstats.Memory); memoryMetrics != nil {
 				metrics = append(metrics, memoryMetrics...)
 			}
 		case OOMMetrics:
@@ -274,16 +274,16 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 				continue
 			}
 
-			oomMetrics := GenerateSandboxOOMMetrics(sb, c, oomCount)
+			oomMetrics := GenerateContainerOOMMetrics(c, oomCount)
 			metrics = append(metrics, oomMetrics...)
 		case NetworkMetrics:
 			continue // Network metrics are collected at the pod level only.
 		case ProcessMetrics:
-			if processMetrics := generateSandboxProcessMetrics(sb, cgstats.Pid); processMetrics != nil {
+			if processMetrics := generateContainerProcessMetrics(c, cgstats.Pid); processMetrics != nil {
 				metrics = append(metrics, processMetrics...)
 			}
 		case SpecMetrics:
-			if specMetrics := generateSandboxSpecMetrics(sb, c); specMetrics != nil {
+			if specMetrics := generateContainerSpecMetrics(c); specMetrics != nil {
 				metrics = append(metrics, specMetrics...)
 			}
 		default:

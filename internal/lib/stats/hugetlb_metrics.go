@@ -4,10 +4,10 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
-func generateSandboxHugetlbMetrics(sb *sandbox.Sandbox, hugetlb map[string]cgmgr.HugetlbStats) []*types.Metric {
+func generateContainerHugetlbMetrics(ctr *oci.Container, hugetlb map[string]cgmgr.HugetlbStats) []*types.Metric {
 	hugetlbMetrics := []*containerMetric{
 		{
 			desc: containerHugetlbUsageBytes,
@@ -40,5 +40,5 @@ func generateSandboxHugetlbMetrics(sb *sandbox.Sandbox, hugetlb map[string]cgmgr
 		},
 	}
 
-	return computeSandboxMetrics(sb, hugetlbMetrics, "hugetlb")
+	return computeContainerMetrics(ctr, hugetlbMetrics, "hugetlb")
 }
