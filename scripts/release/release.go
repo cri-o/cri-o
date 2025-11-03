@@ -117,8 +117,10 @@ func updateVersionAndCreatePR(
 
 	logrus.Info("Committing changes")
 
-	if err := repo.Add(utils.VersionFile); err != nil {
-		return fmt.Errorf("unable to add file %q to repo: %w", utils.VersionFile, err)
+	for _, file := range []string{utils.VersionFile, utils.DependenciesYAMLFile} {
+		if err := repo.Add(file); err != nil {
+			return fmt.Errorf("unable to add file %q to repo: %w", file, err)
+		}
 	}
 
 	if err := repo.UserCommit(
@@ -176,20 +178,18 @@ func modifyVersionFile(filePath, oldVersion, newVersion string) error {
 }
 
 func updateDependenciesYAML(oldVersion, newVersion string) error {
-	const fileName = "dependencies.yaml"
-
-	content, err := os.ReadFile(fileName)
+	content, err := os.ReadFile(utils.DependenciesYAMLFile)
 	if err != nil {
-		return fmt.Errorf("read file %s: %w", fileName, err)
+		return fmt.Errorf("read file %s: %w", utils.DependenciesYAMLFile, err)
 	}
 
 	const developmentVersion = "name: development version\n    version: "
 
 	modifiedContent := bytes.ReplaceAll(content, []byte(developmentVersion+oldVersion), []byte(developmentVersion+newVersion))
 
-	err = os.WriteFile(fileName, modifiedContent, 0o644)
+	err = os.WriteFile(utils.DependenciesYAMLFile, modifiedContent, 0o644)
 	if err != nil {
-		return fmt.Errorf("update file %s: %w", fileName, err)
+		return fmt.Errorf("update file %s: %w", utils.DependenciesYAMLFile, err)
 	}
 
 	return nil
