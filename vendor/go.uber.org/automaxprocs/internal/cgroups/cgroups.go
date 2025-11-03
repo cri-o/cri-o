@@ -21,7 +21,7 @@
 //go:build linux
 // +build linux
 
-package automaxprocs
+package cgroups
 
 const (
 	// _cgroupFSType is the Linux CGroup file system type used in

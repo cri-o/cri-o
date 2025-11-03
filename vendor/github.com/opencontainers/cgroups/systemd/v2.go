@@ -176,9 +176,6 @@ func unifiedResToSystemdProps(cm *dbusConnManager, res map[string]string) (props
 					return nil, fmt.Errorf("unified resource %q value conversion error: %w", k, err)
 				}
 			}
-			if num == 0 {
-				num = 1 // systemd does not accept "0" for TasksMax
-			}
 			props = append(props,
 				newProp("TasksMax", num))
 
@@ -259,17 +256,9 @@ func genV2ResourcesProperties(dirPath string, r *cgroups.Resources, cm *dbusConn
 
 	addCPUQuota(cm, &properties, &r.CpuQuota, r.CpuPeriod)
 
-	if r.PidsLimit != nil {
-		var tasksMax uint64
-		if limit := *r.PidsLimit; limit < 0 {
-			tasksMax = math.MaxUint64 // "infinity"
-		} else if limit == 0 {
-			tasksMax = 1 // systemd does not accept "0" for TasksMax
-		} else {
-			tasksMax = uint64(limit)
-		}
+	if r.PidsLimit > 0 || r.PidsLimit == -1 {
 		properties = append(properties,
-			newProp("TasksMax", tasksMax))
+			newProp("TasksMax", uint64(r.PidsLimit)))
 	}
 
 	err = addCpuset(cm, &properties, r.CpusetCpus, r.CpusetMems)
