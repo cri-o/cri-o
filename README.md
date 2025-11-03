@@ -183,7 +183,7 @@ as it relates to infrastructure that utilizes CRI-O.
 
 ## Communication
 
-For async communication and long running discussions please use [issues](https://github.com/cri-o/cri-o/issues)
+For async communication and long-running discussions please use [issues](https://github.com/cri-o/cri-o/issues)
 and [pull requests](https://github.com/cri-o/cri-o/pulls) on the [GitHub repo](https://github.com/cri-o/cri-o).
 This will be the best place to discuss design and implementation.
 
@@ -307,7 +307,7 @@ The details to join the meeting are on the [wiki](https://github.com/cri-o/cri-o
 
 ## Governance
 
-For more information on how CRI-O is goverened, take a look at the [governance file](GOVERNANCE.md)
+For more information on how CRI-O is governed, take a look at the [governance file](GOVERNANCE.md)
 
 ## License Scan
 
