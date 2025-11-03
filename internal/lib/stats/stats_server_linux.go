@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/vishvananda/netlink"
@@ -249,7 +250,15 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *o
 }
 
 func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c *oci.Container, containerStats *cgmgr.CgroupStats, diskstats oci.DiskMetrics) *types.ContainerMetrics {
-	var metrics []*types.Metric
+	metrics := computeContainerMetrics(c, []*containerMetric{{
+		desc: containerLastSeen,
+		valueFunc: func() metricValues {
+			return metricValues{{
+				value:      uint64(time.Now().Unix()),
+				metricType: types.MetricType_GAUGE,
+			}}
+		},
+	}}, "")
 
 	for _, m := range ss.Config().IncludedPodMetrics {
 		switch m {

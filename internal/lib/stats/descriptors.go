@@ -259,4 +259,9 @@ var (
 		Help:      "Memory swap limit for the container.",
 		LabelKeys: baseLabelKeys,
 	}
+	containerStartTimeSeconds = &types.MetricDescriptor{
+		Name:      "container_start_time_seconds",
+		Help:      "Start time of the container since unix epoch in seconds.",
+		LabelKeys: baseLabelKeys,
+	}
 )
