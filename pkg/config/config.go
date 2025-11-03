@@ -745,6 +745,7 @@ type StatsConfig struct {
 	CollectionPeriod int `toml:"collection_period"`
 
 	// IncludedPodMetrics specifies the list of metrics to include when collecting pod metrics.
+	// If "all" is specified, all metrics are included. In that case, "all" should be the only element.
 	IncludedPodMetrics []string `toml:"included_pod_metrics"`
 }
 
@@ -2154,10 +2155,16 @@ func (c *Config) SetSingleConfigPath(singleConfigPath string) {
 func (c *StatsConfig) Validate() error {
 	// TODO: Because of cyclic dependency, we cannot import the `internal/lib/stats/metrics` package here.
 	availableMetrics := []string{"cpu", "hugetlb", "memory", "network", "oom", "process", "spec"}
+
 	for _, metrics := range c.IncludedPodMetrics {
+		if metrics == "all" && len(c.IncludedPodMetrics) != 1 {
+			return errors.New("'all' should be only one element in included_pod_metrics")
+		}
+
 		if !slices.Contains(availableMetrics, metrics) {
 			return fmt.Errorf("invalid pod metrics %q, available metrics: %v", metrics, availableMetrics)
 		}
 	}
+
 	return nil
 }
