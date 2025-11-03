@@ -1512,12 +1512,14 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {
-					wg.Go(func() {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
 						container, err := createContainer(strconv.Itoa(cpu))
 						Expect(err).ToNot(HaveOccurred())
 						err = hooks.PreStart(ctx, container, sb)
 						Expect(err).ToNot(HaveOccurred())
-					})
+					}()
 				}
 				wg.Wait()
 				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
@@ -1551,12 +1553,14 @@ var _ = Describe("high_performance_hooks", func() {
 
 				var wg sync.WaitGroup
 				for cpu := range 16 {
-					wg.Go(func() {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
 						container, err := createContainer(strconv.Itoa(cpu))
 						Expect(err).ToNot(HaveOccurred())
 						err = hooks.PreStart(ctx, container, sb)
 						Expect(err).ToNot(HaveOccurred())
-					})
+					}()
 				}
 				wg.Wait()
 				verifySetIRQLoadBalancing(flags, bannedCPUFlags)
@@ -1591,12 +1595,14 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {
-					wg.Go(func() {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
 						container, err := createContainer(strconv.Itoa(cpu))
 						Expect(err).ToNot(HaveOccurred())
 						err = hooks.PreStart(ctx, container, sb)
 						Expect(err).ToNot(HaveOccurred())
-					})
+					}()
 				}
 				wg.Wait()
 				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
@@ -1654,12 +1660,14 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {
-					wg.Go(func() {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
 						container, err := createContainer(strconv.Itoa(cpu))
 						Expect(err).ToNot(HaveOccurred())
 						err = hooks.PreStart(ctx, container, sb)
 						Expect(err).ToNot(HaveOccurred())
-					})
+					}()
 				}
 				wg.Wait()
 				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
@@ -1700,12 +1708,14 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(ok).To(BeTrue())
 				var wg sync.WaitGroup
 				for cpu := range 16 {
-					wg.Go(func() {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
 						container, err := createContainer(strconv.Itoa(cpu))
 						Expect(err).ToNot(HaveOccurred())
 						err = hooks.PreStart(ctx, container, sb)
 						Expect(err).ToNot(HaveOccurred())
-					})
+					}()
 				}
 				wg.Wait()
 				verifySetIRQLoadBalancing(flags, bannedCPUFlags)
