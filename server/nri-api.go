@@ -814,9 +814,7 @@ func fromCRILinuxResources(c *cri.LinuxContainerResources) *api.LinuxResources {
 
 	if u := c.GetUnified(); len(u) != 0 {
 		r.Unified = make(map[string]string)
-		for k, v := range u {
-			r.Unified[k] = v
-		}
+		maps.Copy(r.Unified, u)
 	}
 
 	return r
@@ -851,9 +849,7 @@ func toCRIResources(r *api.LinuxResources, oomScoreAdj int64) *cri.LinuxContaine
 
 	if u := r.GetUnified(); len(u) != 0 {
 		o.Unified = make(map[string]string)
-		for k, v := range u {
-			o.Unified[k] = v
-		}
+		maps.Copy(o.Unified, u)
 	}
 
 	return o
