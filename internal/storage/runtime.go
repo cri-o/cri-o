@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"errors"
-	"slices"
 	"time"
 
 	istorage "github.com/containers/image/v5/storage"
@@ -411,12 +410,14 @@ func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
 		return
 	}
 
-	if slices.Contains(image.MappedTopLayers, layerID) {
-		// if the layer is used by other containers, DeleteLayer
-		// will fail.
-		store.DeleteLayer(layerID) //nolint: errcheck
+	for _, ml := range image.MappedTopLayers {
+		if ml == layerID {
+			// if the layer is used by other containers, DeleteLayer
+			// will fail.
+			store.DeleteLayer(layerID) //nolint: errcheck
 
-		return
+			return
+		}
 	}
 }
 
