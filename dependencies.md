@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 03 Nov 2025 08:26:34 UTC for commit [d18a3cc][0]._
+_Generated on Mon, 03 Nov 2025 11:59:15 UTC for commit [75feb2f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d18a3cc62ccd55f020935caba8a7aa66c2cb8ba7
+[0]: https://github.com/cri-o/cri-o/commit/75feb2fb74656f0632469616fcc8954e638a2bfd
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                             | v0.6.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251031153013-c75a46d17f80 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20251103083417-897ecfb503ce | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20250820121507-0af2bda4dd1d | v0.0.0-20251002143259-bc988d571ff4 | true   | true             |
 
 ## All Dependencies
@@ -454,7 +454,7 @@ _Generated on Mon, 03 Nov 2025 08:26:34 UTC for commit [d18a3cc][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251031153013-c75a46d17f80  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251103083417-897ecfb503ce  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -681,7 +681,7 @@ _Generated on Mon, 03 Nov 2025 08:26:34 UTC for commit [d18a3cc][0]._
 | github.com/zeebo/errs                                                       | v1.4.0                                |                                     | false  | true             |
 | github.com/zmap/zcrypto                                                     | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20251029191044-acd9ff6f53bb  | false  | true             |
 | github.com/zmap/zlint/v3                                                    | v3.6.4                                | v3.6.8                              | false  | true             |
-| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v0.157.1                            | false  | true             |
+| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v0.158.0                            | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.2                                | v1.4.3                              | false  | true             |
 | go.etcd.io/etcd/api/v3                                                      | v3.6.4                                | v3.6.5                              | false  | true             |
