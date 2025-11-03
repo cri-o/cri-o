@@ -52,6 +52,26 @@ function metrics_setup() {
 	crictl metricsp | grep "$CONTAINER_ID"
 }
 
+@test "empty included_pod_metrics returns always-on metrics and doesn't return any not-included metrics" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = []
+EOF
+
+	start_crio_no_setup
+
+	alwaysOn=(
+		container_last_seen
+	)
+
+	for desc in $(crictl metricdescs | jq -r ".descriptors.[].name"); do
+		# check if the desc is in alwaysOn
+		[[ " ${alwaysOn[*]} " == *" $desc "* ]]
+	done
+}
+
 @test "container memory metrics" {
 	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
 	cat << EOF > "$CRIO_CONFIG"

@@ -11,6 +11,8 @@ import (
 
 var baseLabelKeys = []string{"id", "name", "image"}
 
+// TODO: Because of cyclic dependency, we cannot export these metrics to "pkg/config/config.go".
+// Don't forget to update the list when adding new metrics in `func (c *StatsConfig) Validate()`.
 const (
 	CPUMetrics     = "cpu"
 	DiskMetrics    = "disk"
@@ -54,79 +56,88 @@ func NewSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 	}
 }
 
+var alwaysOnMetrics = []*types.MetricDescriptor{
+	containerLastSeen,
+}
+
+var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
+	CPUMetrics: {
+		containerCpuUserSecondsTotal,
+		containerCpuSystemSecondsTotal,
+		containerCpuUsageSecondsTotal,
+		containerCpuCfsPeriodsTotal,
+		containerCpuCfsThrottledPeriodsTotal,
+		containerCpuCfsThrottledSecondsTotal,
+	},
+	DiskMetrics: {
+		containerFsInodesFree,
+		containerFsInodesTotal,
+		containerFsLimitBytes,
+		containerFsUsageBytes,
+	},
+	DiskIOMetrics: {
+		containerFsReadsBytesTotal,
+		containerFsReadsTotal,
+		containerFsWritesBytesTotal,
+		containerFsWritesTotal,
+		containerBlkioDeviceUsageTotal,
+	},
+	HugetlbMetrics: {
+		containerHugetlbUsageBytes,
+		containerHugetlbMaxUsageBytes,
+	},
+	MemoryMetrics: {
+		containerMemoryCache,
+		containerMemoryRss,
+		containerMemoryKernelUsage,
+		containerMemoryMappedFile,
+		containerMemorySwap,
+		containerMemoryFailcnt,
+		containerMemoryUsageBytes,
+		containerMemoryMaxUsageBytes,
+		containerMemoryWorkingSetBytes,
+		containerMemoryFailuresTotal,
+	},
+	NetworkMetrics: {
+		containerNetworkReceiveBytesTotal,
+		containerNetworkReceivePacketsTotal,
+		containerNetworkReceivePacketsDroppedTotal,
+		containerNetworkReceiveErrorsTotal,
+		containerNetworkTransmitBytesTotal,
+		containerNetworkTransmitPacketsTotal,
+		containerNetworkTransmitPacketsDroppedTotal,
+		containerNetworkTransmitErrorsTotal,
+	},
+	OOMMetrics: {
+		containerOomEventsTotal,
+	},
+	ProcessMetrics: {
+		containerFileDescriptors,
+		containerProcesses,
+		containerSockets,
+		containerThreads,
+		containerThreadsMax,
+		containerUlimitsSoft,
+	},
+	SpecMetrics: {
+		containerSpecCpuPeriod,
+		containerSpecCpuShares,
+		containerSpecCpuQuota,
+		containerSpecMemoryLimitBytes,
+		containerSpecMemoryReservationLimitBytes,
+		containerSpecMemorySwapLimitBytes,
+		containerStartTimeSeconds,
+	},
+}
+
 // PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
 func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
 	descriptorsMap := map[string][]*types.MetricDescriptor{
-		"": {
-			containerLastSeen,
-		},
-		CPUMetrics: {
-			containerCpuUserSecondsTotal,
-			containerCpuSystemSecondsTotal,
-			containerCpuUsageSecondsTotal,
-			containerCpuCfsPeriodsTotal,
-			containerCpuCfsThrottledPeriodsTotal,
-			containerCpuCfsThrottledSecondsTotal,
-		},
-		DiskMetrics: {
-			containerFsInodesFree,
-			containerFsInodesTotal,
-			containerFsLimitBytes,
-			containerFsUsageBytes,
-		},
-		DiskIOMetrics: {
-			containerFsReadsBytesTotal,
-			containerFsReadsTotal,
-			containerFsWritesBytesTotal,
-			containerFsWritesTotal,
-			containerBlkioDeviceUsageTotal,
-		},
-		HugetlbMetrics: {
-			containerHugetlbUsageBytes,
-			containerHugetlbMaxUsageBytes,
-		},
-		MemoryMetrics: {
-			containerMemoryCache,
-			containerMemoryRss,
-			containerMemoryKernelUsage,
-			containerMemoryMappedFile,
-			containerMemorySwap,
-			containerMemoryFailcnt,
-			containerMemoryUsageBytes,
-			containerMemoryMaxUsageBytes,
-			containerMemoryWorkingSetBytes,
-			containerMemoryFailuresTotal,
-		},
-		NetworkMetrics: {
-			containerNetworkReceiveBytesTotal,
-			containerNetworkReceivePacketsTotal,
-			containerNetworkReceivePacketsDroppedTotal,
-			containerNetworkReceiveErrorsTotal,
-			containerNetworkTransmitBytesTotal,
-			containerNetworkTransmitPacketsTotal,
-			containerNetworkTransmitPacketsDroppedTotal,
-			containerNetworkTransmitErrorsTotal,
-		},
-		OOMMetrics: {
-			containerOomEventsTotal,
-		},
-		ProcessMetrics: {
-			containerFileDescriptors,
-			containerProcesses,
-			containerSockets,
-			containerThreads,
-			containerThreadsMax,
-			containerUlimitsSoft,
-		},
-		SpecMetrics: {
-			containerSpecCpuPeriod,
-			containerSpecCpuShares,
-			containerSpecCpuQuota,
-			containerSpecMemoryLimitBytes,
-			containerSpecMemoryReservationLimitBytes,
-			containerSpecMemorySwapLimitBytes,
-			containerStartTimeSeconds,
-		},
+		"": alwaysOnMetrics,
+	}
+
+	for _, k := range includedKeys {
+		descriptorsMap[k] = availableMetricDescriptors[k]
 	}
 
 	return descriptorsMap
