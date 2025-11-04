@@ -1282,6 +1282,24 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 	return r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
 }
 
+// DiskStats provides disk usage statistics of a container.
+func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
+
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	// Get disk usage from the container's mount point
+	mountPoint := c.MountPoint()
+	if mountPoint == "" {
+		return nil, fmt.Errorf("container %s has no mount point", c.ID())
+	}
+
+	// Get disk usage statistics directly
+	return GetDiskUsageForPath(mountPoint)
+}
+
 // SignalContainer sends a signal to a container process.
 func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
 	_, span := log.StartSpan(ctx)

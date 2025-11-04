@@ -118,6 +118,21 @@ func (mr *MockRuntimeImplMockRecorder) DeleteContainer(arg0, arg1 any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).DeleteContainer), arg0, arg1)
 }
 
+// DiskStats mocks base method.
+func (m *MockRuntimeImpl) DiskStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*oci.DiskMetrics, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DiskStats", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*oci.DiskMetrics)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DiskStats indicates an expected call of DiskStats.
+func (mr *MockRuntimeImplMockRecorder) DiskStats(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskStats", reflect.TypeOf((*MockRuntimeImpl)(nil).DiskStats), arg0, arg1, arg2)
+}
+
 // ExecContainer mocks base method.
 func (m *MockRuntimeImpl) ExecContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 io.Reader, arg4, arg5 io.WriteCloser, arg6 bool, arg7 <-chan remotecommand.TerminalSize) error {
 	m.ctrl.T.Helper()

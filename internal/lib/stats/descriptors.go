@@ -36,6 +36,31 @@ var (
 	}
 )
 
+// Disk metrics.
+// TODO: Add remaining container filesystem metrics.
+var (
+	containerFsInodesFree = &types.MetricDescriptor{
+		Name:      "container_fs_inodes_free",
+		Help:      "Number of free inodes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerFsInodesTotal = &types.MetricDescriptor{
+		Name:      "container_fs_inodes_total",
+		Help:      "Total number of inodes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerFsLimitBytes = &types.MetricDescriptor{
+		Name:      "container_fs_limit_bytes",
+		Help:      "Filesystem limit in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerFsUsageBytes = &types.MetricDescriptor{
+		Name:      "container_fs_usage_bytes",
+		Help:      "Current filesystem usage in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+)
+
 // HugeTLB metrics.
 var (
 	containerHugetlbUsageBytes = &types.MetricDescriptor{
