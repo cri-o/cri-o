@@ -3,8 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/containers/image/v5/copy"
-	"github.com/containers/image/v5/signature"
+	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -14,6 +13,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 )
 
 func main() {
@@ -142,24 +142,9 @@ func main() {
 			SignaturePolicyPath: signaturePolicy,
 		}
 
-		policy, err := signature.DefaultPolicy(&systemContext)
-		if err != nil {
-			log.Fatalf(ctx, "Error loading signature policy: %v", err)
+		copyOptions := &libimage.CopyOptions{
+			SystemContext: &systemContext,
 		}
-
-		policyContext, err := signature.NewPolicyContext(policy)
-		if err != nil {
-			log.Fatalf(ctx, "Error loading signature policy: %v", err)
-		}
-
-		defer func() {
-			err = policyContext.Destroy()
-			if err != nil {
-				log.Fatalf(ctx, "Unable to destroy policy context: %v", err)
-			}
-		}()
-
-		options := &copy.Options{}
 
 		if importFrom != "" {
 			importRef, err = alltransports.ParseImageName(importFrom)
@@ -175,11 +160,41 @@ func main() {
 			}
 		}
 
+		copier, err := libimage.NewCopier(copyOptions, &systemContext)
+		if err != nil {
+			log.Fatalf(ctx, "Error creating copier: %v", err)
+		}
+
+		defer func() {
+			err = copier.Close()
+			if err != nil {
+				log.Warnf(ctx, "Unable to close copier: %v", err)
+			}
+		}()
+
 		if imageName != "" {
 			if importFrom != "" {
-				_, err = copy.Image(ctx, policyContext, ref, importRef, options)
+				_, err = copier.Copy(ctx, importRef, ref)
 				if err != nil {
-					log.Fatalf(ctx, "Error importing %s: %v", importFrom, err)
+					// Try importing as OCI artifact (stored in <graphRoot>/artifacts, not containers/storage)
+					log.Infof(ctx, "Failed to import as image, trying as OCI artifact: %v", err)
+
+					// Only docker:// transport can be pulled to artifact store; dir:// artifacts are already on disk
+					if importRef.Transport().Name() == "docker" {
+						artifactStore := ociartifact.NewStore(store.GraphRoot(), &systemContext)
+
+						_, artifactErr := artifactStore.PullManifest(ctx, importRef, &ociartifact.PullOptions{
+							CopyOptions: copyOptions,
+						})
+						if artifactErr != nil {
+							log.Fatalf(ctx, "Error importing %s as image or artifact: image err: %v; artifact err: %v",
+								importFrom, err, artifactErr)
+						}
+
+						log.Infof(ctx, "Successfully imported OCI artifact %s", importFrom)
+					} else {
+						log.Infof(ctx, "Skipping import of artifact from %s - CRI-O will use it from the ociartifact store", importFrom)
+					}
 				}
 			}
 
@@ -196,13 +211,13 @@ func main() {
 			}
 
 			if exportTo != "" {
-				_, err = copy.Image(ctx, policyContext, exportRef, ref, options)
+				_, err = copier.Copy(ctx, ref, exportRef)
 				if err != nil {
 					log.Fatalf(ctx, "Error exporting %s: %v", exportTo, err)
 				}
 			}
 		} else if importFrom != "" && exportTo != "" {
-			_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
+			_, err = copier.Copy(ctx, importRef, exportRef)
 			if err != nil {
 				log.Fatalf(ctx, "Error copying %s to %s: %v", importFrom, exportTo, err)
 			}

@@ -111,6 +111,7 @@ IMAGES=(
     registry.k8s.io/pause:3.10.1
     quay.io/crio/fedora-crio-ci:latest
     quay.io/crio/hello-wasm:latest
+    quay.io/crio/seccomp:v2
 )
 
 function img2dir() {

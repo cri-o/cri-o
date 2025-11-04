@@ -344,7 +344,13 @@ function start_crio_with_stopped_pod() {
 
 	# Since one of the layers was removed, the image would be corrupted, so we expect
 	# one to have been removed.
-	num_images=${#IMAGES[@]}
+	# Count only regular images (not OCI artifacts) since artifacts don't appear in crictl images
+	num_images=0
+	for img in "${IMAGES[@]}"; do
+		if ! is_artifact "$img"; then
+			((num_images++))
+		fi
+	done
 
 	# We start with $num_images images, and remove one with the layer removal above.
 	# `crictl images` adds one additional row for the table header.

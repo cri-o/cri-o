@@ -149,6 +149,10 @@ function setup_crio() {
     fi
 
     for img in "${IMAGES[@]}"; do
+        # Skip OCI artifacts as they are stored in the ociartifact store, not in containers/storage
+        if is_artifact "$img"; then
+            continue
+        fi
         setup_img "$img"
     done
 
@@ -194,6 +198,27 @@ function setup_crio() {
     prepare_network_conf
 }
 
+function is_artifact() {
+    local img="$1"
+    local dir manifest_file config_type
+
+    dir="$(img2dir "docker://$img")"
+    manifest_file="$dir/manifest.json"
+
+    # If the manifest doesn't exist, it's not cached yet, so we can't determine
+    if [[ ! -f "$manifest_file" ]]; then
+        return 1
+    fi
+
+    # Check if the config.mediaType indicates this is an artifact (not a container image)
+    # OCI artifacts use custom config media types, not the standard image config type
+    config_type=$(jq -r '.config.mediaType // empty' "$manifest_file")
+    if [[ -n "$config_type" && "$config_type" != "application/vnd.oci.image.config.v1+json" && "$config_type" != "application/vnd.docker.container.image.v1+json" ]]; then
+        return 0 # It's an artifact
+    fi
+    return 1 # It's a regular image
+}
+
 function check_images() {
     local img json list
 
@@ -202,6 +227,11 @@ function check_images() {
     [ -n "$json" ]
     list=$(jq -r '.images[] | .repoTags[]' <<<"$json")
     for img in "${IMAGES[@]}"; do
+        # Skip OCI artifacts as they are not container images and won't appear in crictl images.
+        # Artifacts are stored in the ociartifact store, not in containers/storage.
+        if is_artifact "$img"; then
+            continue
+        fi
         if [[ "$list" != *"$img"* ]]; then
             echo "Image $img is not present but it should!" >&2
             exit 1

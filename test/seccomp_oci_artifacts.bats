@@ -18,7 +18,7 @@ function teardown() {
 ARTIFACT_IMAGE_WITH_ANNOTATION=quay.io/crio/nginx-seccomp:v2
 ARTIFACT_IMAGE_WITH_POD_ANNOTATION=$ARTIFACT_IMAGE_WITH_ANNOTATION-pod
 ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION=$ARTIFACT_IMAGE_WITH_ANNOTATION-container
-ARTIFACT_IMAGE=quay.io/crio/seccomp:v2
+ARTIFACT_IMAGE=${IMAGES[3]}
 CONTAINER_NAME=container1
 ANNOTATION=seccomp-profile.kubernetes.cri-o.io
 POD_ANNOTATION=seccomp-profile.kubernetes.cri-o.io/POD
@@ -167,7 +167,8 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
 	start_crio_no_setup
 
-	jq '.annotations += { "'$POD_ANNOTATION'": "'$ARTIFACT_IMAGE'" }' \
+	jq --arg ARTIFACT "$ARTIFACT_IMAGE" \
+		'.annotations += { "'$POD_ANNOTATION'": $ARTIFACT }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDATA/container_config.json" "$TESTDIR/sandbox.json")
@@ -184,7 +185,8 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
 	start_crio_no_setup
 
-	jq '.annotations += { "'$ANNOTATION'/'$CONTAINER_NAME'": "'$ARTIFACT_IMAGE'" }' \
+	jq --arg ARTIFACT "$ARTIFACT_IMAGE" \
+		'.annotations += { "'$ANNOTATION'/'$CONTAINER_NAME'": $ARTIFACT }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDATA/container_config.json" "$TESTDIR/sandbox.json")
@@ -201,7 +203,8 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
 	start_crio_no_setup
 
-	jq '.annotations += { "'$ANNOTATION'/container2": "'$ARTIFACT_IMAGE'" }' \
+	jq --arg ARTIFACT "$ARTIFACT_IMAGE" \
+		'.annotations += { "'$ANNOTATION'/container2": $ARTIFACT }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDATA/container_config.json" "$TESTDIR/sandbox.json")
