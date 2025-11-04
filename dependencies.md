@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 04 Nov 2025 14:29:15 UTC for commit [aa2e4a3][0]._
+_Generated on Tue, 04 Nov 2025 17:52:18 UTC for commit [8e164e8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/aa2e4a3a1b833c3d0c20baf834e9735d27df9cfa
+[0]: https://github.com/cri-o/cri-o/commit/8e164e8b78ce4e44302259e946acce816d287ae0
 
 ## Outdated Dependencies
 
@@ -263,7 +263,7 @@ _Generated on Tue, 04 Nov 2025 14:29:15 UTC for commit [aa2e4a3][0]._
 | github.com/containerd/aufs                                                  | v1.0.0                                |                                     | false  | true             |
 | github.com/containerd/btrfs/v2                                              | v2.0.0                                |                                     | false  | true             |
 | github.com/containerd/cgroups                                               | v1.1.0                                |                                     | true   | true             |
-| github.com/containerd/cgroups/v3                                            | v3.0.5                                | v3.1.0                              | false  | true             |
+| github.com/containerd/cgroups/v3                                            | v3.0.5                                | v3.1.1                              | false  | true             |
 | github.com/containerd/console                                               | v1.0.4                                | v1.0.5                              | false  | true             |
 | github.com/containerd/containerd                                            | v1.7.28                               |                                     | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.9.0                                |                                     | true   | true             |
@@ -420,7 +420,7 @@ _Generated on Tue, 04 Nov 2025 14:29:15 UTC for commit [aa2e4a3][0]._
 | github.com/gregjones/httpcache                                              | v0.0.0-20190611155906-901d90724c79    |                                     | false  | true             |
 | github.com/grpc-ecosystem/go-grpc-middleware                                | v1.4.0                                |                                     | false  | true             |
 | github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus           | v1.0.1                                | v1.1.0                              | false  | true             |
-| github.com/grpc-ecosystem/go-grpc-middleware/v2                             | v2.3.0                                | v2.3.2                              | false  | true             |
+| github.com/grpc-ecosystem/go-grpc-middleware/v2                             | v2.3.0                                | v2.3.3                              | false  | true             |
 | github.com/grpc-ecosystem/go-grpc-prometheus                                | v1.2.1-0.20210315223345-82c243799c99  |                                     | false  | true             |
 | github.com/grpc-ecosystem/grpc-gateway/v2                                   | v2.27.2                               | v2.27.3                             | false  | true             |
 | github.com/hashicorp/errwrap                                                | v1.1.0                                |                                     | false  | true             |
@@ -729,7 +729,7 @@ _Generated on Tue, 04 Nov 2025 14:29:15 UTC for commit [aa2e4a3][0]._
 | golang.org/x/oauth2                                                         | v0.32.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                           | v0.17.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                            | v0.37.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20250908211612-aef8a434d053    | v0.0.0-20251028164327-d7a2859f34e8  | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20250908211612-aef8a434d053    | v0.0.0-20251104151223-ab4e49a9e6f4  | false  | true             |
 | golang.org/x/term                                                           | v0.36.0                               |                                     | false  | true             |
 | golang.org/x/text                                                           | v0.30.0                               |                                     | false  | true             |
 | golang.org/x/time                                                           | v0.12.0                               | v0.14.0                             | false  | true             |
