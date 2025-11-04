@@ -274,6 +274,10 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 			if diskMetrics := generateContainerDiskMetrics(c, &diskstats.Filesystem); diskMetrics != nil {
 				metrics = append(metrics, diskMetrics...)
 			}
+		case DiskIOMetrics:
+			if diskIOMetrics := generateContainerDiskIOMetrics(c, containerStats.DiskIO); diskIOMetrics != nil {
+				metrics = append(metrics, diskIOMetrics...)
+			}
 		case MemoryMetrics:
 			if memoryMetrics := generateContainerMemoryMetrics(c, containerStats.Memory); memoryMetrics != nil {
 				metrics = append(metrics, memoryMetrics...)
