@@ -41,6 +41,12 @@ func generateContainerSpecMetrics(ctr *oci.Container) []*types.Metric {
 				return metricValues{{value: uint64(resources.GetLinux().GetCpuPeriod()), metricType: types.MetricType_GAUGE}}
 			},
 		},
+		{
+			desc: containerStartTimeSeconds,
+			valueFunc: func() metricValues {
+				return metricValues{{value: uint64(ctr.CreatedAt().Unix()), metricType: types.MetricType_GAUGE}}
+			},
+		},
 	}
 	if resources.GetLinux().GetCpuQuota() > 0 {
 		specMetrics = append(specMetrics, &containerMetric{
@@ -51,18 +57,21 @@ func generateContainerSpecMetrics(ctr *oci.Container) []*types.Metric {
 		})
 	}
 
-	if m, ok := resources.GetLinux().GetUnified()["memory.min"]; ok {
-		u, err := strconv.ParseInt(m, 10, 64)
-		if err != nil {
-			log.Errorf(context.Background(), "Failed to parse memory.min value %s: %v", m, err)
-		} else {
-			specMetrics = append(specMetrics, &containerMetric{
-				desc: containerSpecMemoryReservationLimitBytes,
-				valueFunc: func() metricValues {
-					return metricValues{{value: specMemoryValue(u), metricType: types.MetricType_GAUGE}}
-				},
-			})
-		}
+	m, ok := resources.GetLinux().GetUnified()["memory.min"]
+	if !ok {
+		m = "0"
+	}
+
+	u, err := strconv.ParseInt(m, 10, 64)
+	if err != nil {
+		log.Errorf(context.Background(), "Failed to parse memory.min value %s: %v", m, err)
+	} else {
+		specMetrics = append(specMetrics, &containerMetric{
+			desc: containerSpecMemoryReservationLimitBytes,
+			valueFunc: func() metricValues {
+				return metricValues{{value: specMemoryValue(u), metricType: types.MetricType_GAUGE}}
+			},
+		})
 	}
 
 	return computeContainerMetrics(ctr, specMetrics, "spec")

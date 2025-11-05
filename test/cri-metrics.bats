@@ -457,6 +457,8 @@ EOF
 	[[ $metrics_memory_limit_bytes == "268435456" ]]
 	metrics_memory_swap_limit_bytes=$(echo "$metrics" | jq 'select(.name == "container_spec_memory_swap_limit_bytes") | .value.value | tonumber')
 	[[ "$metrics_memory_swap_limit_bytes" == "268435456" || "$metrics_memory_swap_limit_bytes" == "" ]]
+	metrics_start_time=$(echo "$metrics" | jq 'select(.name == "container_start_time_seconds") | .value.value | tonumber')
+	[[ "$metrics_start_time" != "0" && "$metrics_start_time" != "" ]]
 	if is_cgroup_v2; then
 		metrics_memory_reservation_limit_bytes=$(echo "$metrics" | jq 'select(.name == "container_spec_memory_reservation_limit_bytes") | .value.value | tonumber')
 		[[ $metrics_memory_reservation_limit_bytes == "134217728" ]]
