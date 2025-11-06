@@ -61,6 +61,35 @@ var (
 	}
 )
 
+// Disk IO metrics.
+var (
+	containerFsReadsBytesTotal = &types.MetricDescriptor{
+		Name:      "container_fs_reads_bytes_total",
+		Help:      "Cumulative count of bytes read",
+		LabelKeys: append(baseLabelKeys, "device"),
+	}
+	containerFsReadsTotal = &types.MetricDescriptor{
+		Name:      "container_fs_reads_total",
+		Help:      "Cumulative count of reads completed",
+		LabelKeys: append(baseLabelKeys, "device"),
+	}
+	containerFsWritesBytesTotal = &types.MetricDescriptor{
+		Name:      "container_fs_writes_bytes_total",
+		Help:      "Cumulative count of bytes written",
+		LabelKeys: append(baseLabelKeys, "device"),
+	}
+	containerFsWritesTotal = &types.MetricDescriptor{
+		Name:      "container_fs_writes_total",
+		Help:      "Cumulative count of writes completed",
+		LabelKeys: append(baseLabelKeys, "device"),
+	}
+	containerBlkioDeviceUsageTotal = &types.MetricDescriptor{
+		Name:      "container_blkio_device_usage_total",
+		Help:      "Blkio Device bytes usage",
+		LabelKeys: append(baseLabelKeys, "device", "major", "minor", "operation"),
+	}
+)
+
 // HugeTLB metrics.
 var (
 	containerHugetlbUsageBytes = &types.MetricDescriptor{

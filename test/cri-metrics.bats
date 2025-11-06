@@ -350,6 +350,48 @@ EOF
 	stop_crio
 }
 
+@test "container disk io metrics" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+	"diskIO",
+    "memory",
+]
+EOF
+
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	# Test inode metrics by creating many small files
+	# Create 50 small files to consume inodes
+	crictl exec --sync "$CONTAINER_ID" mkdir -p /var/lib/mydisktest
+	crictl exec --sync "$CONTAINER_ID" /bin/sh -c "for i in \$(seq 1 10); do echo hi >> /var/lib/mydisktest/inode_test_file_\$i; done"
+	crictl exec --sync "$CONTAINER_ID" sync
+
+	metrics=$(crictl metricsp)
+
+	fs_reads_bytes=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_reads_bytes_total") | .value.value | tonumber' | sort -n | tail -n 1)
+	[[ "$fs_reads_bytes" != "" ]] # reads are difficult if we've just written, the file is cached in memory
+
+	fs_writes_bytes=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_writes_bytes_total") | .value.value | tonumber' | sort -n | tail -n 1)
+	[[ "$fs_writes_bytes" -gt 0 ]]
+
+	fs_reads=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_reads_total") | .value.value | tonumber' | sort -n | tail -n 1)
+	[[ "$fs_reads" != "" ]] # reads are difficult if we've just written, the file is cached in memory
+
+	fs_writes=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_writes_total") | .value.value | tonumber' | sort -n | tail -n 1)
+	[[ "$fs_writes" -gt 0 ]]
+
+	blkio=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_blkio_device_usage_total") | .value.value | tonumber' | sort -n | tail -n 1)
+	[[ "$blkio" != "" ]]
+}
+
 @test "container process metrics" {
 	SOFT_ULIMIT=1000
 	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) CONTAINER_DEFAULT_ULIMITS="nofile=$SOFT_ULIMIT:1025" setup_crio

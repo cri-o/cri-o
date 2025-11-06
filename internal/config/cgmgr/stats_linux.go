@@ -27,6 +27,7 @@ type CgroupStats struct {
 	CPU        *CPUStats
 	Hugetlb    map[string]HugetlbStats
 	Pid        *PidsStats
+	DiskIO     *DiskIOStats
 	SystemNano int64
 }
 
@@ -79,6 +80,11 @@ type PidsStats struct {
 	Threads         uint64
 	ThreadsMax      uint64
 	UlimitsSoft     uint64
+}
+
+type DiskIOStats struct {
+	IoServiceBytes []cgroups.BlkioStatEntry
+	IoServiced     []cgroups.BlkioStatEntry
 }
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup
@@ -143,10 +149,14 @@ func statsFromLibctrMgr(cgMgr cgroups.Manager) (*CgroupStats, error) {
 	}
 
 	return &CgroupStats{
-		Memory:     cgroupMemStats(&stats.MemoryStats),
-		CPU:        cgroupCPUStats(&stats.CpuStats),
-		Hugetlb:    cgroupHugetlbStats(stats.HugetlbStats),
-		Pid:        cgroupPidStats(stats, pids),
+		Memory:  cgroupMemStats(&stats.MemoryStats),
+		CPU:     cgroupCPUStats(&stats.CpuStats),
+		Hugetlb: cgroupHugetlbStats(stats.HugetlbStats),
+		Pid:     cgroupPidStats(stats, pids),
+		DiskIO: &DiskIOStats{
+			IoServiced:     stats.BlkioStats.IoServicedRecursive,
+			IoServiceBytes: stats.BlkioStats.IoServiceBytesRecursive,
+		},
 		SystemNano: time.Now().UnixNano(),
 	}, nil
 }

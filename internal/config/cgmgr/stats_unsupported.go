@@ -11,6 +11,7 @@ type CgroupStats struct {
 	CPU        *CPUStats
 	Hugetlb    map[string]HugetlbStats
 	Pid        *PidsStats
+	DiskIO     *DiskIOStats
 	SystemNano int64
 }
 
@@ -59,6 +60,8 @@ type PidsStats struct {
 	ThreadsMax      uint64
 	UlimitsSoft     uint64
 }
+
+type DiskIOStats struct{}
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup
 // If the configured memory limit is larger than the total memory on the sys, the
