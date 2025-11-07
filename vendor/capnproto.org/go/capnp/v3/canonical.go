@@ -12,7 +12,7 @@ import (
 func Canonicalize(s Struct) ([]byte, error) {
 	msg, seg := NewSingleSegmentMessage(nil)
 	if !s.IsValid() {
-		// Ensure compatbility to existing behavior: even if the struct
+		// Ensure compatibility to existing behavior: even if the struct
 		// is not valid, at least the root pointer is allocated and
 		// returned as canonical. Without this,
 		// TestCanonicalize/Struct{} fails.

@@ -10,7 +10,7 @@ import (
 type Labels map[string]string
 
 // NewNamespace returns a namespaces that is responsible for managing a collection of
-// metrics for a particual namespace and subsystem
+// metrics for a particular namespace and subsystem
 //
 // labels allows const labels to be added to all metrics created in this namespace
 // and are commonly used for data like application version and git commit

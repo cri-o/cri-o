@@ -196,7 +196,7 @@ type ExponentialBackoffConfig struct {
 	// failure.
 	Factor time.Duration
 
-	// Max is the absolute maxiumum bound for a single backoff.
+	// Max is the absolute maximum bound for a single backoff.
 	Max time.Duration
 }
 

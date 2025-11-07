@@ -81,7 +81,7 @@ func FromHumanSize(size string) (int64, error) {
 
 // RAMInBytes parses a human-readable string representing an amount of RAM
 // in bytes, kibibytes, mebibytes, gibibytes, or tebibytes and
-// returns the number of bytes, or -1 if the string is unparseable.
+// returns the number of bytes, or -1 if the string is unparsable.
 // Units are case-insensitive, and the 'b' suffix is optional.
 func RAMInBytes(size string) (int64, error) {
 	return parseSize(size, binaryMap)
