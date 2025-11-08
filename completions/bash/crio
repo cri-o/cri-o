@@ -59,6 +59,7 @@ h
 --enable-tracing
 --gid-mappings
 --global-auth-file
+--goroutines-monitor
 --grpc-max-recv-msg-size
 --grpc-max-send-msg-size
 --hooks-dir

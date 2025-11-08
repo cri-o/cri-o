@@ -577,6 +577,10 @@ func New(
 		log.Debugf(ctx, "Metrics are disabled")
 	}
 
+	if s.config.GoroutinesMonitor {
+		log.Infof(ctx, "Goroutine monitoring enabled")
+	}
+
 	if s.config.Seccomp().IsDisabled() {
 		log.Infof(ctx, "Seccomp is disabled. Not starting notifier watcher")
 	} else if err := s.startSeccompNotifierWatcher(ctx); err != nil {

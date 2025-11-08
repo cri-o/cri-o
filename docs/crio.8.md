@@ -55,6 +55,7 @@ crio
 [--enable-tracing]
 [--gid-mappings]=[value]
 [--global-auth-file]=[value]
+[--goroutines-monitor]
 [--grpc-max-recv-msg-size]=[value]
 [--grpc-max-send-msg-size]=[value]
 [--help|-h]
@@ -266,6 +267,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--global-auth-file**="": Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
 
+**--goroutines-monitor**: Enable periodic monitoring of goroutines. CRI-O will monitor goroutine counts every 60 seconds and create stack dumps when the count exceeds 500 goroutines.
+
 **--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes. (default: 83886080)
 
 **--grpc-max-send-msg-size**="": Maximum grpc receive message size. (default: 83886080)
@@ -345,7 +348,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
-**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count")
+**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "goroutines_active")
 
 **--metrics-host**="": Host for the metrics endpoint. (default: "127.0.0.1")
 
