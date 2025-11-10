@@ -141,6 +141,11 @@ install_runc() {
     popd
     rm -rf runc
     runc --version
+
+    # Workaround for Ubuntu 24.04: disable AppArmor completely
+    # See: https://github.com/opencontainers/runc/issues/4963
+    sudo systemctl stop apparmor || true
+    sudo systemctl disable apparmor || true
 }
 
 install_ginkgo() {
