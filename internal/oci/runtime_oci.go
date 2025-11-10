@@ -1159,8 +1159,18 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			return nil, true, nil
 		}
 
+		// only extract the JSON substring from the state command output
+		var outJSON string
+
+		startIdx := strings.Index(out, "{")
+
+		endIdx := strings.LastIndex(out, "}") + 1
+		if startIdx >= 0 && (endIdx-startIdx) > 0 {
+			outJSON = out[startIdx:endIdx]
+		}
+
 		state := *c.state
-		if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
+		if err := json.NewDecoder(strings.NewReader(outJSON)).Decode(&state); err != nil {
 			return &state, false, fmt.Errorf("failed to decode container status for %s: %w", c.ID(), err)
 		}
 
