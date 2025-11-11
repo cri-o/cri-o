@@ -12,7 +12,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"
 	"github.com/cri-o/cri-o/internal/ociartifact"
-	"github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	seccompociartifactmock "github.com/cri-o/cri-o/test/mocks/seccompociartifact"
 )
 
@@ -84,7 +84,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			// When
 			res, err := sut.TryPull(context.Background(), "container", nil,
 				map[string]string{
-					annotations.SeccompProfileAnnotation + "/container": "test",
+					v2.SeccompProfile + "/container": "test",
 				})
 
 			// Then
@@ -118,7 +118,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			// When
 			res, err := sut.TryPull(context.Background(), "container",
 				map[string]string{
-					annotations.SeccompProfileAnnotation + "/container": "test",
+					v2.SeccompProfile + "/container": "test",
 				}, nil)
 
 			// Then
@@ -131,7 +131,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			// When
 			res, err := sut.TryPull(context.Background(), "another-container",
 				map[string]string{
-					annotations.SeccompProfileAnnotation + "/container": "test",
+					v2.SeccompProfile + "/container": "test",
 				}, nil)
 
 			// Then
