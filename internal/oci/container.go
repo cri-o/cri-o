@@ -29,7 +29,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	ann "github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 const defaultStopSignalInt = 15
@@ -214,7 +214,7 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 			PodSandboxId: sandbox,
 			Metadata:     &types.ContainerMetadata{},
 			Annotations: map[string]string{
-				ann.SpoofedContainer: "true",
+				v2.Spoofed: "true",
 			},
 			Image: &types.ImageSpec{},
 		},

@@ -26,7 +26,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
+	crioannotations "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
@@ -371,41 +371,41 @@ func (h *HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s
 }
 
 func shouldCPULoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue {
-		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPULoadBalancingAnnotation))
+	if annotations[crioannotations.CPULoadBalancing] == annotationTrue {
+		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPULoadBalancing))
 	}
 
-	return annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue ||
-		annotations[crioannotations.CPULoadBalancingAnnotation] == annotationDisable
+	return annotations[crioannotations.CPULoadBalancing] == annotationTrue ||
+		annotations[crioannotations.CPULoadBalancing] == annotationDisable
 }
 
 func shouldCPUQuotaBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
-		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
+	if annotations[crioannotations.CPUQuota] == annotationTrue {
+		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuota))
 	}
 
-	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
-		annotations[crioannotations.CPUQuotaAnnotation] == annotationDisable
+	return annotations[crioannotations.CPUQuota] == annotationTrue ||
+		annotations[crioannotations.CPUQuota] == annotationDisable
 }
 
 func shouldIRQLoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue {
-		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.IRQLoadBalancingAnnotation))
+	if annotations[crioannotations.IRQLoadBalancing] == annotationTrue {
+		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.IRQLoadBalancing))
 	}
 
-	return annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue ||
-		annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationDisable ||
-		annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationHousekeeping
+	return annotations[crioannotations.IRQLoadBalancing] == annotationTrue ||
+		annotations[crioannotations.IRQLoadBalancing] == annotationDisable ||
+		annotations[crioannotations.IRQLoadBalancing] == annotationHousekeeping
 }
 
 func shouldCStatesBeConfigured(annotations fields.Set) (present bool, value string) {
-	value, present = annotations[crioannotations.CPUCStatesAnnotation]
+	value, present = annotations[crioannotations.CPUCStates]
 
 	return present, value
 }
 
 func shouldFreqGovernorBeConfigured(annotations fields.Set) (present bool, value string) {
-	value, present = annotations[crioannotations.CPUFreqGovernorAnnotation]
+	value, present = annotations[crioannotations.CPUFreqGovernor]
 
 	return present, value
 }
@@ -415,7 +415,7 @@ func annotationValueDeprecationWarning(annotation string) string {
 }
 
 func requestedSharedCPUs(annotations fields.Set, cName string) bool {
-	key := crioannotations.CPUSharedAnnotation + "/" + cName
+	key := crioannotations.CPUShared + "/" + cName
 	v, ok := annotations[key]
 
 	return ok && v == annotationEnable
@@ -1518,7 +1518,7 @@ func injectCpusetEnv(specgen *generate.Generator, isolated, shared *cpuset.CPUSe
 
 // isRequestedHousekeepingCPUs checks if sandbox annotation "irq-load-balancing.crio.io" equals "housekeeping".
 func isRequestedHousekeepingCPUs(annotations fields.Set) bool {
-	return annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationHousekeeping
+	return annotations[crioannotations.IRQLoadBalancing] == annotationHousekeeping
 }
 
 // getHousekeepingCPUs determines which CPUs should be preserved for housekeeping tasks.

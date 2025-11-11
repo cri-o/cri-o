@@ -22,7 +22,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
+	crioannotations "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
@@ -425,7 +425,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 			It("should set the irq bit mask with housekeeping CPUs annotation present", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
-					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
+					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
 				verifySetIRQLoadBalancing(c, sb, true, "00000000,ffffffff", "ffffffff,00000000", "", false)
 			})
@@ -444,7 +444,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 			It("should set the irq bit mask with housekeeping CPUs when no thread siblings files are present", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
-					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
+					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
 				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff1f", "ffffffff,000000e0", "4", false)
 			})
@@ -452,7 +452,7 @@ var _ = Describe("high_performance_hooks", func() {
 			It("should set the irq bit mask with housekeeping CPUs and no siblings", func() {
 				createSysCPUThreadSiblingsDir(sysCPUDir, 64, 1)
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
-					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
+					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
 				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff1f", "ffffffff,000000e0", "4", false)
 			})
@@ -460,7 +460,7 @@ var _ = Describe("high_performance_hooks", func() {
 			It("should set the irq bit mask with housekeeping CPUs and siblings (topology 2)", func() {
 				createSysCPUThreadSiblingsDir(sysCPUDir, 64, 2)
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
-					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
+					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
 				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff3f", "ffffffff,000000c0", "4-5", false)
 			})
@@ -468,7 +468,7 @@ var _ = Describe("high_performance_hooks", func() {
 			It("should set the irq bit mask with housekeeping CPUs and siblings (topology 4)", func() {
 				createSysCPUThreadSiblingsDir(sysCPUDir, 64, 4)
 				c, sb := createContainerSandbox("4-11", map[string]string{
-					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
+					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
 				verifySetIRQLoadBalancing(c, sb, false, "00000000,fffff0ff", "ffffffff,00000f00", "4-7", false)
 			})
@@ -476,7 +476,7 @@ var _ = Describe("high_performance_hooks", func() {
 			It("should fail with invalid siblings files", func() {
 				createInvalidSysCPUThreadSiblingsDir(sysCPUDir, 64)
 				c, sb := createContainerSandbox("4-11", map[string]string{
-					crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
+					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
 				verifySetIRQLoadBalancing(c, sb, false, "00000000,fffff0ff", "ffffffff,00000f00", "4-7", true)
 			})
@@ -1257,7 +1257,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 			sbox = baseSandboxBuilder()
 			err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
-				crioannotations.CPUSharedAnnotation + "/cnt1": annotationEnable,
+				crioannotations.CPUShared + "/cnt1": annotationEnable,
 			}, &types.PodSandboxMetadata{})
 			Expect(err).ToNot(HaveOccurred())
 			sbSharedAnnotation, err = sbox.GetSandbox()
@@ -1489,7 +1489,7 @@ var _ = Describe("high_performance_hooks", func() {
 		Context("with runtime name high-performance and sandbox disable annotation", func() {
 			BeforeEach(func() {
 				runtimeName = "high-performance"
-				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
+				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancing: "disable"}
 				cfg = &config.Config{
 					RuntimeConfig: config.RuntimeConfig{
 						IrqBalanceConfigFile: irqBalanceConfigFile,
@@ -1566,14 +1566,14 @@ var _ = Describe("high_performance_hooks", func() {
 		Context("with runtime name hp and sandbox disable annotation", func() {
 			BeforeEach(func() {
 				runtimeName = "hp"
-				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
+				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancing: "disable"}
 				cfg = &config.Config{
 					RuntimeConfig: config.RuntimeConfig{
 						IrqBalanceConfigFile: irqBalanceConfigFile,
 						Runtimes: config.Runtimes{
 							"hp": {
 								AllowedAnnotations: []string{
-									crioannotations.IRQLoadBalancingAnnotation,
+									crioannotations.IRQLoadBalancing,
 								},
 							},
 							"default": {},
@@ -1613,7 +1613,7 @@ var _ = Describe("high_performance_hooks", func() {
 						Runtimes: config.Runtimes{
 							"hp": {
 								AllowedAnnotations: []string{
-									crioannotations.IRQLoadBalancingAnnotation,
+									crioannotations.IRQLoadBalancing,
 								},
 							},
 							"default": {},
@@ -1634,7 +1634,7 @@ var _ = Describe("high_performance_hooks", func() {
 		Context("with runtime name default and sandbox disable annotation", func() {
 			BeforeEach(func() {
 				runtimeName = "default"
-				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
+				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancing: "disable"}
 				cfg = &config.Config{
 					RuntimeConfig: config.RuntimeConfig{
 						IrqBalanceConfigFile: irqBalanceConfigFile,
@@ -1679,12 +1679,12 @@ var _ = Describe("high_performance_hooks", func() {
 							},
 							"hp": {
 								AllowedAnnotations: []string{
-									crioannotations.IRQLoadBalancingAnnotation,
+									crioannotations.IRQLoadBalancing,
 								},
 							},
 							"cpu-balancing-anywhere": {
 								AllowedAnnotations: []string{
-									crioannotations.CPULoadBalancingAnnotation,
+									crioannotations.CPULoadBalancing,
 								},
 							},
 							"default": {},

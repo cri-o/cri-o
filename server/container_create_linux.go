@@ -29,7 +29,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/storage"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 const (
@@ -65,7 +65,7 @@ func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Gene
 		return
 	}
 
-	if sb.Annotations()[crioann.UsernsModeAnnotation] == "" {
+	if usernsMode, _ := v2.GetAnnotationValue(sb.Annotations(), v2.UsernsMode); usernsMode == "" {
 		return
 	}
 
@@ -859,7 +859,9 @@ func (s *Server) specSetDevices(ctr ctrfactory.Container, sb *sandbox.Sandbox) e
 		return err
 	}
 
-	annotationDevices, err := device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation], s.config.AllowedDevices)
+	devicesAnnotationValue, _ := v2.GetAnnotationValue(sb.Annotations(), v2.Devices)
+
+	annotationDevices, err := device.DevicesFromAnnotation(devicesAnnotationValue, s.config.AllowedDevices)
 	if err != nil {
 		return err
 	}

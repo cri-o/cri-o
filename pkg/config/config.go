@@ -46,7 +46,8 @@ import (
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	"github.com/cri-o/cri-o/pkg/annotations"
+	extannotations "github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
@@ -243,20 +244,22 @@ type RuntimeHandler struct {
 	// to a container running as privileged.
 	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices,omitempty"`
 	// AllowedAnnotations is a slice of experimental annotations that this runtime handler is allowed to process.
-	// The currently recognized values are:
-	// "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
-	// "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
-	// "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
-	// "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+	// The currently recognized values are (V2 format recommended, V1 format deprecated but supported):
+	// "userns-mode.crio.io" (V1: "io.kubernetes.cri-o.userns-mode") for configuring a user namespace for the pod.
+	// "devices.crio.io" (V1: "io.kubernetes.cri-o.Devices") for configuring devices for the pod.
+	// "shm-size.crio.io" (V1: "io.kubernetes.cri-o.ShmSize") for configuring the size of /dev/shm.
+	// "unified-cgroup.crio.io/$CTR_NAME" (V1: "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME") for configuring the cgroup v2 unified block for a container.
 	// "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
-	// "io.kubernetes.cri-o.LinkLogs" for linking logs into the pod.
-	// "seccomp-profile.kubernetes.cri-o.io" for setting the seccomp profile for:
-	//   - a specific container by using: `seccomp-profile.kubernetes.cri-o.io/<CONTAINER_NAME>`
-	//   - a whole pod by using: `seccomp-profile.kubernetes.cri-o.io/POD`
+	// "link-logs.crio.io" (V1: "io.kubernetes.cri-o.LinkLogs") for linking logs into the pod.
+	// "seccomp-profile.crio.io" (V1: "seccomp-profile.kubernetes.cri-o.io") for setting the seccomp profile for:
+	//   - a specific container by using: `seccomp-profile.crio.io/<CONTAINER_NAME>`
+	//   - a whole pod by using: `seccomp-profile.crio.io/POD`
 	//   Note that the annotation works on containers as well as on images.
-	//   For images, the plain annotation `seccomp-profile.kubernetes.cri-o.io`
+	//   For images, the plain annotation `seccomp-profile.crio.io`
 	//   can be used without the required `/POD` suffix or a container name.
-	// "io.kubernetes.cri-o.DisableFIPS" for disabling FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
+	// "disable-fips.crio.io" (V1: "io.kubernetes.cri-o.DisableFIPS") for disabling FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
+	// Both V1 and V2 annotations are accepted; V2 takes precedence when both are present.
+	// See ANNOTATION_MIGRATION.md for the complete migration guide.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 
 	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.
@@ -1474,8 +1477,8 @@ func defaultRuntimeHandler(isSystemd bool) *RuntimeHandler {
 		RuntimeRoot:            DefaultRuntimeRoot,
 		ContainerCreateTimeout: defaultContainerCreateTimeout,
 		AllowedAnnotations: []string{
-			annotations.OCISeccompBPFHookAnnotation,
-			annotations.DevicesAnnotation,
+			v2.OCISeccompBPFHook,
+			v2.Devices,
 		},
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -2143,7 +2146,7 @@ func (r *RuntimeHandler) validateRuntimeSeccompProfile() error {
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
 	disallowedMap := make(map[string]bool)
-	for _, ann := range annotations.AllAllowedAnnotations {
+	for _, ann := range extannotations.AllAllowedAnnotations {
 		disallowedMap[ann] = false
 	}
 
