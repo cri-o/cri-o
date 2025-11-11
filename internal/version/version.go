@@ -15,8 +15,8 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/seccomp"
+	"github.com/goccy/go-json"
 	"github.com/google/renameio"
-	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 )
 

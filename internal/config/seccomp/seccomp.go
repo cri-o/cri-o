@@ -14,7 +14,7 @@ import (
 
 	"github.com/containers/common/pkg/seccomp"
 	imagetypes "github.com/containers/image/v5/types"
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -199,11 +199,11 @@ func (c *Config) LoadDefaultProfile() error {
 	c.profile = DefaultProfile()
 
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		profileString, err := json.MarshalToString(c.profile)
+		profileBytes, err := json.Marshal(c.profile)
 		if err != nil {
 			return fmt.Errorf("marshal default seccomp profile to string: %w", err)
 		}
-		logrus.Tracef("Default seccomp profile content: %s", profileString)
+		logrus.Tracef("Default seccomp profile content: %s", string(profileBytes))
 	}
 
 	return nil

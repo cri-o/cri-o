@@ -9,7 +9,7 @@ import (
 
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/storage"
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 

@@ -15,7 +15,7 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 	cmount "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/truncindex"
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
