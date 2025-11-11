@@ -47,6 +47,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
@@ -1440,7 +1441,7 @@ func defaultRuntimeHandler(isSystemd bool) *RuntimeHandler {
 		RuntimeRoot: DefaultRuntimeRoot,
 		AllowedAnnotations: []string{
 			annotations.OCISeccompBPFHookAnnotation,
-			annotations.DevicesAnnotation,
+			v2.Devices,
 		},
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
