@@ -391,6 +391,45 @@ var _ = t.Describe("Utils", func() {
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
 		})
+
+		It("should prefix numeric username to avoid issues on Fedora and its derived OS", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			// Test with a fully numeric username
+			numericUsername := "1234"
+			uid := uint32(1234)
+			gid := uint32(1234)
+
+			// Generate passwd with numeric username
+			passwdFile, err := utils.GeneratePasswd(numericUsername, uid, gid, "", dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(passwdFile).ToNot(BeEmpty())
+
+			// Read the generated password file and verify username is prefixed
+			content, err := os.ReadFile(passwdFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Should contain "user1234" not "1234" as username
+			Expect(string(content)).To(ContainSubstring("user1234:x:1234:1234:user1234 user:/tmp:/sbin/nologin"))
+			Expect(string(content)).ToNot(ContainSubstring("1234:x:1234:1234:1234 user:/tmp:/sbin/nologin"))
+		})
+	})
+
+	t.Describe("isFullyNumeric", func() {
+		It("should return true for numeric strings", func() {
+			Expect(utils.IsFullyNumeric("123")).To(BeTrue())
+			Expect(utils.IsFullyNumeric("0")).To(BeTrue())
+			Expect(utils.IsFullyNumeric("999999")).To(BeTrue())
+		})
+
+		It("should return false for non-numeric strings", func() {
+			Expect(utils.IsFullyNumeric("abc")).To(BeFalse())
+			Expect(utils.IsFullyNumeric("user123")).To(BeFalse())
+			Expect(utils.IsFullyNumeric("123abc")).To(BeFalse())
+			Expect(utils.IsFullyNumeric("")).To(BeFalse())
+			Expect(utils.IsFullyNumeric("12.34")).To(BeFalse())
+		})
 	})
 
 	t.Describe("ParseDuration", func() {
