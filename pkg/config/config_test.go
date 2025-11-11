@@ -12,7 +12,7 @@ import (
 	"go.podman.io/storage"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
@@ -731,7 +731,7 @@ var _ = t.Describe("Config", func() {
 			// Given
 			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
 				RuntimePath:        validFilePath,
-				AllowedAnnotations: []string{crioann.DevicesAnnotation},
+				AllowedAnnotations: []string{v2.Devices},
 			}
 
 			// When
@@ -739,8 +739,8 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			Expect(sut.Runtimes[config.DefaultRuntime].AllowedAnnotations).To(ContainElement(crioann.DevicesAnnotation))
-			Expect(sut.Runtimes[config.DefaultRuntime].DisallowedAnnotations).NotTo(ContainElement(crioann.DevicesAnnotation))
+			Expect(sut.Runtimes[config.DefaultRuntime].AllowedAnnotations).To(ContainElement(v2.Devices))
+			Expect(sut.Runtimes[config.DefaultRuntime].DisallowedAnnotations).NotTo(ContainElement(v2.Devices))
 		})
 
 		It("should allow no_sync_log for implicit default runtime", func() {

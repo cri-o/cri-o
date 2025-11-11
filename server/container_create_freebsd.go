@@ -19,7 +19,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
@@ -209,7 +209,8 @@ func (s *Server) specSetDevices(ctr ctrfactory.Container, sb *sandbox.Sandbox) e
 		return err
 	}
 
-	annotationDevices, err := device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation], s.config.AllowedDevices)
+	devicesAnnotationValue, _ := v2.GetAnnotationValue(sb.Annotations(), v2.Devices)
+	annotationDevices, err := device.DevicesFromAnnotation(devicesAnnotationValue, s.config.AllowedDevices)
 	if err != nil {
 		return err
 	}
