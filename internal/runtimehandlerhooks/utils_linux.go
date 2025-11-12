@@ -103,18 +103,13 @@ func isAllBitSet(in []byte) bool {
 	return true
 }
 
-// calcIRQSMPAffinityMask take input cpus that need to change irq affinity mask and
-// the current mask string, return an update mask string and inverted mask, with those cpus
-// enabled or disable in the mask.
-func calcIRQSMPAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
-	podcpuset, err := cpuset.Parse(cpus)
-	if err != nil {
-		return cpus, "", err
-	}
-
+// calcIRQSMPAffinityMask takes cpuset containerCPUSet that needs to change irq affinity mask and
+// the current mask string, as well as bool set. It then returns an updated mask string and inverted mask, with those
+// CPUs enabled or disable in the mask.
+func calcIRQSMPAffinityMask(containerCPUSet cpuset.CPUSet, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
 	// only ascii string supported
 	if !isASCII(current) {
-		return cpus, "", fmt.Errorf("non ascii character detected: %s", current)
+		return "", "", fmt.Errorf("non ascii character detected: %s", current)
 	}
 
 	// remove ","; now each element is "0-9,a-f"
@@ -125,12 +120,12 @@ func calcIRQSMPAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUM
 	// and the MSb (left-most bit) represents the highest cpu id from the byte
 	currentMaskArray, err := mapHexCharToByte(s)
 	if err != nil {
-		return cpus, "", err
+		return "", "", err
 	}
 
 	invertedMaskArray := invertByteArray(currentMaskArray)
 
-	for _, cpu := range podcpuset.List() {
+	for _, cpu := range containerCPUSet.List() {
 		if set {
 			// each byte represent 8 cpus
 			currentMaskArray[cpu/8] |= cpuMaskByte(cpu % 8)
