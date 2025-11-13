@@ -491,7 +491,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.51.1-0.20250123152629-2d261ce40d92
+# github.com/containers/storage v1.51.1-0.20251113162101-4f06d0a37c1a
 ## explicit; go 1.19
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1201,7 +1201,7 @@ github.com/uptrace/opentelemetry-go-extra/otelutil
 # github.com/urfave/cli/v2 v2.26.0
 ## explicit; go 1.18
 github.com/urfave/cli/v2
-# github.com/vbatts/tar-split v0.11.7
+# github.com/vbatts/tar-split v0.12.2
 ## explicit; go 1.17
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
