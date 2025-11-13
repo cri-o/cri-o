@@ -135,6 +135,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				if err == nil {
 					return float64(total)
 				}
+
 				logrus.Warn(err)
 
 				return 0
