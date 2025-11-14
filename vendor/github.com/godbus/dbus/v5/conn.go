@@ -3,6 +3,7 @@ package dbus
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -96,7 +97,7 @@ func SessionBusPrivate(opts ...ConnOption) (*Conn, error) {
 	return Dial(address, opts...)
 }
 
-// SessionBusPrivate returns a new private connection to the session bus.  If
+// SessionBusPrivateNoAutoStartup returns a new private connection to the session bus.  If
 // the session bus is not already open, do not attempt to launch it.
 func SessionBusPrivateNoAutoStartup(opts ...ConnOption) (*Conn, error) {
 	address, err := getSessionBusAddress(false)
@@ -107,7 +108,7 @@ func SessionBusPrivateNoAutoStartup(opts ...ConnOption) (*Conn, error) {
 	return Dial(address, opts...)
 }
 
-// SessionBusPrivate returns a new private connection to the session bus.
+// SessionBusPrivateHandler returns a new private connection to the session bus.
 //
 // Deprecated: use SessionBusPrivate with options instead.
 func SessionBusPrivateHandler(handler Handler, signalHandler SignalHandler) (*Conn, error) {
@@ -500,15 +501,26 @@ func (conn *Conn) sendMessageAndIfClosed(msg *Message, ifClosed func()) error {
 	return err
 }
 
+func isEncodingError(err error) bool {
+	switch err.(type) {
+	case FormatError:
+		return true
+	case InvalidMessageError:
+		return true
+	}
+	return false
+}
+
 func (conn *Conn) handleSendError(msg *Message, err error) {
 	if msg.Type == TypeMethodCall {
 		conn.calls.handleSendError(msg, err)
 	} else if msg.Type == TypeMethodReply {
-		if _, ok := err.(FormatError); ok {
+		if isEncodingError(err) {
 			// Make sure that the caller gets some kind of error response if
 			// the application code tried to respond, but the resulting message
 			// was malformed in the end
-			conn.sendError(err, msg.Headers[FieldDestination].value.(string), msg.Headers[FieldReplySerial].value.(uint32))
+			returnedErr := fmt.Errorf("destination tried to respond with invalid message (%w)", err)
+			conn.sendError(returnedErr, msg.Headers[FieldDestination].value.(string), msg.Headers[FieldReplySerial].value.(uint32))
 		}
 	}
 	conn.serialGen.RetireSerial(msg.serial)
@@ -613,7 +625,7 @@ func (conn *Conn) sendError(err error, dest string, serial uint32) {
 
 // sendReply creates a method reply message corresponding to the parameters and
 // sends it to conn.out.
-func (conn *Conn) sendReply(dest string, serial uint32, values ...interface{}) {
+func (conn *Conn) sendReply(dest string, serial uint32, values ...any) {
 	msg := new(Message)
 	msg.Type = TypeMethodReply
 	msg.Headers = make(map[HeaderField]Variant)
@@ -701,10 +713,10 @@ func (conn *Conn) SupportsUnixFDs() bool {
 // Error represents a D-Bus message of type Error.
 type Error struct {
 	Name string
-	Body []interface{}
+	Body []any
 }
 
-func NewError(name string, body []interface{}) *Error {
+func NewError(name string, body []any) *Error {
 	return &Error{name, body}
 }
 
@@ -724,7 +736,7 @@ type Signal struct {
 	Sender   string
 	Path     ObjectPath
 	Name     string
-	Body     []interface{}
+	Body     []any
 	Sequence Sequence
 }
 
@@ -775,10 +787,10 @@ func getTransport(address string) (transport, error) {
 
 // getKey gets a key from a the list of keys. Returns "" on error / not found...
 func getKey(s, key string) string {
-	for _, keyEqualsValue := range strings.Split(s, ",") {
-		keyValue := strings.SplitN(keyEqualsValue, "=", 2)
-		if len(keyValue) == 2 && keyValue[0] == key {
-			val, err := UnescapeBusAddressValue(keyValue[1])
+	keyEq := key + "="
+	for _, kv := range strings.Split(s, ",") {
+		if v, ok := strings.CutPrefix(kv, keyEq); ok {
+			val, err := UnescapeBusAddressValue(v)
 			if err != nil {
 				// No way to return an error.
 				return ""
@@ -951,7 +963,7 @@ func (tracker *callTracker) handleSendError(msg *Message, err error) {
 	}
 }
 
-func (tracker *callTracker) finalizeWithBody(sn uint32, sequence Sequence, body []interface{}) {
+func (tracker *callTracker) finalizeWithBody(sn uint32, sequence Sequence, body []any) {
 	tracker.lck.Lock()
 	c, ok := tracker.calls[sn]
 	if ok {
