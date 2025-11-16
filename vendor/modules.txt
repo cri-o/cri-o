@@ -1118,7 +1118,7 @@ github.com/uptrace/opentelemetry-go-extra/otelutil
 # github.com/urfave/cli/v2 v2.27.7
 ## explicit; go 1.18
 github.com/urfave/cli/v2
-# github.com/vbatts/tar-split v0.12.1
+# github.com/vbatts/tar-split v0.12.2
 ## explicit; go 1.17
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
