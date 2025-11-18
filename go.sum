@@ -114,8 +114,8 @@ github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYgle
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.2.1 h1:0qIOTT9DoYwcKmxSt8QJt+VzMY18onl9jUXsxpVhSmM=
 github.com/containers/ocicrypt v1.2.1/go.mod h1:aD0AAqfMp0MtwqWgHM1bUwe1anx0VazI108CRrSKINQ=
-github.com/containers/storage v1.58.0 h1:Q7SyyCCjqgT3wYNgRNIL8o/wUS92heIj2/cc8Sewvcc=
-github.com/containers/storage v1.58.0/go.mod h1:w7Jl6oG+OpeLGLzlLyOZPkmUso40kjpzgrHUk5tyBlo=
+github.com/containers/storage v1.58.1-0.20251113163822-49977ac2f9e4 h1:33wfjLuNBzyUb3+0pOtpd9KNUKYXErd1st9JmgGUPdA=
+github.com/containers/storage v1.58.1-0.20251113163822-49977ac2f9e4/go.mod h1:8Vc1KbYp6iVNHx9o6D26M3bbYzk9HibKJ88z/HSoErI=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1:m2r/smMKsKwgMSAoFKHaa68ImdCSNuKE1MxvQ64xuCQ=
 github.com/cpuguy83/go-md2man/v2 v2.0.6 h1:XJtiaUW6dEEqVuZiMTn1ldk455QWwEIsMIJlo5vtkx0=
@@ -509,8 +509,8 @@ github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2 h1:3/aHKUq7qaFMWxyQV0W
 github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2/go.mod h1:Zit4b8AQXaXvA68+nzmbyDzqiyFRISyw1JiD5JqUBjw=
 github.com/urfave/cli/v2 v2.27.6 h1:VdRdS98FNhKZ8/Az8B7MTyGQmpIr36O1EHybx/LaZ4g=
 github.com/urfave/cli/v2 v2.27.6/go.mod h1:3Sevf16NykTbInEnD0yKkjDAeZDS0A6bzhBH5hrMvTQ=
-github.com/vbatts/tar-split v0.12.1 h1:CqKoORW7BUWBe7UL/iqTVvkTBOF8UvOMKOIZykxnnbo=
-github.com/vbatts/tar-split v0.12.1/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
+github.com/vbatts/tar-split v0.12.2 h1:w/Y6tjxpeiFMR47yzZPlPj/FcPLpXbTUi/9H7d3CPa4=
+github.com/vbatts/tar-split v0.12.2/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
 github.com/vbauerster/mpb/v8 v8.9.3 h1:PnMeF+sMvYv9u23l6DO6Q3+Mdj408mjLRXIzmUmU2Z8=
 github.com/vbauerster/mpb/v8 v8.9.3/go.mod h1:hxS8Hz4C6ijnppDSIX6LjG8FYJSoPo9iIOcE53Zik0c=
 github.com/vishvananda/netlink v1.3.1-0.20250303224720-0e7078ed04c8 h1:Y4egeTrP7sccowz2GWTJVtHlwkZippgBTpUmMteFUWQ=
