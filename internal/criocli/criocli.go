@@ -178,6 +178,7 @@ func mergeImageConfig(config *libconfig.Config, ctx *cli.Context) {
 	}
 
 	if ctx.IsSet("insecure-registry") {
+		//nolint:staticcheck // SA1019: InsecureRegistries is deprecated but still supported for backward compatibility
 		config.InsecureRegistries = StringSliceTrySplit(ctx, "insecure-registry")
 	}
 
@@ -873,7 +874,8 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"CONTAINER_STORAGE_OPT"},
 		},
 		&cli.StringSliceFlag{
-			Name:  "insecure-registry",
+			Name: "insecure-registry",
+			//nolint:staticcheck // SA1019: InsecureRegistries is deprecated but still supported for backward compatibility
 			Value: cli.NewStringSlice(defConf.InsecureRegistries...),
 			Usage: "Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication." + `
     This option is deprecated. Please use "insecure" in registries.conf instead.

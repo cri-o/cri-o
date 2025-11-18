@@ -56,20 +56,24 @@ var errSandboxNotCreated = errors.New("sandbox not created")
 
 // StreamService implements streaming.Runtime.
 type StreamService struct {
+	streaming.Runtime
+
 	ctx                 context.Context
 	runtimeServer       *Server // needed by Exec() endpoint
 	streamServer        streaming.Server
 	streamServerCloseCh chan struct{}
-	streaming.Runtime
 }
 
 // Server implements the RuntimeService and ImageService.
 type Server struct {
+	*lib.ContainerServer
+	types.UnsafeImageServiceServer
+	types.UnsafeRuntimeServiceServer
+
 	config          libconfig.Config
 	stream          *StreamService
 	hostportManager hostport.HostPortManager
 
-	*lib.ContainerServer
 	monitorsChan        chan struct{}
 	defaultIDMappings   *idtools.IDMappings
 	ContainerEventsChan chan types.ContainerEventResponse
@@ -94,9 +98,6 @@ type Server struct {
 	nri *nriAPI
 	// hooksRetriever allows getting the runtime hooks for the sandboxes.
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
-
-	types.UnsafeImageServiceServer
-	types.UnsafeRuntimeServiceServer
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and

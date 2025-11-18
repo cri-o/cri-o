@@ -287,7 +287,7 @@ func recursiveEntries(
 
 			if !stringInSlice(tag, excludedTagsValue) {
 				switch {
-				case field.Type.Implements(reflect.TypeOf((*stringer)(nil)).Elem()):
+				case field.Type.Implements(reflect.TypeFor[stringer]()):
 					// We need a checked type assertion to make golangci-lint happy...
 					if str, ok := vv.MethodByName("String").Interface().(func() string); ok {
 						// if the field is a pointer and nil, skip validation

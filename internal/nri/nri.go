@@ -84,6 +84,7 @@ const (
 
 type local struct {
 	sync.Mutex
+
 	cfg *config.Config
 	nri *nri.Adaptation
 

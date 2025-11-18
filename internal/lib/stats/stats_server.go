@@ -19,6 +19,8 @@ import (
 // If collectionPeriod is > 0, it maintains this list by updating the stats on collectionPeriod frequency.
 // Otherwise, it only updates the stats as they're requested.
 type StatsServer struct {
+	parentServerIface
+
 	shutdown         chan struct{}
 	alreadyShutdown  bool
 	collectionPeriod time.Duration
@@ -26,8 +28,7 @@ type StatsServer struct {
 	ctrStats         map[string]*types.ContainerStats
 	sboxMetrics      map[string]*SandboxMetrics
 	ctx              context.Context
-	parentServerIface
-	mutex sync.Mutex
+	mutex            sync.Mutex
 }
 
 // parentServerIface is an interface for requesting information from the parent ContainerServer.

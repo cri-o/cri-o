@@ -17,6 +17,7 @@ func InOrder(calls ...any) MockSequence {
 	// This implementation does a few more assignments and checks than strictly necessary, but it is O(N) and reasonably easy to read, so, whatever.
 	for i := range calls {
 		var elem MockSequence
+
 		switch e := calls[i].(type) {
 		case MockSequence:
 			elem = e

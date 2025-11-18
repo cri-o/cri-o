@@ -42,6 +42,8 @@ const (
 
 // ContainerServer implements the ImageServer.
 type ContainerServer struct {
+	*statsserver.StatsServer
+
 	runtime              *oci.Runtime
 	store                cstorage.Store
 	storageImageServer   storage.ImageServer
@@ -51,7 +53,6 @@ type ContainerServer struct {
 	podNameIndex         *registrar.Registrar
 	podIDIndex           *truncindex.TruncIndex
 	Hooks                *hooks.Manager
-	*statsserver.StatsServer
 
 	stateLock sync.Locker
 	state     *containerServerState

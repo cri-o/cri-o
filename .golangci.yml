@@ -26,6 +26,7 @@ linters:
     - dupl
     - dupword
     - durationcheck
+    - embeddedstructfieldcheck
     - errcheck
     - errchkjson
     - errorlint
@@ -55,6 +56,7 @@ linters:
     - makezero
     - mirror
     - misspell
+    - modernize
     - musttag
     - nakedret
     - nilnesserr
@@ -87,7 +89,6 @@ linters:
     # - contextcheck
     # - cyclop
     # - depguard
-    # - embeddedstructfieldcheck
     # - err113
     # - errname
     # - exhaustive

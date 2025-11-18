@@ -498,6 +498,7 @@ func skipTestForCondition(t *testing.T, skipChecks ...map[string]bool) {
 
 type idgen struct {
 	sync.Mutex
+
 	uid int
 	pod int
 	ctr int

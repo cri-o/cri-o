@@ -49,7 +49,7 @@ GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
-GOLANGCI_LINT_VERSION := v2.5.0
+GOLANGCI_LINT_VERSION := v2.6.2
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
 GOSEC := ${BUILD_BIN_PATH}/gosec
@@ -314,16 +314,10 @@ uninstall: ## Uninstall all files.
 ##@ Verify targets:
 
 .PHONY: lint
-lint: ${GOLANGCI_LINT} gopls-modernize ## Run the golang linter, supposed to not run on CI.
+lint: ${GOLANGCI_LINT} ## Run the golang linter, supposed to not run on CI.
 	${GOLANGCI_LINT} version
 	${GOLANGCI_LINT} linters
 	GL_DEBUG=gocritic ${GOLANGCI_LINT} run --fix
-
-.PHONY: gopls-modernize
-gopls-modernize: ## Run the gopls modernize linter and report any diff, supposed to not run on CI.
-	export GOFLAGS=-tags="test,$(shell echo $(BUILDTAGS) | sed -r 's/\s+/,/g')" && \
-		$(GO_RUN) golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix ./...
-	./hack/tree_status.sh
 
 .PHONY: check-log-lines
 check-log-lines: ## Verify that all log lines start with a capitalized letter.

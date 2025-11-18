@@ -824,13 +824,11 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// When
 			sandboxes := sut.ListSandboxes()
-			containers, err := sut.ListContainers(
-				func(container *oci.Container) bool {
-					return true
-				},
-				func(container *oci.Container) bool {
-					return true
-				})
+			returnTrue := func(container *oci.Container) bool {
+				return true
+			}
+			//nolint:gocritic // dupOption is expected here as both filters are intentionally the same in this test
+			containers, err := sut.ListContainers(returnTrue, returnTrue)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())

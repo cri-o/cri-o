@@ -53,6 +53,8 @@ import (
 // runtimeVM is the Runtime interface implementation that is more appropriate
 // for VM based container runtimes.
 type runtimeVM struct {
+	sync.Mutex
+
 	path       string
 	fifoDir    string
 	configPath string
@@ -62,7 +64,6 @@ type runtimeVM struct {
 	client     *ttrpc.Client
 	task       task.TaskService
 
-	sync.Mutex
 	ctrs map[string]containerInfo
 }
 
