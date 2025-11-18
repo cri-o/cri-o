@@ -27,13 +27,13 @@ jobs:
       - run: scripts/github-actions-packages
       - run: make
       - run: bin/crio version
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: build
           path: |
             bin/crio
             bin/crio-status
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: docs
           path: |
@@ -41,7 +41,7 @@ jobs:
             docs/crio.8
             docs/crio.conf.5
             docs/crio.conf.d.5
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: config
           path: crio.conf
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: build
           path: bin
@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: build
           path: bin
@@ -119,7 +119,7 @@ jobs:
           pushFilter: cri-o
       - run: nix-build nix
       - run: result/bin/crio version
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: build-static-amd64
           path: |
@@ -139,7 +139,7 @@ jobs:
           pushFilter: cri-o
       - run: nix-build nix/default-arm64.nix
       - run: file result/bin/crio
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: build-static-arm64
           path: |
@@ -163,19 +163,19 @@ jobs:
             /tmp/spdx # default bom cache directory
           key: go-bundles-${{ hashFiles('**/go.sum') }}
           restore-keys: go-bundles-
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: build-static-amd64
           path: bin/static-amd64
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: build-static-arm64
           path: bin/static-arm64
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: docs
           path: docs
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: config
       - uses: actions/setup-go@v4
@@ -183,7 +183,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - run: chmod -R +x bin
       - run: make bundles
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: bundle
           path: build/bundle/*.tar.gz*
@@ -193,7 +193,7 @@ jobs:
     needs: bundles
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: bundle
           path: build/bundle
@@ -207,7 +207,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: bundle
           path: build/bundle
@@ -221,7 +221,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: bundle
           path: build/bundle
@@ -238,12 +238,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: sigstore/cosign-installer@v3
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: bundle
           path: build/bundle
       - run: make sign-artifacts
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: signatures
           path: |
@@ -256,11 +256,11 @@ jobs:
     needs: sign-artifacts
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: bundle
           path: build/bundle
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: signatures
           path: build/bundle
@@ -276,15 +276,15 @@ jobs:
       - release-notes
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: bundle
           path: build/bundle
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: signatures
           path: build/bundle
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: release-notes
           path: build/release-notes
@@ -316,7 +316,7 @@ jobs:
           make mockgen -j $(nproc)
           hack/tree_status.sh
       - run: sudo PATH="$PATH" make testunit
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: unit
           path: build/coverage
@@ -328,7 +328,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v5
         with:
           name: unit
           path: build/coverage
@@ -362,7 +362,7 @@ jobs:
       - run: make release-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: release-notes
           path: build/release-notes
@@ -392,7 +392,7 @@ jobs:
       - run: make dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v5
         with:
           name: dependencies
           path: build/dependencies
