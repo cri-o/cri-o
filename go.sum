@@ -747,8 +747,8 @@ github.com/containers/ocicrypt v1.1.10 h1:r7UR6o8+lyhkEywetubUUgcKFjOWOaWz8cEBrC
 github.com/containers/ocicrypt v1.1.10/go.mod h1:YfzSSr06PTHQwSTUKqDSjish9BeW1E4HUmreluQcMd8=
 github.com/containers/podman/v4 v4.9.3 h1:3tEnvIqijxBYtILRdHcbn0UNHAyUiQ1Y5hcvkYmutZA=
 github.com/containers/podman/v4 v4.9.3/go.mod h1:J2qLop+mWjAOxh0QQyYPdnPA3jI6ay2eU0OKakgMniQ=
-github.com/containers/storage v1.51.1-0.20250123153027-e1bc50e6f958 h1:jcI4WOwt+Q4t2tGCVk03i/wbmIDfLTHkt+iKbpMZpuA=
-github.com/containers/storage v1.51.1-0.20250123153027-e1bc50e6f958/go.mod h1:W+4hYMT3FHhVMqf+J//T3+uDRfqKh5IPx+6m4xb8EhY=
+github.com/containers/storage v1.51.1-0.20251113162119-8c625df4a3ad h1:fMzFjPlBmoU29fI0hBgXEXCBnQlkFXwTiw3qSVfVNng=
+github.com/containers/storage v1.51.1-0.20251113162119-8c625df4a3ad/go.mod h1:xGvak+UasYd+6kBp3bwnEZ0k6ouFqt3lqoO/P53SpNs=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1:m2r/smMKsKwgMSAoFKHaa68ImdCSNuKE1MxvQ64xuCQ=
 github.com/cpuguy83/go-md2man v1.0.10 h1:BSKMNlYxDvnunlTymqtgONjNnaRV1sTpcovwwjF22jk=
@@ -1313,8 +1313,8 @@ github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.3 h1:LyGS9cIZV0YVhE81zwf
 github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.3/go.mod h1:RvCYhPchLhvQ9l9C9goblbgO7BaKt597kBMf5mgKyo0=
 github.com/urfave/cli/v2 v2.27.1 h1:8xSQ6szndafKVRmfyeUMxkNUJQMjL1F2zmsZ+qHpfho=
 github.com/urfave/cli/v2 v2.27.1/go.mod h1:8qnjx1vcq5s2/wpsqoZFndg2CE5tNFyrTvS6SinrnYQ=
-github.com/vbatts/tar-split v0.11.7 h1:ixZ93pO/GmvaZw4Vq9OwmfZK/kc2zKdPfu0B+gYqs3U=
-github.com/vbatts/tar-split v0.11.7/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
+github.com/vbatts/tar-split v0.12.2 h1:w/Y6tjxpeiFMR47yzZPlPj/FcPLpXbTUi/9H7d3CPa4=
+github.com/vbatts/tar-split v0.12.2/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
 github.com/vbauerster/mpb/v8 v8.6.2 h1:9EhnJGQRtvgDVCychJgR96EDCOqgg2NsMuk5JUcX4DA=
 github.com/vbauerster/mpb/v8 v8.6.2/go.mod h1:oVJ7T+dib99kZ/VBjoBaC8aPXiSAihnzuKmotuihyFo=
 github.com/vishvananda/netlink v1.2.1-beta.2 h1:Llsql0lnQEbHj0I1OuKyp8otXp0r3q0mPkuhwHfStVs=
