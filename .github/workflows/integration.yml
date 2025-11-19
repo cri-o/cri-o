@@ -59,15 +59,19 @@ jobs:
       fail-fast: false
       matrix:
         run:
-          - name: critest / conmon / runc / amd64
-            arch: amd64
-            runner: ubuntu-latest
-            defaultRuntime: runc
-            runtimeType: oci
-            critest: 1
-            userns: 0
-            jobs: 1
-            timeout: 20
+          # TODO: Re-enable runc integration tests when mitigation is found
+          # Disabled due to AppArmor issue in nested environments
+          # See: https://github.com/cri-o/cri-o/issues/9573
+          # See: https://github.com/opencontainers/runc/issues/4968
+          # - name: critest / conmon / runc / amd64
+          #   arch: amd64
+          #   runner: ubuntu-latest
+          #   defaultRuntime: runc
+          #   runtimeType: oci
+          #   critest: 1
+          #   userns: 0
+          #   jobs: 1
+          #   timeout: 20
 
           - name: critest / conmon / crun / amd64
             arch: amd64
@@ -79,15 +83,15 @@ jobs:
             jobs: 1
             timeout: 20
 
-          - name: critest / conmon-rs / runc / amd64
-            arch: amd64
-            runner: ubuntu-latest
-            defaultRuntime: runc
-            runtimeType: pod
-            critest: 1
-            userns: 0
-            jobs: 1
-            timeout: 20
+          # - name: critest / conmon-rs / runc / amd64
+          #   arch: amd64
+          #   runner: ubuntu-latest
+          #   defaultRuntime: runc
+          #   runtimeType: pod
+          #   critest: 1
+          #   userns: 0
+          #   jobs: 1
+          #   timeout: 20
 
           - name: critest / conmon-rs / crun / amd64
             arch: amd64
@@ -99,15 +103,15 @@ jobs:
             jobs: 1
             timeout: 20
 
-          - name: critest / conmon / runc / arm64
-            arch: arm64
-            runner: ubuntu-24.04-arm
-            defaultRuntime: runc
-            runtimeType: oci
-            critest: 1
-            userns: 0
-            jobs: 1
-            timeout: 20
+          # - name: critest / conmon / runc / arm64
+          #   arch: arm64
+          #   runner: ubuntu-24.04-arm
+          #   defaultRuntime: runc
+          #   runtimeType: oci
+          #   critest: 1
+          #   userns: 0
+          #   jobs: 1
+          #   timeout: 20
 
           - name: critest / conmon / crun / arm64
             arch: arm64
@@ -119,15 +123,15 @@ jobs:
             jobs: 1
             timeout: 20
 
-          - name: critest / conmon-rs / runc / arm64
-            arch: arm64
-            runner: ubuntu-24.04-arm
-            defaultRuntime: runc
-            runtimeType: pod
-            critest: 1
-            userns: 0
-            jobs: 1
-            timeout: 20
+          # - name: critest / conmon-rs / runc / arm64
+          #   arch: arm64
+          #   runner: ubuntu-24.04-arm
+          #   defaultRuntime: runc
+          #   runtimeType: pod
+          #   critest: 1
+          #   userns: 0
+          #   jobs: 1
+          #   timeout: 20
 
           - name: critest / conmon-rs / crun / arm64
             arch: arm64
@@ -139,15 +143,15 @@ jobs:
             jobs: 1
             timeout: 20
 
-          - name: integration / conmon / runc / amd64
-            arch: amd64
-            runner: ubuntu-latest
-            defaultRuntime: runc
-            runtimeType: oci
-            critest: 0
-            userns: 0
-            jobs: 2
-            timeout: 120
+          # - name: integration / conmon / runc / amd64
+          #   arch: amd64
+          #   runner: ubuntu-latest
+          #   defaultRuntime: runc
+          #   runtimeType: oci
+          #   critest: 0
+          #   userns: 0
+          #   jobs: 2
+          #   timeout: 120
 
           - name: integration / conmon / crun / amd64
             arch: amd64
@@ -159,25 +163,25 @@ jobs:
             jobs: 2
             timeout: 120
 
-          - name: integration / conmon-rs / runc / amd64
-            arch: amd64
-            runner: ubuntu-latest
-            defaultRuntime: runc
-            runtimeType: pod
-            critest: 0
-            userns: 0
-            jobs: 2
-            timeout: 120
+          # - name: integration / conmon-rs / runc / amd64
+          #   arch: amd64
+          #   runner: ubuntu-latest
+          #   defaultRuntime: runc
+          #   runtimeType: pod
+          #   critest: 0
+          #   userns: 0
+          #   jobs: 2
+          #   timeout: 120
 
-          - name: integration / userns / runc / amd64
-            arch: amd64
-            runner: ubuntu-latest
-            defaultRuntime: runc
-            runtimeType: oci
-            critest: 0
-            userns: 1
-            jobs: 2
-            timeout: 120
+          # - name: integration / userns / runc / amd64
+          #   arch: amd64
+          #   runner: ubuntu-latest
+          #   defaultRuntime: runc
+          #   runtimeType: oci
+          #   critest: 0
+          #   userns: 1
+          #   jobs: 2
+          #   timeout: 120
     env:
       GOCOVERDIR: ${{ github.workspace }}/build/coverage/bats # It's used to make coverage profiles. https://go.dev/doc/build-cover
     name: ${{ matrix.run.name }}
