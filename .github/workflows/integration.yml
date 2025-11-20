@@ -163,25 +163,35 @@ jobs:
             jobs: 2
             timeout: 120
 
-          # - name: integration / conmon-rs / runc / amd64
-          #   arch: amd64
-          #   runner: ubuntu-latest
-          #   defaultRuntime: runc
-          #   runtimeType: pod
-          #   critest: 0
-          #   userns: 0
-          #   jobs: 2
-          #   timeout: 120
+          - name: integration / conmon / crun / arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 0
+            userns: 0
+            jobs: 2
+            timeout: 120
 
-          # - name: integration / userns / runc / amd64
-          #   arch: amd64
-          #   runner: ubuntu-latest
-          #   defaultRuntime: runc
-          #   runtimeType: oci
-          #   critest: 0
-          #   userns: 1
-          #   jobs: 2
-          #   timeout: 120
+          - name: integration / conmon-rs / crun / amd64
+            arch: amd64
+            runner: ubuntu-latest
+            defaultRuntime: crun
+            runtimeType: pod
+            critest: 0
+            userns: 0
+            jobs: 2
+            timeout: 120
+
+          - name: integration / userns / crun / amd64
+            arch: amd64
+            runner: ubuntu-latest
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 0
+            userns: 1
+            jobs: 2
+            timeout: 120
     env:
       GOCOVERDIR: ${{ github.workspace }}/build/coverage/bats # It's used to make coverage profiles. https://go.dev/doc/build-cover
     name: ${{ matrix.run.name }}

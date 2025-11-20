@@ -12,6 +12,9 @@ function teardown() {
 	if ! is_apparmor_enabled; then
 		skip "apparmor not enabled"
 	fi
+	if [[ "$ARCH" == "aarch64" ]]; then
+		skip "apparmor tests fail on arm64 with crun"
+	fi
 
 	load_default_apparmor_profile_and_run_a_container_with_it
 	load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it

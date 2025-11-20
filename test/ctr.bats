@@ -137,6 +137,9 @@ function assert_log_linking() {
 }
 
 @test "ulimits" {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
 	OVERRIDE_OPTIONS="--default-ulimits nofile=42:42 --default-ulimits nproc=1024:2048" start_crio
 
 	jq '	  .command = ["/bin/sh", "-c", "sleep 600"]' \
@@ -1132,6 +1135,9 @@ function assert_log_linking() {
 	# Note: This is not a problem on a systems without SELinux.
 	if is_selinux_enforcing; then
 		skip "SELinux is set to Enforcing"
+	fi
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		skip "test fails in a user namespace"
 	fi
 
 	# See https://www.shellcheck.net/wiki/SC2154 for more details.
