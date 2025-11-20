@@ -191,17 +191,17 @@ func (mr *MockRuntimeImplMockRecorder) PauseContainer(arg0, arg1 any) *gomock.Ca
 }
 
 // PortForwardContainer mocks base method.
-func (m *MockRuntimeImpl) PortForwardContainer(arg0 context.Context, arg1 *oci.Container, arg2 string, arg3 int32, arg4 io.ReadWriteCloser) error {
+func (m *MockRuntimeImpl) PortForwardContainer(arg0 context.Context, arg1 *oci.Container, arg2 string, arg3 int32, arg4 io.ReadWriteCloser, arg5 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PortForwardContainer", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "PortForwardContainer", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PortForwardContainer indicates an expected call of PortForwardContainer.
-func (mr *MockRuntimeImplMockRecorder) PortForwardContainer(arg0, arg1, arg2, arg3, arg4 any) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) PortForwardContainer(arg0, arg1, arg2, arg3, arg4, arg5 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PortForwardContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).PortForwardContainer), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PortForwardContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).PortForwardContainer), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // ProbeMonitor mocks base method.
