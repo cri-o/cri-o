@@ -198,7 +198,7 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: go-${{ matrix.run.name }}-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('scripts/versions') }}
-      - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+      - uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: test-binaries-${{ matrix.run.arch }}
