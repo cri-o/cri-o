@@ -55,4 +55,61 @@ var _ = t.Describe("ContainerPortforward", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+
+	t.Describe("Reverse Port Forwarding", func() {
+		Context("isReversePort annotation parsing", func() {
+			It("should return true for annotated reverse port", func() {
+				// Given
+				addContainerAndSandbox()
+				testSandbox.SetAnnotations(map[string]string{
+					"io.cri-o.reverse-ports": "8080",
+				})
+
+				// When
+				isReverse := testStreamService.IsReversePort(testSandbox, 8080)
+
+				// Then
+				Expect(isReverse).To(BeTrue())
+			})
+
+			It("should return true for port in comma-separated list", func() {
+				// Given
+				addContainerAndSandbox()
+				testSandbox.SetAnnotations(map[string]string{
+					"io.cri-o.reverse-ports": "8080,9090,3000",
+				})
+
+				// When
+				isReverse := testStreamService.IsReversePort(testSandbox, 9090)
+
+				// Then
+				Expect(isReverse).To(BeTrue())
+			})
+
+			It("should return false for non-annotated port", func() {
+				// Given
+				addContainerAndSandbox()
+				testSandbox.SetAnnotations(map[string]string{
+					"io.cri-o.reverse-ports": "8080",
+				})
+
+				// When
+				isReverse := testStreamService.IsReversePort(testSandbox, 9090)
+
+				// Then
+				Expect(isReverse).To(BeFalse())
+			})
+
+			It("should return false when annotation is missing", func() {
+				// Given
+				addContainerAndSandbox()
+
+				// When
+				isReverse := testStreamService.IsReversePort(testSandbox, 8080)
+
+				// Then
+				Expect(isReverse).To(BeFalse())
+			})
+		})
+	})
 })
