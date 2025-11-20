@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 20 Nov 2025 08:38:00 UTC for commit [5030780][0]._
+_Generated on Thu, 20 Nov 2025 13:36:33 UTC for commit [66ff873][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5030780c46030bd9fd031aa6c331b13e4d7d995d
+[0]: https://github.com/cri-o/cri-o/commit/66ff87374160f6d79f769113be2fbbeadcc6e55d
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Thu, 20 Nov 2025 08:38:00 UTC for commit [5030780][0]._
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
 | github.com/godbus/dbus/v5                              | v5.1.1-0.20230522191255-76236955d466 | v5.2.0                             | true   | true             |
 | github.com/intel/goresctrl                             | v0.9.0                               | v0.10.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251119180346-89cd5613401a | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251120111713-b86e7ff42bd4 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.3.3                             | true   | true             |
 | github.com/opencontainers/runtime-spec                 | v1.2.1                               | v1.3.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
@@ -472,7 +472,7 @@ _Generated on Thu, 20 Nov 2025 08:38:00 UTC for commit [5030780][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251119180346-89cd5613401a  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251120111713-b86e7ff42bd4  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
