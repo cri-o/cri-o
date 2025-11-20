@@ -336,7 +336,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	case <-time.After(timeout):
 		log.Errorf(ctx, "Container creation timeout (%v)", timeout)
 
-		return errors.New("create container timeout")
+		return fmt.Errorf("Container creation timeout (%v)", timeout)
 	}
 
 	// Now we know the container has started, save the pid to verify against future calls.

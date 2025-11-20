@@ -241,7 +241,9 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 			log.Warnf(ctx, "Failed to cleanup container %s after timeout (%v): %v", c.ID(), timeout, err)
 		}
 
-		return fmt.Errorf("CreateContainer timeout (%v)", timeout)
+		log.Errorf(ctx, "Container creation timeout (%v)", timeout)
+
+		return fmt.Errorf("Container creation timeout (%v)", timeout)
 	}
 
 	return nil
