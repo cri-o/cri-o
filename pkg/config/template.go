@@ -64,15 +64,19 @@ func assembleTemplateString(displayAllConfig bool, c *Config) string {
 func crioTemplateString(group templateGroup, prefix string, displayAll bool, crioTemplateConfig []*templateConfigValue) string {
 	templateString := ""
 
+	var sb strings.Builder
+
 	for _, configItem := range crioTemplateConfig {
 		if group == configItem.group {
 			if !configItem.isDefaultValue || displayAll {
-				templateString += strings.ReplaceAll(configItem.templateString, "{{ $.Comment }}", "")
+				sb.WriteString(strings.ReplaceAll(configItem.templateString, "{{ $.Comment }}", ""))
 			} else {
-				templateString += configItem.templateString
+				sb.WriteString(configItem.templateString)
 			}
 		}
 	}
+
+	templateString += sb.String()
 
 	if templateString != "" {
 		templateString = prefix + templateString

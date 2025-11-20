@@ -483,6 +483,7 @@ func (a *nriAPI) EvictContainer(ctx context.Context, e *api.ContainerEviction) e
 
 type criPodSandbox struct {
 	*sandbox.Sandbox
+
 	spec *rspec.Spec
 	pid  int
 }

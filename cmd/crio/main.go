@@ -249,6 +249,7 @@ func main() {
 
 				return fmt.Errorf("could not start CPU profiling: %w", err)
 			}
+
 			defer pprof.StopCPUProfile()
 		}
 

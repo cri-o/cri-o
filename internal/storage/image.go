@@ -1033,6 +1033,7 @@ func GetImageService(ctx context.Context, store storage.Store, storageTransport 
 		regexForPinnedImages: CompileRegexpsForPinnedImages(serverConfig.PinnedImages),
 	}
 
+	//nolint:staticcheck // SA1019: InsecureRegistries is deprecated but still supported for backward compatibility
 	if len(serverConfig.InsecureRegistries) > 0 {
 		log.Errorf(ctx, "Insecure registries option is deprecated and no longer effective. Please use `insecure` in `registries.conf` instead.")
 	}

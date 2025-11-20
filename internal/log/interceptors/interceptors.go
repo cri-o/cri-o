@@ -15,6 +15,7 @@ import (
 
 type ServerStream struct {
 	grpc.ServerStream
+
 	NewContext context.Context
 }
 

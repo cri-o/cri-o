@@ -35,6 +35,7 @@ type PodNamespaceConfig struct {
 // namespace is the internal implementation of the Namespace interface.
 type namespace struct {
 	sync.Mutex
+
 	ns     NS
 	closed bool
 	nsType NSType

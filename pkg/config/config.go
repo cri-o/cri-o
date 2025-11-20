@@ -74,10 +74,6 @@ const (
 // Config represents the entire set of configuration values that can be set for
 // the server. This is intended to be loaded from a toml-encoded config file.
 type Config struct {
-	Comment          string
-	singleConfigPath string // Path to the single config file
-	dropInConfigDir  string // Path to the drop-in config files
-
 	RootConfig
 	APIConfig
 	RuntimeConfig
@@ -86,6 +82,11 @@ type Config struct {
 	MetricsConfig
 	TracingConfig
 	StatsConfig
+
+	Comment          string
+	singleConfigPath string // Path to the single config file
+	dropInConfigDir  string // Path to the drop-in config files
+
 	NRI           *nri.Config
 	SystemContext *types.SystemContext
 }
@@ -203,8 +204,9 @@ func (c *RootConfig) GetStore() (storage.Store, error) {
 
 // runtimeHandlerFeatures represents the supported features of the runtime.
 type runtimeHandlerFeatures struct {
-	RecursiveReadOnlyMounts bool `json:"-"` // Internal use only.
 	features.Features
+
+	RecursiveReadOnlyMounts bool `json:"-"` // Internal use only.
 }
 
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
@@ -617,6 +619,7 @@ type ImageConfig struct {
 	SignaturePolicyDir string `toml:"signature_policy_dir"`
 	// InsecureRegistries is a list of registries that must be contacted w/o
 	// TLS verification.
+	//
 	// Deprecated: it's no longer effective. Please use `insecure` in `registries.conf` instead.
 	InsecureRegistries []string `toml:"insecure_registries"`
 	// ImageVolumes controls how volumes specified in image config are handled
@@ -755,6 +758,7 @@ type StatsConfig struct {
 type tomlConfig struct {
 	Crio struct {
 		RootConfig
+
 		API     struct{ APIConfig }     `toml:"api"`
 		Runtime struct{ RuntimeConfig } `toml:"runtime"`
 		Image   struct{ ImageConfig }   `toml:"image"`

@@ -23,6 +23,7 @@ const (
 
 type runtime struct {
 	sync.Mutex
+
 	cc         *grpc.ClientConn
 	runtime    cri.RuntimeServiceClient
 	image      cri.ImageServiceClient
