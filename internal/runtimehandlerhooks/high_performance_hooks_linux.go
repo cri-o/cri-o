@@ -111,6 +111,7 @@ type HighPerformanceHooks struct {
 	irqBalanceConfigFile     string
 	cpusetLock               sync.Mutex
 	updateIRQSMPAffinityLock sync.Mutex
+	irqSMPAffinityUnsetSet   map[string]struct{}
 	sharedCPUs               string
 	execCPUAffinity          config.ExecCPUAffinityType
 	irqSMPAffinityFile       string
@@ -723,6 +724,17 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 
 	h.updateIRQSMPAffinityLock.Lock()
 	defer h.updateIRQSMPAffinityLock.Unlock()
+
+	if !enable {
+		// If we're disabling IRQ SMP Affinity, save the container ID
+		h.irqSMPAffinityUnsetSet[c.ID()] = struct{}{}
+	} else if _, ok := h.irqSMPAffinityUnsetSet[c.ID()]; ok {
+		// If we're reenabling, and we haven't already reenabled, delete from the set
+		delete(h.irqSMPAffinityUnsetSet, c.ID())
+	} else {
+		// Otherwise, skip the operation to not redo the cleanup
+		return nil
+	}
 
 	newIRQBalanceSetting, err := h.updateNewIRQSMPAffinityMask(ctx, c.ID(), c.Name(), cpuSet, enable)
 	if err != nil {
