@@ -52,14 +52,15 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 
 		if hr.highPerformanceHooks == nil {
 			hr.highPerformanceHooks = &HighPerformanceHooks{
-				CgroupManager:            hr.config.CgroupManager(),
-				irqBalanceConfigFile:     hr.config.IrqBalanceConfigFile,
-				cpusetLock:               sync.Mutex{},
-				updateIRQSMPAffinityLock: sync.Mutex{},
-				sharedCPUs:               hr.config.SharedCPUSet,
-				irqSMPAffinityFile:       IrqSmpAffinityProcFile,
-				execCPUAffinity:          runtimeConfig.ExecCPUAffinity,
-				sysCPUDir:                sysCPUDir,
+				CgroupManager:             hr.config.CgroupManager(),
+				irqBalanceConfigFile:      hr.config.IrqBalanceConfigFile,
+				cpusetLock:                sync.Mutex{},
+				updateIRQSMPAffinityLock:  sync.Mutex{},
+				irqSMPAffinityDisabledSet: map[string]struct{}{},
+				sharedCPUs:                hr.config.SharedCPUSet,
+				irqSMPAffinityFile:        IrqSmpAffinityProcFile,
+				execCPUAffinity:           runtimeConfig.ExecCPUAffinity,
+				sysCPUDir:                 sysCPUDir,
 			}
 		}
 
