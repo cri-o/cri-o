@@ -22,7 +22,7 @@ import (
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/fsnotify/fsnotify"
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"

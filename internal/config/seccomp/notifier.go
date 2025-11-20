@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/seccomp"
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 	"golang.org/x/sys/unix"
