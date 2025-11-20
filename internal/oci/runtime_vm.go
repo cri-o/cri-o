@@ -145,12 +145,17 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	log.Debugf(ctx, "RuntimeVM.CreateContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.CreateContainer() end")
 
+	log.Infof(ctx, "#### CreateContainer ENTRY for container %s", c.ID())
+
 	// Lock the container
+	log.Infof(ctx, "#### Acquiring container lock for %s", c.ID())
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+	log.Infof(ctx, "#### Container lock acquired for %s", c.ID())
 
 	// Get the container create timeout for this runtime handler
 	timeout := time.Duration(r.handler.ContainerCreateTimeout) * time.Second
+	log.Infof(ctx, "#### Container create timeout set to: %v", timeout)
 
 	// Lets ensure we're able to properly get construct the Options
 	// that we'll pass to the ContainerCreateTask, as admins can set
@@ -172,14 +177,20 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	}
 
 	// First thing, we need to start the runtime daemon
+	log.Infof(ctx, "#### BEFORE startRuntimeDaemon for container %s", c.ID())
 	if err := r.startRuntimeDaemon(ctx, c); err != nil {
+		log.Infof(ctx, "#### startRuntimeDaemon FAILED for container %s: %v", c.ID(), err)
 		return err
 	}
+	log.Infof(ctx, "#### AFTER startRuntimeDaemon for container %s", c.ID())
 
+	log.Infof(ctx, "#### BEFORE createContainerIO for container %s", c.ID())
 	containerIO, err := r.createContainerIO(ctx, c, cio.WithNewFIFOs(r.getFIFOPath(), c.terminal, c.stdin))
 	if err != nil {
+		log.Infof(ctx, "#### createContainerIO FAILED for container %s: %v", c.ID(), err)
 		return err
 	}
+	log.Infof(ctx, "#### AFTER createContainerIO for container %s", c.ID())
 
 	defer func() {
 		if retErr != nil {
@@ -217,26 +228,37 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	createdCh := make(chan error, 1)
 
 	// Create a context with timeout for the task creation
+	log.Infof(ctx, "#### Creating timeout context with duration: %v", timeout)
 	taskCtx, taskCancel := context.WithTimeout(ctx, timeout)
 	defer taskCancel()
 
+	log.Infof(ctx, "#### Launching goroutine to call task.Create for container %s", c.ID())
 	go func() {
 		// Create the container
+		log.Infof(ctx, "#### BEFORE task.Create call in goroutine for container %s", c.ID())
 		if resp, err := r.task.Create(taskCtx, request); err != nil {
+			log.Infof(ctx, "#### task.Create FAILED in goroutine for container %s: %v", c.ID(), err)
 			createdCh <- errdefs.FromGRPC(err)
 		} else if err := c.state.SetInitPid(int(resp.GetPid())); err != nil {
+			log.Infof(ctx, "#### SetInitPid FAILED in goroutine for container %s: %v", c.ID(), err)
 			createdCh <- err
+		} else {
+			log.Infof(ctx, "#### task.Create SUCCESS in goroutine for container %s, pid=%d", c.ID(), resp.GetPid())
 		}
 
 		close(createdCh)
+		log.Infof(ctx, "#### Goroutine completed for container %s", c.ID())
 	}()
 
+	log.Infof(ctx, "#### Entering select statement for container %s", c.ID())
 	select {
 	case err = <-createdCh:
+		log.Infof(ctx, "#### Received result from createdCh for container %s", c.ID())
 		if err != nil {
 			return fmt.Errorf("CreateContainer failed: %w", err)
 		}
 	case <-taskCtx.Done():
+		log.Errorf(ctx, "#### TIMEOUT TRIGGERED after %v for container %s", timeout, c.ID())
 		if err := r.remove(c.ID(), ""); err != nil {
 			log.Warnf(ctx, "Failed to cleanup container %s after timeout (%v): %v", c.ID(), timeout, err)
 		}
@@ -246,12 +268,15 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		return fmt.Errorf("Container creation timeout (%v)", timeout)
 	}
 
+	log.Infof(ctx, "#### CreateContainer completing successfully for container %s", c.ID())
 	return nil
 }
 
 func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error {
 	log.Debugf(ctx, "RuntimeVM.startRuntimeDaemon() start")
 	defer log.Debugf(ctx, "RuntimeVM.startRuntimeDaemon() end")
+
+	log.Infof(ctx, "#### startRuntimeDaemon ENTRY for container %s", c.ID())
 
 	// Prepare the command to run
 	args := []string{"-id", c.ID()}
@@ -263,9 +288,11 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 
 	args = append(args, "start")
 
+	log.Infof(ctx, "#### startRuntimeDaemon: Setting namespace context for container %s", c.ID())
 	r.ctx = namespaces.WithNamespace(r.ctx, namespaces.Default)
 
 	// Prepare the command to exec
+	log.Infof(ctx, "#### startRuntimeDaemon: Creating command for runtime=%s, bundle=%s", r.handler.RuntimePath, c.BundlePath())
 	cmd, err := client.Command(
 		r.ctx,
 		&client.CommandConfig{
@@ -275,15 +302,21 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 		},
 	)
 	if err != nil {
+		log.Infof(ctx, "#### startRuntimeDaemon: Command creation FAILED for container %s: %v", c.ID(), err)
 		return err
 	}
+	log.Infof(ctx, "#### startRuntimeDaemon: Command created successfully for container %s", c.ID())
 
 	// Create the log file expected by shim-v2 API
-	f, err := fifo.OpenFifo(r.ctx, filepath.Join(c.BundlePath(), "log"),
+	logPath := filepath.Join(c.BundlePath(), "log")
+	log.Infof(ctx, "#### startRuntimeDaemon: Opening FIFO at %s for container %s", logPath, c.ID())
+	f, err := fifo.OpenFifo(r.ctx, logPath,
 		unix.O_RDONLY|unix.O_CREAT|unix.O_NONBLOCK, 0o700)
 	if err != nil {
+		log.Infof(ctx, "#### startRuntimeDaemon: OpenFifo FAILED for container %s: %v", c.ID(), err)
 		return err
 	}
+	log.Infof(ctx, "#### startRuntimeDaemon: FIFO opened successfully for container %s", c.ID())
 
 	// Open the log pipe and block until the writer is ready. This
 	// helps with synchronization of the shim. Copy the shim's logs
@@ -297,20 +330,28 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	}()
 
 	// Start the server
+	log.Infof(ctx, "#### startRuntimeDaemon: BEFORE cmd.CombinedOutput() for container %s - THIS CAN HANG!", c.ID())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
+		log.Infof(ctx, "#### startRuntimeDaemon: cmd.CombinedOutput() FAILED for container %s: %v, output: %s", c.ID(), err, string(out))
 		return fmt.Errorf("%s: %w", string(out), err)
 	}
+	log.Infof(ctx, "#### startRuntimeDaemon: AFTER cmd.CombinedOutput() for container %s, output: %s", c.ID(), string(out))
 
 	// Retrieve the address from the output
 	address := strings.TrimSpace(string(out))
+	log.Infof(ctx, "#### startRuntimeDaemon: Shim address retrieved: %s for container %s", address, c.ID())
 
 	// Now the RPC server is running, let's connect to it
+	log.Infof(ctx, "#### startRuntimeDaemon: BEFORE client.Connect() to %s for container %s - THIS CAN HANG!", address, c.ID())
 	conn, err := client.Connect(address, client.AnonDialer)
 	if err != nil {
+		log.Infof(ctx, "#### startRuntimeDaemon: client.Connect() FAILED for container %s: %v", c.ID(), err)
 		return err
 	}
+	log.Infof(ctx, "#### startRuntimeDaemon: AFTER client.Connect() for container %s", c.ID())
 
+	log.Infof(ctx, "#### startRuntimeDaemon: Creating ttrpc client for container %s", c.ID())
 	options := ttrpc.WithOnClose(func() { conn.Close() })
 	cl := ttrpc.NewClient(conn, options)
 
@@ -318,6 +359,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	r.client = cl
 	r.task = task.NewTaskClient(cl)
 
+	log.Infof(ctx, "#### startRuntimeDaemon EXIT successfully for container %s", c.ID())
 	return nil
 }
 
