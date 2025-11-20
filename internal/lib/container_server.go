@@ -921,7 +921,101 @@ func ShutdownWasUnclean(config *libconfig.Config) bool {
 	return true
 }
 
+// GetCrioContainersAndImages returns lists of CRI-O containers and their associated images
+func GetCrioContainersAndImages(store cstorage.Store) ([]string, []string, error) {
+	var crioContainers, crioImages []string
+	
+	containers, err := store.Containers()
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return crioContainers, crioImages, err
+		}
+
+		logrus.Errorf("Could not read containers and sandboxes: %v", err)
+		return nil, nil, err
+	}
+
+	for i := range containers {
+		id := containers[i].ID
+
+		metadataString, err := store.Metadata(id)
+		if err != nil {
+			continue
+		}
+
+		metadata := storage.RuntimeContainerMetadata{}
+		if err := json.Unmarshal([]byte(metadataString), &metadata); err != nil {
+			continue
+		}
+
+		if !storage.IsCrioContainer(&metadata) {
+			continue
+		}
+
+		crioContainers = append(crioContainers, id)
+		crioImages = append(crioImages, containers[i].ImageID)
+	}
+
+	return crioContainers, crioImages, nil
+}
+
+// DeleteContainer deletes a container from the given store
+func DeleteContainer(store cstorage.Store, id string) error {
+	// Unmount the container first
+	if mounted, err := store.Unmount(id, true); err != nil || mounted {
+		logrus.Warnf("Unable to unmount container %s: %v", id, err)
+		return err
+	}
+	
+	// Delete the container
+	if err := store.DeleteContainer(id); err != nil {
+		logrus.Warnf("Unable to delete container %s: %v", id, err)
+		return err
+	}
+	
+	logrus.Infof("Deleted container %s", id)
+	return nil
+}
+
+// DeleteImage deletes an image from the given store
+func DeleteImage(store cstorage.Store, id string) error {
+	if _, err := store.DeleteImage(id, true); err != nil {
+		logrus.Warnf("Unable to delete image %s: %v", id, err)
+		return err
+	}
+
+	logrus.Infof("Deleted image %s", id)
+	return nil
+}
+
 func RemoveStorageDirectory(config *libconfig.Config, store cstorage.Store, force bool) error {
+	// If never_wipe_images is set, we should only clean up containers and leave the image storage intact
+	if config.NeverWipeImages {
+		logrus.Info("NeverWipeImages is set - only containers will be wiped, images will be preserved")
+
+		// Get CRI-O containers
+		containers, _, err := GetCrioContainersAndImages(store)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				// No containers exist, nothing to do
+				return nil
+			}
+			return fmt.Errorf("could not get containers: %w", err)
+		}
+
+		// Wipe all containers but keep images
+		if len(containers) > 0 {
+			logrus.Infof("Wiping %d containers while preserving images", len(containers))
+			for _, id := range containers {
+				DeleteContainer(store, id)
+			}
+		} else {
+			logrus.Info("No containers to wipe")
+		}
+
+		return nil
+	}
+
 	// If we do not do this, we may leak other resources that are not directly
 	// in the graphroot. Erroring here should not be fatal though, it's a best
 	// effort cleanup.

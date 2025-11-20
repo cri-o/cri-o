@@ -186,6 +186,11 @@ type RootConfig struct {
 	// The option InternalWipe is deprecated, and will be removed in a future release.
 	InternalWipe bool `toml:"internal_wipe"`
 
+	// NeverWipeImages prevents image storage from being wiped under any circumstances,
+	// including startup and failed repair attempts. This is useful for disconnected
+	// environments where image storage integrity is crucial to preserve.
+	NeverWipeImages bool `toml:"never_wipe_images"`
+
 	// InternalRepair is used to repair the affected images.
 	InternalRepair bool `toml:"internal_repair"`
 }
@@ -995,6 +1000,7 @@ func DefaultConfig() (*Config, error) {
 			VersionFile:       CrioVersionPathTmp,
 			CleanShutdownFile: CrioCleanShutdownFile,
 			InternalWipe:      true,
+			NeverWipeImages:   false,
 			InternalRepair:    true,
 		},
 		APIConfig: APIConfig{
