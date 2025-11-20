@@ -44,11 +44,12 @@ func (hr *HooksRetriever) Get(runtimeName string, sandboxAnnotations map[string]
 	if strings.Contains(runtimeName, HighPerformance) || highPerformanceAnnotationsSpecified(sandboxAnnotations) {
 		if hr.highPerformanceHooks == nil {
 			hr.highPerformanceHooks = &HighPerformanceHooks{
-				irqBalanceConfigFile:     hr.config.IrqBalanceConfigFile,
-				cpusetLock:               sync.Mutex{},
-				updateIRQSMPAffinityLock: sync.Mutex{},
-				sharedCPUs:               hr.config.SharedCPUSet,
-				irqSMPAffinityFile:       IrqSmpAffinityProcFile,
+				irqBalanceConfigFile:      hr.config.IrqBalanceConfigFile,
+				cpusetLock:                sync.Mutex{},
+				updateIRQSMPAffinityLock:  sync.Mutex{},
+				irqSMPAffinityDisabledSet: map[string]struct{}{},
+				sharedCPUs:                hr.config.SharedCPUSet,
+				irqSMPAffinityFile:        IrqSmpAffinityProcFile,
 			}
 		}
 
