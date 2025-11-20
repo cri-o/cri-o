@@ -11,6 +11,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
@@ -56,7 +57,7 @@ var _ = t.Describe("Oci", func() {
 				RuntimePath:        "/bin/sh",
 				RuntimeType:        "",
 				RuntimeRoot:        "/run/runc",
-				AllowedAnnotations: []string{annotations.UsernsModeAnnotation},
+				AllowedAnnotations: []string{v2.UsernsMode},
 			},
 			performanceRuntime: &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/sh",
@@ -154,7 +155,7 @@ var _ = t.Describe("Oci", func() {
 
 				// Then
 				Expect(err).ToNot(HaveOccurred())
-				Expect(foundAnn).NotTo(ContainElement(annotations.DevicesAnnotation))
+				Expect(foundAnn).NotTo(ContainElement(v2.Devices))
 				Expect(foundAnn).To(ContainElement(annotations.IRQLoadBalancingAnnotation))
 			})
 			It("should fail to return allowed annotation of unknown runtime", func() {

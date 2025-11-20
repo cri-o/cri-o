@@ -22,6 +22,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 // Notifier wraps a seccomp notifier instance for a container.
@@ -113,7 +114,7 @@ func (c *Config) injectNotifier(
 	if containerID == "" || sandboxAnnotations == nil || msgChan == nil {
 		return nil, nil
 	}
-	if _, ok := sandboxAnnotations[annotations.SeccompNotifierActionAnnotation]; !ok {
+	if _, ok := v2.GetAnnotationValue(sandboxAnnotations, v2.SeccompNotifierAction); !ok {
 		return nil, nil
 	}
 
@@ -208,9 +209,9 @@ func NewNotifier(
 		}
 	}()
 
-	action, ok := annotationMap[annotations.SeccompNotifierActionAnnotation]
+	action, ok := v2.GetAnnotationValue(annotationMap, v2.SeccompNotifierAction)
 	if !ok {
-		return nil, fmt.Errorf("%s annotation not set on container", annotations.SeccompNotifierActionAnnotation)
+		return nil, fmt.Errorf("%s annotation not set on container", v2.SeccompNotifierAction)
 	}
 
 	return &Notifier{
