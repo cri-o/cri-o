@@ -92,6 +92,7 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "").
 					Return(nil, t.TestError),
 			)
+
 			// When
 			response, err := sut.PullImage(context.Background(),
 				&types.PullImageRequest{})

@@ -93,6 +93,10 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.GlobalAuthFile = ctx.String("global-auth-file")
 	}
 
+	if ctx.IsSet("namespaced-auth-dir") {
+		config.NamespacedAuthDir = ctx.String("namespaced-auth-dir")
+	}
+
 	if ctx.IsSet("signature-policy") {
 		config.SignaturePolicyPath = ctx.String("signature-policy")
 	}
@@ -737,6 +741,14 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     "Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.",
 			EnvVars:   []string{"CONTAINER_GLOBAL_AUTH_FILE"},
 			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:      "namespaced-auth-dir",
+			Usage:     "Path to the root directory for namespaced auth files. Must be an absolute path.",
+			Value:     defConf.NamespacedAuthDir,
+			EnvVars:   []string{"CONTAINER_NAMESPACED_AUTH_DIR"},
+			TakesFile: true,
+			Hidden:    true,
 		},
 		&cli.StringFlag{
 			Name:      "signature-policy",

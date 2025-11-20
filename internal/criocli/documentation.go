@@ -84,10 +84,12 @@ func man() *cli.Command {
 		Usage: "Generate the man page documentation.",
 		Action: func(c *cli.Context) error {
 			cli.MarkdownDocTemplate = markdownDocTemplate
+
 			res, err := c.App.ToMan()
 			if err != nil {
 				return err
 			}
+
 			fmt.Print(res)
 
 			return nil
@@ -102,10 +104,12 @@ func markdown() *cli.Command {
 		Usage:   "Generate the markdown documentation.",
 		Action: func(c *cli.Context) error {
 			cli.MarkdownDocTemplate = markdownDocTemplate
+
 			res, err := c.App.ToMarkdown()
 			if err != nil {
 				return err
 			}
+
 			fmt.Print(strings.TrimSpace(res))
 			// Add a newline to ensure that the markdown
 			// document is correctly formatted.
