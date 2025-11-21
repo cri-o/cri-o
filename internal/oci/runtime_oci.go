@@ -975,33 +975,46 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 	// when CRI-O is run directly in the foreground in the terminal.
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 
-	c.opLock.Lock()
-
 	defer func() {
 		// Kill the exec PIDs after the main container to avoid pod lifecycle regressions:
 		// Ref: https://github.com/kubernetes/kubernetes/issues/124743
+		c.opLock.Lock()
 		c.KillExecPIDs()
 		c.state.Finished = time.Now()
 		c.opLock.Unlock()
 		c.SetAsDoneStopping()
 	}()
 
-	if c.state.Status == ContainerStatePaused {
+	c.opLock.Lock()
+	isPaused := c.state.Status == ContainerStatePaused
+	c.opLock.Unlock()
+
+	if isPaused {
+		c.opLock.Lock()
+
 		if _, err := r.runtimeCmd("resume", c.ID()); err != nil {
 			log.Errorf(ctx, "Failed to unpause container %s: %v", c.Name(), err)
 		}
+
+		c.opLock.Unlock()
 	}
 
 	// Begin the actual kill.
-	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
+	c.opLock.Lock()
+
+	_, killErr := r.runtimeCmd("kill", c.ID(), c.GetStopSignal())
+	if killErr != nil {
 		if err := c.Living(); err != nil {
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
 			c.state.Finished = time.Now()
+			c.opLock.Unlock()
 
 			return
 		}
 	}
+
+	c.opLock.Unlock()
 
 	done := make(chan struct{})
 
@@ -1017,7 +1030,11 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 				// Periodically check if the container is still running.
 				// This avoids busy-waiting and reduces resource usage while
 				// ensuring timely detection of container termination.
-				if err := c.Living(); err != nil {
+				c.opLock.RLock()
+				err := c.Living()
+				c.opLock.RUnlock()
+
+				if err != nil {
 					// The initial container process either doesn't exist, or isn't ours.
 					if !errors.Is(err, ErrNotFound) {
 						log.Warnf(ctx, "Failed to find process for container %s: %v", c.ID(), err)
@@ -1037,15 +1054,20 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 	targetTime := time.Now().AddDate(+1, 0, 0) // A year from this one.
 
 	blockedTimer := time.AfterFunc(stopProcessBlockedInterval, func() {
-		if state, err := c.ProcessState(); err == nil && state == "D" {
+		c.opLock.RLock()
+		state, err := c.ProcessState()
+		initPid := c.state.InitPid
+		c.opLock.RUnlock()
+
+		if err == nil && state == "D" {
 			log.Errorf(ctx,
 				"Detected process (%d) blocked in uninterruptible sleep for more than %d seconds for container %s",
-				c.state.InitPid, int(time.Since(startTime)/time.Second), c.ID(),
+				initPid, int(time.Since(startTime)/time.Second), c.ID(),
 			)
 		} else {
 			log.Warnf(ctx,
 				"Detected process (%d) in state %s blocked for more than %d seconds for container %s. One of the child processes might be in uninterruptible sleep.",
-				c.state.InitPid, state, int(time.Since(startTime)/time.Second), c.ID(),
+				initPid, state, int(time.Since(startTime)/time.Second), c.ID(),
 			)
 		}
 	})
@@ -1083,15 +1105,21 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 killContainer:
 	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
 	kwait.BackoffUntil(func() {
-		if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
-			if !errors.Is(err, ErrNotFound) {
-				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
+		c.opLock.Lock()
+
+		_, killErr := r.runtimeCmd("kill", c.ID(), "KILL")
+		if killErr != nil {
+			if !errors.Is(killErr, ErrNotFound) {
+				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), killErr)
 			} else {
-				log.Debugf(ctx, "Error while killing container %s: %v", c.ID(), err)
+				log.Debugf(ctx, "Error while killing container %s: %v", c.ID(), killErr)
 			}
 		}
 
-		if err := c.Living(); err != nil {
+		err := c.Living()
+		c.opLock.Unlock()
+
+		if err != nil {
 			log.Debugf(ctx, "Container is no longer alive")
 			stop()
 
