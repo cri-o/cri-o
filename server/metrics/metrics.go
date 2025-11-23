@@ -64,24 +64,28 @@ func GetSizeBucket(size float64) string {
 
 // Metrics is the main structure for starting the metrics endpoints.
 type Metrics struct {
-	config                                    *libconfig.MetricsConfig
-	metricImagePullsLayerSize                 prometheus.Histogram
-	metricContainersEventsDropped             prometheus.Counter
-	metricContainersOOMTotal                  prometheus.Counter
-	metricProcessesDefunct                    prometheus.GaugeFunc
-	metricOperationsTotal                     *prometheus.CounterVec
-	metricOperationsLatencySeconds            *prometheus.GaugeVec
-	metricOperationsLatencySecondsTotal       *prometheus.SummaryVec
-	metricOperationsErrorsTotal               *prometheus.CounterVec
-	metricImagePullsBytesTotal                *prometheus.CounterVec
-	metricImagePullsSkippedBytesTotal         *prometheus.CounterVec
-	metricImagePullsFailureTotal              *prometheus.CounterVec
-	metricImagePullsSuccessTotal              prometheus.Counter
-	metricImageLayerReuseTotal                *prometheus.CounterVec
-	metricContainersOOMCountTotal             *prometheus.CounterVec
-	metricContainersSeccompNotifierCountTotal *prometheus.CounterVec
-	metricResourcesStalledAtStage             *prometheus.CounterVec
-	metricContainersStoppedMonitorCount       *prometheus.CounterVec
+	config                                     *libconfig.MetricsConfig
+	metricImagePullsLayerSize                  prometheus.Histogram
+	metricContainersEventsDropped              prometheus.Counter
+	metricContainersOOMTotal                   prometheus.Counter
+	metricProcessesDefunct                     prometheus.GaugeFunc
+	metricOperationsTotal                      *prometheus.CounterVec
+	metricOperationsLatencySeconds             *prometheus.GaugeVec
+	metricOperationsLatencySecondsTotal        *prometheus.SummaryVec
+	metricOperationsErrorsTotal                *prometheus.CounterVec
+	metricImagePullsBytesTotal                 *prometheus.CounterVec
+	metricImagePullsSkippedBytesTotal          *prometheus.CounterVec
+	metricImagePullsFailureTotal               *prometheus.CounterVec
+	metricImagePullsSuccessTotal               prometheus.Counter
+	metricImageLayerReuseTotal                 *prometheus.CounterVec
+	metricContainersOOMCountTotal              *prometheus.CounterVec
+	metricContainersSeccompNotifierCountTotal  *prometheus.CounterVec
+	metricResourcesStalledAtStage              *prometheus.CounterVec
+	metricContainersStoppedMonitorCount        *prometheus.CounterVec
+	metricImageContentCacheGCTotal             prometheus.Counter
+	metricImageContentCacheGCDurationSeconds   prometheus.Histogram
+	metricImageContentCacheGCBlobsRemovedTotal prometheus.Counter
+	metricImageContentCacheGCBytesFreedTotal   prometheus.Counter
 }
 
 var instance *Metrics
@@ -247,6 +251,35 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Amount of containers whose monitor process has exited by their name",
 			},
 			[]string{"name"},
+		),
+		metricImageContentCacheGCTotal: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageContentCacheGCTotal.String(),
+				Help:      "Total number of image content cache garbage collection operations",
+			},
+		),
+		metricImageContentCacheGCDurationSeconds: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageContentCacheGCDurationSeconds.String(),
+				Help:      "Duration of image content cache garbage collection operations in seconds",
+				Buckets:   []float64{0.001, 0.01, 0.1, 0.5, 1, 5, 10, 30, 60},
+			},
+		),
+		metricImageContentCacheGCBlobsRemovedTotal: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageContentCacheGCBlobsRemovedTotal.String(),
+				Help:      "Total number of blobs removed by image content cache garbage collection",
+			},
+		),
+		metricImageContentCacheGCBytesFreedTotal: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageContentCacheGCBytesFreedTotal.String(),
+				Help:      "Total bytes freed by image content cache garbage collection",
+			},
 		),
 	}
 
@@ -446,26 +479,38 @@ func (m *Metrics) MetricContainersStoppedMonitorCountInc(name string) {
 	c.Inc()
 }
 
+// MetricImageContentCacheGCRecord records metrics for a completed GC operation.
+func (m *Metrics) MetricImageContentCacheGCRecord(durationSeconds float64, blobsRemoved, bytesFreed int64) {
+	m.metricImageContentCacheGCTotal.Inc()
+	m.metricImageContentCacheGCDurationSeconds.Observe(durationSeconds)
+	m.metricImageContentCacheGCBlobsRemovedTotal.Add(float64(blobsRemoved))
+	m.metricImageContentCacheGCBytesFreedTotal.Add(float64(bytesFreed))
+}
+
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	for collector, metric := range map[collectors.Collector]prometheus.Collector{
-		collectors.ContainersEventsDropped:             m.metricContainersEventsDropped,
-		collectors.ContainersOOMCountTotal:             m.metricContainersOOMCountTotal,
-		collectors.ContainersOOMTotal:                  m.metricContainersOOMTotal,
-		collectors.ContainersSeccompNotifierCountTotal: m.metricContainersSeccompNotifierCountTotal,
-		collectors.ImageLayerReuseTotal:                m.metricImageLayerReuseTotal,
-		collectors.ImagePullsBytesTotal:                m.metricImagePullsBytesTotal,
-		collectors.ImagePullsFailureTotal:              m.metricImagePullsFailureTotal,
-		collectors.ImagePullsLayerSize:                 m.metricImagePullsLayerSize,
-		collectors.ImagePullsSkippedBytesTotal:         m.metricImagePullsSkippedBytesTotal,
-		collectors.ImagePullsSuccessTotal:              m.metricImagePullsSuccessTotal,
-		collectors.OperationsErrorsTotal:               m.metricOperationsErrorsTotal,
-		collectors.OperationsLatencySeconds:            m.metricOperationsLatencySeconds,
-		collectors.OperationsLatencySecondsTotal:       m.metricOperationsLatencySecondsTotal,
-		collectors.OperationsTotal:                     m.metricOperationsTotal,
-		collectors.ProcessesDefunct:                    m.metricProcessesDefunct,
-		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
-		collectors.ContainersStoppedMonitorCount:       m.metricContainersStoppedMonitorCount,
+		collectors.ContainersEventsDropped:              m.metricContainersEventsDropped,
+		collectors.ContainersOOMCountTotal:              m.metricContainersOOMCountTotal,
+		collectors.ContainersOOMTotal:                   m.metricContainersOOMTotal,
+		collectors.ContainersSeccompNotifierCountTotal:  m.metricContainersSeccompNotifierCountTotal,
+		collectors.ImageLayerReuseTotal:                 m.metricImageLayerReuseTotal,
+		collectors.ImagePullsBytesTotal:                 m.metricImagePullsBytesTotal,
+		collectors.ImagePullsFailureTotal:               m.metricImagePullsFailureTotal,
+		collectors.ImagePullsLayerSize:                  m.metricImagePullsLayerSize,
+		collectors.ImagePullsSkippedBytesTotal:          m.metricImagePullsSkippedBytesTotal,
+		collectors.ImagePullsSuccessTotal:               m.metricImagePullsSuccessTotal,
+		collectors.OperationsErrorsTotal:                m.metricOperationsErrorsTotal,
+		collectors.OperationsLatencySeconds:             m.metricOperationsLatencySeconds,
+		collectors.OperationsLatencySecondsTotal:        m.metricOperationsLatencySecondsTotal,
+		collectors.OperationsTotal:                      m.metricOperationsTotal,
+		collectors.ProcessesDefunct:                     m.metricProcessesDefunct,
+		collectors.ResourcesStalledAtStage:              m.metricResourcesStalledAtStage,
+		collectors.ContainersStoppedMonitorCount:        m.metricContainersStoppedMonitorCount,
+		collectors.ImageContentCacheGCTotal:             m.metricImageContentCacheGCTotal,
+		collectors.ImageContentCacheGCDurationSeconds:   m.metricImageContentCacheGCDurationSeconds,
+		collectors.ImageContentCacheGCBlobsRemovedTotal: m.metricImageContentCacheGCBlobsRemovedTotal,
+		collectors.ImageContentCacheGCBytesFreedTotal:   m.metricImageContentCacheGCBytesFreedTotal,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())

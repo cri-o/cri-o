@@ -35,10 +35,12 @@ import (
 	"go.podman.io/storage/pkg/reexec"
 	crierrors "k8s.io/cri-api/pkg/errors"
 
+	"github.com/cri-o/cri-o/internal/blobcache"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/metrics"
 )
 
 const (
@@ -98,6 +100,18 @@ type imageService struct {
 	ctx                  context.Context
 	config               *config.Config
 	regexForPinnedImages []*regexp.Regexp
+	blobCache            *blobcache.BlobCache
+
+	// blobCacheGCLock prevents GC from running while image pulls are in progress.
+	// Pulls acquire RLock (concurrent pulls allowed), GC acquires Lock (exclusive).
+	// This eliminates race conditions where GC could remove blobs being cached
+	// by an in-flight pull that hasn't committed its image yet.
+	blobCacheGCLock sync.RWMutex
+
+	// gcMu protects gcRunning and gcPending for single-flight GC.
+	gcMu      sync.Mutex
+	gcRunning bool
+	gcPending bool
 }
 
 // ImageBeingPulled map[string]bool to keep track of the images haven't done pulling.
@@ -664,6 +678,9 @@ type pullImageArgs struct {
 	Options      *ImageCopyOptions
 
 	StoreOptions storage.StoreOptions
+
+	// Image content cache configuration
+	ImageContentCacheDir string
 }
 
 type pullImageOutputItem struct {
@@ -711,7 +728,17 @@ func pullImageChild() {
 
 	args.Options.Progress = progress
 
-	canonicalRef, err := pullImageImplementation(context.Background(), args.Lookup, store, imageName, args.Options)
+	// Initialize image content cache if enabled in the child process
+	var blobCache *blobcache.BlobCache
+	if args.ImageContentCacheDir != "" {
+		blobCache, err = blobcache.New(context.Background(), args.ImageContentCacheDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "initializing image content cache: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	canonicalRef, err := pullImageImplementation(context.Background(), args.Lookup, store, imageName, args.Options, blobCache)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
@@ -782,6 +809,7 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 			UIDMap:             svc.store.UIDMap(),
 			GIDMap:             svc.store.GIDMap(),
 		},
+		ImageContentCacheDir: svc.config.ImageContentCacheDir,
 	}
 
 	stdinArguments.Options.Progress = nil
@@ -855,18 +883,43 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 }
 
 func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (RegistryImageReference, error) {
-	if options.CgroupPull.UseNewCgroup {
-		return svc.pullImageParent(ctx, imageName, options.CgroupPull.ParentCgroup, options)
-	} else {
-		return pullImageImplementation(ctx, svc.lookup, svc.store, imageName, options)
+	var (
+		ref RegistryImageReference
+		err error
+	)
+
+	// Acquire read lock to prevent GC from running during pull.
+	// Multiple pulls can run concurrently (RLock), but GC (Lock) waits for all pulls.
+	if svc.blobCache != nil {
+		svc.blobCacheGCLock.RLock()
 	}
+
+	if options.CgroupPull.UseNewCgroup {
+		ref, err = svc.pullImageParent(ctx, imageName, options.CgroupPull.ParentCgroup, options)
+	} else {
+		ref, err = pullImageImplementation(ctx, svc.lookup, svc.store, imageName, options, svc.blobCache)
+	}
+
+	// Release read lock after pull completes.
+	if svc.blobCache != nil {
+		svc.blobCacheGCLock.RUnlock()
+	}
+
+	if err != nil {
+		return ref, err
+	}
+
+	// GC blob cache to remove orphaned blobs.
+	svc.GCBlobCache()
+
+	return ref, nil
 }
 
 // pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
 // NOTE: That means this code can run in a separate process, and it should not access any CRI-O global state.
 //
 // It returns a name@digest value referring to exactly the pulled image.
-func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (RegistryImageReference, error) {
+func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions, blobCache *blobcache.BlobCache) (RegistryImageReference, error) {
 	srcRef, err := lookup.remoteImageReference(imageName)
 	if err != nil {
 		return RegistryImageReference{}, err
@@ -882,6 +935,20 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		return RegistryImageReference{}, err
 	}
 
+	// Wrap destination reference for blob caching if enabled.
+	// Use copyDestRef for the copy operation, but keep destRef for post-copy lookups.
+	copyDestRef := types.ImageReference(destRef)
+
+	if blobCache != nil {
+		registry, repository, err := ParseRegistryAndRepository(imageName.StringForOutOfProcessConsumptionOnly())
+		if err != nil {
+			logrus.Warnf("Failed to parse registry/repository for blob cache: %v", err)
+		} else {
+			copyDestRef = NewBlobCachingReference(destRef, blobCache, registry, repository)
+			logrus.Debugf("Blob caching enabled for %s/%s", registry, repository)
+		}
+	}
+
 	policy, err := signature.DefaultPolicy(options.SourceCtx)
 	if err != nil {
 		return RegistryImageReference{}, err
@@ -892,7 +959,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		return RegistryImageReference{}, err
 	}
 
-	manifestBytes, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+	manifestBytes, err := copy.Image(ctx, policyContext, copyDestRef, srcRef, &copy.Options{
 		SourceCtx:        &srcSystemContext,
 		DestinationCtx:   options.DestinationCtx,
 		OciDecryptConfig: options.OciDecryptConfig,
@@ -992,7 +1059,140 @@ func (svc *imageService) DeleteImage(systemContext *types.SystemContext, id Stor
 		return err
 	}
 
-	return ref.DeleteImage(svc.ctx, systemContext)
+	if err := ref.DeleteImage(svc.ctx, systemContext); err != nil {
+		return err
+	}
+
+	// Explicitly trigger blob cache GC after image deletion.
+	if svc.blobCache != nil {
+		svc.GCBlobCache()
+	}
+
+	return nil
+}
+
+// GCBlobCache removes cached blobs that are no longer referenced by any image.
+// Uses single-flight pattern: at most one GC runs at a time, with one pending.
+func (svc *imageService) GCBlobCache() {
+	if svc.blobCache == nil {
+		return
+	}
+
+	svc.gcMu.Lock()
+
+	if svc.gcRunning {
+		// GC already running, mark pending and return.
+		svc.gcPending = true
+		svc.gcMu.Unlock()
+
+		return
+	}
+
+	svc.gcRunning = true
+	svc.gcMu.Unlock()
+
+	go svc.gcBlobCacheLoop()
+}
+
+// gcBlobCacheLoop runs GC and re-runs if pending requests accumulated.
+func (svc *imageService) gcBlobCacheLoop() {
+	for {
+		svc.gcBlobCacheImpl()
+
+		svc.gcMu.Lock()
+
+		if !svc.gcPending {
+			svc.gcRunning = false
+			svc.gcMu.Unlock()
+
+			return
+		}
+
+		svc.gcPending = false
+		svc.gcMu.Unlock()
+	}
+}
+
+// gcBlobCacheImpl performs the actual garbage collection.
+func (svc *imageService) gcBlobCacheImpl() {
+	startTime := time.Now()
+
+	// Acquire exclusive lock to prevent GC during pulls.
+	svc.blobCacheGCLock.Lock()
+	defer svc.blobCacheGCLock.Unlock()
+
+	images, err := svc.store.Images()
+	if err != nil {
+		log.Warnf(svc.ctx, "Failed to list images for blob cache GC: %v", err)
+
+		return
+	}
+
+	referenced := make(map[string]bool)
+
+	for i := range images {
+		img := &images[i]
+
+		names, err := svc.store.ListImageBigData(img.ID)
+		if err != nil {
+			continue
+		}
+
+		for _, name := range names {
+			// Only process manifest-related big data.
+			if !IsManifestBigData(name) {
+				continue
+			}
+
+			data, err := svc.store.ImageBigData(img.ID, name)
+			if err != nil {
+				continue
+			}
+
+			// Use containers/image manifest parsing instead of custom JSON.
+			mimeType := manifest.GuessMIMEType(data)
+
+			m, err := manifest.FromBlob(data, mimeType)
+			if err != nil {
+				continue
+			}
+
+			// Add all layer digests.
+			for _, layer := range m.LayerInfos() {
+				referenced[layer.Digest.String()] = true
+			}
+
+			// Add config blob digest if present.
+			if cfg := m.ConfigInfo(); cfg.Digest != "" {
+				referenced[cfg.Digest.String()] = true
+			}
+		}
+	}
+
+	stats, err := svc.blobCache.GarbageCollect(svc.ctx, referenced)
+	if err != nil {
+		log.Warnf(svc.ctx, "Blob cache GC failed: %v", err)
+
+		return
+	}
+
+	// Record GC metrics.
+	duration := time.Since(startTime).Seconds()
+
+	if m := metrics.Instance(); m != nil {
+		m.MetricImageContentCacheGCRecord(duration, int64(stats.BlobsRemoved), stats.BytesFreed)
+	}
+
+	if stats.BlobsRemoved > 0 || duration > 1.0 {
+		log.Debugf(svc.ctx, "Blob cache GC completed in %.3fs: removed %d blobs, freed %d bytes",
+			duration, stats.BlobsRemoved, stats.BytesFreed)
+	}
+}
+
+// IsManifestBigData returns true if the big data name is manifest-related.
+// This filters out config blobs and other non-manifest data to optimize GC.
+func IsManifestBigData(name string) bool {
+	return strings.HasPrefix(name, "manifest")
 }
 
 func (svc *imageService) GetStore() storage.Store {
@@ -1092,6 +1292,18 @@ func GetImageService(ctx context.Context, store storage.Store, storageTransport 
 		ctx:                  ctx,
 		config:               serverConfig,
 		regexForPinnedImages: CompileRegexpsForPinnedImages(serverConfig.PinnedImages),
+	}
+
+	// Initialize image content cache if enabled
+	if serverConfig.ImageContentCacheDir != "" {
+		blobCache, err := blobcache.New(ctx, serverConfig.ImageContentCacheDir)
+		if err != nil {
+			return nil, fmt.Errorf("initializing image content cache: %w", err)
+		}
+
+		is.blobCache = blobCache
+
+		log.Infof(ctx, "Image content cache enabled at %s", serverConfig.ImageContentCacheDir)
 	}
 
 	//nolint:staticcheck // SA1019: InsecureRegistries is deprecated but still supported for backward compatibility

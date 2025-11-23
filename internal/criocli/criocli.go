@@ -682,6 +682,10 @@ func mergeNRIConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("nri-validator-tolerate-missing-plugins-annotation") {
 		config.NRI.DefaultValidator.TolerateMissingAnnotation = ctx.String("nri-validator-tolerate-missing-plugins-annotation")
 	}
+
+	if ctx.IsSet("image-content-cache-dir") {
+		config.ImageContentCacheDir = ctx.String("image-content-cache-dir")
+	}
 }
 
 func GetFlagsAndMetadata() ([]cli.Flag, map[string]any, error) {
@@ -1237,6 +1241,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "If true, CRI-O will automatically reload the mirror registry when there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.",
 			EnvVars: []string{"AUTO_RELOAD_REGISTRIES"},
 			Value:   defConf.AutoReloadRegistries,
+		},
+		&cli.StringFlag{
+			Name:    "image-content-cache-dir",
+			Usage:   "The directory where compressed layer blobs are cached for P2P image distribution. If empty, CRI-O will not retain the image content cache.",
+			EnvVars: []string{"IMAGE_CONTENT_CACHE_DIR"},
+			Value:   defConf.ImageContentCacheDir,
 		},
 		&cli.DurationFlag{
 			Name:    "pull-progress-timeout",

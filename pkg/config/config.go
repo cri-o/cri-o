@@ -670,6 +670,9 @@ type ImageConfig struct {
 	// If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 	// If "disabled", the first result will be chosen.
 	ShortNameMode string `toml:"short_name_mode"`
+	// ImageContentCacheDir is the directory where compressed layer blobs are cached
+	// for P2P image distribution. If empty, CRI-O will not retain the image content cache.
+	ImageContentCacheDir string `toml:"image_content_cache_dir"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table.
@@ -1760,6 +1763,19 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 		if onExecution {
 			if err := os.MkdirAll(value, 0o755); err != nil {
 				return fmt.Errorf("cannot create %s dir: %w", key, err)
+			}
+		}
+	}
+
+	// Validate image content cache directory if set
+	if c.ImageContentCacheDir != "" {
+		if !filepath.IsAbs(c.ImageContentCacheDir) {
+			return fmt.Errorf("image_content_cache_dir %q is not absolute", c.ImageContentCacheDir)
+		}
+
+		if onExecution {
+			if err := os.MkdirAll(c.ImageContentCacheDir, 0o700); err != nil {
+				return fmt.Errorf("cannot create image_content_cache_dir: %w", err)
 			}
 		}
 	}
