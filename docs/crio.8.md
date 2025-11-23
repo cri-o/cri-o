@@ -60,6 +60,7 @@ crio
 [--help|-h]
 [--hooks-dir]=[value]
 [--hostnetwork-disable-selinux]
+[--image-content-cache-dir]=[value]
 [--image-volumes]=[value]
 [--imagestore]=[value]
 [--included-pod-metrics]=[value]
@@ -294,6 +295,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--hostnetwork-disable-selinux**: Determines whether SELinux should be disabled within a pod when it is running in the host network namespace.
 
+**--image-content-cache-dir**="": The directory where compressed layer blobs are cached for P2P image distribution. If empty, CRI-O will not retain the image content cache.
+
 **--image-volumes**="": Image volume handling ('mkdir', 'bind', or 'ignore')
     1. mkdir: A directory is created inside the container root filesystem for
        the volumes.
@@ -345,7 +348,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
-**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count")
+**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "image_content_cache_gc_total", "image_content_cache_gc_duration_seconds", "image_content_cache_gc_blobs_removed_total", "image_content_cache_gc_bytes_freed_total")
 
 **--metrics-host**="": Host for the metrics endpoint. (default: "127.0.0.1")
 
