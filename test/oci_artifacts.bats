@@ -284,5 +284,11 @@ EOF
 		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
 	ctr_id=$(crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
 	run crictl exec "$ctr_id" sha256sum /root/artifact/cri-o/bin/crio
-	[[ "$output" == *"ae5d192303e5f9a357c6ea39308338956b62b8830fd05f0460796db2215c2b35"* ]]
+
+	# Architecture-specific hash expectations
+	if [[ "$ARCH" == "aarch64" ]]; then
+		[[ "$output" == *"f18a492aeef00b307d6962c876de4839148c34e73035ba619e848298dc849d3a"* ]]
+	else
+		[[ "$output" == *"ae5d192303e5f9a357c6ea39308338956b62b8830fd05f0460796db2215c2b35"* ]]
+	fi
 }
