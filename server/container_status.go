@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	json "github.com/json-iterator/go"
@@ -36,9 +37,16 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	containerID := c.ID()
 	imageRef := c.CRIContainer().GetImageRef()
 
-	imageNameInSpec := ""
+	// For the image field: prefer tags (friendly names) over digests.
+	// After digest reordering in pullImageImplementation, SomeNameOfTheImage() may return
+	// a platform-specific digest instead of the user-requested manifest list digest.
+	// So default to imageRef (user-requested), but prefer SomeNameOfTheImage if it's a tag.
+	imageNameInSpec := imageRef
+
 	if someNameOfTheImage := c.SomeNameOfTheImage(); someNameOfTheImage != nil {
-		imageNameInSpec = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
+		if someNameStr := someNameOfTheImage.StringForOutOfProcessConsumptionOnly(); !strings.Contains(someNameStr, "@") {
+			imageNameInSpec = someNameStr
+		}
 	}
 
 	imageID := ""
