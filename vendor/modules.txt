@@ -268,7 +268,7 @@ github.com/containers/conmon/runner/config
 ## explicit; go 1.22
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/image/v5 v5.32.3-0.20250321090242-db55860a7cf9
+# github.com/containers/image/v5 v5.32.3-0.20250321090242-db55860a7cf9 => github.com/QiWang19/image/v5 v5.0.0-20251126182557-eabf26472037
 ## explicit; go 1.21.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -1650,3 +1650,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.8.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/image/v5 => github.com/QiWang19/image/v5 v5.0.0-20251126182557-eabf26472037
