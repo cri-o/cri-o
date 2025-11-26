@@ -309,6 +309,10 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 			if specMetrics := generateContainerSpecMetrics(c); specMetrics != nil {
 				metrics = append(metrics, specMetrics...)
 			}
+		case PressureMetrics:
+			if pressureMetrics := generateContainerPressureMetrics(c, containerStats.CPU, containerStats.Memory, containerStats.DiskIO); pressureMetrics != nil {
+				metrics = append(metrics, pressureMetrics...)
+			}
 		default:
 			log.Warnf(ss.ctx, "Unknown metric: %s", m)
 		}
