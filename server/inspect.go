@@ -13,7 +13,7 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/go-chi/chi/v5"
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/ptr"
 
