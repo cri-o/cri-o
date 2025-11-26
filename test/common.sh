@@ -32,7 +32,7 @@ CONMON_BINARY=${CONMON_BINARY:-$(command -v conmon)}
 # Cgroup for the conmon process
 CONTAINER_CONMON_CGROUP=${CONTAINER_CONMON_CGROUP:-pod}
 # Path of the default seccomp profile.
-CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/github.com/containers/common/pkg/seccomp/seccomp.json}
+CONTAINER_SECCOMP_PROFILE=${CONTAINER_SECCOMP_PROFILE:-${CRIO_ROOT}/vendor/go.podman.io/common/pkg/seccomp/seccomp.json}
 CONTAINER_UID_MAPPINGS=${CONTAINER_UID_MAPPINGS:-}
 CONTAINER_GID_MAPPINGS=${CONTAINER_GID_MAPPINGS:-}
 OVERRIDE_OPTIONS=${OVERRIDE_OPTIONS:-}

@@ -14,11 +14,11 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/containers/common/pkg/signal"
-	"github.com/containers/storage/pkg/idtools"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/signal"
+	"go.podman.io/storage/pkg/idtools"
 	"golang.org/x/sys/unix"
 	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/fields"

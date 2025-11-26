@@ -1,10 +1,10 @@
 package storage_test
 
 import (
-	"github.com/containers/image/v5/docker/reference"
-	istorage "github.com/containers/image/v5/storage"
-	cstorage "github.com/containers/storage"
 	. "github.com/onsi/gomega"
+	"go.podman.io/image/v5/docker/reference"
+	istorage "go.podman.io/image/v5/storage"
+	cstorage "go.podman.io/storage"
 	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/internal/mockutils"

@@ -11,13 +11,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/image/v5/docker/reference"
-	imageTypes "github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/cri-o/crio-credential-provider/pkg/auth"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/google/uuid"
 	"github.com/opencontainers/go-digest"
+	"go.podman.io/image/v5/docker/reference"
+	imageTypes "go.podman.io/image/v5/types"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
 

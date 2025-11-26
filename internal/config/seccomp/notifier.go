@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/containers/common/pkg/seccomp"
+	"go.podman.io/common/pkg/seccomp"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	libseccomp "github.com/seccomp/libseccomp-golang"

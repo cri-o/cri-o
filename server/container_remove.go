@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/truncindex"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/truncindex"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"

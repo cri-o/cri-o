@@ -11,10 +11,10 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/go-chi/chi/v5"
 	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/idtools"
 	"k8s.io/utils/ptr"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"

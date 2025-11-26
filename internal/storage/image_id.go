@@ -3,10 +3,10 @@ package storage
 import (
 	"fmt"
 
-	"github.com/containers/image/v5/docker/reference"
-	istorage "github.com/containers/image/v5/storage"
-	"github.com/containers/image/v5/types"
-	"github.com/containers/storage"
+	"go.podman.io/image/v5/docker/reference"
+	istorage "go.podman.io/image/v5/storage"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage"
 )
 
 // StorageImageID is a stable identifier for a (deduplicated) image in a local storage.

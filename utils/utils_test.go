@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/storage/pkg/unshare"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/storage/pkg/unshare"
 
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils"

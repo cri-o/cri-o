@@ -2,7 +2,7 @@
 
 load helpers
 
-# These values come from https://github.com/containers/storage/blob/be5932a4d81cc01a1cf9cab0fb4cbf9c9892ef5c/store.go#L3463..L3471
+# These values come from https://github.com/containers/container-libs/blob/71ca11ca55f00cbf9c033f29f6d0cbafb76415e4/storage/store.go#L3815-L3823
 # Since the test suite doesn't specify different values
 AUTO_USERNS_USER="containers"
 AUTO_USERNS_MAX_SIZE="65536"

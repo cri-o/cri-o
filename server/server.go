@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	imageTypes "github.com/containers/image/v5/types"
-	"github.com/containers/storage/pkg/idtools"
-	storageTypes "github.com/containers/storage/types"
 	"github.com/fsnotify/fsnotify"
+	imageTypes "go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/idtools"
+	storageTypes "go.podman.io/storage/types"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

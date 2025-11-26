@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/common/pkg/apparmor"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/apparmor"
 	v1 "k8s.io/api/core/v1"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )

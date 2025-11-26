@@ -9,9 +9,9 @@ import (
 	"syscall"
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/idtools"
 	"golang.org/x/sys/unix"
 
 	"github.com/cri-o/cri-o/utils"

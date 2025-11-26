@@ -9,13 +9,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/storage/pkg/unshare"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/cgroups"
 	"github.com/opencontainers/cgroups/systemd"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
 
 	"github.com/cri-o/cri-o/internal/config/node"

@@ -3,7 +3,7 @@ package references
 import (
 	"fmt"
 
-	"github.com/containers/image/v5/docker/reference"
+	"go.podman.io/image/v5/docker/reference"
 )
 
 // RegistryImageReference is a name of a specific image location on a registry.

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/stringid"
 	"github.com/opencontainers/runtime-tools/generate"
+	"go.podman.io/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/stringid"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/factory/container"
