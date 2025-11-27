@@ -6,15 +6,14 @@ import (
 	"github.com/opencontainers/go-digest"
 	"go.podman.io/common/pkg/libartifact"
 	"go.podman.io/image/v5/docker/reference"
-	"go.podman.io/image/v5/manifest"
 	critypes "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // Artifact references an OCI artifact without its data.
 type Artifact struct {
+	*libartifact.Artifact
 	namedRef reference.Named
 	digest   digest.Digest
-	artifact *libartifact.Artifact
 }
 
 // ArtifactData separates the artifact metadata from the actual content.
@@ -31,11 +30,6 @@ func (a *Artifact) CanonicalName() string {
 	return fmt.Sprintf("%s@%s", a.namedRef.Name(), a.digest)
 }
 
-// Manifest returns the manifest of the artifact.
-func (a *Artifact) Manifest() *manifest.OCI1 {
-	return a.artifact.Manifest
-}
-
 // Digest returns the digest of the artifact.
 func (a *Artifact) Digest() digest.Digest {
 	return a.digest
@@ -50,7 +44,7 @@ func (a *Artifact) CRIImage() *critypes.Image {
 
 	return &critypes.Image{
 		Id:          a.Digest().Encoded(),
-		Size:        uint64(a.artifact.TotalSizeBytes()),
+		Size:        uint64(a.TotalSizeBytes()),
 		RepoTags:    repoTags,
 		RepoDigests: []string{a.CanonicalName()},
 		Pinned:      true,

@@ -36,7 +36,7 @@ var (
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
-	store *libartStore.ArtifactStore
+	*libartStore.ArtifactStore
 
 	rootPath string
 	impl     Impl
@@ -52,7 +52,7 @@ func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, erro
 	}
 
 	return &Store{
-		store: store,
+		ArtifactStore: store,
 
 		rootPath: storePath,
 		impl:     &defaultImpl{},
@@ -120,7 +120,7 @@ func (s *Store) PullManifest(
 ) (manifestDigest *digest.Digest, err error) {
 	strRef := s.impl.DockerReferenceString(ref)
 
-	dgst, err := s.store.Pull(ctx, strRef, opts)
+	dgst, err := s.Pull(ctx, strRef, opts)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -130,7 +130,7 @@ func (s *Store) PullManifest(
 
 // List creates a slice of all available artifacts.
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
-	arts, err := s.store.List(ctx)
+	arts, err := s.ArtifactStore.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list artifacts: %w", err)
 	}
@@ -166,7 +166,7 @@ func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
 		return fmt.Errorf("get artifact by name or digest: %w", err)
 	}
 
-	_, err = s.store.Remove(ctx, artifact.Reference())
+	_, err = s.ArtifactStore.Remove(ctx, artifact.Reference())
 
 	return err
 }
@@ -194,9 +194,9 @@ func (s *Store) buildArtifact(ctx context.Context, art *libartifact.Artifact) (*
 	}
 
 	artifact := &Artifact{
+		Artifact: art,
 		namedRef: unknownRef{},
 		digest:   *dgst,
-		artifact: art,
 	}
 
 	if art.Name != "" {
@@ -228,7 +228,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		return nil, fmt.Errorf("create new reference: %w", err)
 	}
 
-	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.store.SystemContext)
+	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.SystemContext)
 	if err != nil {
 		return nil, fmt.Errorf("build image source: %w", err)
 	}
@@ -241,7 +241,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 
 	readSize := uint64(0)
 
-	layerInfos := s.impl.LayerInfos(artifact.Manifest())
+	layerInfos := s.impl.LayerInfos(artifact.Manifest)
 	for i := range layerInfos {
 		layer := &layerInfos[i]
 
@@ -264,7 +264,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 }
 
 func (s *Store) readBlob(ctx context.Context, src types.ImageSource, layer *manifest.LayerInfo, maxArtifactSize uint64) ([]byte, error) {
-	bic := blobinfocache.DefaultCache(s.store.SystemContext)
+	bic := blobinfocache.DefaultCache(s.SystemContext)
 
 	rc, size, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: layer.Digest}, bic)
 	if err != nil {
@@ -374,9 +374,9 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 
 	defer src.Close()
 
-	mountPaths := make([]libartTypes.BlobMountPath, 0, len(artifact.Manifest().Layers))
+	mountPaths := make([]libartTypes.BlobMountPath, 0, len(artifact.Manifest.Layers))
 
-	for _, l := range artifact.Manifest().Layers {
+	for _, l := range artifact.Manifest.Layers {
 		path, err := layout.GetLocalBlobPath(ctx, src, l.Digest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get a local blob path: %w", err)
