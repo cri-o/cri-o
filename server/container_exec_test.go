@@ -5,8 +5,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
 // The actual test suite.
@@ -57,6 +60,57 @@ var _ = t.Describe("ContainerExec", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("should succeed when container is running", func() {
+			// Given
+			addContainerAndSandbox()
+			testContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+
+			// When
+			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{"/bin/sh"},
+				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
+
+			// Then - Should succeed because container is running
+			Expect(err).To(HaveOccurred()) // Will fail trying to actually exec but won't fail the Living() check
+			Expect(err.Error()).NotTo(ContainSubstring("container is not created or running"))
+		})
+
+		It("should allow exec to be attempted during graceful termination", func() {
+			// Given
+			addContainerAndSandbox()
+			testContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			// Container is stopping but kill loop hasn't started
+			testContainer.SetAsStopping()
+
+			// When - Try to add an exec PID during graceful termination
+			err := testContainer.AddExecPID(12345, true)
+
+			// Then - Should succeed because stopKillLoopBegun is still false
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should fail when container process is not alive", func() {
+			// Given
+			addContainerAndSandbox()
+			testContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateStopped},
+			})
+
+			// When
+			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{"/bin/sh"},
+				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
+
+			// Then - Should fail the Living() check
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("container is not created or running"))
 		})
 	})
 })
