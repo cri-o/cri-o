@@ -32,8 +32,6 @@ const (
 	ContainerStateRunning = "running"
 	// ContainerStateStopped represents the stopped state of a container.
 	ContainerStateStopped = "stopped"
-	// ContainerCreateTimeout represents the value of container creating timeout.
-	ContainerCreateTimeout = 240 * time.Second
 
 	// killContainerTimeout is the timeout that we wait for the container to
 	// be SIGKILLed.

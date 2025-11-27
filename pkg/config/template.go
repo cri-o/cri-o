@@ -1261,6 +1261,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # default_annotations = {}
 # stream_websockets = false
 # seccomp_profile = ""
+# container_create_timeout = 240
 # Where:
 # - runtime-handler: Name used to identify the runtime.
 # - runtime_path (optional, string): Absolute path to the runtime executable in
@@ -1324,6 +1325,11 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   seccomp profile for the runtime.
 #   If not specified or set to "", the runtime seccomp_profile will be used.
 #   If that is also not specified or set to "", the internal default seccomp profile will be applied.
+# - container_create_timeout (optional, int64): The timeout for container creation operations in seconds.
+#   If not set, defaults to 240 seconds. If set to a value less than 30 seconds, it will be automatically
+#   adjusted to 30 seconds (the minimum allowed value). This allows different runtime handlers to have
+#   different container creation timeouts, which is useful for VM-based runtimes that may need longer
+#   timeouts than OCI runtimes.
 #
 # Using the seccomp notifier feature:
 #

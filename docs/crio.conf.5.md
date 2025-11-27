@@ -392,6 +392,12 @@ conmon-rs (`runtime_type = "pod"`) supports this configuration for exec and atta
 Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the `crio.runtime` seccomp profile will be used.
 If that is also not specified, then the internal default seccomp profile will be used.
 
+**container_create_timeout**=240
+The timeout for container creation operations in seconds. If not set, defaults to 240 seconds. If set to a value less than 30 seconds, it will be automatically adjusted to 30 seconds (the minimum allowed value). This allows different runtime handlers to have different container creation timeouts, which is useful for VM-based runtimes that may need longer timeouts than OCI runtimes.
+conmon-rs (`runtime_type = "pod"`) doesn't support the configurable container creation timeout.
+
+Note: The effective timeout is the **minimum** of this value and kubelet's `--runtime-request-timeout` (default: 2 minutes). If you set `container_create_timeout = 600` (10 minutes) but kubelet has the default 2-minute timeout, the operation will be canceled after 2 minutes. Configure both values consistently for VM-based runtimes. For more information about kubelet's runtime request timeout, see the [Kubelet documentation](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/).
+
 ### CRIO.RUNTIME.WORKLOADS TABLE
 
 The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.
