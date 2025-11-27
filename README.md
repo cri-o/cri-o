@@ -44,6 +44,7 @@
 - [Adopters](#adopters)
 - [Weekly Meeting](#weekly-meeting)
 - [Governance](#governance)
+- [AI Assistants](#ai-assistants)
 - [License Scan](#license-scan)
 <!-- /toc -->
 
@@ -308,6 +309,10 @@ The details to join the meeting are on the [wiki](https://github.com/cri-o/cri-o
 ## Governance
 
 For more information on how CRI-O is governed, take a look at the [governance file](GOVERNANCE.md)
+
+## AI Assistants
+
+For AI coding assistants working with this codebase, see [CLAUDE.md](CLAUDE.md) for project context, workflow patterns, and development guidelines.
 
 ## License Scan
 
