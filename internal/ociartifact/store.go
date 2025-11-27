@@ -107,9 +107,6 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 // PullManifest tries to pull the artifact and returns the manifest bytes if the
 // provided reference is a valid OCI artifact.
 //
-// Returns ErrIsAnImage if the artifact is a container image.
-//
-// enforceConfigMediaType can be used to allow only a certain config media type.
 // copyOptions will be passed down to libimage.
 func (s *Store) PullManifest(
 	ctx context.Context,
