@@ -12,6 +12,7 @@ import (
 // Artifact references an OCI artifact without its data.
 type Artifact struct {
 	*libartifact.Artifact
+
 	namedRef reference.Named
 	digest   digest.Digest
 }

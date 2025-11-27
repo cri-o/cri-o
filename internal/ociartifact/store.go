@@ -29,10 +29,8 @@ import (
 // defaultMaxArtifactSize is the default size per artifact data.
 const defaultMaxArtifactSize = 1 * 1024 * 1024 // 1 MiB
 
-var (
-	// ErrNotFound is indicating that the artifact could not be found in the storage.
-	ErrNotFound = errors.New("no artifact found")
-)
+// ErrNotFound is indicating that the artifact could not be found in the storage.
+var ErrNotFound = errors.New("no artifact found")
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
@@ -93,7 +91,7 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 		return nil, fmt.Errorf("failed to get image reference: %w", err)
 	}
 
-	manifestDigest, err := s.PullManifest(ctx, dockerRef, *opts.CopyOptions)
+	manifestDigest, err := s.PullManifest(ctx, dockerRef, opts.CopyOptions)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -116,11 +114,11 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 func (s *Store) PullManifest(
 	ctx context.Context,
 	ref types.ImageReference,
-	opts libimage.CopyOptions,
+	opts *libimage.CopyOptions,
 ) (manifestDigest *digest.Digest, err error) {
 	strRef := s.impl.DockerReferenceString(ref)
 
-	dgst, err := s.Pull(ctx, strRef, opts)
+	dgst, err := s.Pull(ctx, strRef, *opts)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -318,7 +316,7 @@ func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
 // Returns the artifact, a boolean indicating whether strRef was a digest (true) or name (false),
 // and an error if the artifact could not be found.
 // Returns ErrNotFound if no matching artifact exists.
-// TODO: replace with GetByNameOrDigest in libartifact
+// TODO: replace with GetByNameOrDigest in libartifact.
 func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact, bool, error) {
 	if strRef == "" {
 		return nil, false, errors.New("empty name or digest")
