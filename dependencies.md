@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 26 Nov 2025 19:43:50 UTC for commit [53edaa6][0]._
+_Generated on Thu, 27 Nov 2025 22:20:34 UTC for commit [c0202e0][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/53edaa6e4c916d6d0d4077cc7906c17ad3ac53b4
+[0]: https://github.com/cri-o/cri-o/commit/c0202e05b7354fd9e6839f133f500e1e0802ce7d
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Wed, 26 Nov 2025 19:43:50 UTC for commit [53edaa6][0]._
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
 | github.com/godbus/dbus/v5                              | v5.1.1-0.20230522191255-76236955d466 | v5.2.0                             | true   | true             |
 | github.com/intel/goresctrl                             | v0.9.0                               | v0.10.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251126164416-fa42641692d7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251127214607-776e08dbbaa3 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.3.3                             | true   | true             |
 | github.com/opencontainers/runtime-spec                 | v1.2.1                               | v1.3.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
@@ -323,7 +323,7 @@ _Generated on Wed, 26 Nov 2025 19:43:50 UTC for commit [53edaa6][0]._
 | github.com/dimchansky/utfbom                                                | v1.1.1                                |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                             | v3.0.2                                |                                     | false  | true             |
 | github.com/distribution/reference                                           | v0.6.0                                |                                     | false  | true             |
-| github.com/docker/cli                                                       | v28.3.3+incompatible                  | v29.0.4+incompatible                | false  | true             |
+| github.com/docker/cli                                                       | v28.3.3+incompatible                  | v29.1.0+incompatible                | false  | true             |
 | github.com/docker/distribution                                              | v2.8.3+incompatible                   |                                     | true   | true             |
 | github.com/docker/docker                                                    | v28.3.3+incompatible                  | v28.5.2+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                 | v0.9.3                                | v0.9.4                              | false  | true             |
@@ -348,7 +348,7 @@ _Generated on Wed, 26 Nov 2025 19:43:50 UTC for commit [53edaa6][0]._
 | github.com/fxamacker/cbor/v2                                                | v2.9.0                                |                                     | false  | true             |
 | github.com/gkampitakis/ciinfo                                               | v0.3.2                                | v0.3.3                              | false  | true             |
 | github.com/gkampitakis/go-diff                                              | v1.3.2                                |                                     | false  | true             |
-| github.com/gkampitakis/go-snaps                                             | v0.5.15                               | v0.5.16                             | false  | true             |
+| github.com/gkampitakis/go-snaps                                             | v0.5.15                               | v0.5.17                             | false  | true             |
 | github.com/gliderlabs/ssh                                                   | v0.3.8                                |                                     | false  | true             |
 | github.com/go-chi/chi/v5                                                    | v5.2.3                                |                                     | true   | true             |
 | github.com/go-git/gcfg                                                      | v1.5.1-0.20230307220236-3a3c6141e376  |                                     | false  | true             |
@@ -461,7 +461,7 @@ _Generated on Wed, 26 Nov 2025 19:43:50 UTC for commit [53edaa6][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251126164416-fa42641692d7  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251127214607-776e08dbbaa3  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -537,7 +537,7 @@ _Generated on Wed, 26 Nov 2025 19:43:50 UTC for commit [53edaa6][0]._
 | github.com/oklog/ulid                                                       | v1.3.1                                |                                     | false  | true             |
 | github.com/oleiade/reflections                                              | v1.1.0                                |                                     | false  | true             |
 | github.com/olekukonko/errors                                                | v1.1.0                                |                                     | false  | true             |
-| github.com/olekukonko/ll                                                    | v0.0.9                                | v0.1.2                              | false  | true             |
+| github.com/olekukonko/ll                                                    | v0.0.9                                | v0.1.3                              | false  | true             |
 | github.com/olekukonko/tablewriter                                           | v1.1.0                                | v1.1.1                              | false  | true             |
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                     | false  | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.27.2                               |                                     | true   | true             |
@@ -680,7 +680,7 @@ _Generated on Wed, 26 Nov 2025 19:43:50 UTC for commit [53edaa6][0]._
 | github.com/zeebo/errs                                                       | v1.4.0                                |                                     | false  | true             |
 | github.com/zmap/zcrypto                                                     | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20251114214934-bb32b590b717  | false  | true             |
 | github.com/zmap/zlint/v3                                                    | v3.6.4                                | v3.6.8                              | false  | true             |
-| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.0.1                              | false  | true             |
+| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.2.0                              | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.3                                |                                     | false  | true             |
 | go.etcd.io/etcd/api/v3                                                      | v3.6.4                                | v3.6.6                              | false  | true             |
