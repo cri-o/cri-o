@@ -314,6 +314,11 @@ func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
 	return nil
 }
 
+// getByNameOrDigest retrieves an artifact by its name or digest.
+// Returns the artifact, a boolean indicating whether strRef was a digest (true) or name (false),
+// and an error if the artifact could not be found.
+// Returns ErrNotFound if no matching artifact exists.
+// TODO: replace with GetByNameOrDigest in libartifact
 func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact, bool, error) {
 	if strRef == "" {
 		return nil, false, errors.New("empty name or digest")
