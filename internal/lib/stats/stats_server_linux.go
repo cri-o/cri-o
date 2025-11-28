@@ -14,6 +14,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 // updateSandbox updates the StatsServer's entry for this sandbox, as well as each child container.
@@ -42,7 +43,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	}
 
 	// Network metrics are collected at pod level only.
-	if slices.Contains(ss.Config().IncludedPodMetrics, NetworkMetrics) {
+	if slices.Contains(ss.Config().IncludedPodMetrics, config.NetworkMetrics) {
 		podMetrics := ss.GenerateNetworkMetrics(sb)
 		sandboxMetrics.metric.Metrics = podMetrics
 	}
@@ -204,7 +205,7 @@ func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetr
 		sm = NewSandboxMetrics(sb)
 	}
 	// Network metrics are collected at the pod level.
-	if slices.Contains(ss.Config().IncludedPodMetrics, NetworkMetrics) {
+	if slices.Contains(ss.Config().IncludedPodMetrics, config.NetworkMetrics) {
 		podMetrics := ss.GenerateNetworkMetrics(sb)
 		sm.metric.Metrics = podMetrics
 	}
@@ -262,27 +263,27 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 
 	for _, m := range ss.Config().IncludedPodMetrics {
 		switch m {
-		case CPUMetrics:
+		case config.CPUMetrics:
 			if cpuMetrics := generateContainerCPUMetrics(c, containerStats.CPU); cpuMetrics != nil {
 				metrics = append(metrics, cpuMetrics...)
 			}
-		case HugetlbMetrics:
+		case config.HugetlbMetrics:
 			if hugetlbMetrics := generateContainerHugetlbMetrics(c, containerStats.Hugetlb); hugetlbMetrics != nil {
 				metrics = append(metrics, hugetlbMetrics...)
 			}
-		case DiskMetrics:
+		case config.DiskMetrics:
 			if diskMetrics := generateContainerDiskMetrics(c, &diskstats.Filesystem); diskMetrics != nil {
 				metrics = append(metrics, diskMetrics...)
 			}
-		case DiskIOMetrics:
+		case config.DiskIOMetrics:
 			if diskIOMetrics := generateContainerDiskIOMetrics(c, containerStats.DiskIO); diskIOMetrics != nil {
 				metrics = append(metrics, diskIOMetrics...)
 			}
-		case MemoryMetrics:
+		case config.MemoryMetrics:
 			if memoryMetrics := generateContainerMemoryMetrics(c, containerStats.Memory); memoryMetrics != nil {
 				metrics = append(metrics, memoryMetrics...)
 			}
-		case OOMMetrics:
+		case config.OOMMetrics:
 			cm, err := ss.Config().CgroupManager().ContainerCgroupManager(sb.CgroupParent(), c.ID())
 			if err != nil {
 				log.Errorf(ss.ctx, "Unable to fetch cgroup manager for container %s: %v", c.ID(), err)
@@ -299,13 +300,13 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 
 			oomMetrics := GenerateContainerOOMMetrics(c, oomCount)
 			metrics = append(metrics, oomMetrics...)
-		case NetworkMetrics:
+		case config.NetworkMetrics:
 			continue // Network metrics are collected at the pod level only.
-		case ProcessMetrics:
+		case config.ProcessMetrics:
 			if processMetrics := generateContainerProcessMetrics(c, containerStats.Pid); processMetrics != nil {
 				metrics = append(metrics, processMetrics...)
 			}
-		case SpecMetrics:
+		case config.SpecMetrics:
 			if specMetrics := generateContainerSpecMetrics(c); specMetrics != nil {
 				metrics = append(metrics, specMetrics...)
 			}

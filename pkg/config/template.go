@@ -644,7 +644,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		},
 		{
 			templateString: templateStringCrioStatsIncludedPodMetrics,
-			group:          crioNetworkConfig,
+			group:          crioStatsConfig,
 			isDefaultValue: slices.Equal(dc.IncludedPodMetrics, c.IncludedPodMetrics),
 		},
 		{
@@ -1666,6 +1666,7 @@ const templateStringCrioStatsCollectionPeriod = `# The number of seconds between
 `
 
 const templateStringCrioStatsIncludedPodMetrics = `# List of included pod metrics.
+# You can also specify "all" to include all available metrics. If you specify "all", it should be the only item in the list.
 {{ $.Comment }}included_pod_metrics = [
 {{ range $opt := .IncludedPodMetrics }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
