@@ -122,7 +122,7 @@ github.com/containerd/cgroups/v2/stats
 # github.com/containerd/console v1.0.4
 ## explicit; go 1.13
 github.com/containerd/console
-# github.com/containerd/containerd v1.7.28
+# github.com/containerd/containerd v1.7.29
 ## explicit; go 1.23.0
 github.com/containerd/containerd/cio
 github.com/containerd/containerd/defaults
