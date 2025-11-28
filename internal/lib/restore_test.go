@@ -93,6 +93,8 @@ var _ = t.Describe("ContainerRestore", func() {
 			config := &metadata.ContainerConfig{
 				ID: containerID,
 			}
+			Expect(os.WriteFile("restore.log", []byte(``), 0o600)).To(Succeed())
+			defer os.RemoveAll("restore.log")
 
 			// When
 			res, err := sut.ContainerRestore(
@@ -217,6 +219,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			Expect(err).ToNot(HaveOccurred())
 			setupInfraContainerWithPid(42, "bundle")
 			defer os.RemoveAll("bundle")
+			defer os.RemoveAll("restore.log")
 
 			// When
 			res, err := sut.ContainerRestore(
@@ -310,6 +313,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			err = os.WriteFile("bind.mounts", []byte(bindMounts), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("bind.mounts")
+			defer os.RemoveAll("restore.log")
 
 			err = os.Mkdir("bundle", 0o700)
 			Expect(err).ToNot(HaveOccurred())
