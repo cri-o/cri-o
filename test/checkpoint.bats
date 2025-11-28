@@ -174,3 +174,44 @@ function teardown() {
 	[[ "$container_name" == "restored-sleep-container" ]]
 	[[ "$pod_name" == "restoresandbox2" ]]
 }
+
+@test "checkpoint and restore: /etc/passwd uses Kubernetes run_as_user on restore" {
+	CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	# Create container with run_as_user=1001
+	START_JSON=$(mktemp)
+	jq '.linux.security_context.run_as_user.value = 1001
+		| .command=["/bin/sh"]
+		| .args=["-c","sleep inf"]' \
+		"$TESTDATA"/container_sleep.json > "$START_JSON"
+	ctr_id=$(crictl create "$pod_id" "$START_JSON" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	# Verify the UID of the running process
+	run crictl exec "$ctr_id" id
+	[[ "$output" == *"uid=1001"* ]]
+	# Verify /etc/passwd contains entry for UID 1001
+	run crictl exec "$ctr_id" cat /etc/passwd
+	[[ "$output" == *"1001"* ]]
+	# Checkpoint the container
+	crictl checkpoint --export="$TESTDIR"/cp.tar "$ctr_id"
+	crictl rm -f "$ctr_id"
+	crictl rmp -f "$pod_id"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	RESTORE_JSON=$(mktemp)
+	jq '.image.image="'"$TESTDIR"'/cp.tar"
+		| .linux.security_context.run_as_user.value = 1001' \
+		"$TESTDATA"/container_sleep.json > "$RESTORE_JSON"
+	ctr_id=$(crictl create "$pod_id" "$RESTORE_JSON" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	# Verify that the container was restored
+	restored=$(crictl inspect --output go-template --template "{{(index .info.restored)}}" "$ctr_id")
+	[[ "$restored" == "true" ]]
+	# Verify the UID is still 1001
+	run crictl exec "$ctr_id" id
+	[[ "$output" == *"uid=1001"* ]]
+	run crictl exec "$ctr_id" cat /etc/passwd
+	[[ "$output" == *"1001"* ]]
+	# Cleanup
+	rm -f "$START_JSON"
+	rm -f "$RESTORE_JSON"
+}
