@@ -35,6 +35,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 )
@@ -504,7 +505,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		kubeAnnotations[k] = v
 	}
 
-	usernsMode := kubeAnnotations[annotations.UsernsModeAnnotation]
+	usernsMode, _ := v2.GetAnnotationValue(kubeAnnotations, v2.UsernsMode)
 	if usernsMode != "" {
 		log.Warnf(ctx, "Annotation 'io.kubernetes.cri-o.userns-mode' is deprecated, and will be replaced with native Kubernetes support for user namespaces in the future")
 	}
@@ -662,7 +663,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	} else {
 		shmSize := int64(libsandbox.DefaultShmSize)
 
-		if shmSizeStr, ok := kubeAnnotations[annotations.ShmSizeAnnotation]; ok {
+		if shmSizeStr, ok := v2.GetAnnotationValue(kubeAnnotations, v2.ShmSize); ok {
 			quantity, err := resource.ParseQuantity(shmSizeStr)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse shm size '%s': %w", shmSizeStr, err)
@@ -695,7 +696,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	sbox.SetShmPath(shmPath)
 
 	// Link logs if requested
-	if emptyDirVolName, ok := kubeAnnotations[annotations.LinkLogsAnnotation]; ok {
+	if emptyDirVolName, ok := v2.GetAnnotationValue(kubeAnnotations, v2.LinkLogs); ok {
 		if err = linklogs.MountPodLogs(ctx, kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel); err != nil {
 			log.Warnf(ctx, "Failed to link logs: %v", err)
 		}
@@ -833,7 +834,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	sbox.SetPodLinuxOverhead(overhead)
-	g.AddAnnotation(annotations.PodLinuxOverhead, string(overheadJSON))
+	g.AddAnnotation(v2.PodLinuxOverhead, string(overheadJSON))
 
 	resources := sbox.Config().GetLinux().GetResources()
 
@@ -843,7 +844,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	sbox.SetPodLinuxResources(resources)
-	g.AddAnnotation(annotations.PodLinuxResources, string(resourcesJSON))
+	g.AddAnnotation(v2.PodLinuxResources, string(resourcesJSON))
 
 	seccompRef := types.SecurityProfile_Unconfined.String()
 	setupSeccompForPrivCtr := (privileged && s.config.PrivilegedSeccompProfile != "")
@@ -1136,7 +1137,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		log.Debugf(ctx, "Dropping infra container for pod %s", sboxID)
 		container = oci.NewSpoofedContainer(sboxID, containerName, labels, sboxID, created, podContainer.RunDir)
 
-		g.AddAnnotation(annotations.SpoofedContainer, "true")
+		g.AddAnnotation(v2.Spoofed, "true")
 
 		if err := s.config.CgroupManager().CreateSandboxCgroup(cgroupParent, sboxID); err != nil {
 			return nil, fmt.Errorf("create dropped infra %s cgroup: %w", sboxID, err)

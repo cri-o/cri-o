@@ -32,6 +32,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 )
@@ -250,7 +251,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	c.spec.AddAnnotation(annotations.SeccompProfilePath, seccompRef)
 	c.spec.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 	// for retrieving the runtime path for a given platform.
-	c.spec.AddAnnotation(annotations.PlatformRuntimePath, platformRuntimePath)
+	c.spec.AddAnnotation(v2.PlatformRuntimePath, platformRuntimePath)
 
 	metadataJSON, err := json.Marshal(c.Config().GetMetadata())
 	if err != nil {
@@ -536,10 +537,10 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 		return nil
 	}
 
-	annotationKey := fmt.Sprintf("%s.%s", annotations.UnifiedCgroupAnnotation, containerName)
+	annotationKey := fmt.Sprintf("%s/%s", v2.UnifiedCgroup, containerName)
 
-	annotation := annotationsMap[annotationKey]
-	if annotation == "" {
+	annotation, ok := v2.GetAnnotationValue(annotationsMap, annotationKey)
+	if !ok || annotation == "" {
 		return nil
 	}
 
@@ -558,7 +559,7 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 	for r := range strings.SplitSeq(annotation, ";") {
 		parts := strings.SplitN(r, "=", 2)
 		if len(parts) != 2 {
-			return fmt.Errorf("invalid annotation %q", annotations.UnifiedCgroupAnnotation)
+			return fmt.Errorf("invalid annotation %q", v2.UnifiedCgroup)
 		}
 
 		d, err := b64.StdEncoding.DecodeString(parts[1])
