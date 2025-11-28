@@ -154,8 +154,9 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expected string) {
 			h := &HighPerformanceHooks{
-				irqBalanceConfigFile: irqBalanceConfigFile,
-				irqSMPAffinityFile:   irqSmpAffinityFile,
+				irqBalanceConfigFile:   irqBalanceConfigFile,
+				irqSMPAffinityFile:     irqSmpAffinityFile,
+				irqSMPAffinityUnsetSet: map[string]struct{}{},
 			}
 			err := h.setIRQLoadBalancing(context.TODO(), container, cpuset.CPUSet{}, enabled)
 			Expect(err).ToNot(HaveOccurred())
@@ -211,8 +212,9 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expectedSmp, expectedBan string) {
 			h := &HighPerformanceHooks{
-				irqBalanceConfigFile: irqBalanceConfigFile,
-				irqSMPAffinityFile:   irqSmpAffinityFile,
+				irqBalanceConfigFile:   irqBalanceConfigFile,
+				irqSMPAffinityFile:     irqSmpAffinityFile,
+				irqSMPAffinityUnsetSet: map[string]struct{}{},
 			}
 			err = h.setIRQLoadBalancing(context.TODO(), container, cpuset.CPUSet{}, enabled)
 			Expect(err).ToNot(HaveOccurred())
@@ -356,9 +358,10 @@ var _ = Describe("high_performance_hooks", func() {
 			expectedSmp, expectedBan, expectedHousekeepingCPUs string, expectFailure bool,
 		) {
 			h := &HighPerformanceHooks{
-				irqBalanceConfigFile: irqBalanceConfigFile,
-				irqSMPAffinityFile:   irqSmpAffinityFile,
-				sysCPUDir:            sysCPUDir,
+				irqBalanceConfigFile:   irqBalanceConfigFile,
+				irqSMPAffinityFile:     irqSmpAffinityFile,
+				sysCPUDir:              sysCPUDir,
+				irqSMPAffinityUnsetSet: map[string]struct{}{},
 			}
 
 			// For container start (enabled == false), we must calculate the housekeeping CPUs,
@@ -928,7 +931,8 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 
 		h := &HighPerformanceHooks{
-			irqBalanceConfigFile: irqBalanceConfigFile,
+			irqBalanceConfigFile:   irqBalanceConfigFile,
+			irqSMPAffinityUnsetSet: map[string]struct{}{},
 		}
 
 		type parameters struct {
@@ -1052,8 +1056,9 @@ var _ = Describe("high_performance_hooks", func() {
 		irqSMPAffinityFile := filepath.Join(fixturesDir, "irqsmpaffinity")
 
 		h := &HighPerformanceHooks{
-			irqSMPAffinityFile:   irqSMPAffinityFile,
-			irqBalanceConfigFile: irqBalanceConfigFile,
+			irqSMPAffinityFile:     irqSMPAffinityFile,
+			irqBalanceConfigFile:   irqBalanceConfigFile,
+			irqSMPAffinityUnsetSet: map[string]struct{}{},
 		}
 
 		type parameters struct {
@@ -1509,6 +1514,7 @@ var _ = Describe("high_performance_hooks", func() {
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
 					hph.irqBalanceConfigFile = irqBalanceConfigFile
+					hph.irqSMPAffinityUnsetSet = map[string]struct{}{}
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {
@@ -1548,6 +1554,7 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(ok).To(BeTrue())
 				hph.irqSMPAffinityFile = irqSmpAffinityFile
 				hph.irqBalanceConfigFile = irqBalanceConfigFile
+				hph.irqSMPAffinityUnsetSet = map[string]struct{}{}
 
 				var wg sync.WaitGroup
 				for cpu := range 16 {
@@ -1588,6 +1595,7 @@ var _ = Describe("high_performance_hooks", func() {
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
 					hph.irqBalanceConfigFile = irqBalanceConfigFile
+					hph.irqSMPAffinityUnsetSet = map[string]struct{}{}
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {
@@ -1651,6 +1659,7 @@ var _ = Describe("high_performance_hooks", func() {
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
 					hph.irqBalanceConfigFile = irqBalanceConfigFile
+					hph.irqSMPAffinityUnsetSet = map[string]struct{}{}
 				}
 				var wg sync.WaitGroup
 				for cpu := range 16 {

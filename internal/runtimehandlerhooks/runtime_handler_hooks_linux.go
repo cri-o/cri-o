@@ -55,6 +55,7 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 				irqBalanceConfigFile:     hr.config.IrqBalanceConfigFile,
 				cpusetLock:               sync.Mutex{},
 				updateIRQSMPAffinityLock: sync.Mutex{},
+				irqSMPAffinityUnsetSet:   map[string]struct{}{},
 				sharedCPUs:               hr.config.SharedCPUSet,
 				irqSMPAffinityFile:       IrqSmpAffinityProcFile,
 				execCPUAffinity:          runtimeConfig.ExecCPUAffinity,
