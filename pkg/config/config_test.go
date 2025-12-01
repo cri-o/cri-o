@@ -1878,4 +1878,70 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.Runtimes["kata"].ContainerCreateTimeout).To(Equal(int64(600)))
 		})
 	})
+
+	t.Describe("StatsConfig.Validate", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.StatsConfig.Validate()
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should succeed with valid config", func() {
+			// Given
+			sut.IncludedPodMetrics = []string{"cpu", "memory"}
+
+			// When
+			err := sut.StatsConfig.Validate()
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should succeed with all", func() {
+			// Given
+			sut.IncludedPodMetrics = []string{"all"}
+
+			// When
+			err := sut.StatsConfig.Validate()
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should fail with invalid metric", func() {
+			// Given
+			sut.IncludedPodMetrics = []string{"invalid"}
+
+			// When
+			err := sut.StatsConfig.Validate()
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail when all not in the first element", func() {
+			// Given
+			sut.IncludedPodMetrics = []string{"cpu", "memory", "all"}
+
+			// When
+			err := sut.StatsConfig.Validate()
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail when all is not the only one element", func() {
+			// Given
+			sut.IncludedPodMetrics = []string{"all", "cpu", "memory"}
+
+			// When
+			err := sut.StatsConfig.Validate()
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+	})
 })
