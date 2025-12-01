@@ -21,7 +21,7 @@ import (
 )
 
 // Version is the version of the build.
-const Version = "1.32.10"
+const Version = "1.32.11"
 
 // ReleaseMinorVersions are the currently supported minor versions.
 var ReleaseMinorVersions = []string{"1.31", "1.30", "1.29"}
