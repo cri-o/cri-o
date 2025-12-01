@@ -225,3 +225,27 @@ EOF
 		[[ $(cat "$CTR_CGROUP"/container/"$cgroup_file") == "-1" ]]
 	fi
 }
+
+@test "systemd cgroup manager uses system dbus when running as root with rootless env" {
+	if [[ $(id -u) -ne 0 ]]; then
+		skip "test requires running as root"
+	fi
+
+	# Set _CRIO_ROOTLESS=1 to simulate containerized environment (like in nested containers)
+	# where rootless adjustments are needed but system dbus should still be used.
+	_CRIO_ROOTLESS=1 CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=false start_crio
+
+	jq '	  .linux.cgroup_parent = "system.slice"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_systemd.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox_systemd.json)
+
+	output=$(systemctl status "crio-conmon-$pod_id.scope" 2>&1) || true
+	[[ "$output" == *"crio-conmon-$pod_id.scope"* ]]
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDIR"/sandbox_systemd.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl inspect "$ctr_id" | jq -r '.status.state')
+	[[ "$output" == "CONTAINER_RUNNING" ]]
+}
