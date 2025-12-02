@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 01 Dec 2025 22:07:50 UTC for commit [77b8d8f][0]._
+_Generated on Tue, 02 Dec 2025 02:27:43 UTC for commit [78732e4][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/77b8d8f53c358c2d0f1a562e4d735314d76dded4
+[0]: https://github.com/cri-o/cri-o/commit/78732e4e4b96269ead01732d1952a7be7a6891ae
 
 ## Outdated Dependencies
 
@@ -680,7 +680,7 @@ _Generated on Mon, 01 Dec 2025 22:07:50 UTC for commit [77b8d8f][0]._
 | github.com/zeebo/errs                                                       | v1.4.0                                |                                     | false  | true             |
 | github.com/zmap/zcrypto                                                     | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20251114214934-bb32b590b717  | false  | true             |
 | github.com/zmap/zlint/v3                                                    | v3.6.4                                | v3.6.8                              | false  | true             |
-| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.3.0                              | false  | true             |
+| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.3.1                              | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.3                                |                                     | false  | true             |
 | go.etcd.io/etcd/api/v3                                                      | v3.6.4                                | v3.6.6                              | false  | true             |
