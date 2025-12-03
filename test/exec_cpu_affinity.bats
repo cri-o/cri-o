@@ -11,6 +11,7 @@ function setup() {
 	setup_test
 	cat << EOF > "$CRIO_CONFIG_DIR/01-high-performance.conf"
 [crio.runtime]
+infra_ctr_cpuset = "4"
 shared_cpuset = "2-3"
 [crio.runtime.runtimes.high-performance]
 runtime_path="$RUNTIME_BINARY_PATH"

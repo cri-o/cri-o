@@ -89,6 +89,7 @@ type Container struct {
 	monitorProcessLock sync.Mutex
 	// execCgroupPath is the absolute path to the pre-created exec cgroup.
 	// When set, the exec process will spawn on this cgroup.
+	// If this is used, InfraCtrCPUSet will be ignored for the exec operation.
 	execCgroupPath string
 }
 

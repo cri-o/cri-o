@@ -478,9 +478,12 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	args := r.defaultRuntimeArgs()
 	args = append(args, "exec", "--process", processFile, c.ID())
 
-	execCmd := cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
-
+	var execCmd *exec.Cmd
 	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
+		// When execCgroupPath is used, we need to use the raw exec command even if InfraCtrCPUSet is set.
+		// Otherwise, the taskset command may fail.
+		execCmd = exec.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
+
 		execCgroupFD, err := os.Open(execCgroupPath)
 		if err != nil {
 			return fmt.Errorf("failed to open exec cgroup %s: %w", execCgroupPath, err)
@@ -488,6 +491,8 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		defer execCgroupFD.Close()
 
 		setSysProcAttr(execCmd, execCgroupFD.Fd())
+	} else {
+		execCmd = cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
 	}
 
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
