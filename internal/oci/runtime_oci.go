@@ -482,6 +482,20 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	args = append(args, "exec", "--process", processFile, c.ID())
 
 	execCmd := cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
+
+	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
+		execCgroupFD, err := os.Open(execCgroupPath)
+		if err != nil {
+			return fmt.Errorf("failed to open exec cgroup %s: %w", execCgroupPath, err)
+		}
+		defer execCgroupFD.Close()
+
+		execCmd.SysProcAttr = &syscall.SysProcAttr{
+			UseCgroupFD: true,
+			CgroupFD:    int(execCgroupFD.Fd()),
+		}
+	}
+
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
@@ -656,7 +670,23 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	var cmd *exec.Cmd
 
-	if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { //nolint: gocritic
+	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
+		cmd = exec.Command(r.handler.MonitorPath, args...) //nolint: gosec
+
+		execCgroupFD, err := os.Open(execCgroupPath)
+		if err != nil {
+			return nil, &ExecSyncError{
+				ExitCode: -1,
+				Err:      fmt.Errorf("failed to open exec cgroup %s: %w", execCgroupPath, err),
+			}
+		}
+		defer execCgroupFD.Close()
+
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			UseCgroupFD: true,
+			CgroupFD:    int(execCgroupFD.Fd()),
+		}
+	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { //nolint: gocritic
 		cmd = cmdrunner.Command(r.handler.MonitorPath, args...) //nolint: gosec
 	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer {
 		cmd = exec.Command(r.handler.MonitorPath, args...) //nolint: gosec

@@ -14,7 +14,6 @@ import (
 	"sync"
 
 	"github.com/opencontainers/cgroups"
-	"github.com/opencontainers/cgroups/manager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -164,6 +163,12 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		// because in the PreStart stage the process is already constructed.
 		// by the low-level runtime and the environment variables are already finalized.
 		injectCpusetEnv(specgen, &exclusiveCPUSet, &sharedCPUSet)
+
+		// Cpus in oci spec only includes the exclusive CPUs.
+		// If shared CPUs are requested, then we must set the CPUSet for the container additionally.
+		//
+		// The left hand can't be nil because exclusiveCPUSet is not empty.
+		specgen.Config.Linux.Resources.CPU.Cpus = exclusiveCPUSet.Union(sharedCPUSet).String()
 	}
 
 	housekeepingSiblings, err := h.getHousekeepingCPUs(specgen.Config, s.Annotations())
@@ -301,6 +306,78 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 		}
 	}
 
+	// Pre-create exec cgroup for this container (only on cgroup v2).
+	// This allows exec operations to use this pre-created cgroup with CPU affinity already configured.
+	if h.execCPUAffinity != config.ExecCPUAffinityTypeDefault {
+		if err := h.createExecCgroup(ctx, c); err != nil {
+			return fmt.Errorf("failed to pre-create exec cgroup for container %q: %w", c.ID(), err)
+		}
+	}
+
+	return nil
+}
+
+// createExecCgroup pre-creates an exec cgroup for the container during PreStart.
+// This allows exec operations to use a pre-created cgroup with CPU affinity already configured,
+// avoiding the overhead of creating a new cgroup for each exec operation.
+// This is only supported on cgroup v2.
+func (h *HighPerformanceHooks) createExecCgroup(ctx context.Context, c *oci.Container) error {
+	// Only supported on cgroup v2
+	if !node.CgroupIsV2() {
+		return nil
+	}
+
+	cSpec := c.Spec()
+	if cSpec.Linux == nil || cSpec.Linux.CgroupsPath == "" {
+		return errors.New("container spec does not have a cgroup path")
+	}
+
+	// Determine the cgroup manager type based on the cgroup path format
+	var (
+		cgroupManager cgmgr.CgroupManager
+		err           error
+	)
+
+	if strings.Contains(cSpec.Linux.CgroupsPath, ":") {
+		// Systemd format: slice:prefix:containerID
+		cgroupManager, err = cgmgr.SetCgroupManager("systemd")
+	} else {
+		cgroupManager, err = cgmgr.SetCgroupManager("cgroupfs")
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to create cgroup manager: %w", err)
+	}
+
+	execCgroupMgr, err := cgroupManager.ExecCgroupManager(cSpec.Linux.CgroupsPath)
+	if err != nil {
+		return fmt.Errorf("failed to create exec cgroup manager: %w", err)
+	}
+
+	// Apply the cgroup (create it without attaching any process)
+	if err = execCgroupMgr.Apply(-1); err != nil {
+		return fmt.Errorf("failed to apply exec cgroup: %w", err)
+	}
+
+	// Set cpuset for exec cgroup based on the container's ExecCPUAffinity
+	// This ExecCPUAffinity is supposed to be set in PreCreate.
+	if cSpec.Process != nil && cSpec.Process.ExecCPUAffinity != nil && cSpec.Process.ExecCPUAffinity.Initial != "" {
+		if err := execCgroupMgr.Set(&cgroups.Resources{
+			SkipDevices: true,
+			CpusetCpus:  cSpec.Process.ExecCPUAffinity.Initial,
+		}); err != nil {
+			return fmt.Errorf("failed to set cpuset.cpus for exec cgroup: %w", err)
+		} else {
+			log.Debugf(ctx, "Set exec cgroup cpuset.cpus to %s for container %q", cSpec.Process.ExecCPUAffinity.Initial, c.ID())
+		}
+	}
+
+	execCgroupPath := execCgroupMgr.Path("")
+	log.Debugf(ctx, "Pre-created exec cgroup at %s for container %q", execCgroupPath, c.ID())
+
+	// Store the exec cgroup path in the container for later use by exec operations
+	c.SetExecCgroupPath(execCgroupPath)
+
 	return nil
 }
 
@@ -422,11 +499,6 @@ func requestedSharedCPUs(annotations fields.Set, cName string) bool {
 }
 
 // setCPULoadBalancing relies on the cpuset cgroup to disable load balancing for containers.
-// The requisite condition to allow this is `cpuset.sched_load_balance` field must be set to 0 for all cgroups
-// that intersect with `cpuset.cpus` of the container that desires load balancing.
-// Since CRI-O is the owner of the container cgroup, it must set this value for
-// the container. Some other entity (kubelet, external service) must ensure this is the case for all
-// other cgroups that intersect (at minimum: all parent cgroups of this cgroup).
 func (h *HighPerformanceHooks) setCPULoadBalancing(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) error {
 	if node.CgroupIsV2() {
 		return h.setCPULoadBalancingV2(ctx, c, podManager, containerManagers, enable, sharedCPUsRequested)
@@ -467,10 +539,25 @@ type desiredManagerCPUSetState struct {
 func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) (retErr error) {
 	cpusString := c.Spec().Linux.Resources.CPU.Cpus
 
-	exclusiveCPUs, err := cpuset.Parse(cpusString)
+	specCPUSet, err := cpuset.Parse(cpusString)
 	if err != nil {
 		return err
 	}
+
+	var exclusiveCPUs cpuset.CPUSet
+
+	// If sharedCPUs is requested, then the exclusive set is the difference between the spec and the shared set.
+	if sharedCPUsRequested {
+		sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
+		if err != nil {
+			return fmt.Errorf("failed to parse shared cpus: %w", err)
+		}
+
+		exclusiveCPUs = specCPUSet.Difference(sharedCPUSet)
+	} else {
+		exclusiveCPUs = specCPUSet
+	}
+
 	// We need to construct a slice of managers from top to bottom. We already have the container's manager,
 	// potentially the parent manager, and pod manager.
 	// So we can begin by constructing all the parents of the pod manager
@@ -497,7 +584,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 			continue
 		}
 
-		mgr, err := libctrManager(dir, parent, systemd)
+		mgr, err := cgmgr.LibctrManager(dir, parent, systemd)
 		if err != nil {
 			return err
 		}
@@ -866,7 +953,7 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 
 	podCgroupFullPath := filepath.Dir(containerCgroupFullPath)
 
-	podManager, err = libctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), cgroupManager.IsSystemd())
+	podManager, err = cgmgr.LibctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), cgroupManager.IsSystemd())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -877,7 +964,7 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 		containerCgroup = c.ID()
 	}
 
-	containerManager, err := libctrManager(containerCgroup, filepath.Dir(containerCgroupFullPath), cgroupManager.IsSystemd())
+	containerManager, err := cgmgr.LibctrManager(containerCgroup, filepath.Dir(containerCgroupFullPath), cgroupManager.IsSystemd())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -885,7 +972,7 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 	containerManagers = []cgroups.Manager{containerManager}
 
 	// crun actually does the cgroup configuration in a child of the cgroup CRI-O expects to be the container's
-	extraManager, err := trueContainerCgroupManager(containerCgroupFullPath)
+	extraManager, err := cgmgr.CrunContainerCgroupManager(containerCgroupFullPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -897,58 +984,11 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 	return podManager, containerManagers, nil
 }
 
-func trueContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager, error) {
-	// HACK: There isn't really a better way to check if the actual container cgroup is in a child cgroup of the expected.
-	// We could check /proc/$pid/cgroup, but we need to be able to query this after the container exits and the process is gone.
-	// We know the source of this: crun creates a sub cgroup of the container to do the actual management, to enforce systemd's single
-	// owner rule. Thus, we need to hardcode this check.
-	actualContainerCgroup := filepath.Join(expectedContainerCgroup, "container")
-	// Choose cpuset as the cgroup to check, with little reason.
-	cgroupRoot := cgroupMountPoint
-	if !node.CgroupIsV2() {
-		cgroupRoot += "/cpuset"
-	}
-
-	if _, err := os.Stat(filepath.Join(cgroupRoot, actualContainerCgroup)); err != nil {
-		return nil, nil
-	}
-	// must be crun, make another libctrManager. Regardless of cgroup driver, it will be treated as cgroupfs
-	return libctrManager(filepath.Base(actualContainerCgroup), filepath.Dir(actualContainerCgroup), false)
-}
-
 func disableCPUQuotaForCgroup(mgr cgroups.Manager) error {
 	return mgr.Set(&cgroups.Resources{
 		SkipDevices: true,
 		CpuQuota:    -1,
 	})
-}
-
-func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error) {
-	if systemd {
-		parent = filepath.Base(parent)
-		if parent == "." {
-			// libcontainer shorthand for root
-			// see https://github.com/opencontainers/runc/blob/9fffadae8/libcontainer/cgroups/systemd/common.go#L71
-			parent = "-.slice"
-		}
-	}
-
-	cg := &cgroups.Cgroup{
-		Name:   cgroup,
-		Parent: parent,
-		Resources: &cgroups.Resources{
-			SkipDevices: true,
-		},
-		Systemd: systemd,
-		// If the cgroup manager is systemd, then libcontainer
-		// will construct the cgroup path (for scopes) as:
-		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
-		// this will be ignored.
-		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
-		ScopePrefix: cgmgr.CrioPrefix,
-	}
-
-	return manager.New(cg)
 }
 
 // safe fetch of cgroup manager from managers slice.
@@ -1321,7 +1361,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		return nil, fmt.Errorf("no cpus found for container %q", c.Name())
 	}
 
-	exclusiveCPUs, err := cpuset.Parse(cpusString)
+	allCPUs, err := cpuset.Parse(cpusString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
 	}
@@ -1340,12 +1380,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		return nil, err
 	}
 
-	if err := ctrManager.Set(&cgroups.Resources{
-		SkipDevices: true,
-		CpusetCpus:  exclusiveCPUs.Union(sharedCPUSet).String(),
-	}); err != nil {
-		return nil, err
-	}
+	exclusiveCPUs := allCPUs.Difference(sharedCPUSet)
 
 	if node.CgroupIsV2() {
 		// we need to move the isolated cpus into a separate child cgroup
@@ -1355,7 +1390,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 			return nil, err
 		}
 		// create a new cgroupfs manager
-		childCgroup, err := libctrManager("cgroup-child", strings.TrimPrefix(ctrCgroup, cgroupMountPoint), false)
+		childCgroup, err := cgmgr.LibctrManager("cgroup-child", strings.TrimPrefix(ctrCgroup, cgroupMountPoint), false)
 		if err != nil {
 			return nil, err
 		}
