@@ -206,7 +206,11 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	sbox := sandbox.NewBuilder()
+
 	name := m.Annotations[annotations.Name]
+	if name == "" {
+		return nil, errors.New("sandbox name annotation cannot be empty")
+	}
 
 	name, err = c.ReservePodName(id, name)
 	if err != nil {
@@ -225,6 +229,19 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	var metadata types.PodSandboxMetadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Metadata, err)
+	}
+
+	// Validate critical metadata fields to prevent restoring corrupt/malicious configs
+	if metadata.GetName() == "" {
+		return nil, errors.New("sandbox metadata name cannot be empty")
+	}
+
+	if metadata.GetNamespace() == "" {
+		return nil, errors.New("sandbox metadata namespace cannot be empty")
+	}
+
+	if metadata.GetUid() == "" {
+		return nil, errors.New("sandbox metadata uid cannot be empty")
 	}
 
 	processLabel := m.Process.SelinuxLabel
@@ -295,7 +312,13 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	sbox.SetNamespaceOptions(&nsOpts)
 	sbox.SetSeccompProfilePath(spp)
 	sbox.SetCreatedAt(created)
-	sbox.SetNamespace(m.Annotations[annotations.Namespace])
+
+	namespace := m.Annotations[annotations.Namespace]
+	if namespace == "" {
+		return nil, errors.New("sandbox namespace cannot be empty")
+	}
+
+	sbox.SetNamespace(namespace)
 	sbox.SetKubeName(m.Annotations[annotations.KubeName])
 
 	sb, err = sbox.GetSandbox()

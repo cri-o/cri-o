@@ -355,7 +355,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should fail with invalid metadata", func() {
 			// Given
 			manifest := bytes.Replace(testManifest,
-				[]byte(`"io.kubernetes.cri-o.Metadata": "{}",`),
+				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`),
 				[]byte(`"io.kubernetes.cri-o.Metadata": "",`), 1,
 			)
 			gomock.InOrder(
@@ -428,6 +428,26 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
+		It("should fail with empty namespace", func() {
+			// Given
+			manifest := bytes.Replace(testManifest,
+				[]byte(`"io.kubernetes.cri-o.Namespace": "default",`),
+				[]byte(`"io.kubernetes.cri-o.Namespace": "",`), 1,
+			)
+			gomock.InOrder(
+				storeMock.EXPECT().
+					FromContainerDirectory(gomock.Any(), gomock.Any()).
+					Return(manifest, nil),
+			)
+
+			// When
+			sb, err := sut.LoadSandbox(context.Background(), "id")
+
+			// Then
+			Expect(sb).To(BeNil())
+			Expect(err).To(HaveOccurred())
+		})
+
 		It("should fail with wrong PodLinuxOverhead", func() {
 			// Given
 			manifest := bytes.Replace(testManifest,
@@ -453,6 +473,66 @@ var _ = t.Describe("ContainerServer", func() {
 			manifest := bytes.Replace(testManifest,
 				[]byte(`"io.kubernetes.cri-o.PodLinuxResources": "{}",`),
 				[]byte(`"io.kubernetes.cri-o.PodLinuxResources": "wrong",`), 1,
+			)
+			gomock.InOrder(
+				storeMock.EXPECT().
+					FromContainerDirectory(gomock.Any(), gomock.Any()).
+					Return(manifest, nil),
+			)
+
+			// When
+			sb, err := sut.LoadSandbox(context.Background(), "id")
+
+			// Then
+			Expect(sb).To(BeNil())
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail with empty name annotation", func() {
+			// Given
+			manifest := bytes.Replace(testManifest,
+				[]byte(`"io.kubernetes.cri-o.Name": "name",`),
+				[]byte(`"io.kubernetes.cri-o.Name": "",`), 1,
+			)
+			gomock.InOrder(
+				storeMock.EXPECT().
+					FromContainerDirectory(gomock.Any(), gomock.Any()).
+					Return(manifest, nil),
+			)
+
+			// When
+			sb, err := sut.LoadSandbox(context.Background(), "id")
+
+			// Then
+			Expect(sb).To(BeNil())
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail with empty metadata name", func() {
+			// Given
+			manifest := bytes.Replace(testManifest,
+				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`),
+				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"namespace\":\"default\",\"uid\":\"abc123\"}",`), 1,
+			)
+			gomock.InOrder(
+				storeMock.EXPECT().
+					FromContainerDirectory(gomock.Any(), gomock.Any()).
+					Return(manifest, nil),
+			)
+
+			// When
+			sb, err := sut.LoadSandbox(context.Background(), "id")
+
+			// Then
+			Expect(sb).To(BeNil())
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail with empty metadata uid", func() {
+			// Given
+			manifest := bytes.Replace(testManifest,
+				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`),
+				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"name\":\"test\",\"namespace\":\"default\"}",`), 1,
 			)
 			gomock.InOrder(
 				storeMock.EXPECT().

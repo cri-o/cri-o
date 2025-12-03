@@ -75,7 +75,7 @@ var _ = BeforeSuite(func() {
 			"io.kubernetes.cri-o.PortMappings": "[]",
 			"io.kubernetes.cri-o.Labels": "{}",
 			"io.kubernetes.cri-o.LogPath": "{}",
-			"io.kubernetes.cri-o.Metadata": "{}",
+			"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",
 			"io.kubernetes.cri-o.Name": "name",
 			"io.kubernetes.cri-o.Namespace": "default",
 			"io.kubernetes.cri-o.PrivilegedRuntime": "{}",

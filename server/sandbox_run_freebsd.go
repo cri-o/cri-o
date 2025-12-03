@@ -249,7 +249,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	logPath := filepath.Join(logDir, sboxId+".log")
 
 	sbox.SetNamespace(namespace)
-	sbox.SetName(sboxName)
 	sbox.SetKubeName(kubeName)
 	sbox.SetLogDir(logDir)
 	sbox.SetContainers(memorystore.New[*oci.Container]())
