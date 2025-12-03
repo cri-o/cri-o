@@ -1,4 +1,4 @@
-# CRI-O Project Context for Claude Code
+# CRI-O Project Context for AI Agents
 
 ## Project Overview
 
@@ -31,8 +31,9 @@ specifically designed for Kubernetes.
 **Git Workflow:**
 
 - Commit with `-s` (signed-off-by) - all commits are DCO compliant
-- Single commit per branch - amend instead of new commits:
-  `git commit --amend -s`
+- Prefer single commit per branch for simple features/fixes - amend instead of
+  new commits: `git commit --amend -s`
+- For complex features, use multiple logical commits when it aids review
 - Force push after amending: `git push --force-with-lease`
 - Update commit message to reflect ALL changes when amending
 - Keep docs, commit messages, and PR descriptions synchronized
@@ -205,8 +206,9 @@ conmon/conmon-rs, gRPC/HTTP/D-Bus, OpenTelemetry
 ## Special Notes for AI Assistants
 
 1. **Never** commit without `-s` flag
-2. **Always** use single commit per branch - amend instead of creating new
-   commits
+2. **Prefer** single commit per branch for simple changes - amend instead of
+   creating new commits; use multiple logical commits for complex features when
+   it aids review
 3. **Always** force push after amending: `git push --force-with-lease`
 4. **Always** keep docs/commit messages/PR descriptions synchronized when
    making changes

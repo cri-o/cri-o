@@ -312,7 +312,7 @@ For more information on how CRI-O is governed, take a look at the [governance fi
 
 ## AI Assistants
 
-For AI coding assistants working with this codebase, see [CLAUDE.md](CLAUDE.md) for project context, workflow patterns, and development guidelines.
+For AI coding assistants working with this codebase, see [AGENTS.md](AGENTS.md) for project context, workflow patterns, and development guidelines.
 
 ## License Scan
 
