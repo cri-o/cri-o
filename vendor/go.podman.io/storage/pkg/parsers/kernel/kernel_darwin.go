@@ -31,8 +31,7 @@ func getRelease() (string, error) {
 	}
 
 	var release string
-	data := strings.Split(string(osName), "\n")
-	for _, line := range data {
+	for line := range strings.SplitSeq(string(osName), "\n") {
 		if strings.Contains(line, "Kernel Version") {
 			// It has the format like '      Kernel Version: Darwin 14.5.0'
 			_, val, ok := strings.Cut(line, ":")
