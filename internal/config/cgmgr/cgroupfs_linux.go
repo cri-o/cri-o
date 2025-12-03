@@ -3,6 +3,7 @@
 package cgmgr
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -79,7 +80,7 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 		return nil, err
 	}
 
-	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
+	cgMgr, err := LibctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +152,7 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.M
 		return nil, err
 	}
 
-	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
+	cgMgr, err := LibctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
 	if err != nil {
 		return nil, err
 	}
@@ -265,4 +266,19 @@ func (m *CgroupfsManager) RemoveSandboxCgroup(sbParent, containerID string) erro
 	// and the cgroup isn't created as a relative path to the cgroups of the CRI-O process.
 	// https://github.com/opencontainers/runc/blob/fd5debf3aa/libcontainer/cgroups/fs/paths.go#L156
 	return removeSandboxCgroup(filepath.Join("/", sbParent), containerCgroupPath(containerID))
+}
+
+// ExecCgroupManager returns the cgroup manager for the exec cgroup used to place exec processes.
+// For cgroupfs, the cgroupPath is a direct filesystem path.
+// This is only supported on cgroup v2.
+func (m *CgroupfsManager) ExecCgroupManager(cgroupPath string) (cgroups.Manager, error) {
+	if cgroupPath == "" {
+		return nil, errors.New("container cgroup path is empty")
+	}
+
+	if !node.CgroupIsV2() {
+		return nil, errors.New("exec cgroup with CgroupFD is only supported on cgroup v2")
+	}
+
+	return ExecCgroupManager(cgroupPath)
 }
