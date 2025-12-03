@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/opencontainers/cgroups"
-	"github.com/opencontainers/cgroups/manager"
 
 	"github.com/cri-o/cri-o/internal/config/node"
 )
