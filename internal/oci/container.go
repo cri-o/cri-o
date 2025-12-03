@@ -87,6 +87,9 @@ type Container struct {
 	// To avoid race condition, it must be used with monitorProcessLock.
 	monitorProcess     *os.Process
 	monitorProcessLock sync.Mutex
+	// execCgroupPath is the absolute path to the pre-created exec cgroup.
+	// When set, the exec process will spawn on this cgroup.
+	execCgroupPath string
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -919,6 +922,16 @@ func (c *Container) KillExecPIDs() {
 // RuntimeUser returns the runtime user for the container.
 func (c *Container) RuntimeUser() *types.ContainerUser {
 	return c.runtimeUser
+}
+
+// SetExecCgroupPath sets the pre-created exec cgroup path.
+func (c *Container) SetExecCgroupPath(path string) {
+	c.execCgroupPath = path
+}
+
+// ExecCgroupPath returns the pre-created exec cgroup path, or empty string if not set.
+func (c *Container) ExecCgroupPath() string {
+	return c.execCgroupPath
 }
 
 // SetMonitorProcess loads the container monitor process from the ContainerMonitorProcess field.

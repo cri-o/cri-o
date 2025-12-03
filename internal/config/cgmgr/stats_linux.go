@@ -2,7 +2,6 @@ package cgmgr
 
 import (
 	"math"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -89,34 +88,6 @@ func MemLimitGivenSystem(cgroupLimit uint64) uint64 {
 	}
 
 	return cgroupLimit
-}
-
-func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error) {
-	if systemd {
-		parent = filepath.Base(parent)
-		if parent == "." {
-			// libcontainer shorthand for root
-			// see https://github.com/opencontainers/runc/blob/9fffadae8/libcontainer/cgroups/systemd/common.go#L71
-			parent = "-.slice"
-		}
-	}
-
-	cg := &cgroups.Cgroup{
-		Name:   cgroup,
-		Parent: parent,
-		Resources: &cgroups.Resources{
-			SkipDevices: true,
-		},
-		Systemd: systemd,
-		// If the cgroup manager is systemd, then libcontainer
-		// will construct the cgroup path (for scopes) as:
-		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
-		// this will be ignored.
-		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
-		ScopePrefix: CrioPrefix,
-	}
-
-	return manager.New(cg)
 }
 
 func libctrStatsToCgroupStats(stats *cgroups.Stats) *CgroupStats {
