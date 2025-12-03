@@ -490,10 +490,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		}
 		defer execCgroupFD.Close()
 
-		execCmd.SysProcAttr = &syscall.SysProcAttr{
-			UseCgroupFD: true,
-			CgroupFD:    int(execCgroupFD.Fd()),
-		}
+		setSysProcAttr(execCmd, execCgroupFD.Fd())
 	}
 
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
@@ -682,10 +679,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		}
 		defer execCgroupFD.Close()
 
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			UseCgroupFD: true,
-			CgroupFD:    int(execCgroupFD.Fd()),
-		}
+		setSysProcAttr(cmd, execCgroupFD.Fd())
 	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { //nolint: gocritic
 		cmd = cmdrunner.Command(r.handler.MonitorPath, args...) //nolint: gosec
 	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer {
