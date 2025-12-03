@@ -4,11 +4,20 @@
 load helpers
 
 function setup() {
+	skip_if_vm_runtime
 	if ! command -v crun; then
 		skip "this test is supposed to run with crun"
 	fi
 	setup_test
-
+	cat << EOF > "$CRIO_CONFIG_DIR/01-high-performance.conf"
+[crio.runtime]
+shared_cpuset = "2-3"
+[crio.runtime.runtimes.high-performance]
+runtime_path="$RUNTIME_BINARY_PATH"
+exec_cpu_affinity = "first"
+allowed_annotations = ["cpu-load-balancing.crio.io", "cpu-shared.crio.io"]
+default_annotations = {"run.oci.systemd.subgroup" = ""}
+EOF
 }
 
 function teardown() {
@@ -17,11 +26,6 @@ function teardown() {
 
 # bats test_tags=crio:serial
 @test "should not specify the exec cpu affinity" {
-	skip_if_vm_runtime
-	cat << EOF > "$CRIO_CONFIG_DIR/01-workload.conf"
-[crio.runtime.runtimes.high-performance]
-runtime_path="$RUNTIME_BINARY_PATH"
-EOF
 	start_crio
 
 	ctr_id=$(crictl run --runtime high-performance "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
@@ -30,35 +34,22 @@ EOF
 	[ "$output" = "null" ]
 }
 
-#  /sys/fs/cgroup/pod_123.slice/pod_123-456.slice/crio-17e70b32f625...scope/
-#  ├── cpuset.cpus:                      0-1
-#  ├── cpuset.cpus.effective:            0-1
-#  ├── cpuset.cpus.exclusive:            (empty)
-#  ├── cpuset.cpus.exclusive.effective:  (empty)
-#  ├── cpuset.cpus.partition:            member
-#  │
-#  └── container/
-#      ├── cpuset.cpus:                      0-1
-#      ├── cpuset.cpus.effective:            0-1
-#      ├── cpuset.cpus.exclusive:            (empty)
-#      ├── cpuset.cpus.exclusive.effective:  (empty)
-#      ├── cpuset.cpus.partition:            member
-#      │
-#      └── exec/
-#          ├── cpuset.cpus:                      0
-#          ├── cpuset.cpus.effective:            0
-#          ├── cpuset.cpus.exclusive:            (empty)
-#          ├── cpuset.cpus.exclusive.effective:  (empty)
-#          └── cpuset.cpus.partition:            member
+#/sys/fs/cgroup/pod_123.slice/pod_123-456.slice/crio-<ctr_id>.scope/
+#├── cpuset.cpus:                      0-1
+#├── cpuset.cpus.effective:            0-1
+#├── cpuset.cpus.exclusive:            (empty)
+#├── cpuset.cpus.exclusive.effective:  (empty)
+#├── cpuset.cpus.partition:            member
+#│
+#└── exec/
+#    ├── cpuset.cpus:                      0
+#    ├── cpuset.cpus.effective:            0
+#    ├── cpuset.cpus.exclusive:            (empty)
+#    ├── cpuset.cpus.exclusive.effective:  (empty)
+#    └── cpuset.cpus.partition:            member
 #
 # bats test_tags=crio:serial
 @test "should specify the exec cpu affinity when the container only uses exclusive cpus" {
-	skip_if_vm_runtime
-	cat << EOF > "$CRIO_CONFIG_DIR/01-workload.conf"
-[crio.runtime.runtimes.high-performance]
-runtime_path="$RUNTIME_BINARY_PATH"
-exec_cpu_affinity = "first"
-EOF
 	start_crio
 	jq '
 	.linux.resources.cpu_shares = 2048 |
@@ -80,45 +71,22 @@ EOF
 	[ "$output" = "0" ]
 }
 
-#  /sys/fs/cgroup/pod_123.slice/pod_123-456.slice/crio-c7771177f2dc...scope/
-#  ├── cpuset.cpus:                      0-3
-#  ├── cpuset.cpus.effective:            0-3
-#  ├── cpuset.cpus.exclusive:            (empty)
-#  ├── cpuset.cpus.exclusive.effective:  (empty)
-#  ├── cpuset.cpus.partition:            member
-#  │
-#  └── container/
-#      ├── cpuset.cpus:                      0-3
-#      ├── cpuset.cpus.effective:            0-3
-#      ├── cpuset.cpus.exclusive:            (empty)
-#      ├── cpuset.cpus.exclusive.effective:  (empty)
-#      ├── cpuset.cpus.partition:            member
-#      │
-#      ├── cgroup-child/
-#      │   ├── cpuset.cpus:                      0-1
-#      │   ├── cpuset.cpus.effective:            0-1
-#      │   ├── cpuset.cpus.exclusive:            (empty)
-#      │   ├── cpuset.cpus.exclusive.effective:  (empty)
-#      │   └── cpuset.cpus.partition:            member
-#      │
-#      └── exec/
-#          ├── cpuset.cpus:                      2
-#          ├── cpuset.cpus.effective:            2
-#          ├── cpuset.cpus.exclusive:            (empty)
-#          ├── cpuset.cpus.exclusive.effective:  (empty)
-#          └── cpuset.cpus.partition:            member
+#/sys/fs/cgroup/pod_123.slice/pod_123-456.slice/crio-<ctr_id>.scope/
+#├── cpuset.cpus:                      0-3
+#├── cpuset.cpus.effective:            0-3
+#├── cpuset.cpus.exclusive:            (empty)
+#├── cpuset.cpus.exclusive.effective:  (empty)
+#├── cpuset.cpus.partition:            member
+#│
+#└── cgroup-child/
+#    ├── cpuset.cpus:                      0-1
+#    ├── cpuset.cpus.effective:            0-1
+#    ├── cpuset.cpus.exclusive:            (empty)
+#    ├── cpuset.cpus.exclusive.effective:  (empty)
+#    └── cpuset.cpus.partition:            member
 #
 # bats test_tags=crio:serial
 @test "should specify shared cpu as the exec cpu affinity when the container uses both exclusive cpus and shared cpus" {
-	skip_if_vm_runtime
-	cat << EOF > "$CRIO_CONFIG_DIR/01-workload.conf"
-[crio.runtime]
-shared_cpuset = "2-3"
-[crio.runtime.runtimes.high-performance]
-runtime_path="$RUNTIME_BINARY_PATH"
-exec_cpu_affinity = "first"
-allowed_annotations = ["cpu-shared.crio.io"]
-EOF
 	start_crio
 	jq '
 	.linux.resources.cpu_shares = 2048 |
@@ -140,36 +108,23 @@ EOF
 	[ "$output" = "2" ]
 }
 
-#   /sys/fs/cgroup/pod_123.slice/pod_123-456.slice/crio-20cdff9a2953...scope/
-#  ├── cpuset.cpus:                      0-1
-#  ├── cpuset.cpus.effective:            2-15
-#  ├── cpuset.cpus.exclusive:            0-1
-#  ├── cpuset.cpus.exclusive.effective:  0-1
-#  ├── cpuset.cpus.partition:            member
-#  │
-#  └── container/
-#      ├── cpuset.cpus:                      0-1
-#      ├── cpuset.cpus.effective:            0-1
-#      ├── cpuset.cpus.exclusive:            0-1
-#      ├── cpuset.cpus.exclusive.effective:  0-1
-#      ├── cpuset.cpus.partition:            isolated
-#      │
-#      └── exec/
-#          ├── cpuset.cpus:                      0
-#          ├── cpuset.cpus.effective:            0
-#          ├── cpuset.cpus.exclusive:            (empty)
-#          ├── cpuset.cpus.exclusive.effective:  (empty)
-#          └── cpuset.cpus.partition:            member
+#/sys/fs/cgroup/pod_123.slice/pod_123-456.slice/crio-<ctr_id>.scope/
+#├── cpuset.cpus:                      0-1
+#├── cpuset.cpus.effective:            0-1
+#├── cpuset.cpus.exclusive:            0-1
+#├── cpuset.cpus.exclusive.effective:  0-1
+#├── cpuset.cpus.partition:            isolated
+#│
+#└── exec/
+#    ├── cpuset.cpus:                      0
+#    ├── cpuset.cpus.effective:            0
+#    ├── cpuset.cpus.exclusive:            (empty)
+#    ├── cpuset.cpus.exclusive.effective:  (empty)
+#    └── cpuset.cpus.partition:            member
 #
 # bats test_tags=crio:serial
 @test "should run exec with the proper CPU affinity for exclusive cpus" {
 	skip_if_vm_runtime
-	cat << EOF > "$CRIO_CONFIG_DIR/01-workload.conf"
-[crio.runtime.runtimes.high-performance]
-runtime_path="$RUNTIME_BINARY_PATH"
-exec_cpu_affinity = "first"
-allowed_annotations = ["cpu-load-balancing.crio.io"]
-EOF
 	start_crio
 
 	# Create container config with exclusive CPUs
@@ -201,45 +156,23 @@ EOF
 	[ "$output" = "0" ]
 }
 
-#  /sys/fs/cgroup/pod_123.slice/pod_123-456.slice/crio-5d4af8897858...scope/
-#  ├── cpuset.cpus:                      0-3
-#  ├── cpuset.cpus.effective:            2-3
-#  ├── cpuset.cpus.exclusive:            0-1
-#  ├── cpuset.cpus.exclusive.effective:  0-1
-#  ├── cpuset.cpus.partition:            member
-#  │
-#  └── container/
-#      ├── cpuset.cpus:                      0-3
-#      ├── cpuset.cpus.effective:            2-3
-#      ├── cpuset.cpus.exclusive:            0-1
-#      ├── cpuset.cpus.exclusive.effective:  0-1
-#      ├── cpuset.cpus.partition:            member
-#      │
-#      ├── cgroup-child/
-#      │   ├── cpuset.cpus:                      0-1
-#      │   ├── cpuset.cpus.effective:            0-1
-#      │   ├── cpuset.cpus.exclusive:            0-1
-#      │   ├── cpuset.cpus.exclusive.effective:  0-1
-#      │   └── cpuset.cpus.partition:            isolated
-#      │
-#      └── exec/
-#          ├── cpuset.cpus:                      2
-#          ├── cpuset.cpus.effective:            2
-#          ├── cpuset.cpus.exclusive:            (empty)
-#          ├── cpuset.cpus.exclusive.effective:  (empty)
-#          └── cpuset.cpus.partition:            member
+#/sys/fs/cgroup/pod_123.slice/pod_123-456.slice/crio-<ctr_id>.scope/
+#├── cpuset.cpus:                      0-3
+#├── cpuset.cpus.effective:            2-3
+#├── cpuset.cpus.exclusive:            0-1
+#├── cpuset.cpus.exclusive.effective:  0-1
+#├── cpuset.cpus.partition:            member
+#│
+#└── cgroup-child/
+#    ├── cpuset.cpus:                      0-1
+#    ├── cpuset.cpus.effective:            0-1
+#    ├── cpuset.cpus.exclusive:            0-1
+#    ├── cpuset.cpus.exclusive.effective:  0-1
+#    └── cpuset.cpus.partition:            isolated
 #
 # bats test_tags=crio:serial
 @test "should run exec with the proper CPU affinity for exclusive cpus and shared cpus" {
 	skip_if_vm_runtime
-	cat << EOF > "$CRIO_CONFIG_DIR/01-workload.conf"
-[crio.runtime]
-shared_cpuset = "2-3"
-[crio.runtime.runtimes.high-performance]
-runtime_path="$RUNTIME_BINARY_PATH"
-exec_cpu_affinity = "first"
-allowed_annotations = ["cpu-load-balancing.crio.io", "cpu-shared.crio.io"]
-EOF
 	start_crio
 
 	# Create container config with exclusive CPUs
