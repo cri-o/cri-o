@@ -238,10 +238,8 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 		return err
 	}
 
-	var sharedCPUsRequested bool
-	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
-		sharedCPUsRequested = true
-
+	sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())
+	if sharedCPUsRequested {
 		if containerManagers, err = setSharedCPUs(c, containerManagers, h.sharedCPUs); err != nil {
 			return fmt.Errorf("setSharedCPUs: failed to set shared CPUs for container %q; %w", c.Name(), err)
 		}
@@ -308,7 +306,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 
 	// Pre-create exec cgroup for this container (only on cgroup v2).
 	// This allows exec operations to use this pre-created cgroup with CPU affinity already configured.
-	if h.execCPUAffinity != config.ExecCPUAffinityTypeDefault {
+	if h.execCPUAffinity != config.ExecCPUAffinityTypeDefault && !sharedCPUsRequested {
 		if err := h.createExecCgroup(ctx, c); err != nil {
 			return fmt.Errorf("failed to pre-create exec cgroup for container %q: %w", c.ID(), err)
 		}
