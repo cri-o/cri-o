@@ -399,7 +399,22 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 			return err
 		}
 
-		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, true, requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())); err != nil {
+		sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())
+		if sharedCPUsRequested {
+			actualContainerManager, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
+			if err != nil {
+				return err
+			}
+
+			childCgroup, err := createChildCgroup(actualContainerManager.Path(""))
+			if err != nil {
+				return err
+			}
+
+			containerManagers = append(containerManagers, childCgroup)
+		}
+
+		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, true, sharedCPUsRequested); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
@@ -1412,6 +1427,10 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 	// here we return the containerManagers with the child cgroup inside
 	// this is required in case load-balancing disablement is requested for the pod
 	return containerManagers, nil
+}
+
+func createChildCgroup(cgroupPath string) (cgroups.Manager, error) {
+	return cgmgr.LibctrManager("cgroup-child", strings.TrimPrefix(cgroupPath, cgroupMountPoint), false)
 }
 
 func isContainerCPUEmpty(spec *specs.Spec) bool {
