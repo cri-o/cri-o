@@ -436,8 +436,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	sboxID := sbox.ID()
 	sboxName := sbox.Name()
 
-	sbox.SetName(sboxName)
-
 	resourceCleaner := resourcestore.NewResourceCleaner()
 	// in some cases, it is still necessary to reserve container resources when an error occurs (such as just a request context timeout error)
 	storeResource := false
