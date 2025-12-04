@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 04 Dec 2025 13:14:14 UTC for commit [482be4b][0]._
+_Generated on Thu, 04 Dec 2025 15:51:16 UTC for commit [d0ee278][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/482be4b40f197cba6d37e020377f5e70c86c0557
+[0]: https://github.com/cri-o/cri-o/commit/d0ee278569ccb6963eeda18c3fdb0732caa42845
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Thu, 04 Dec 2025 13:14:14 UTC for commit [482be4b][0]._
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cri-o/crio-credential-provider              | v0.1.1                               | v0.1.2                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251204124857-f673f33e7273 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251204145411-425f4ffc8da8 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
 | k8s.io/api                                             | v0.35.0-beta.0                       | v0.36.0-alpha.0                    | true   | true             |
@@ -331,7 +331,7 @@ _Generated on Thu, 04 Dec 2025 13:14:14 UTC for commit [482be4b][0]._
 | github.com/envoyproxy/go-control-plane                                      | v0.13.5-0.20251024222203-75eaa193e329 | v0.14.0                             | false  | true             |
 | github.com/envoyproxy/go-control-plane/envoy                                | v1.35.0                               | v1.36.0                             | false  | true             |
 | github.com/envoyproxy/go-control-plane/ratelimit                            | v0.1.0                                |                                     | false  | true             |
-| github.com/envoyproxy/protoc-gen-validate                                   | v1.2.1                                |                                     | false  | true             |
+| github.com/envoyproxy/protoc-gen-validate                                   | v1.2.1                                | v1.3.0                              | false  | true             |
 | github.com/fatih/color                                                      | v1.16.0                               | v1.18.0                             | false  | true             |
 | github.com/felixge/httpsnoop                                                | v1.0.4                                |                                     | false  | true             |
 | github.com/fsnotify/fsnotify                                                | v1.9.0                                |                                     | true   | true             |
@@ -451,7 +451,7 @@ _Generated on Thu, 04 Dec 2025 13:14:14 UTC for commit [482be4b][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251204124857-f673f33e7273  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251204145411-425f4ffc8da8  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
