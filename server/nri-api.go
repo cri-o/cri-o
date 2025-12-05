@@ -118,6 +118,10 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 		return err
 	}
 
+	if adjust == nil {
+		return nil
+	}
+
 	wrapgen := nrigen.SpecGenerator(specgen,
 		nrigen.WithAnnotationFilter(
 			func(values map[string]string) (map[string]string, error) {
