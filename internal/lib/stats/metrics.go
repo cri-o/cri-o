@@ -116,6 +116,14 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 		containerSpecMemorySwapLimitBytes,
 		containerStartTimeSeconds,
 	},
+	config.PressureMetrics: {
+		containerPressureCPUStalledSecondsTotal,
+		containerPressureCPUWaitingSecondsTotal,
+		containerPressureMemoryStalledSecondsTotal,
+		containerPressureMemoryWaitingSecondsTotal,
+		containerPressureIOStalledSecondsTotal,
+		containerPressureIOWaitingSecondsTotal,
+	},
 }
 
 // PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
