@@ -46,7 +46,6 @@ import (
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	extannotations "github.com/cri-o/cri-o/pkg/annotations"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
@@ -2146,7 +2145,7 @@ func (r *RuntimeHandler) validateRuntimeSeccompProfile() error {
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
 	disallowedMap := make(map[string]bool)
-	for _, ann := range extannotations.AllAllowedAnnotations {
+	for _, ann := range v2.AllAllowedAnnotations {
 		disallowedMap[ann] = false
 	}
 
