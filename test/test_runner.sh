@@ -51,4 +51,5 @@ export BATS_TEST_RETRIES=1
 bats --version
 
 # Run the tests.
-execute bats --jobs "$JOBS" --tap "${TESTS[@]}"
+execute bats --jobs "$JOBS" --tap "${TESTS[@]}" --filter-tags '!crio:serial'
+execute bats --tap "${TESTS[@]}" --filter-tags 'crio:serial'

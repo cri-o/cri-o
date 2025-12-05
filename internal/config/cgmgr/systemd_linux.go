@@ -3,6 +3,7 @@
 package cgmgr
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -111,7 +112,7 @@ func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (c
 		return nil, err
 	}
 	// Due to a quirk of libcontainer's cgroup driver, cgroup name = containerID
-	cgMgr, err := libctrManager(containerID, filepath.Dir(cgPath), true)
+	cgMgr, err := LibctrManager(containerID, filepath.Dir(cgPath), true)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 		return nil, err
 	}
 
-	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), true)
+	cgMgr, err := LibctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), true)
 	if err != nil {
 		return nil, err
 	}
@@ -354,4 +355,38 @@ func (m *SystemdManager) RemoveSandboxCgroup(sbParent, containerID string) error
 	}
 
 	return removeSandboxCgroup(expandedParent, containerCgroupPath(containerID))
+}
+
+// ExecCgroupManager returns the cgroup manager for the exec cgroup used to place exec processes.
+// For systemd, the cgroupPath is in the format "slice:prefix:containerID".
+// This is only supported on cgroup v2.
+func (m *SystemdManager) ExecCgroupManager(cgroupPath string) (cgroups.Manager, error) {
+	if cgroupPath == "" {
+		return nil, errors.New("container cgroup path is empty")
+	}
+
+	if !node.CgroupIsV2() {
+		return nil, errors.New("exec cgroup with CgroupFD is only supported on cgroup v2")
+	}
+
+	// Parse systemd format: slice:prefix:containerID
+	parts := strings.Split(cgroupPath, ":")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid systemd cgroup path format: %s (expected slice:prefix:containerID)", cgroupPath)
+	}
+
+	slice := parts[0]
+	prefix := parts[1]
+	containerID := parts[2]
+
+	expandedSlice, err := systemd.ExpandSlice(slice)
+	if err != nil {
+		return nil, fmt.Errorf("failed to expand systemd slice %q: %w", slice, err)
+	}
+
+	// The container cgroup is a scope under the expanded slice
+	// Format: <expanded-slice>/<prefix>-<containerID>.scope
+	containerCgroupAbsPath := filepath.Join(expandedSlice, prefix+"-"+containerID+".scope")
+
+	return ExecCgroupManager(containerCgroupAbsPath)
 }
