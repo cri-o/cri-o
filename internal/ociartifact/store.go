@@ -336,6 +336,12 @@ func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact
 	// if strRef is named reference
 	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.SystemContext, strRef)
 	if err != nil {
+		// If there are no artifacts in the store, return ErrNotFound regardless of name validation errors
+		// This maintains backward compatibility where invalid names simply weren't found
+		if len(artifacts) == 0 {
+			return nil, false, fmt.Errorf("%w with name or digest of: %s", ErrNotFound, strRef)
+		}
+
 		return nil, false, fmt.Errorf("get candidates for potentially short image name: %w", err)
 	}
 

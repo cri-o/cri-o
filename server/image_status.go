@@ -114,6 +114,12 @@ func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) 
 
 	potentialMatches, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.GetImage())
 	if err != nil {
+		if len(spec.GetImage()) >= 3 && isHexString(spec.GetImage()) {
+			log.Debugf(ctx, "CandidatesForPotentiallyShortImageName failed for %q, but input looks like digest/ID: %v", spec.GetImage(), err)
+
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
@@ -181,4 +187,15 @@ func createImageInfo(result *pkgstorage.ImageResult) (map[string]string, error) 
 	}
 
 	return map[string]string{"info": string(bytes)}, nil
+}
+
+// isHexString returns true if the string contains only hexadecimal characters.
+func isHexString(s string) bool {
+	for _, c := range s {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
+			return false
+		}
+	}
+
+	return true
 }
