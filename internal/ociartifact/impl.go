@@ -16,7 +16,7 @@ import (
 	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
-	"go.podman.io/image/v5/pkg/shortnames"
+	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	"go.podman.io/image/v5/types"
 )
 
@@ -144,23 +144,74 @@ func (d *defaultImpl) DeleteImage(ctx context.Context, ref types.ImageReference,
 // CandidatesForPotentiallyShortImageName resolves locally an artifact name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
 // It will only return an empty slice if err != nil.
 func (d *defaultImpl) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]reference.Named, error) {
-	// Always resolve unqualified names to all candidates. We should use a more secure mode once we settle on a shortname alias table.
-	sc := types.SystemContext{}
-	if systemContext != nil {
-		sc = *systemContext // A shallow copy
+	namedRef, err := reference.ParseNormalizedNamed(imageName)
+	if err != nil {
+		return nil, fmt.Errorf("invalid artifact name %q: %w", imageName, err)
 	}
 
-	resolved, err := shortnames.ResolveLocally(&sc, imageName)
+	domain := reference.Domain(namedRef)
+
+	// Accept as fully-qualified if it has an explicit non-docker.io domain,
+	// OR if it explicitly specifies docker.io (contains a domain separator)
+	// We check for domain separator (. or : in domain part) to distinguish
+	// explicit "docker.io/image" from auto-normalized "image" -> "docker.io/image"
+	hasExplicitDomain := domain != "" && domain != "docker.io"
+	if !hasExplicitDomain && domain == "docker.io" {
+		// Check if original input had an explicit domain (contains '.' or has multiple '/')
+		// "nginx" -> false, "docker.io/nginx" or "registry.io/nginx" -> true
+		hasExplicitDomain = strings.Contains(imageName, ".") || strings.Count(imageName, "/") > 1
+	}
+
+	if hasExplicitDomain {
+		namedRef = reference.TagNameOnly(namedRef)
+
+		return []reference.Named{namedRef}, nil
+	}
+
+	// For short names without an explicit domain, only check for configured aliases
+	repoName := reference.FamiliarName(reference.TrimNamed(namedRef))
+
+	var tag string
+
+	var digestStr digest.Digest
+
+	if tagged, ok := namedRef.(reference.Tagged); ok {
+		tag = tagged.Tag()
+	}
+
+	if digested, ok := namedRef.(reference.Digested); ok {
+		digestStr = digested.Digest()
+	}
+
+	// check if alias exists.
+	aliases, _, err := sysregistriesv2.ResolveShortNameAlias(systemContext, repoName)
 	if err != nil {
-		// Error is not very clear in this context, and unfortunately is also not a variable.
-		if strings.Contains(err.Error(), "short-name resolution enforced but cannot prompt without a TTY") {
-			return nil, fmt.Errorf("short name mode is enforcing, but image name %s returns ambiguous list", imageName)
+		return nil, fmt.Errorf("error resolving short-name alias for %q: %w", repoName, err)
+	}
+
+	if aliases != nil {
+		if tag != "" {
+			aliases, err = reference.WithTag(aliases, tag)
+			if err != nil {
+				return nil, fmt.Errorf("error applying tag to alias: %w", err)
+			}
 		}
 
-		return nil, err
+		if digestStr != "" {
+			aliases, err = reference.WithDigest(aliases, digestStr)
+			if err != nil {
+				return nil, fmt.Errorf("error applying digest to alias: %w", err)
+			}
+		}
+
+		aliases = reference.TagNameOnly(aliases)
+
+		return []reference.Named{aliases}, nil
 	}
 
-	return resolved, nil
+	// No alias found and not a fully qualified name.
+	// Artifacts do not support unqualified-search-registries
+	return nil, fmt.Errorf("artifact %q must be a fully-qualified reference or have a configured short-name alias; unqualified-search-registries are not supported for artifacts", imageName)
 }
 
 func (d *defaultImpl) ChooseInstance(manifestList manifest.List, systemContext *types.SystemContext) (digest.Digest, error) {
