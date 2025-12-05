@@ -12,9 +12,9 @@ import (
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 

@@ -177,6 +177,13 @@ kata_skip_seccomp_oci_artifacts_tests:
   - 'test "seccomp OCI artifact with image annotation for container"'
   - 'test "seccomp OCI artifact with image annotation and profile set to unconfined"'
   - 'test "seccomp OCI artifact with missing artifact"'
+kata_skip_annotation_migration_tests:
+  - 'test "v1 cgroup2-mount-hierarchy-rw annotation should still work"'
+  - 'test "v2 cgroup2-mount-hierarchy-rw annotation should work"'
+  - 'test "v1 userns-mode annotation should still work"'
+  - 'test "v2 userns-mode annotation should work"'
+  - 'test "v1 umask annotation should still work"'
+  - 'test "v2 unified-cgroup annotation for specific container with slash separator should work"'
 
 runc_git_version: main
 crun_git_version: 1.23.1

@@ -168,6 +168,9 @@ and [Podman](https://github.com/containers/podman).
 
 <!-- markdownlint-enable MD013 -->
 
+For information about CRI-O annotations and their migration to Kubernetes-recommended naming conventions,
+see the [Annotation Migration Guide](ANNOTATION_MIGRATION.md).
+
 ## Security
 
 The security process for reporting vulnerabilities is described in [SECURITY.md](./SECURITY.md).

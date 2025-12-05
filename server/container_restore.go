@@ -14,11 +14,11 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubetypes "k8s.io/kubelet/pkg/types"
 
+	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/pkg/annotations"
 )
 
 // checkIfCheckpointOCIImage returns checks if the input refers to a checkpoint image.

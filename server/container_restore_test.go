@@ -17,11 +17,11 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubetypes "k8s.io/kubelet/pkg/types"
 
+	crioann "github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
 var _ = t.Describe("ContainerRestore", func() {

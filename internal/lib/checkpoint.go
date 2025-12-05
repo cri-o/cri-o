@@ -15,9 +15,9 @@ import (
 	"go.podman.io/common/pkg/crutils"
 	"go.podman.io/storage/pkg/archive"
 
+	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/annotations"
 )
 
 // ContainerCheckpointOptions is the relevant subset of libpod.ContainerCheckpointOptions.

@@ -25,6 +25,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
+	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/constants"
@@ -36,7 +37,7 @@ import (
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	istorage "github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	"github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 )
@@ -490,7 +491,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	usernsMode := kubeAnnotations[annotations.UsernsModeAnnotation]
+	usernsMode, _ := v2.GetAnnotationValue(kubeAnnotations, v2.UsernsMode)
 	if usernsMode != "" {
 		log.Warnf(ctx, "Annotation 'io.kubernetes.cri-o.userns-mode' is deprecated, and will be replaced with native Kubernetes support for user namespaces in the future")
 	}
@@ -1008,7 +1009,7 @@ func (s *Server) setupSandboxShm(ctx context.Context, sboxName, sboxID string, h
 	} else {
 		shmSize := int64(libsandbox.DefaultShmSize)
 
-		if shmSizeStr, ok := kubeAnnotations[annotations.ShmSizeAnnotation]; ok {
+		if shmSizeStr, ok := v2.GetAnnotationValue(kubeAnnotations, v2.ShmSize); ok {
 			quantity, err := resource.ParseQuantity(shmSizeStr)
 			if err != nil {
 				return "", fmt.Errorf("failed to parse shm size '%s': %w", shmSizeStr, err)
@@ -1068,7 +1069,7 @@ func (s *Server) setupSandboxAnnotations(sbox libsandbox.Builder, g *generate.Ge
 	g.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
 
 	if podContainer.Config.Config.StopSignal != "" {
-		g.AddAnnotation(annotations.StopSignalAnnotation, podContainer.Config.Config.StopSignal)
+		g.AddAnnotation(v2.StopSignal, podContainer.Config.Config.StopSignal)
 	}
 
 	created := time.Now()
@@ -1188,7 +1189,7 @@ func (s *Server) setupSandboxResources(sbox libsandbox.Builder, g *generate.Gene
 	}
 
 	sbox.SetPodLinuxOverhead(overhead)
-	g.AddAnnotation(annotations.PodLinuxOverhead, string(overheadJSON))
+	g.AddAnnotation(v2.PodLinuxOverhead, string(overheadJSON))
 
 	resources := sbox.Config().GetLinux().GetResources()
 
@@ -1198,7 +1199,7 @@ func (s *Server) setupSandboxResources(sbox libsandbox.Builder, g *generate.Gene
 	}
 
 	sbox.SetPodLinuxResources(resources)
-	g.AddAnnotation(annotations.PodLinuxResources, string(resourcesJSON))
+	g.AddAnnotation(v2.PodLinuxResources, string(resourcesJSON))
 
 	return nil
 }
@@ -1308,7 +1309,7 @@ func (s *Server) setupInfraContainer(ctx context.Context, sb *libsandbox.Sandbox
 		log.Debugf(ctx, "Dropping infra container for pod %s", sboxID)
 		container = oci.NewSpoofedContainer(sboxID, containerName, labels, sboxID, created, podContainer.RunDir)
 
-		g.AddAnnotation(annotations.SpoofedContainer, "true")
+		g.AddAnnotation(v2.Spoofed, "true")
 
 		if err := s.config.CgroupManager().CreateSandboxCgroup(cgroupParent, sboxID); err != nil {
 			return nil, "", fmt.Errorf("create dropped infra %s cgroup: %w", sboxID, err)
@@ -1424,7 +1425,7 @@ func (s *Server) setupSandboxShmMount(ctx context.Context, sbox libsandbox.Build
 }
 
 func (s *Server) setupSandboxLogLinking(ctx context.Context, namespace, kubeName, kubePodUID, mountLabel string, kubeAnnotations map[string]string) {
-	if emptyDirVolName, ok := kubeAnnotations[annotations.LinkLogsAnnotation]; ok {
+	if emptyDirVolName, ok := v2.GetAnnotationValue(kubeAnnotations, v2.LinkLogs); ok {
 		if err := linklogs.MountPodLogs(ctx, kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel); err != nil {
 			log.Warnf(ctx, "Failed to link logs: %v", err)
 		}

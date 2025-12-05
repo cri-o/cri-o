@@ -14,7 +14,7 @@ import (
 	"github.com/cri-o/cri-o/internal/linklogs"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	ann "github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
@@ -28,7 +28,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 
 	// Unlink logs if they were linked
 	sbAnnotations := sb.Annotations()
-	if emptyDirVolName, ok := sbAnnotations[ann.LinkLogsAnnotation]; ok {
+	if emptyDirVolName, ok := v2.GetAnnotationValue(sbAnnotations, v2.LinkLogs); ok {
 		if err := linklogs.UnmountPodLogs(ctx, sb.Labels()[kubeletTypes.KubernetesPodUIDLabel], emptyDirVolName); err != nil {
 			log.Warnf(ctx, "Failed to unlink logs: %v", err)
 		}

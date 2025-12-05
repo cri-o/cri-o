@@ -13,6 +13,7 @@ import (
 	current "github.com/containernetworking/cni/pkg/types/100"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/idtools"
+	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib/constants"
@@ -21,7 +22,8 @@ import (
 	"github.com/cri-o/cri-o/internal/memorystore"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
-	"github.com/cri-o/cri-o/pkg/annotations"
+	extannotations "github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	json "github.com/json-iterator/go"
@@ -122,7 +124,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	kubeAnnotations := sbox.Config().Annotations
 
-	usernsMode := kubeAnnotations[annotations.UsernsModeAnnotation]
+	usernsMode, _ := v2.GetAnnotationValue(kubeAnnotations, v2.UsernsMode)
 	sbox.SetUsernsMode(usernsMode)
 
 	containerName, err := s.ReserveSandboxContainerIDAndName(sbox.Config())
@@ -289,7 +291,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
 	g.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
 	if podContainer.Config.Config.StopSignal != "" {
-		g.AddAnnotation(annotations.StopSignalAnnotation, podContainer.Config.Config.StopSignal)
+		g.AddAnnotation(extannotations.StopSignalAnnotation, podContainer.Config.Config.StopSignal)
 	}
 
 	if s.config.CgroupManager().IsSystemd() && node.SystemdHasCollectMode() {
@@ -317,14 +319,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 	sbox.SetPodLinuxOverhead(overhead)
-	g.AddAnnotation(annotations.PodLinuxOverhead, string(overheadJSON))
+	g.AddAnnotation(v2.PodLinuxOverhead, string(overheadJSON))
 
 	resources := sbox.Config().GetLinux().GetResources()
 	resourcesJSON, err := json.Marshal(resources)
 	if err != nil {
 		return nil, err
 	}
-	g.AddAnnotation(annotations.PodLinuxResources, string(resourcesJSON))
+	g.AddAnnotation(v2.PodLinuxResources, string(resourcesJSON))
 
 	sbox.SetResolvPath(sbox.ResolvPath())
 	sbox.SetHostname(hostname)
@@ -454,7 +456,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	} else {
 		log.Debugf(ctx, "Dropping infra container for pod %s", sboxId)
 		container = oci.NewSpoofedContainer(sboxId, containerName, labels, sboxId, created, podContainer.RunDir)
-		g.AddAnnotation(annotations.SpoofedContainer, "true")
+		g.AddAnnotation(v2.Spoofed, "true")
 	}
 	container.SetMountPoint(mountPoint)
 	container.SetSpec(g.Config)

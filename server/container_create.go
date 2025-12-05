@@ -40,7 +40,7 @@ import (
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 )
@@ -679,7 +679,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	mountLabel, processLabel, hostNet, maybeRelabel, skipRelabel := s.configureSELinuxLabels(ctr, sb, containerInfo, securityContext)
 
-	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
+	cgroup2RWAnnotation, _ := v2.GetAnnotationValue(sb.Annotations(), v2.Cgroup2MountHierarchyRW)
+	cgroup2RW := node.CgroupIsV2() && cgroup2RWAnnotation == "true"
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
 	idMapSupport := s.ContainerServer.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
@@ -930,7 +931,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}
 
-	if emptyDirVolName, ok := sb.Annotations()[crioann.LinkLogsAnnotation]; ok {
+	if emptyDirVolName, ok := v2.GetAnnotationValue(sb.Annotations(), v2.LinkLogs); ok {
 		if err := linklogs.LinkContainerLogs(ctx, sb.Labels()[kubeletTypes.KubernetesPodUIDLabel], emptyDirVolName, ctr.ID(), containerConfig.GetMetadata()); err != nil {
 			log.Warnf(ctx, "Failed to link container logs: %v", err)
 		}
@@ -980,7 +981,8 @@ func (s *Server) setupContainerMountsAndSystemd(ctr container.Container, sb *san
 		ctr.DisableFips(),
 	)
 
-	if ctr.DisableFips() && sb.Annotations()[crioann.DisableFIPSAnnotation] == "true" {
+	disableFIPSAnnotation, _ := v2.GetAnnotationValue(sb.Annotations(), v2.DisableFIPS)
+	if ctr.DisableFips() && disableFIPSAnnotation == "true" {
 		if err := disableFipsForContainer(ctr, containerInfo.RunDir); err != nil {
 			return "", fmt.Errorf("failed to disable FIPS for container %s: %w", ctr.ID(), err)
 		}
@@ -1203,7 +1205,7 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 		processLabel = ""
 	}
 
-	if val, present := sb.Annotations()[crioann.TrySkipVolumeSELinuxLabelAnnotation]; present && val == "true" {
+	if val, present := v2.GetAnnotationValue(sb.Annotations(), v2.TrySkipVolumeSELinuxLabel); present && val == "true" {
 		maybeRelabel = true
 	}
 
@@ -1448,12 +1450,19 @@ func (s *Server) setupContainerIDMappings(sb *sandbox.Sandbox, specgen *generate
 	if containerIDMappings != nil {
 		s.finalizeUserMapping(sb, specgen, containerIDMappings)
 
-		for _, uidmap := range containerIDMappings.UIDs() {
-			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
-		}
+		// Only add ID mappings if we're not joining the sandbox's user namespace.
+		// If the sandbox has a user namespace, the container will join it via namespace path
+		// (configured in SpecAddNamespaces). In this case, we should NOT add ID mappings to
+		// avoid the conflict of having both a userns path and ID mappings in the OCI spec.
+		sandboxHasUserNs := sb.UserNsPath() != ""
+		if !sandboxHasUserNs {
+			for _, uidmap := range containerIDMappings.UIDs() {
+				specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+			}
 
-		for _, gidmap := range containerIDMappings.GIDs() {
-			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+			for _, gidmap := range containerIDMappings.GIDs() {
+				specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+			}
 		}
 
 		rootPair := containerIDMappings.RootPair()
@@ -1472,13 +1481,13 @@ func (s *Server) setupContainerIDMappings(sb *sandbox.Sandbox, specgen *generate
 }
 
 func (s *Server) setupContainerUmask(sb *sandbox.Sandbox, specgen *generate.Generator) error {
-	if v := sb.Annotations()[crioann.UmaskAnnotation]; v != "" {
+	if v, _ := v2.GetAnnotationValue(sb.Annotations(), v2.Umask); v != "" {
 		umaskRegexp := regexp.MustCompile(`^[0-7]{1,4}$`)
 		if !umaskRegexp.MatchString(v) {
 			return fmt.Errorf("invalid umask string %s", v)
 		}
 
-		decVal, err := strconv.ParseUint(sb.Annotations()[crioann.UmaskAnnotation], 8, 32)
+		decVal, err := strconv.ParseUint(v, 8, 32)
 		if err != nil {
 			return err
 		}

@@ -21,6 +21,7 @@ import (
 	"go.podman.io/storage/pkg/truncindex"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -31,7 +32,7 @@ import (
 	"github.com/cri-o/cri-o/internal/registrar"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	"github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
@@ -282,16 +283,16 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	podLinuxOverhead := types.LinuxContainerResources{}
-	if v, found := m.Annotations[annotations.PodLinuxOverhead]; found {
+	if v, found := v2.GetAnnotationValue(m.Annotations, v2.PodLinuxOverhead); found {
 		if err := json.Unmarshal([]byte(v), &podLinuxOverhead); err != nil {
-			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PodLinuxOverhead, err)
+			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", v2.PodLinuxOverhead, err)
 		}
 	}
 
 	podLinuxResources := types.LinuxContainerResources{}
-	if v, found := m.Annotations[annotations.PodLinuxResources]; found {
+	if v, found := v2.GetAnnotationValue(m.Annotations, v2.PodLinuxResources); found {
 		if err := json.Unmarshal([]byte(v), &podLinuxResources); err != nil {
-			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PodLinuxResources, err)
+			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", v2.PodLinuxResources, err)
 		}
 	}
 
@@ -305,7 +306,9 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	sbox.SetHostname(m.Annotations[annotations.HostName])
 	sbox.SetPortMappings(portMappings)
 	sbox.SetHostNetwork(hostNetwork)
-	sbox.SetUsernsMode(m.Annotations[annotations.UsernsModeAnnotation])
+
+	usernsMode, _ := v2.GetAnnotationValue(m.Annotations, v2.UsernsMode)
+	sbox.SetUsernsMode(usernsMode)
 	sbox.SetPodLinuxOverhead(&podLinuxOverhead)
 	sbox.SetPodLinuxResources(&podLinuxResources)
 	sbox.SetHostnamePath(m.Annotations[annotations.HostnamePath])
@@ -374,12 +377,14 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	// We should not take whether the server currently has DropInfraCtr specified, but rather
 	// whether the server used to.
 	wasSpoofed := false
-	if spoofed, ok := m.Annotations[annotations.SpoofedContainer]; ok && spoofed == "true" {
+	if spoofed, ok := v2.GetAnnotationValue(m.Annotations, v2.Spoofed); ok && spoofed == "true" {
 		wasSpoofed = true
 	}
 
 	if !wasSpoofed {
-		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.UserRequestedImage], nil, nil, "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations[annotations.StopSignalAnnotation])
+		stopSignal, _ := v2.GetAnnotationValue(m.Annotations, v2.StopSignal)
+
+		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.UserRequestedImage], nil, nil, "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, stopSignal)
 		if err != nil {
 			return sb, err
 		}
@@ -550,9 +555,14 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		imageID = &id
 	}
 
-	platformRuntimePath, ok := m.Annotations[annotations.PlatformRuntimePath]
+	platformRuntimePath, ok := v2.GetAnnotationValue(m.Annotations, v2.PlatformRuntimePath)
 	if !ok {
 		platformRuntimePath = ""
+	}
+
+	stopSignal, ok := v2.GetAnnotationValue(m.Annotations, v2.StopSignal)
+	if !ok {
+		stopSignal = ""
 	}
 
 	kubeAnnotations := make(map[string]string)
@@ -565,7 +575,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, userRequestedImage, someNameOfTheImage, imageID, "", &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, m.Annotations[annotations.StopSignalAnnotation])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, userRequestedImage, someNameOfTheImage, imageID, "", &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, stopSignal)
 	if err != nil {
 		return err
 	}

@@ -10,7 +10,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/annotations"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
@@ -56,17 +56,17 @@ var _ = t.Describe("Oci", func() {
 				RuntimePath:        "/bin/sh",
 				RuntimeType:        "",
 				RuntimeRoot:        "/run/runc",
-				AllowedAnnotations: []string{annotations.UsernsModeAnnotation},
+				AllowedAnnotations: []string{v2.UsernsMode},
 			},
 			performanceRuntime: &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/sh",
 				RuntimeType: "",
 				RuntimeRoot: "/run/runc",
 				AllowedAnnotations: []string{
-					annotations.CPULoadBalancingAnnotation,
-					annotations.IRQLoadBalancingAnnotation,
-					annotations.CPUQuotaAnnotation,
-					annotations.OCISeccompBPFHookAnnotation,
+					v2.CPULoadBalancing,
+					v2.IRQLoadBalancing,
+					v2.CPUQuota,
+					v2.OCISeccompBPFHook,
 				},
 			},
 			vmRuntime: &libconfig.RuntimeHandler{
@@ -154,8 +154,8 @@ var _ = t.Describe("Oci", func() {
 
 				// Then
 				Expect(err).ToNot(HaveOccurred())
-				Expect(foundAnn).NotTo(ContainElement(annotations.DevicesAnnotation))
-				Expect(foundAnn).To(ContainElement(annotations.IRQLoadBalancingAnnotation))
+				Expect(foundAnn).NotTo(ContainElement(v2.Devices))
+				Expect(foundAnn).To(ContainElement(v2.IRQLoadBalancing))
 			})
 			It("should fail to return allowed annotation of unknown runtime", func() {
 				// Given
