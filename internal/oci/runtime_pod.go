@@ -7,7 +7,6 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
@@ -304,10 +303,6 @@ func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup st
 
 func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
 	return r.oci.DiskStats(ctx, c, cgroup)
-}
-
-func (r *runtimePod) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
-	return r.oci.SignalContainer(ctx, c, sig)
 }
 
 func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {

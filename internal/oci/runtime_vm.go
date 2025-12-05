@@ -590,14 +590,14 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	select {
 	case err = <-execCh:
 		if err != nil {
-			if killErr := r.kill(c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
+			if killErr := r.kill(c.ID(), execID, syscall.SIGKILL); killErr != nil {
 				return execError, killErr
 			}
 
 			return execError, err
 		}
 	case <-timeoutCh:
-		if killErr := r.kill(c.ID(), execID, syscall.SIGKILL, false); killErr != nil {
+		if killErr := r.kill(c.ID(), execID, syscall.SIGKILL); killErr != nil {
 			return execError, killErr
 		}
 
@@ -680,7 +680,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	if timeout > 0 {
 		sig = c.StopSignal()
 		// Send a stopping signal to the container
-		if err := r.kill(c.ID(), "", sig, false); err != nil {
+		if err := r.kill(c.ID(), "", sig); err != nil {
 			return err
 		}
 
@@ -698,7 +698,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 	sig = syscall.SIGKILL
 	// Send a SIGKILL signal to the container
-	if err := r.kill(c.ID(), "", sig, false); err != nil {
+	if err := r.kill(c.ID(), "", sig); err != nil {
 		return err
 	}
 
@@ -1218,18 +1218,6 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *cgmgr.Cg
 	}
 }
 
-// SignalContainer sends a signal to a container process.
-func (r *runtimeVM) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
-	log.Debugf(ctx, "RuntimeVM.SignalContainer() start")
-	defer log.Debugf(ctx, "RuntimeVM.SignalContainer() end")
-
-	// Lock the container
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-
-	return r.kill(c.ID(), "", sig, true)
-}
-
 // AttachContainer attaches IO to a running container.
 func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	log.Debugf(ctx, "RuntimeVM.AttachContainer() start")
@@ -1334,12 +1322,12 @@ func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
 	return int32(resp.GetExitStatus()), nil
 }
 
-func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal, all bool) error {
+func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
 	if _, err := r.task.Kill(r.ctx, &task.KillRequest{
 		ID:     ctrID,
 		ExecID: execID,
 		Signal: uint32(signal),
-		All:    all,
+		All:    false,
 	}); err != nil {
 		return errdefs.FromGRPC(err)
 	}
@@ -1414,7 +1402,7 @@ func EncodeKataVirtualVolumeToBase64(ctx context.Context, volume *katavolume.Kat
 }
 
 func (r *runtimeVM) IsContainerAlive(c *Container) bool {
-	return r.kill(c.ID(), "", 0, false) == nil
+	return r.kill(c.ID(), "", 0) == nil
 }
 
 func (r *runtimeVM) ProbeMonitor(ctx context.Context, c *Container) error {
