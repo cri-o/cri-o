@@ -24,7 +24,7 @@ require (
 	github.com/containers/ocicrypt v1.2.1
 	github.com/coreos/go-systemd/v22 v22.6.0
 	github.com/creack/pty v1.1.24
-	github.com/cri-o/crio-credential-provider v0.1.1
+	github.com/cri-o/crio-credential-provider v0.1.2
 	github.com/cri-o/ocicni v0.5.0
 	github.com/cyphar/filepath-securejoin v0.5.0
 	github.com/docker/distribution v2.8.3+incompatible
@@ -75,13 +75,13 @@ require (
 	golang.org/x/sys v0.38.0
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10
-	k8s.io/api v0.35.0-beta.0
-	k8s.io/apimachinery v0.35.0-beta.0
-	k8s.io/client-go v0.35.0-beta.0
-	k8s.io/cri-api v0.35.0-beta.0
-	k8s.io/cri-client v0.35.0-beta.0
+	k8s.io/api v0.35.0-rc.0
+	k8s.io/apimachinery v0.35.0-rc.0
+	k8s.io/client-go v0.35.0-rc.0
+	k8s.io/cri-api v0.35.0-rc.0
+	k8s.io/cri-client v0.35.0-rc.0
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubelet v0.35.0-beta.0
+	k8s.io/kubelet v0.35.0-rc.0
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/knftables v0.0.19
 	sigs.k8s.io/release-sdk v0.12.5
@@ -250,8 +250,8 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.35.0-beta.0 // indirect
-	k8s.io/component-base v0.35.0-beta.0 // indirect
+	k8s.io/apiserver v0.35.0-rc.0 // indirect
+	k8s.io/component-base v0.35.0-rc.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
