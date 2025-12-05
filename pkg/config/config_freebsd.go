@@ -28,6 +28,9 @@ const (
 	// If not, crio wipe will clear the storage directory.
 	CrioCleanShutdownFile = "/var/db/crio/clean.shutdown"
 
+	// CrioImageContentCacheDir is the default directory for image content cache.
+	CrioImageContentCacheDir = "/var/lib/containers/storage/image-content-cache"
+
 	DefaultRuntime       = "ocijail"
 	DefaultRuntimeType   = "oci"
 	DefaultRuntimeRoot   = "/var/run/ocijail"

@@ -22,6 +22,8 @@ const (
 	ImageVolumesBind ImageVolumesType = "bind"
 	// DefaultPauseImage is default pause image.
 	DefaultPauseImage string = "registry.k8s.io/pause:3.10.1"
+	// CrioImageContentCacheDir is the default directory for image content cache.
+	CrioImageContentCacheDir string = "/var/lib/containers/storage/image-content-cache"
 )
 
 var (
