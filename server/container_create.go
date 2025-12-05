@@ -793,7 +793,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
-	addSysfsMounts(ctr, containerConfig, hostNet)
+	containerMappings, err := s.getSandboxIDMappings(ctx, sb)
+	if err != nil {
+		return nil, err
+	}
+
+	addSysfsMounts(ctr, containerConfig, hostNet, sb, containerMappings)
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
