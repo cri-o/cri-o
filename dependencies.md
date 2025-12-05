@@ -1,25 +1,24 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 05 Dec 2025 01:58:39 UTC for commit [5ce4d49][0]._
+_Generated on Fri, 05 Dec 2025 12:36:24 UTC for commit [8f0b595][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5ce4d494814d0407cdf2fc623e011f37dfd6f5d4
+[0]: https://github.com/cri-o/cri-o/commit/8f0b595efa4176f48b817149dd435e2df8c7c6ef
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
-| github.com/cri-o/crio-credential-provider              | v0.1.1                               | v0.1.2                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251204215007-403de2161fe7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251205104737-923f97bc6658 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
-| k8s.io/api                                             | v0.35.0-beta.0                       | v0.36.0-alpha.0                    | true   | true             |
-| k8s.io/apimachinery                                    | v0.35.0-beta.0                       | v0.36.0-alpha.0                    | true   | true             |
-| k8s.io/client-go                                       | v0.35.0-beta.0                       | v0.36.0-alpha.0                    | true   | true             |
-| k8s.io/cri-api                                         | v0.35.0-beta.0                       | v0.36.0-alpha.0                    | true   | true             |
-| k8s.io/cri-client                                      | v0.35.0-beta.0                       | v0.36.0-alpha.0                    | true   | true             |
-| k8s.io/kubelet                                         | v0.35.0-beta.0                       | v0.36.0-alpha.0                    | true   | true             |
+| k8s.io/api                                             | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
+| k8s.io/apimachinery                                    | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | true             |
+| k8s.io/client-go                                       | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
+| k8s.io/cri-api                                         | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
+| k8s.io/cri-client                                      | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
+| k8s.io/kubelet                                         | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
 
 ## All Dependencies
 
@@ -237,7 +236,7 @@ _Generated on Fri, 05 Dec 2025 01:58:39 UTC for commit [5ce4d49][0]._
 | github.com/blang/semver                                                     | v3.5.1+incompatible                   |                                     | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                |                                     | true   | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.114.0                            | false  | true             |
+| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.114.1                            | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.13.3                               | v0.16.0                             | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                |                                     | false  | true             |
 | github.com/buildkite/roko                                                   | v1.3.1                                | v1.4.0                              | false  | true             |
@@ -301,7 +300,7 @@ _Generated on Fri, 05 Dec 2025 01:58:39 UTC for commit [5ce4d49][0]._
 | github.com/coreos/go-systemd/v22                                            | v22.6.0                               |                                     | true   | true             |
 | github.com/cpuguy83/go-md2man/v2                                            | v2.0.7                                |                                     | false  | true             |
 | github.com/creack/pty                                                       | v1.1.24                               |                                     | true   | true             |
-| github.com/cri-o/crio-credential-provider                                   | v0.1.1                                | v0.1.2                              | true   | true             |
+| github.com/cri-o/crio-credential-provider                                   | v0.1.2                                |                                     | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.5.0                                |                                     | true   | true             |
 | github.com/cyberphone/json-canonicalization                                 | v0.0.0-20241213102144-19d51d7fe467    |                                     | false  | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.4.1                                | v0.6.1                              | true   | true             |
@@ -451,7 +450,7 @@ _Generated on Fri, 05 Dec 2025 01:58:39 UTC for commit [5ce4d49][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251204215007-403de2161fe7  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251205104737-923f97bc6658  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -672,7 +671,7 @@ _Generated on Fri, 05 Dec 2025 01:58:39 UTC for commit [5ce4d49][0]._
 | github.com/zeebo/errs                                                       | v1.4.0                                |                                     | false  | true             |
 | github.com/zmap/zcrypto                                                     | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20251114214934-bb32b590b717  | false  | true             |
 | github.com/zmap/zlint/v3                                                    | v3.6.4                                | v3.6.8                              | false  | true             |
-| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.5.0                              | false  | true             |
+| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.6.0                              | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.3                                |                                     | false  | true             |
 | go.etcd.io/etcd/api/v3                                                      | v3.6.5                                | v3.6.6                              | false  | true             |
@@ -745,18 +744,18 @@ _Generated on Fri, 05 Dec 2025 01:58:39 UTC for commit [5ce4d49][0]._
 | gopkg.in/yaml.v2                                                            | v2.4.0                                |                                     | false  | true             |
 | gopkg.in/yaml.v3                                                            | v3.0.1                                |                                     | false  | true             |
 | gotest.tools/v3                                                             | v3.5.2                                |                                     | false  | true             |
-| k8s.io/api                                                                  | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | true   | true             |
-| k8s.io/apimachinery                                                         | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | true   | true             |
-| k8s.io/apiserver                                                            | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | false  | true             |
-| k8s.io/client-go                                                            | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | true   | true             |
-| k8s.io/component-base                                                       | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | false  | true             |
-| k8s.io/cri-api                                                              | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | true   | true             |
-| k8s.io/cri-client                                                           | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | true   | true             |
+| k8s.io/api                                                                  | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | true   | false            |
+| k8s.io/apimachinery                                                         | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | true   | true             |
+| k8s.io/apiserver                                                            | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | false  | false            |
+| k8s.io/client-go                                                            | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | true   | false            |
+| k8s.io/component-base                                                       | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | false  | false            |
+| k8s.io/cri-api                                                              | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | true   | false            |
+| k8s.io/cri-client                                                           | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | true   | false            |
 | k8s.io/gengo/v2                                                             | v2.0.0-20250604051438-85fd79dbfd9f    | v2.0.0-20250922181213-ec3ebc5fd46b  | false  | true             |
 | k8s.io/klog/v2                                                              | v2.130.1                              |                                     | true   | true             |
-| k8s.io/kms                                                                  | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | false  | true             |
+| k8s.io/kms                                                                  | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | false  | false            |
 | k8s.io/kube-openapi                                                         | v0.0.0-20250910181357-589584f1c912    | v0.0.0-20251125145642-4e65d59e963e  | false  | true             |
-| k8s.io/kubelet                                                              | v0.35.0-beta.0                        | v0.36.0-alpha.0                     | true   | true             |
+| k8s.io/kubelet                                                              | v0.35.0-rc.0                          | v0.36.0-alpha.0                     | true   | false            |
 | k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    |                                     | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                     | v0.31.2                               | v0.34.0                             | false  | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20250730193827-2d320260d730    |                                     | false  | true             |
