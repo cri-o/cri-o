@@ -1,8 +1,6 @@
 package annotations
 
 import (
-	"github.com/intel/goresctrl/pkg/rdt"
-
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
@@ -132,29 +130,6 @@ const (
 	StopSignalAnnotation = v2.StopSignal
 )
 
-var AllAllowedAnnotations = append(
-	append(
-		[]string{
-			// External annotations
-			rdt.RdtContainerAnnotation,
-
-			// Keep in sync with
-			// https://github.com/opencontainers/runc/blob/3db0871f1cf25c7025861ba0d51d25794cb21623/features.go#L67
-			// Once runc 1.2 is released, we can use the `runc features` command to get this programmatically,
-			// but we should hardcode these for now to prevent misuse.
-			"bundle",
-			"org.systemd.property.",
-			"org.criu.config",
-
-			// Similarly, keep in sync with
-			// https://github.com/containers/crun/blob/475a3fd0be/src/libcrun/container.c#L362-L366
-			"module.wasm.image/variant",
-			"io.kubernetes.cri.container-type",
-			"run.oci.",
-		},
-		// V2 annotations (recommended)
-		v2.AllAnnotations...,
-	),
-	// V1 annotations (deprecated, kept for backwards compatibility)
-	v2.AllV1Annotations...,
-)
+// Deprecated: Use v2.AllAllowedAnnotations instead.
+// AllAllowedAnnotations lists all annotations that CRI-O allows, including both V2, V1, and external annotations.
+var AllAllowedAnnotations = v2.AllAllowedAnnotations

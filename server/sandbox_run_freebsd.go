@@ -22,7 +22,6 @@ import (
 	"github.com/cri-o/cri-o/internal/memorystore"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
-	extannotations "github.com/cri-o/cri-o/pkg/annotations"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
@@ -291,7 +290,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
 	g.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
 	if podContainer.Config.Config.StopSignal != "" {
-		g.AddAnnotation(extannotations.StopSignalAnnotation, podContainer.Config.Config.StopSignal)
+		g.AddAnnotation(v2.StopSignal, podContainer.Config.Config.StopSignal)
 	}
 
 	if s.config.CgroupManager().IsSystemd() && node.SystemdHasCollectMode() {

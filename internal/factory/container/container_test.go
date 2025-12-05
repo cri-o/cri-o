@@ -385,7 +385,7 @@ var _ = t.Describe("Container", func() {
 			}
 
 			differentContainerName := "bar"
-			annotationKey := fmt.Sprintf("%s.%s", v2.UnifiedCgroup, differentContainerName)
+			annotationKey := fmt.Sprintf("%s/%s", v2.UnifiedCgroup, differentContainerName)
 			annotationsMap := map[string]string{
 				annotationKey: "memory.max=1000000;memory.min=MTAwMDA=;memory.low=20000",
 			}
