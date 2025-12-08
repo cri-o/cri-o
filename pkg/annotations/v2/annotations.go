@@ -1,6 +1,12 @@
 package v2
 
 const (
+	// External annotations (not part of CRI-O's *.crio.io namespace).
+
+	// RdtContainerAnnotation is the CRI level container annotation for setting
+	// the RDT class of a container.
+	RdtContainerAnnotation = "io.kubernetes.cri.rdt-class"
+
 	// V2 annotations (recommended format: *.crio.io).
 
 	// Cgroup2MountHierarchyRW specifies mounting v2 cgroups as an rw filesystem.
@@ -300,3 +306,31 @@ var AllV1Annotations = []string{
 	V1UnifiedCgroup,
 	V1UsernsMode,
 }
+
+// AllAllowedAnnotations lists all annotations that CRI-O allows, including both V2, V1, and external annotations.
+var AllAllowedAnnotations = append(
+	append(
+		[]string{
+			// External annotations
+			RdtContainerAnnotation,
+
+			// Keep in sync with
+			// https://github.com/opencontainers/runc/blob/3db0871f1cf25c7025861ba0d51d25794cb21623/features.go#L67
+			// Once runc 1.2 is released, we can use the `runc features` command to get this programmatically,
+			// but we should hardcode these for now to prevent misuse.
+			"bundle",
+			"org.systemd.property.",
+			"org.criu.config",
+
+			// Similarly, keep in sync with
+			// https://github.com/containers/crun/blob/475a3fd0be/src/libcrun/container.c#L362-L366
+			"module.wasm.image/variant",
+			"io.kubernetes.cri.container-type",
+			"run.oci.",
+		},
+		// V2 annotations (recommended)
+		AllAnnotations...,
+	),
+	// V1 annotations (deprecated, kept for backwards compatibility)
+	AllV1Annotations...,
+)
