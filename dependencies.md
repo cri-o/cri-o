@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 09 Dec 2025 17:21:17 UTC for commit [5ee6df4][0]._
+_Generated on Tue, 09 Dec 2025 22:28:17 UTC for commit [ba7bba6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5ee6df43bd5b7357832d05e3aa8effeb291c3539
+[0]: https://github.com/cri-o/cri-o/commit/ba7bba602736125ff2c720f0a5b710a1e742f57d
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Tue, 09 Dec 2025 17:21:17 UTC for commit [5ee6df4][0]._
 | github.com/containers/conmon-rs                                             | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.4.1                               | v0.6.1                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.10.0                              | v0.11.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251208152911-3db7b88efff4 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251209221811-406f6b1d157d | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.27.2                              | v2.27.3                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.38.2                              | v1.38.3                            | true   | true             |
 | github.com/opencontainers/runc                                              | v1.3.2                               | v1.4.0                             | true   | true             |
@@ -222,24 +222,24 @@ _Generated on Tue, 09 Dec 2025 17:21:17 UTC for commit [5ee6df4][0]._
 | github.com/aws/aws-sdk-go                                                   | v1.55.6                               | v1.55.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                | v1.38.0                               | v1.41.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                       | v1.6.6                                | v1.7.4                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                         | v1.31.0                               | v1.32.4                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                    | v1.18.4                               | v1.19.4                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                         | v1.31.0                               | v1.32.5                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                    | v1.18.4                               | v1.19.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                               | v1.18.3                               | v1.18.16                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                         | v1.4.3                                | v1.4.16                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                          | v2.7.3                                | v2.7.16                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                   | v1.8.3                                | v1.8.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/v4a                                   | v1.3.21                               | v1.4.16                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ecr                                    | v1.42.0                               | v1.54.3                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ecr                                    | v1.42.0                               | v1.54.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ecrpublic                              | v1.32.0                               | v1.38.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding               | v1.13.0                               | v1.13.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/checksum                      | v1.4.2                                | v1.9.7                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                 | v1.13.3                               | v1.13.16                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                      | v1.18.2                               | v1.19.16                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/kms                                    | v1.38.2                               | v1.49.3                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                     | v1.65.3                               | v1.93.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/kms                                    | v1.38.2                               | v1.49.4                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                     | v1.65.3                               | v1.93.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                    | v1.28.0                               | v1.30.7                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                | v1.33.0                               | v1.35.12                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sts                                    | v1.37.0                               | v1.41.4                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sts                                    | v1.37.0                               | v1.41.5                             | false  | true             |
 | github.com/aws/smithy-go                                                    | v1.22.5                               | v1.24.0                             | false  | true             |
 | github.com/awslabs/amazon-ecr-credential-helper/ecr-login                   | v0.9.1                                | v0.11.0                             | false  | true             |
 | github.com/beorn7/perks                                                     | v1.0.1                                |                                     | false  | true             |
@@ -460,7 +460,7 @@ _Generated on Tue, 09 Dec 2025 17:21:17 UTC for commit [5ee6df4][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251208152911-3db7b88efff4  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251209221811-406f6b1d157d  | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -600,12 +600,12 @@ _Generated on Tue, 09 Dec 2025 17:21:17 UTC for commit [5ee6df4][0]._
 | github.com/sigstore/fulcio                                                  | v1.7.1                                | v1.8.3                              | false  | true             |
 | github.com/sigstore/protobuf-specs                                          | v0.5.0                                |                                     | false  | true             |
 | github.com/sigstore/rekor                                                   | v1.4.2                                | v1.4.3                              | false  | true             |
-| github.com/sigstore/sigstore                                                | v1.9.5                                | v1.10.0                             | false  | true             |
+| github.com/sigstore/sigstore                                                | v1.9.5                                | v1.10.2                             | false  | true             |
 | github.com/sigstore/sigstore-go                                             | v0.7.1                                | v1.1.3                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/aws                          | v1.9.3                                | v1.10.0                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/azure                        | v1.9.3                                | v1.10.0                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/gcp                          | v1.9.3                                | v1.10.0                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                   | v1.9.3                                | v1.10.0                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/aws                          | v1.9.3                                | v1.10.2                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/azure                        | v1.9.3                                | v1.10.2                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/gcp                          | v1.9.3                                | v1.10.2                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                   | v1.9.3                                | v1.10.2                             | false  | true             |
 | github.com/sigstore/timestamp-authority                                     | v1.2.5                                | v1.2.9                              | false  | true             |
 | github.com/sirupsen/logrus                                                  | v1.9.3                                |                                     | true   | true             |
 | github.com/skeema/knownhosts                                                | v1.3.2                                |                                     | false  | true             |
