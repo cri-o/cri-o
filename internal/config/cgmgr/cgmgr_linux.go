@@ -84,6 +84,10 @@ type CgroupManager interface {
 	// It creates a new cgroup for that sandbox if it does not already exist.
 	// It returns the cgroup stats for that sandbox.
 	SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error)
+	// ExecCgroupManager returns the cgroup manager for the exec cgroup used to place exec processes.
+	// The cgroupPath parameter is the container's cgroup path from spec.Linux.CgroupsPath.
+	// This is only supported on cgroup v2.
+	ExecCgroupManager(cgroupPath string) (cgroups.Manager, error)
 }
 
 // New creates a new CgroupManager with defaults.
@@ -298,4 +302,22 @@ func CrunContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager
 	}
 	// must be crun, make another LibctrManager. Regardless of cgroup driver, it will be treated as cgroupfs
 	return LibctrManager(filepath.Base(actualContainerCgroup), filepath.Dir(actualContainerCgroup), false)
+}
+
+// ExecCgroupManager creates an exec cgroup for placing exec processes.
+// containerCgroupAbsPath is the absolute path to the container's cgroup (without /sys/fs/cgroup prefix).
+// Returns the cgroup manager for the exec cgroup.
+//
+// The exec cgroup location depends on whether crun created a "container" child cgroup:
+//   - If crun's "container" child exists: exec cgroup is created under it
+//   - Otherwise: exec cgroup is created directly under the container cgroup
+func ExecCgroupManager(containerCgroupAbsPath string) (cgroups.Manager, error) {
+	execCgroupParent := containerCgroupAbsPath
+
+	// Check if crun created a "container" child cgroup
+	if mgr, err := CrunContainerCgroupManager(containerCgroupAbsPath); err == nil && mgr != nil {
+		execCgroupParent = filepath.Join(containerCgroupAbsPath, "container")
+	}
+
+	return LibctrManager("exec", execCgroupParent, false)
 }

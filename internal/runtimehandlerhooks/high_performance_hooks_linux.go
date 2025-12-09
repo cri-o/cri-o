@@ -14,7 +14,6 @@ import (
 	"sync"
 
 	"github.com/opencontainers/cgroups"
-	"github.com/opencontainers/cgroups/manager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -168,7 +167,8 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		// Cpus in oci spec only includes the exclusive CPUs.
 		// If shared CPUs are requested, then we must set the CPUSet for the container additionally.
 		//
-		// The left hand can't be nil because exclusiveCPUSet is not empty.
+		// specgen.Config.Linux.Resources.CPU.Cpus is guaranteed non-nil
+		// because we check exclusiveCPUSet.IsEmpty() above.
 		specgen.Config.Linux.Resources.CPU.Cpus = exclusiveCPUSet.Union(sharedCPUSet).String()
 	}
 
@@ -304,6 +304,80 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 			return fmt.Errorf("set CPU scaling governor: %w", err)
 		}
 	}
+
+	// Pre-create exec cgroup for this container (only on cgroup v2).
+	// This allows exec operations to use this pre-created cgroup with CPU affinity already configured.
+	if h.execCPUAffinity != config.ExecCPUAffinityTypeDefault && !sharedCPUsRequested {
+		if err := h.createExecCgroup(ctx, c); err != nil {
+			return fmt.Errorf("failed to pre-create exec cgroup for container %q: %w", c.ID(), err)
+		}
+	}
+
+	return nil
+}
+
+// createExecCgroup pre-creates an exec cgroup for the container during PreStart.
+// This allows exec operations to use a pre-created cgroup with CPU affinity already configured,
+// avoiding the overhead of creating a new cgroup for each exec operation.
+// This is only supported on cgroup v2.
+func (h *HighPerformanceHooks) createExecCgroup(ctx context.Context, c *oci.Container) error {
+	// Only supported on cgroup v2
+	if !node.CgroupIsV2() {
+		return nil
+	}
+
+	cSpec := c.Spec()
+	if cSpec.Linux == nil || cSpec.Linux.CgroupsPath == "" {
+		return errors.New("container spec does not have a cgroup path")
+	}
+
+	// Determine the cgroup manager type based on the cgroup path format
+	var (
+		cgroupManager cgmgr.CgroupManager
+		err           error
+	)
+
+	if strings.Contains(cSpec.Linux.CgroupsPath, ":") {
+		// Systemd format: slice:prefix:containerID
+		cgroupManager, err = cgmgr.SetCgroupManager("systemd")
+	} else {
+		cgroupManager, err = cgmgr.SetCgroupManager("cgroupfs")
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to create cgroup manager: %w", err)
+	}
+
+	execCgroupMgr, err := cgroupManager.ExecCgroupManager(cSpec.Linux.CgroupsPath)
+	if err != nil {
+		return fmt.Errorf("failed to create exec cgroup manager: %w", err)
+	}
+
+	// Apply the cgroup (create it without attaching any process)
+	if err = execCgroupMgr.Apply(-1); err != nil {
+		return fmt.Errorf("failed to apply exec cgroup: %w", err)
+	}
+
+	// Set cpuset for exec cgroup based on the container's ExecCPUAffinity
+	// This ExecCPUAffinity is supposed to be set in PreCreate.
+	if cSpec.Process == nil || cSpec.Process.ExecCPUAffinity == nil || cSpec.Process.ExecCPUAffinity.Initial == "" {
+		return errors.New("ExecCPUAffinity not set in container spec, but exec cgroup creation was requested")
+	}
+
+	if err := execCgroupMgr.Set(&cgroups.Resources{
+		SkipDevices: true,
+		CpusetCpus:  cSpec.Process.ExecCPUAffinity.Initial,
+	}); err != nil {
+		return fmt.Errorf("failed to set cpuset.cpus for exec cgroup: %w", err)
+	}
+
+	log.Debugf(ctx, "Set exec cgroup cpuset.cpus to %s for container %q", cSpec.Process.ExecCPUAffinity.Initial, c.ID())
+
+	execCgroupPath := execCgroupMgr.Path("")
+	log.Debugf(ctx, "Pre-created exec cgroup at %s for container %q", execCgroupPath, c.ID())
+
+	// Store the exec cgroup path in the container for later use by exec operations
+	c.SetExecCgroupPath(execCgroupPath)
 
 	return nil
 }
@@ -1363,7 +1437,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 	return containerManagers, nil
 }
 
-// createChildCgroupManager creates a new manager for the exclusive CPUs when shared CPUs are set
+// createChildCgroupManager creates a new manager for the exclusive CPUs when shared CPUs are set.
 func createChildCgroupManager(cgroupPath string) (cgroups.Manager, error) {
 	return cgmgr.LibctrManager("cgroup-child", strings.TrimPrefix(cgroupPath, cgroupMountPoint), false)
 }
