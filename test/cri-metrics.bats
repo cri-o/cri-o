@@ -44,10 +44,8 @@ function metrics_setup() {
 	CONTAINER_ID=$(crictl create "$POD_ID" "$TESTDIR/container_metrics.json" "$TESTDATA/sandbox_config.json")
 	crictl start "$CONTAINER_ID"
 
-	# assert pod metrics are present
-	crictl metricsp | grep "container_network_receive_bytes_total"
 	# assert container metrics are present
-	crictl metricsp | grep "container_memory_usage_bytes"
+	crictl metricsp | grep "container_last_seen"
 	# assert metadata is there
 	crictl metricsp | grep "$CONTAINER_ID"
 }
@@ -525,4 +523,41 @@ EOF
 		metrics_memory_reservation_limit_bytes=$(echo "$metrics" | jq 'select(.name == "container_spec_memory_reservation_limit_bytes") | .value.value | tonumber')
 		[[ $metrics_memory_reservation_limit_bytes == "134217728" ]]
 	fi
+}
+
+@test "container pressure metrics" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "pressure"
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	metrics=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[]')
+
+	# Check if pressure metrics exist and have valid values
+	container_pressure_cpu_stalled_seconds_total=$(echo "$metrics" | jq 'select(.name == "container_pressure_cpu_stalled_seconds_total") | .value.value | tonumber')
+	[[ "$container_pressure_cpu_stalled_seconds_total" != "" ]]
+
+	container_pressure_cpu_waiting_seconds_total=$(echo "$metrics" | jq 'select(.name == "container_pressure_cpu_waiting_seconds_total") | .value.value | tonumber')
+	[[ "$container_pressure_cpu_waiting_seconds_total" != "" ]]
+
+	container_pressure_memory_stalled_seconds_total=$(echo "$metrics" | jq 'select(.name == "container_pressure_memory_stalled_seconds_total") | .value.value | tonumber')
+	[[ "$container_pressure_memory_stalled_seconds_total" != "" ]]
+
+	container_pressure_memory_waiting_seconds_total=$(echo "$metrics" | jq 'select(.name == "container_pressure_memory_waiting_seconds_total") | .value.value | tonumber')
+	[[ "$container_pressure_memory_waiting_seconds_total" != "" ]]
+
+	container_pressure_io_stalled_seconds_total=$(echo "$metrics" | jq 'select(.name == "container_pressure_io_stalled_seconds_total") | .value.value | tonumber')
+	[[ "$container_pressure_io_stalled_seconds_total" != "" ]]
+
+	container_pressure_io_waiting_seconds_total=$(echo "$metrics" | jq 'select(.name == "container_pressure_io_waiting_seconds_total") | .value.value | tonumber')
+	[[ "$container_pressure_io_waiting_seconds_total" != "" ]]
 }

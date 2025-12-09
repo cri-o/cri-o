@@ -294,3 +294,37 @@ var (
 		LabelKeys: baseLabelKeys,
 	}
 )
+
+// Pressure metrics.
+var (
+	containerPressureCPUStalledSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_pressure_cpu_stalled_seconds_total",
+		Help:      "Total time duration no tasks in the container could make progress due to CPU congestion.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerPressureCPUWaitingSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_pressure_cpu_waiting_seconds_total",
+		Help:      "Total time duration tasks in the container have waited due to CPU congestion.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerPressureMemoryStalledSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_pressure_memory_stalled_seconds_total",
+		Help:      "Total time duration no tasks in the container could make progress due to memory congestion.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerPressureMemoryWaitingSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_pressure_memory_waiting_seconds_total",
+		Help:      "Total time duration tasks in the container have waited due to memory congestion.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerPressureIOStalledSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_pressure_io_stalled_seconds_total",
+		Help:      "Total time duration no tasks in the container could make progress due to IO congestion.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerPressureIOWaitingSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_pressure_io_waiting_seconds_total",
+		Help:      "Total time duration tasks in the container have waited due to IO congestion.",
+		LabelKeys: baseLabelKeys,
+	}
+)

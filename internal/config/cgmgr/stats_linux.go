@@ -49,6 +49,8 @@ type MemoryStats struct {
 	FileMapped uint64
 	// The number of memory usage hits limits. For cgroup v1 only.
 	Failcnt uint64
+
+	PSI *PSIStats
 }
 
 type CPUStats struct {
@@ -64,6 +66,8 @@ type CPUStats struct {
 	ThrottledPeriods uint64
 	// Aggregate time the container was throttled for in nanoseconds.
 	ThrottledTime uint64
+
+	PSI *PSIStats
 }
 
 type HugetlbStats struct {
@@ -85,6 +89,26 @@ type PidsStats struct {
 type DiskIOStats struct {
 	IoServiceBytes []cgroups.BlkioStatEntry
 	IoServiced     []cgroups.BlkioStatEntry
+	PSI            *PSIStats
+}
+
+type PSIStats struct {
+	// PSI data for all tasks of in the cgroup.
+	Full PSIData
+	// PSI data for some tasks in the cgroup.
+	Some PSIData
+}
+
+type PSIData struct {
+	// Total is total duration for tasks in the cgroup have waited due to congestion.
+	// Unit: microseconds.
+	Total uint64
+	// The average (in %) tasks have waited due to congestion over a 10-second window.
+	Avg10 float64
+	// The average (in %) tasks have waited due to congestion over a 60-second window.
+	Avg60 float64
+	// The average (in %) tasks have waited due to congestion over a 300-second window.
+	Avg300 float64
 }
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup
@@ -156,9 +180,31 @@ func statsFromLibctrMgr(cgMgr cgroups.Manager) (*CgroupStats, error) {
 		DiskIO: &DiskIOStats{
 			IoServiced:     stats.BlkioStats.IoServicedRecursive,
 			IoServiceBytes: stats.BlkioStats.IoServiceBytesRecursive,
+			PSI:            cgroupPSIStats(stats.BlkioStats.PSI),
 		},
 		SystemNano: time.Now().UnixNano(),
 	}, nil
+}
+
+func cgroupPSIStats(psi *cgroups.PSIStats) *PSIStats {
+	if psi == nil {
+		return nil
+	}
+
+	return &PSIStats{
+		Full: PSIData{
+			Total:  psi.Full.Total,
+			Avg10:  psi.Full.Avg10,
+			Avg60:  psi.Full.Avg60,
+			Avg300: psi.Full.Avg300,
+		},
+		Some: PSIData{
+			Total:  psi.Some.Total,
+			Avg10:  psi.Some.Avg10,
+			Avg60:  psi.Some.Avg60,
+			Avg300: psi.Some.Avg300,
+		},
+	}
 }
 
 func cgroupMemStats(memStats *cgroups.MemoryStats) *MemoryStats {
@@ -233,6 +279,7 @@ func cgroupMemStats(memStats *cgroups.MemoryStats) *MemoryStats {
 		SwapLimit:       memStats.SwapUsage.Limit,
 		FileMapped:      fileMapped,
 		Failcnt:         failcnt,
+		PSI:             cgroupPSIStats(memStats.PSI),
 	}
 }
 
@@ -245,6 +292,7 @@ func cgroupCPUStats(cpuStats *cgroups.CpuStats) *CPUStats {
 		ThrottlingActivePeriods: cpuStats.ThrottlingData.Periods,
 		ThrottledPeriods:        cpuStats.ThrottlingData.ThrottledPeriods,
 		ThrottledTime:           cpuStats.ThrottlingData.ThrottledTime,
+		PSI:                     cgroupPSIStats(cpuStats.PSI),
 	}
 }
 

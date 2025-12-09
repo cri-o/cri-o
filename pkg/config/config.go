@@ -75,22 +75,33 @@ const (
 	MonitorExecCgroupContainer    = "container"
 )
 
-// When updating metrics, don't forget to update the document as well.
+// When updating metrics, remember to update the document as well.
 const (
-	AllMetrics     = "all"
-	CPUMetrics     = "cpu"
-	DiskMetrics    = "disk"
-	DiskIOMetrics  = "diskIO"
-	HugetlbMetrics = "hugetlb"
-	MemoryMetrics  = "memory"
-	NetworkMetrics = "network"
-	OOMMetrics     = "oom"
-	ProcessMetrics = "process"
-	SpecMetrics    = "spec"
+	AllMetrics      = "all"
+	CPUMetrics      = "cpu"
+	DiskMetrics     = "disk"
+	DiskIOMetrics   = "diskIO"
+	HugetlbMetrics  = "hugetlb"
+	MemoryMetrics   = "memory"
+	NetworkMetrics  = "network"
+	OOMMetrics      = "oom"
+	ProcessMetrics  = "process"
+	SpecMetrics     = "spec"
+	PressureMetrics = "pressure"
 )
 
 var AvailableMetrics = []string{
-	AllMetrics, CPUMetrics, DiskMetrics, DiskIOMetrics, HugetlbMetrics, MemoryMetrics, NetworkMetrics, OOMMetrics, ProcessMetrics, SpecMetrics,
+	AllMetrics,
+	CPUMetrics,
+	DiskMetrics,
+	DiskIOMetrics,
+	HugetlbMetrics,
+	MemoryMetrics,
+	NetworkMetrics,
+	OOMMetrics,
+	ProcessMetrics,
+	SpecMetrics,
+	PressureMetrics,
 }
 
 // Config represents the entire set of configuration values that can be set for
