@@ -17,7 +17,7 @@ require (
 	github.com/containerd/ttrpc v1.2.7
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.3.0
-	github.com/containernetworking/plugins v1.8.0
+	github.com/containernetworking/plugins v1.9.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.7.3-0.20250910105203-737e4d6bf1ab
 	github.com/containers/kubensmnt v1.2.0
