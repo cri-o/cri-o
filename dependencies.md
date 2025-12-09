@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 09 Dec 2025 14:23:42 UTC for commit [f46bf73][0]._
+_Generated on Tue, 09 Dec 2025 17:21:17 UTC for commit [5ee6df4][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f46bf730b3337acd30c9cabf1f15c57c540b5c97
+[0]: https://github.com/cri-o/cri-o/commit/5ee6df43bd5b7357832d05e3aa8effeb291c3539
 
 ## Outdated Dependencies
 
@@ -721,7 +721,7 @@ _Generated on Tue, 09 Dec 2025 14:23:42 UTC for commit [f46bf73][0]._
 | go.yaml.in/yaml/v3                                                          | v3.0.4                                |                                     | false  | true             |
 | goa.design/goa/v3                                                           | v3.20.1                               | v3.23.3                             | false  | true             |
 | golang.org/x/crypto                                                         | v0.45.0                               | v0.46.0                             | false  | true             |
-| golang.org/x/exp                                                            | v0.0.0-20250620022241-b7579e27df2b    | v0.0.0-20251125195548-87e1e737ad39  | false  | true             |
+| golang.org/x/exp                                                            | v0.0.0-20250620022241-b7579e27df2b    | v0.0.0-20251209150349-8475f28825e9  | false  | true             |
 | golang.org/x/mod                                                            | v0.29.0                               | v0.31.0                             | false  | true             |
 | golang.org/x/net                                                            | v0.47.0                               | v0.48.0                             | true   | true             |
 | golang.org/x/oauth2                                                         | v0.32.0                               | v0.34.0                             | false  | true             |
