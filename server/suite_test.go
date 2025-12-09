@@ -226,11 +226,14 @@ var setupSUT = func() {
 
 func mockNewServer() {
 	GinkgoHelper()
+
+	graphroot := t.MustTempDir("graphroot")
 	gomock.InOrder(
 		cniPluginMock.EXPECT().Status().Return(nil),
 		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 		libMock.EXPECT().GetStore().Return(storeMock, nil),
 		libMock.EXPECT().GetData().Return(serverConfig),
+		storeMock.EXPECT().GraphRoot().Return(graphroot),
 		storeMock.EXPECT().Containers().
 			Return([]cstorage.Container{}, nil),
 		cniPluginMock.EXPECT().GC(gomock.Any(), gomock.Any()).

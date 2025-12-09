@@ -14,6 +14,9 @@ import (
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/libartifact"
+	libartStore "go.podman.io/common/pkg/libartifact/store"
+	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
@@ -26,28 +29,32 @@ import (
 // defaultMaxArtifactSize is the default size per artifact data.
 const defaultMaxArtifactSize = 1 * 1024 * 1024 // 1 MiB
 
-var (
-	// ErrIsAnImage is indicating that the artifact is a container image.
-	ErrIsAnImage = errors.New("provided artifact is a container image")
-
-	// ErrNotFound is indicating that the artifact could not be found in the storage.
-	ErrNotFound = errors.New("no artifact found")
-)
+// ErrNotFound is indicating that the artifact could not be found in the storage.
+var ErrNotFound = errors.New("no artifact found")
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
-	rootPath      string
-	systemContext *types.SystemContext
-	impl          Impl
+	*libartStore.ArtifactStore
+
+	rootPath string
+	impl     Impl
 }
 
 // NewStore creates a new OCI artifact store.
-func NewStore(rootPath string, systemContext *types.SystemContext) *Store {
-	return &Store{
-		rootPath:      filepath.Join(rootPath, "artifacts"),
-		systemContext: systemContext,
-		impl:          &defaultImpl{},
+func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, error) {
+	storePath := filepath.Join(rootPath, "artifacts")
+
+	store, err := libartStore.NewArtifactStore(storePath, systemContext)
+	if err != nil {
+		return nil, err
 	}
+
+	return &Store{
+		ArtifactStore: store,
+
+		rootPath: storePath,
+		impl:     &defaultImpl{},
+	}, nil
 }
 
 type unknownRef struct{}
@@ -88,12 +95,12 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 		return nil, fmt.Errorf("failed to get image reference: %w", err)
 	}
 
-	manifestBytes, err := s.PullManifest(ctx, dockerRef, opts)
+	manifestDigest, err := s.PullManifest(ctx, dockerRef, opts.CopyOptions)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
 
-	artifactData, err := s.artifactData(ctx, digest.FromBytes(manifestBytes).Encoded(), opts.MaxSize)
+	artifactData, err := s.artifactData(ctx, manifestDigest.Encoded(), opts.MaxSize)
 	if err != nil {
 		return nil, fmt.Errorf("get artifact data: %w", err)
 	}
@@ -104,142 +111,31 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 // PullManifest tries to pull the artifact and returns the manifest bytes if the
 // provided reference is a valid OCI artifact.
 //
-// Returns ErrIsAnImage if the artifact is a container image.
-//
-// enforceConfigMediaType can be used to allow only a certain config media type.
 // copyOptions will be passed down to libimage.
 func (s *Store) PullManifest(
 	ctx context.Context,
 	ref types.ImageReference,
-	opts *PullOptions,
-) (manifestBytes []byte, err error) {
-	opts = sanitizeOptions(opts)
+	opts *libimage.CopyOptions,
+) (manifestDigest *digest.Digest, err error) {
 	strRef := s.impl.DockerReferenceString(ref)
 
-	log.Debugf(ctx, "Checking if source reference is an OCI artifact: %v", strRef)
-
-	manifestBytes, mimeType, err := s.getManifestFromRef(ctx, ref)
+	dgst, err := s.Pull(ctx, strRef, *opts)
 	if err != nil {
-		return nil, fmt.Errorf("get manifest: %w", err)
+		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
 
-	log.Debugf(ctx, "Manifest mime type of %s: %s", strRef, mimeType)
-
-	if mimeType == manifest.DockerV2ListMediaType {
-		return nil, ErrIsAnImage
-	}
-
-	// At this point we are not sure if the reference is for an image or an artifact.
-	// To verify whether the reference is an artifact or an image, it needs to parse
-	// the manifest and see its media type.
-	if mimeType == specs.MediaTypeImageIndex {
-		manifestList, err := s.impl.ListFromBlob(manifestBytes, mimeType)
-		if err != nil {
-			return nil, fmt.Errorf("parse manifest from blob: %w", err)
-		}
-
-		instanceDigest, err := s.impl.ChooseInstance(manifestList, s.systemContext)
-		if err != nil {
-			return nil, fmt.Errorf("choose instance: %w", err)
-		}
-
-		ref, err = s.getImageReference(fmt.Sprintf("%s@%s", s.impl.DockerReferenceName(ref), instanceDigest))
-		if err != nil {
-			return nil, fmt.Errorf("failed to get image reference: %w", err)
-		}
-
-		manifestBytes, mimeType, err = s.getManifestFromRef(ctx, ref)
-		if err != nil {
-			return nil, fmt.Errorf("get manifest: %w", err)
-		}
-	}
-
-	parsedManifest, err := s.impl.ManifestFromBlob(manifestBytes, mimeType)
-	if err != nil {
-		return nil, fmt.Errorf("parse manifest from blob: %w", err)
-	}
-
-	mediaType := s.impl.ManifestConfigMediaType(parsedManifest)
-	if opts.EnforceConfigMediaType != "" && mediaType != opts.EnforceConfigMediaType {
-		return nil, fmt.Errorf("wrong config media type %q, requires %q", mediaType, opts.EnforceConfigMediaType)
-	}
-
-	log.Debugf(ctx, "Config media type of %s: %s", strRef, mediaType)
-
-	imageMimeTypes := []string{
-		specs.MediaTypeImageManifest,
-		manifest.DockerV2Schema2MediaType,
-		manifest.DockerV2Schema1SignedMediaType,
-	}
-	configMediaTypes := []string{
-		"", // empty
-		specs.MediaTypeImageConfig,
-		manifest.DockerV2Schema2ConfigMediaType,
-	}
-
-	if slices.Contains(imageMimeTypes, mimeType) && slices.Contains(configMediaTypes, mediaType) {
-		ociManifest, err := manifest.OCI1FromManifest(manifestBytes)
-		// Unable to parse an OCI manifest, assume an image
-		if err != nil {
-			return nil, ErrIsAnImage
-		}
-
-		// No artifact type set, assume an image
-		if ociManifest.ArtifactType == "" {
-			return nil, ErrIsAnImage
-		}
-
-		log.Debugf(ctx, "Found artifact type: %s", ociManifest.ArtifactType)
-	}
-
-	log.Infof(ctx, "Pulling OCI artifact %s with manifest mime type %q and config media type %q", strRef, mimeType, mediaType)
-
-	copier, err := s.impl.NewCopier(opts.CopyOptions, s.systemContext)
-	if err != nil {
-		return nil, fmt.Errorf("create libimage copier: %w", err)
-	}
-
-	dst, err := s.impl.LayoutNewReference(s.rootPath, strRef)
-	if err != nil {
-		return nil, fmt.Errorf("create destination reference: %w", err)
-	}
-
-	if manifestBytes, err = s.impl.Copy(ctx, copier, ref, dst); err != nil {
-		return nil, fmt.Errorf("copy artifact: %w", err)
-	}
-
-	if err := s.impl.CloseCopier(copier); err != nil {
-		return nil, fmt.Errorf("close copier: %w", err)
-	}
-
-	return manifestBytes, nil
-}
-
-// getManifestFromRef retrieves the manifest from the given image reference.
-func (s *Store) getManifestFromRef(ctx context.Context, ref types.ImageReference) (manifestBytes []byte, mimeType string, err error) {
-	src, err := s.impl.NewImageSource(ctx, ref, s.systemContext)
-	if err != nil {
-		return nil, "", fmt.Errorf("build image source: %w", err)
-	}
-
-	defer func() {
-		if err := s.impl.CloseImageSource(src); err != nil {
-			log.Warnf(ctx, "Unable to close image source: %v", err)
-		}
-	}()
-
-	return s.impl.GetManifest(ctx, src, nil)
+	return &dgst, nil
 }
 
 // List creates a slice of all available artifacts.
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
-	listResult, err := s.impl.List(s.rootPath)
+	arts, err := s.ArtifactStore.List(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("list store root: %w", err)
+		return nil, fmt.Errorf("list artifacts: %w", err)
 	}
 
-	for i := range listResult {
-		artifact, err := s.buildArtifact(ctx, &listResult[i])
+	for _, art := range arts {
+		artifact, err := s.buildArtifact(ctx, art)
 		if err != nil {
 			return nil, fmt.Errorf("build artifact: %w", err)
 		}
@@ -264,25 +160,14 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 // Remove deletes a name or digest from the artifact store.
 // Returns ErrNotFound if the artifact is not available.
 func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
-	artifact, nameIsDigest, err := s.getByNameOrDigest(ctx, nameOrDigest)
+	artifact, _, err := s.getByNameOrDigest(ctx, nameOrDigest)
 	if err != nil {
 		return fmt.Errorf("get artifact by name or digest: %w", err)
 	}
 
-	if nameIsDigest {
-		nameOrDigest = artifact.Reference()
-	}
+	_, err = s.ArtifactStore.Remove(ctx, artifact.Reference())
 
-	imageReference, err := s.impl.LayoutNewReference(s.rootPath, nameOrDigest)
-	if err != nil {
-		return fmt.Errorf("create new reference: %w", err)
-	}
-
-	if err := s.impl.DeleteImage(ctx, imageReference, s.systemContext); err != nil {
-		return fmt.Errorf("delete artifact: %w", err)
-	}
-
-	return nil
+	return err
 }
 
 func sanitizeOptions(opts *PullOptions) *PullOptions {
@@ -301,45 +186,22 @@ func sanitizeOptions(opts *PullOptions) *PullOptions {
 	return opts
 }
 
-func (s *Store) buildArtifact(ctx context.Context, item *layout.ListResult) (*Artifact, error) {
-	ref := item.Reference
-
-	rawSource, err := s.impl.NewImageSource(ctx, ref, s.systemContext)
+func (s *Store) buildArtifact(ctx context.Context, art *libartifact.Artifact) (*Artifact, error) {
+	dgst, err := art.GetDigest()
 	if err != nil {
-		return nil, fmt.Errorf("create new image source: %w", err)
-	}
-
-	defer func() {
-		if err := s.impl.CloseImageSource(rawSource); err != nil {
-			log.Warnf(ctx, "Unable to close image source: %v", err)
-		}
-	}()
-
-	topManifestBlob, _, err := s.impl.GetManifest(ctx, rawSource, nil)
-	if err != nil {
-		return nil, fmt.Errorf("get manifest: %w", err)
-	}
-
-	mani, err := s.impl.OCI1FromManifest(topManifestBlob)
-	if err != nil {
-		return nil, fmt.Errorf("convert manifest: %w", err)
-	}
-
-	manifestBytes, err := s.impl.ToJSON(mani)
-	if err != nil {
-		return nil, fmt.Errorf("marshal manifest: %w", err)
+		return nil, fmt.Errorf("get digest: %w", err)
 	}
 
 	artifact := &Artifact{
+		Artifact: art,
 		namedRef: unknownRef{},
-		manifest: mani,
-		digest:   digest.FromBytes(manifestBytes),
+		digest:   *dgst,
 	}
 
-	if val, ok := item.ManifestDescriptor.Annotations[specs.AnnotationRefName]; ok {
-		namedRef, err := reference.ParseNormalizedNamed(val)
+	if art.Name != "" {
+		namedRef, err := reference.ParseNormalizedNamed(art.Name)
 		if err != nil {
-			log.Warnf(ctx, "Failed to parse annotation ref %s with the error %s", val, err)
+			log.Warnf(ctx, "Failed to parse artifact name %s with the error %s", art.Name, err)
 
 			namedRef = unknownRef{}
 		}
@@ -365,7 +227,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		return nil, fmt.Errorf("create new reference: %w", err)
 	}
 
-	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.systemContext)
+	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.SystemContext)
 	if err != nil {
 		return nil, fmt.Errorf("build image source: %w", err)
 	}
@@ -378,10 +240,9 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 
 	readSize := uint64(0)
 
-	layerInfos := s.impl.LayerInfos(artifact.manifest)
+	layerInfos := s.impl.LayerInfos(artifact.Manifest)
 	for i := range layerInfos {
 		layer := &layerInfos[i]
-		title := artifactName(layer.Annotations)
 
 		layerBytes, err := s.readBlob(ctx, imageSource, layer, maxArtifactSize)
 		if err != nil {
@@ -394,9 +255,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		}
 
 		res = append(res, ArtifactData{
-			title:  title,
-			digest: layer.Digest,
-			data:   layerBytes,
+			data: layerBytes,
 		})
 	}
 
@@ -404,7 +263,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 }
 
 func (s *Store) readBlob(ctx context.Context, src types.ImageSource, layer *manifest.LayerInfo, maxArtifactSize uint64) ([]byte, error) {
-	bic := blobinfocache.DefaultCache(s.systemContext)
+	bic := blobinfocache.DefaultCache(s.SystemContext)
 
 	rc, size, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: layer.Digest}, bic)
 	if err != nil {
@@ -454,6 +313,11 @@ func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
 	return nil
 }
 
+// getByNameOrDigest retrieves an artifact by its name or digest.
+// Returns the artifact, a boolean indicating whether strRef was a digest (true) or name (false),
+// and an error if the artifact could not be found.
+// Returns ErrNotFound if no matching artifact exists.
+// TODO: replace with GetByNameOrDigest in libartifact.
 func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact, bool, error) {
 	if strRef == "" {
 		return nil, false, errors.New("empty name or digest")
@@ -470,7 +334,7 @@ func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact
 	}
 
 	// if strRef is named reference
-	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.systemContext, strRef)
+	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.SystemContext, strRef)
 	if err != nil {
 		return nil, false, fmt.Errorf("get candidates for potentially short image name: %w", err)
 	}
@@ -502,16 +366,9 @@ func (s *Store) getImageReference(nameOrDigest string) (types.ImageReference, er
 	return ref, nil
 }
 
-// BlobMountPath represents a mapping of a source path in the blob directory to a file name in the artifact.
-type BlobMountPath struct {
-	// Source path of the blob, i.e. full path in the blob dir.
-	SourcePath string
-	// Name of the file in the artifact.
-	Name string
-}
-
 // BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
-func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]BlobMountPath, error) {
+// This should be replaced by BlobMountPaths in c/common, but it doesn't support modelpack, so we keep it here for now.
+func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]libartTypes.BlobMountPath, error) {
 	ref, err := layout.NewReference(s.rootPath, artifact.Reference())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
@@ -524,9 +381,9 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 
 	defer src.Close()
 
-	mountPaths := make([]BlobMountPath, 0, len(artifact.Manifest().Layers))
+	mountPaths := make([]libartTypes.BlobMountPath, 0, len(artifact.Manifest.Layers))
 
-	for _, l := range artifact.Manifest().Layers {
+	for _, l := range artifact.Manifest.Layers {
 		path, err := layout.GetLocalBlobPath(ctx, src, l.Digest)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get a local blob path: %w", err)
@@ -539,7 +396,7 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 			continue
 		}
 
-		mountPaths = append(mountPaths, BlobMountPath{
+		mountPaths = append(mountPaths, libartTypes.BlobMountPath{
 			SourcePath: path,
 			Name:       name,
 		})

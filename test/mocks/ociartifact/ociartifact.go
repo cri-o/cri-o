@@ -14,11 +14,8 @@ import (
 	io "io"
 	reflect "reflect"
 
-	digest "github.com/opencontainers/go-digest"
-	libimage "go.podman.io/common/libimage"
 	reference "go.podman.io/image/v5/docker/reference"
 	manifest "go.podman.io/image/v5/manifest"
-	layout "go.podman.io/image/v5/oci/layout"
 	types "go.podman.io/image/v5/types"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -62,35 +59,6 @@ func (mr *MockImplMockRecorder) CandidatesForPotentiallyShortImageName(systemCon
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CandidatesForPotentiallyShortImageName", reflect.TypeOf((*MockImpl)(nil).CandidatesForPotentiallyShortImageName), systemContext, imageName)
 }
 
-// ChooseInstance mocks base method.
-func (m *MockImpl) ChooseInstance(arg0 manifest.List, arg1 *types.SystemContext) (digest.Digest, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ChooseInstance", arg0, arg1)
-	ret0, _ := ret[0].(digest.Digest)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ChooseInstance indicates an expected call of ChooseInstance.
-func (mr *MockImplMockRecorder) ChooseInstance(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseInstance", reflect.TypeOf((*MockImpl)(nil).ChooseInstance), arg0, arg1)
-}
-
-// CloseCopier mocks base method.
-func (m *MockImpl) CloseCopier(arg0 *libimage.Copier) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CloseCopier", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CloseCopier indicates an expected call of CloseCopier.
-func (mr *MockImplMockRecorder) CloseCopier(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseCopier", reflect.TypeOf((*MockImpl)(nil).CloseCopier), arg0)
-}
-
 // CloseImageSource mocks base method.
 func (m *MockImpl) CloseImageSource(arg0 types.ImageSource) error {
 	m.ctrl.T.Helper()
@@ -103,35 +71,6 @@ func (m *MockImpl) CloseImageSource(arg0 types.ImageSource) error {
 func (mr *MockImplMockRecorder) CloseImageSource(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseImageSource", reflect.TypeOf((*MockImpl)(nil).CloseImageSource), arg0)
-}
-
-// Copy mocks base method.
-func (m *MockImpl) Copy(arg0 context.Context, arg1 *libimage.Copier, arg2, arg3 types.ImageReference) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Copy", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Copy indicates an expected call of Copy.
-func (mr *MockImplMockRecorder) Copy(arg0, arg1, arg2, arg3 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockImpl)(nil).Copy), arg0, arg1, arg2, arg3)
-}
-
-// DeleteImage mocks base method.
-func (m *MockImpl) DeleteImage(arg0 context.Context, arg1 types.ImageReference, arg2 *types.SystemContext) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteImage", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteImage indicates an expected call of DeleteImage.
-func (mr *MockImplMockRecorder) DeleteImage(arg0, arg1, arg2 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockImpl)(nil).DeleteImage), arg0, arg1, arg2)
 }
 
 // DockerNewReference mocks base method.
@@ -193,22 +132,6 @@ func (mr *MockImplMockRecorder) GetBlob(arg0, arg1, arg2, arg3 any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlob", reflect.TypeOf((*MockImpl)(nil).GetBlob), arg0, arg1, arg2, arg3)
 }
 
-// GetManifest mocks base method.
-func (m *MockImpl) GetManifest(arg0 context.Context, arg1 types.ImageSource, arg2 *digest.Digest) ([]byte, string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetManifest", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetManifest indicates an expected call of GetManifest.
-func (mr *MockImplMockRecorder) GetManifest(arg0, arg1, arg2 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetManifest", reflect.TypeOf((*MockImpl)(nil).GetManifest), arg0, arg1, arg2)
-}
-
 // LayerInfos mocks base method.
 func (m *MockImpl) LayerInfos(arg0 manifest.Manifest) []manifest.LayerInfo {
 	m.ctrl.T.Helper()
@@ -238,80 +161,6 @@ func (mr *MockImplMockRecorder) LayoutNewReference(arg0, arg1 any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayoutNewReference", reflect.TypeOf((*MockImpl)(nil).LayoutNewReference), arg0, arg1)
 }
 
-// List mocks base method.
-func (m *MockImpl) List(arg0 string) ([]layout.ListResult, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", arg0)
-	ret0, _ := ret[0].([]layout.ListResult)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// List indicates an expected call of List.
-func (mr *MockImplMockRecorder) List(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockImpl)(nil).List), arg0)
-}
-
-// ListFromBlob mocks base method.
-func (m *MockImpl) ListFromBlob(arg0 []byte, arg1 string) (manifest.List, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListFromBlob", arg0, arg1)
-	ret0, _ := ret[0].(manifest.List)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListFromBlob indicates an expected call of ListFromBlob.
-func (mr *MockImplMockRecorder) ListFromBlob(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFromBlob", reflect.TypeOf((*MockImpl)(nil).ListFromBlob), arg0, arg1)
-}
-
-// ManifestConfigMediaType mocks base method.
-func (m *MockImpl) ManifestConfigMediaType(arg0 manifest.Manifest) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ManifestConfigMediaType", arg0)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// ManifestConfigMediaType indicates an expected call of ManifestConfigMediaType.
-func (mr *MockImplMockRecorder) ManifestConfigMediaType(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ManifestConfigMediaType", reflect.TypeOf((*MockImpl)(nil).ManifestConfigMediaType), arg0)
-}
-
-// ManifestFromBlob mocks base method.
-func (m *MockImpl) ManifestFromBlob(arg0 []byte, arg1 string) (manifest.Manifest, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ManifestFromBlob", arg0, arg1)
-	ret0, _ := ret[0].(manifest.Manifest)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ManifestFromBlob indicates an expected call of ManifestFromBlob.
-func (mr *MockImplMockRecorder) ManifestFromBlob(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ManifestFromBlob", reflect.TypeOf((*MockImpl)(nil).ManifestFromBlob), arg0, arg1)
-}
-
-// NewCopier mocks base method.
-func (m *MockImpl) NewCopier(arg0 *libimage.CopyOptions, arg1 *types.SystemContext) (*libimage.Copier, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewCopier", arg0, arg1)
-	ret0, _ := ret[0].(*libimage.Copier)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// NewCopier indicates an expected call of NewCopier.
-func (mr *MockImplMockRecorder) NewCopier(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewCopier", reflect.TypeOf((*MockImpl)(nil).NewCopier), arg0, arg1)
-}
-
 // NewImageSource mocks base method.
 func (m *MockImpl) NewImageSource(arg0 context.Context, arg1 types.ImageReference, arg2 *types.SystemContext) (types.ImageSource, error) {
 	m.ctrl.T.Helper()
@@ -325,21 +174,6 @@ func (m *MockImpl) NewImageSource(arg0 context.Context, arg1 types.ImageReferenc
 func (mr *MockImplMockRecorder) NewImageSource(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewImageSource", reflect.TypeOf((*MockImpl)(nil).NewImageSource), arg0, arg1, arg2)
-}
-
-// OCI1FromManifest mocks base method.
-func (m *MockImpl) OCI1FromManifest(arg0 []byte) (*manifest.OCI1, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OCI1FromManifest", arg0)
-	ret0, _ := ret[0].(*manifest.OCI1)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// OCI1FromManifest indicates an expected call of OCI1FromManifest.
-func (mr *MockImplMockRecorder) OCI1FromManifest(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OCI1FromManifest", reflect.TypeOf((*MockImpl)(nil).OCI1FromManifest), arg0)
 }
 
 // ParseNormalizedNamed mocks base method.
@@ -370,19 +204,4 @@ func (m *MockImpl) ReadAll(arg0 io.Reader) ([]byte, error) {
 func (mr *MockImplMockRecorder) ReadAll(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadAll", reflect.TypeOf((*MockImpl)(nil).ReadAll), arg0)
-}
-
-// ToJSON mocks base method.
-func (m *MockImpl) ToJSON(arg0 any) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ToJSON", arg0)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ToJSON indicates an expected call of ToJSON.
-func (mr *MockImplMockRecorder) ToJSON(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToJSON", reflect.TypeOf((*MockImpl)(nil).ToJSON), arg0)
 }
