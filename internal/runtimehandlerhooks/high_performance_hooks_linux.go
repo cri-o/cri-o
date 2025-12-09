@@ -164,6 +164,12 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		// because in the PreStart stage the process is already constructed.
 		// by the low-level runtime and the environment variables are already finalized.
 		injectCpusetEnv(specgen, &exclusiveCPUSet, &sharedCPUSet)
+
+		// Cpus in oci spec only includes the exclusive CPUs.
+		// If shared CPUs are requested, then we must set the CPUSet for the container additionally.
+		//
+		// The left hand can't be nil because exclusiveCPUSet is not empty.
+		specgen.Config.Linux.Resources.CPU.Cpus = exclusiveCPUSet.Union(sharedCPUSet).String()
 	}
 
 	housekeepingSiblings, err := h.getHousekeepingCPUs(specgen.Config, s.Annotations())
@@ -233,10 +239,8 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 		return err
 	}
 
-	var sharedCPUsRequested bool
-	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
-		sharedCPUsRequested = true
-
+	sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())
+	if sharedCPUsRequested {
 		if containerManagers, err = setSharedCPUs(c, containerManagers, h.sharedCPUs); err != nil {
 			return fmt.Errorf("setSharedCPUs: failed to set shared CPUs for container %q; %w", c.Name(), err)
 		}
@@ -467,10 +471,25 @@ type desiredManagerCPUSetState struct {
 func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) (retErr error) {
 	cpusString := c.Spec().Linux.Resources.CPU.Cpus
 
-	exclusiveCPUs, err := cpuset.Parse(cpusString)
+	specCPUSet, err := cpuset.Parse(cpusString)
 	if err != nil {
 		return err
 	}
+
+	var exclusiveCPUs cpuset.CPUSet
+
+	// If sharedCPUs is requested, then the exclusive set is the difference between the spec and the shared set.
+	if sharedCPUsRequested {
+		sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
+		if err != nil {
+			return fmt.Errorf("failed to parse shared cpus: %w", err)
+		}
+
+		exclusiveCPUs = specCPUSet.Difference(sharedCPUSet)
+	} else {
+		exclusiveCPUs = specCPUSet
+	}
+
 	// We need to construct a slice of managers from top to bottom. We already have the container's manager,
 	// potentially the parent manager, and pod manager.
 	// So we can begin by constructing all the parents of the pod manager
@@ -1321,7 +1340,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		return nil, fmt.Errorf("no cpus found for container %q", c.Name())
 	}
 
-	exclusiveCPUs, err := cpuset.Parse(cpusString)
+	allCPUs, err := cpuset.Parse(cpusString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
 	}
@@ -1340,11 +1359,11 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		return nil, err
 	}
 
-	if err := ctrManager.Set(&cgroups.Resources{
-		SkipDevices: true,
-		CpusetCpus:  exclusiveCPUs.Union(sharedCPUSet).String(),
-	}); err != nil {
-		return nil, err
+	exclusiveCPUs := allCPUs.Difference(sharedCPUSet)
+	if exclusiveCPUs.IsEmpty() {
+		// This shouldn't happen because the cpuSpec should have been correctly configured
+		// in PreCreate hook.
+		return nil, fmt.Errorf("no exclusive CPUs found, all CPUs: %q, shared CPUs: %q", cpusString, sharedCPUs)
 	}
 
 	if node.CgroupIsV2() {
