@@ -79,7 +79,7 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 		return nil, err
 	}
 
-	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
+	cgMgr, err := LibctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.M
 		return nil, err
 	}
 
-	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
+	cgMgr, err := LibctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
 	if err != nil {
 		return nil, err
 	}

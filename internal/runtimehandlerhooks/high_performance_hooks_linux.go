@@ -326,7 +326,24 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 			return err
 		}
 
-		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, true, requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())); err != nil {
+		sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())
+		if sharedCPUsRequested && node.CgroupIsV2() {
+			// Add the cgroup-child so that we can safely remove the isolated cpuset cgroup
+			// Otherwise cpuset may be kept isolated even after the cgroup is deleted.
+			actualContainerManager, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
+			if err != nil {
+				return err
+			}
+
+			childCgroup, err := createChildCgroupManager(actualContainerManager.Path(""))
+			if err != nil {
+				return err
+			}
+
+			containerManagers = append(containerManagers, childCgroup)
+		}
+
+		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, true, sharedCPUsRequested); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
@@ -426,11 +443,6 @@ func requestedSharedCPUs(annotations fields.Set, cName string) bool {
 }
 
 // setCPULoadBalancing relies on the cpuset cgroup to disable load balancing for containers.
-// The requisite condition to allow this is `cpuset.sched_load_balance` field must be set to 0 for all cgroups
-// that intersect with `cpuset.cpus` of the container that desires load balancing.
-// Since CRI-O is the owner of the container cgroup, it must set this value for
-// the container. Some other entity (kubelet, external service) must ensure this is the case for all
-// other cgroups that intersect (at minimum: all parent cgroups of this cgroup).
 func (h *HighPerformanceHooks) setCPULoadBalancing(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) error {
 	if node.CgroupIsV2() {
 		return h.setCPULoadBalancingV2(ctx, c, podManager, containerManagers, enable, sharedCPUsRequested)
@@ -516,7 +528,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 			continue
 		}
 
-		mgr, err := libctrManager(dir, parent, systemd)
+		mgr, err := cgmgr.LibctrManager(dir, parent, systemd)
 		if err != nil {
 			return err
 		}
@@ -885,7 +897,7 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 
 	podCgroupFullPath := filepath.Dir(containerCgroupFullPath)
 
-	podManager, err = libctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), cgroupManager.IsSystemd())
+	podManager, err = cgmgr.LibctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), cgroupManager.IsSystemd())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -896,7 +908,7 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 		containerCgroup = c.ID()
 	}
 
-	containerManager, err := libctrManager(containerCgroup, filepath.Dir(containerCgroupFullPath), cgroupManager.IsSystemd())
+	containerManager, err := cgmgr.LibctrManager(containerCgroup, filepath.Dir(containerCgroupFullPath), cgroupManager.IsSystemd())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -904,7 +916,7 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 	containerManagers = []cgroups.Manager{containerManager}
 
 	// crun actually does the cgroup configuration in a child of the cgroup CRI-O expects to be the container's
-	extraManager, err := trueContainerCgroupManager(containerCgroupFullPath)
+	extraManager, err := cgmgr.CrunContainerCgroupManager(containerCgroupFullPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -916,58 +928,11 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 	return podManager, containerManagers, nil
 }
 
-func trueContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager, error) {
-	// HACK: There isn't really a better way to check if the actual container cgroup is in a child cgroup of the expected.
-	// We could check /proc/$pid/cgroup, but we need to be able to query this after the container exits and the process is gone.
-	// We know the source of this: crun creates a sub cgroup of the container to do the actual management, to enforce systemd's single
-	// owner rule. Thus, we need to hardcode this check.
-	actualContainerCgroup := filepath.Join(expectedContainerCgroup, "container")
-	// Choose cpuset as the cgroup to check, with little reason.
-	cgroupRoot := cgroupMountPoint
-	if !node.CgroupIsV2() {
-		cgroupRoot += "/cpuset"
-	}
-
-	if _, err := os.Stat(filepath.Join(cgroupRoot, actualContainerCgroup)); err != nil {
-		return nil, nil
-	}
-	// must be crun, make another libctrManager. Regardless of cgroup driver, it will be treated as cgroupfs
-	return libctrManager(filepath.Base(actualContainerCgroup), filepath.Dir(actualContainerCgroup), false)
-}
-
 func disableCPUQuotaForCgroup(mgr cgroups.Manager) error {
 	return mgr.Set(&cgroups.Resources{
 		SkipDevices: true,
 		CpuQuota:    -1,
 	})
-}
-
-func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error) {
-	if systemd {
-		parent = filepath.Base(parent)
-		if parent == "." {
-			// libcontainer shorthand for root
-			// see https://github.com/opencontainers/runc/blob/9fffadae8/libcontainer/cgroups/systemd/common.go#L71
-			parent = "-.slice"
-		}
-	}
-
-	cg := &cgroups.Cgroup{
-		Name:   cgroup,
-		Parent: parent,
-		Resources: &cgroups.Resources{
-			SkipDevices: true,
-		},
-		Systemd: systemd,
-		// If the cgroup manager is systemd, then libcontainer
-		// will construct the cgroup path (for scopes) as:
-		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
-		// this will be ignored.
-		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
-		ScopePrefix: cgmgr.CrioPrefix,
-	}
-
-	return manager.New(cg)
 }
 
 // safe fetch of cgroup manager from managers slice.
@@ -1374,7 +1339,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 			return nil, err
 		}
 		// create a new cgroupfs manager
-		childCgroup, err := libctrManager("cgroup-child", strings.TrimPrefix(ctrCgroup, cgroupMountPoint), false)
+		childCgroup, err := createChildCgroupManager(ctrCgroup)
 		if err != nil {
 			return nil, err
 		}
@@ -1396,6 +1361,11 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 	// here we return the containerManagers with the child cgroup inside
 	// this is required in case load-balancing disablement is requested for the pod
 	return containerManagers, nil
+}
+
+// createChildCgroupManager creates a new manager for the exclusive CPUs when shared CPUs are set
+func createChildCgroupManager(cgroupPath string) (cgroups.Manager, error) {
+	return cgmgr.LibctrManager("cgroup-child", strings.TrimPrefix(cgroupPath, cgroupMountPoint), false)
 }
 
 func isContainerCPUEmpty(spec *specs.Spec) bool {

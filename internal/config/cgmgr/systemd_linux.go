@@ -111,7 +111,7 @@ func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (c
 		return nil, err
 	}
 	// Due to a quirk of libcontainer's cgroup driver, cgroup name = containerID
-	cgMgr, err := libctrManager(containerID, filepath.Dir(cgPath), true)
+	cgMgr, err := LibctrManager(containerID, filepath.Dir(cgPath), true)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 		return nil, err
 	}
 
-	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), true)
+	cgMgr, err := LibctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), true)
 	if err != nil {
 		return nil, err
 	}

@@ -245,3 +245,57 @@ func removeSandboxCgroup(sbParent, containerCgroup string) error {
 func containerCgroupPath(id string) string {
 	return CrioPrefix + "-" + id
 }
+
+// LibctrManager creates a libcontainer cgroup manager for the given cgroup.
+// The cgroup parameter is the name of the cgroup, parent is the parent path,
+// and systemd indicates whether to use systemd cgroup driver.
+func LibctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error) {
+	if systemd {
+		parent = filepath.Base(parent)
+		if parent == "." {
+			// libcontainer shorthand for root
+			// see https://github.com/opencontainers/runc/blob/9fffadae8/libcontainer/cgroups/systemd/common.go#L71
+			parent = "-.slice"
+		}
+	}
+
+	cg := &cgroups.Cgroup{
+		Name:   cgroup,
+		Parent: parent,
+		Resources: &cgroups.Resources{
+			SkipDevices: true,
+		},
+		Systemd: systemd,
+		// If the cgroup manager is systemd, then libcontainer
+		// will construct the cgroup path (for scopes) as:
+		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
+		// this will be ignored.
+		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
+		ScopePrefix: CrioPrefix,
+	}
+
+	return manager.New(cg)
+}
+
+// CrunContainerCgroupManager returns the cgroup manager for the actual container cgroup.
+// Some runtimes like crun create a sub-cgroup of the container to do the actual management,
+// to enforce systemd's single owner rule. This function checks for and handles that case.
+// If no sub-cgroup exists, it returns nil, nil.
+func CrunContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager, error) {
+	// HACK: There isn't really a better way to check if the actual container cgroup is in a child cgroup of the expected.
+	// We could check /proc/$pid/cgroup, but we need to be able to query this after the container exits and the process is gone.
+	// We know the source of this: crun creates a sub cgroup of the container to do the actual management, to enforce systemd's single
+	// owner rule. Thus, we need to hardcode this check.
+	actualContainerCgroup := filepath.Join(expectedContainerCgroup, "container")
+	// Choose cpuset as the cgroup to check, with little reason.
+	cgroupRoot := CgroupMemoryPathV2
+	if !node.CgroupIsV2() {
+		cgroupRoot += "/cpuset"
+	}
+
+	if _, err := os.Stat(filepath.Join(cgroupRoot, actualContainerCgroup)); err != nil {
+		return nil, nil
+	}
+	// must be crun, make another LibctrManager. Regardless of cgroup driver, it will be treated as cgroupfs
+	return LibctrManager(filepath.Base(actualContainerCgroup), filepath.Dir(actualContainerCgroup), false)
+}
