@@ -1,16 +1,17 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 10 Dec 2025 11:01:23 UTC for commit [65e16bd][0]._
+_Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/65e16bd27357fc979b7a7e718af71a3bd28a4901
+[0]: https://github.com/cri-o/cri-o/commit/f6e5b12684d04d1c1127247c0918be9292bb2878
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
+| github.com/checkpoint-restore/checkpointctl            | v1.4.0                               | v1.4.1                             | true   | true             |
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251209221811-406f6b1d157d | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251210151024-2137b1fa3a94 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
 | k8s.io/api                                             | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
@@ -19,7 +20,6 @@ _Generated on Wed, 10 Dec 2025 11:01:23 UTC for commit [65e16bd][0]._
 | k8s.io/cri-api                                         | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
 | k8s.io/cri-client                                      | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
 | k8s.io/kubelet                                         | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
-| tags.cncf.io/container-device-interface                | v1.0.2-0.20251126141844-16a1328247ae | v1.1.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -241,7 +241,7 @@ _Generated on Wed, 10 Dec 2025 11:01:23 UTC for commit [65e16bd][0]._
 | github.com/cenkalti/backoff/v5                                              | v5.0.3                                |                                    | false  | true             |
 | github.com/cespare/xxhash/v2                                                | v2.3.0                                |                                    | false  | true             |
 | github.com/chainguard-dev/clog                                              | v1.7.0                                |                                    | false  | true             |
-| github.com/checkpoint-restore/checkpointctl                                 | v1.4.0                                |                                    | true   | true             |
+| github.com/checkpoint-restore/checkpointctl                                 | v1.4.0                                | v1.4.1                             | true   | true             |
 | github.com/checkpoint-restore/go-criu/v6                                    | v6.3.0                                |                                    | false  | true             |
 | github.com/checkpoint-restore/go-criu/v7                                    | v7.2.0                                |                                    | true   | true             |
 | github.com/chrismellard/docker-credential-acr-env                           | v0.0.0-20230304212654-82a0ddb27589    |                                    | false  | true             |
@@ -251,7 +251,7 @@ _Generated on Wed, 10 Dec 2025 11:01:23 UTC for commit [65e16bd][0]._
 | github.com/cilium/ebpf                                                      | v0.17.3                               | v0.20.0                            | false  | true             |
 | github.com/clbanning/mxj/v2                                                 | v2.7.0                                |                                    | false  | true             |
 | github.com/cloudflare/circl                                                 | v1.6.1                                |                                    | false  | true             |
-| github.com/cncf/xds/go                                                      | v0.0.0-20251022180443-0feb69152e9f    | v0.0.0-20251110193048-8bfbf64dc13e | false  | true             |
+| github.com/cncf/xds/go                                                      | v0.0.0-20251022180443-0feb69152e9f    | v0.0.0-20251210132809-ee656c7534f5 | false  | true             |
 | github.com/cockroachdb/apd/v3                                               | v3.2.1                                |                                    | false  | true             |
 | github.com/codahale/rfc6979                                                 | v0.0.0-20141003034818-6a90f24967eb    |                                    | false  | true             |
 | github.com/colega/zeropool                                                  | v0.0.0-20230505084239-6fb4a4f75381    |                                    | false  | true             |
@@ -440,7 +440,7 @@ _Generated on Wed, 10 Dec 2025 11:01:23 UTC for commit [65e16bd][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251209221811-406f6b1d157d | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251210151024-2137b1fa3a94 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                             | false  | true             |
@@ -748,5 +748,5 @@ _Generated on Wed, 10 Dec 2025 11:01:23 UTC for commit [65e16bd][0]._
 | sigs.k8s.io/structured-merge-diff/v4                                        | v4.6.0                                | v4.7.0                             | false  | true             |
 | sigs.k8s.io/structured-merge-diff/v6                                        | v6.3.0                                | v6.3.1                             | false  | true             |
 | sigs.k8s.io/yaml                                                            | v1.6.0                                |                                    | true   | true             |
-| tags.cncf.io/container-device-interface                                     | v1.0.2-0.20251126141844-16a1328247ae  | v1.1.0                             | true   | true             |
-| tags.cncf.io/container-device-interface/specs-go                            | v1.0.1-0.20251126141844-16a1328247ae  | v1.1.0                             | false  | true             |
+| tags.cncf.io/container-device-interface                                     | v1.1.0                                |                                    | true   | true             |
+| tags.cncf.io/container-device-interface/specs-go                            | v1.1.0                                |                                    | false  | true             |
