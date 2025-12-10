@@ -272,6 +272,8 @@ func (s *Server) CRImportCheckpoint(
 		"/dev/shm":           true,
 		"/etc/resolv.conf":   true,
 		"/etc/hostname":      true,
+		"/etc/passwd":        true,
+		"/etc/group":         true,
 		"/run/secrets":       true,
 		"/run/.containerenv": true,
 	}
