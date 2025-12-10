@@ -87,7 +87,7 @@ require (
 	sigs.k8s.io/release-sdk v0.12.5
 	sigs.k8s.io/release-utils v0.12.2
 	sigs.k8s.io/yaml v1.6.0
-	tags.cncf.io/container-device-interface v1.0.2-0.20251126141844-16a1328247ae
+	tags.cncf.io/container-device-interface v1.1.0
 )
 
 require (
@@ -256,7 +256,7 @@ require (
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
-	tags.cncf.io/container-device-interface/specs-go v1.0.1-0.20251126141844-16a1328247ae // indirect
+	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
 
 replace github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.4.1
