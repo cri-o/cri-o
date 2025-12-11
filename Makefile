@@ -448,7 +448,8 @@ mockgen: \
 	mock-ocicni-types \
 	mock-seccompociartifact-types \
 	mock-ociartifact-types \
-	mock-systemd
+	mock-systemd \
+	mock-cgmgr
 
 .PHONY: mock-containereventserver
 mock-containereventserver: ${MOCKGEN}
@@ -491,6 +492,13 @@ mock-oci: ${MOCKGEN}
 		-package ocimock \
 		-destination ${MOCK_PATH}/oci/oci.go \
 		github.com/cri-o/cri-o/internal/oci RuntimeImpl
+
+.PHONY: mock-cgmgr
+mock-cgmgr: ${MOCKGEN}
+	${MOCKGEN} \
+		-package cgmgr \
+		-destination ${MOCK_PATH}/config/cgmgr/cgmgr.go \
+		github.com/cri-o/cri-o/internal/config/cgmgr CgroupManager
 
 .PHONY: mock-image-types
 mock-image-types: ${MOCKGEN}

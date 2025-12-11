@@ -123,7 +123,7 @@ function teardown() {
 #    └── cpuset.cpus.partition:            member
 #
 # bats test_tags=crio:serial
-@test "should run exec with the proper CPU affinity for exclusive cpus" {
+@test "should run exec with the proper CPU affinity for exclusive cpus with cpu-load-balancing disabled" {
 	start_crio
 
 	# Create container config with exclusive CPUs
@@ -169,7 +169,7 @@ function teardown() {
 #    └── cpuset.cpus.partition:            isolated
 #
 # bats test_tags=crio:serial
-@test "should run exec with the proper CPU affinity for exclusive cpus and shared cpus" {
+@test "should run exec with the proper CPU affinity for exclusive cpus and shared cpus with cpu-load-balancing disabled" {
 	start_crio
 
 	# Create container config with exclusive CPUs

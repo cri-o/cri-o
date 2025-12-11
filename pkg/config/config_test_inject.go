@@ -8,6 +8,7 @@ package config
 import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/cnimgr"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 )
@@ -31,4 +32,9 @@ func (c *Config) SetNamespaceManager(nsMgr *nsmgr.NamespaceManager) {
 // turn off CheckpointRestore support for testing.
 func (c *RuntimeConfig) SetCheckpointRestore(cr bool) {
 	c.EnableCriuSupport = cr
+}
+
+// SetCgroupManager sets the cgroupManager for the RuntimeConfig.
+func (c *RuntimeConfig) SetCgroupManager(mgr cgmgr.CgroupManager) {
+	c.cgroupManager = mgr
 }

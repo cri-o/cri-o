@@ -482,6 +482,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	args = append(args, "exec", "--process", processFile, c.ID())
 
 	var execCmd *exec.Cmd
+	// execCgroupPath is set only when ExecCPUAffinity is used.
 	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
 		// When execCgroupPath is used, we don't prepend the taskset command even if InfraCtrCPUSet is set.
 		// Otherwise, the taskset command may fail.
@@ -672,6 +673,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	var cmd *exec.Cmd
 
+	// execCgroupPath is set only when ExecCPUAffinity is used.
 	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
 		// When execCgroupPath is used, we don't prepend the taskset command even if InfraCtrCPUSet is set.
 		// Otherwise, the taskset command may fail.

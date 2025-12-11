@@ -107,6 +107,8 @@ var (
 
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads.
 type HighPerformanceHooks struct {
+	cgmgr.CgroupManager
+
 	irqBalanceConfigFile     string
 	cpusetLock               sync.Mutex
 	updateIRQSMPAffinityLock sync.Mutex
@@ -233,8 +235,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 		return nil
 	}
 
-	// creating libctr managers is expensive on v1. Reuse between CPU load balancing and CPU quota
-	podManager, containerManagers, err := libctrManagersForPodAndContainerCgroup(c, s.CgroupParent())
+	podManager, containerManagers, err := h.PodAndContainerCgroupManagers(s.CgroupParent(), c.ID())
 	if err != nil {
 		return err
 	}
@@ -307,6 +308,10 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 
 	// Pre-create exec cgroup for this container (only on cgroup v2).
 	// This allows exec operations to use this pre-created cgroup with CPU affinity already configured.
+	//
+	// This exec cgroup is required because when the specified cpuset is exclusive, the exec process needs running
+	// in the child of the container cgroup. When sharedCPUs are requested, the exec process can run in any cgroup
+	// and we don't have to create a new cgroup for it.
 	if h.execCPUAffinity != config.ExecCPUAffinityTypeDefault && !sharedCPUsRequested {
 		if err := h.createExecCgroup(ctx, c); err != nil {
 			return fmt.Errorf("failed to pre-create exec cgroup for container %q: %w", c.ID(), err)
@@ -331,24 +336,7 @@ func (h *HighPerformanceHooks) createExecCgroup(ctx context.Context, c *oci.Cont
 		return errors.New("container spec does not have a cgroup path")
 	}
 
-	// Determine the cgroup manager type based on the cgroup path format
-	var (
-		cgroupManager cgmgr.CgroupManager
-		err           error
-	)
-
-	if strings.Contains(cSpec.Linux.CgroupsPath, ":") {
-		// Systemd format: slice:prefix:containerID
-		cgroupManager, err = cgmgr.SetCgroupManager("systemd")
-	} else {
-		cgroupManager, err = cgmgr.SetCgroupManager("cgroupfs")
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to create cgroup manager: %w", err)
-	}
-
-	execCgroupMgr, err := cgroupManager.ExecCgroupManager(cSpec.Linux.CgroupsPath)
+	execCgroupMgr, err := h.ExecCgroupManager(cSpec.Linux.CgroupsPath)
 	if err != nil {
 		return fmt.Errorf("failed to create exec cgroup manager: %w", err)
 	}
@@ -395,7 +383,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations()) {
-		podManager, containerManagers, err := libctrManagersForPodAndContainerCgroup(c, s.CgroupParent())
+		podManager, containerManagers, err := h.PodAndContainerCgroupManagers(s.CgroupParent(), c.ID())
 		if err != nil {
 			return err
 		}
@@ -460,7 +448,9 @@ func (h *HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s
 	// We could check if `!cpuLoadBalancingAllowed()` here, but it requires access to the config, which would be
 	// odd to plumb. Instead, always assume if they're using a HighPerformanceHook, they have CPULoadBalanceDisabled
 	// annotation allowed.
-	dh := &DefaultCPULoadBalanceHooks{}
+	dh := &DefaultCPULoadBalanceHooks{
+		h.CgroupManager,
+	}
 
 	return dh.PostStop(ctx, c, s)
 }
@@ -947,59 +937,6 @@ func setCPUQuota(podManager cgroups.Manager, containerManagers []cgroups.Manager
 	}
 
 	return nil
-}
-
-func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) (podManager cgroups.Manager, containerManagers []cgroups.Manager, _ error) {
-	var (
-		cgroupManager cgmgr.CgroupManager
-		err           error
-	)
-	if strings.HasSuffix(parentDir, ".slice") {
-		if cgroupManager, err = cgmgr.SetCgroupManager("systemd"); err != nil {
-			// Programming error, this is only possible if the manager string is invalid.
-			panic(err)
-		}
-	} else if cgroupManager, err = cgmgr.SetCgroupManager("cgroupfs"); err != nil {
-		// Programming error, this is only possible if the manager string is invalid.
-		panic(err)
-	}
-
-	containerCgroupFullPath, err := cgroupManager.ContainerCgroupAbsolutePath(parentDir, c.ID())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	podCgroupFullPath := filepath.Dir(containerCgroupFullPath)
-
-	podManager, err = cgmgr.LibctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), cgroupManager.IsSystemd())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	containerCgroup := filepath.Base(containerCgroupFullPath)
-	// A quirk of libcontainer's cgroup driver.
-	if cgroupManager.IsSystemd() {
-		containerCgroup = c.ID()
-	}
-
-	containerManager, err := cgmgr.LibctrManager(containerCgroup, filepath.Dir(containerCgroupFullPath), cgroupManager.IsSystemd())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	containerManagers = []cgroups.Manager{containerManager}
-
-	// crun actually does the cgroup configuration in a child of the cgroup CRI-O expects to be the container's
-	extraManager, err := cgmgr.CrunContainerCgroupManager(containerCgroupFullPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if extraManager != nil {
-		containerManagers = append(containerManagers, extraManager)
-	}
-
-	return podManager, containerManagers, nil
 }
 
 func disableCPUQuotaForCgroup(mgr cgroups.Manager) error {

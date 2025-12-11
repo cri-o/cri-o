@@ -88,6 +88,13 @@ type CgroupManager interface {
 	// The cgroupPath parameter is the container's cgroup path from spec.Linux.CgroupsPath.
 	// This is only supported on cgroup v2.
 	ExecCgroupManager(cgroupPath string) (cgroups.Manager, error)
+	// PodAndContainerCgroupManagers returns the libcontainer cgroup managers for both the pod and container cgroups.
+	// The sbParent is the sandbox parent cgroup, and containerID is the container's ID.
+	// It returns:
+	//   - podManager: the cgroup manager for the pod cgroup
+	//   - containerManagers: a slice of cgroup managers for the container cgroup(s).
+	//     This may include an extra manager if crun creates a sub-cgroup of the container.
+	PodAndContainerCgroupManagers(sbParent, containerID string) (podManager cgroups.Manager, containerManagers []cgroups.Manager, err error)
 }
 
 // New creates a new CgroupManager with defaults.
@@ -281,11 +288,11 @@ func LibctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 	return manager.New(cg)
 }
 
-// CrunContainerCgroupManager returns the cgroup manager for the actual container cgroup.
+// crunContainerCgroupManager returns the cgroup manager for the actual container cgroup.
 // Some runtimes like crun create a sub-cgroup of the container to do the actual management,
 // to enforce systemd's single owner rule. This function checks for and handles that case.
 // If no sub-cgroup exists, it returns nil, nil.
-func CrunContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager, error) {
+func crunContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager, error) {
 	// HACK: There isn't really a better way to check if the actual container cgroup is in a child cgroup of the expected.
 	// We could check /proc/$pid/cgroup, but we need to be able to query this after the container exits and the process is gone.
 	// We know the source of this: crun creates a sub cgroup of the container to do the actual management, to enforce systemd's single
@@ -297,25 +304,27 @@ func CrunContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager
 		cgroupRoot += "/cpuset"
 	}
 
-	if _, err := os.Stat(filepath.Join(cgroupRoot, actualContainerCgroup)); err != nil {
+	// Normalize the path so that we don't add duplicate prefix.
+	cgroupPath := filepath.Join(cgroupRoot, strings.TrimPrefix(actualContainerCgroup, cgroupRoot))
+	if _, err := os.Stat(cgroupPath); err != nil {
 		return nil, nil
 	}
 	// must be crun, make another LibctrManager. Regardless of cgroup driver, it will be treated as cgroupfs
 	return LibctrManager(filepath.Base(actualContainerCgroup), filepath.Dir(actualContainerCgroup), false)
 }
 
-// ExecCgroupManager creates an exec cgroup for placing exec processes.
+// execCgroupManager creates an exec cgroup for placing exec processes.
 // containerCgroupAbsPath is the absolute path to the container's cgroup (without /sys/fs/cgroup prefix).
 // Returns the cgroup manager for the exec cgroup.
 //
 // The exec cgroup location depends on whether crun created a "container" child cgroup:
 //   - If crun's "container" child exists: exec cgroup is created under it
 //   - Otherwise: exec cgroup is created directly under the container cgroup
-func ExecCgroupManager(containerCgroupAbsPath string) (cgroups.Manager, error) {
+func execCgroupManager(containerCgroupAbsPath string) (cgroups.Manager, error) {
 	execCgroupParent := containerCgroupAbsPath
 
 	// Check if crun created a "container" child cgroup
-	if mgr, err := CrunContainerCgroupManager(containerCgroupAbsPath); err == nil && mgr != nil {
+	if mgr, err := crunContainerCgroupManager(containerCgroupAbsPath); err == nil && mgr != nil {
 		execCgroupParent = filepath.Join(containerCgroupAbsPath, "container")
 	}
 

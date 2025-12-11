@@ -357,6 +357,42 @@ func (m *SystemdManager) RemoveSandboxCgroup(sbParent, containerID string) error
 	return removeSandboxCgroup(expandedParent, containerCgroupPath(containerID))
 }
 
+// PodAndContainerCgroupManagers returns the libcontainer cgroup managers for both the pod and container cgroups.
+// The sbParent is the sandbox parent cgroup, and containerID is the container's ID.
+func (m *SystemdManager) PodAndContainerCgroupManagers(sbParent, containerID string) (podManager cgroups.Manager, containerManagers []cgroups.Manager, _ error) {
+	containerCgroupFullPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	podCgroupFullPath := filepath.Dir(containerCgroupFullPath)
+
+	podManager, err = LibctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), true)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// The first argument should be container ID, otherwise it adds duplicate prefix/suffix.
+	containerManager, err := LibctrManager(containerID, filepath.Dir(containerCgroupFullPath), true)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	containerManagers = []cgroups.Manager{containerManager}
+
+	// crun actually does the cgroup configuration in a child of the cgroup CRI-O expects to be the container's
+	extraManager, err := crunContainerCgroupManager(containerCgroupFullPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if extraManager != nil {
+		containerManagers = append(containerManagers, extraManager)
+	}
+
+	return podManager, containerManagers, nil
+}
+
 // ExecCgroupManager returns the cgroup manager for the exec cgroup used to place exec processes.
 // For systemd, the cgroupPath is in the format "slice:prefix:containerID".
 // This is only supported on cgroup v2.
@@ -388,5 +424,5 @@ func (m *SystemdManager) ExecCgroupManager(cgroupPath string) (cgroups.Manager, 
 	// Format: <expanded-slice>/<prefix>-<containerID>.scope
 	containerCgroupAbsPath := filepath.Join(expandedSlice, prefix+"-"+containerID+".scope")
 
-	return ExecCgroupManager(containerCgroupAbsPath)
+	return execCgroupManager(containerCgroupAbsPath)
 }
