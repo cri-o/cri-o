@@ -12,7 +12,7 @@ import (
 	"runtime/debug"
 
 	"github.com/go-chi/chi/v5"
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/storage/pkg/idtools"
 	"k8s.io/utils/ptr"
