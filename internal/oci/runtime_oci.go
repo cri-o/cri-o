@@ -101,6 +101,19 @@ type exitCodeInfo struct {
 	Message  string `json:"message,omitempty"`
 }
 
+// execCmdWrapper wraps exec.Cmd to implement the ExecStarter interface.
+type execCmdWrapper struct {
+	cmd *exec.Cmd
+}
+
+func (w *execCmdWrapper) Start() error {
+	return w.cmd.Start()
+}
+
+func (w *execCmdWrapper) GetPid() int {
+	return w.cmd.Process.Pid
+}
+
 // CreateContainer creates a container.
 func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) (retErr error) {
 	ctx, span := log.StartSpan(ctx)
@@ -542,12 +555,10 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 			execCmd.Stderr = stderr
 		}
 
-		if err := execCmd.Start(); err != nil {
-			return err
-		}
-
-		pid := execCmd.Process.Pid
-		if err := c.AddExecPID(pid, true); err != nil {
+		// Atomically start the exec and register its PID to prevent race conditions
+		// where the exec starts but isn't registered before the kill loop begins.
+		pid, err := c.StartExecCmd(&execCmdWrapper{cmd: execCmd}, true)
+		if err != nil {
 			return err
 		}
 		defer c.DeleteExecPID(pid)
@@ -710,7 +721,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	r.prepareEnv(cmd, true)
 
-	err = cmd.Start()
+	// Atomically start the command and register its PID to prevent race conditions
+	// where the exec starts but isn't registered before the kill loop begins.
+	pid, err := c.StartExecCmd(&execCmdWrapper{cmd: cmd}, false)
 	if err != nil {
 		childPipe.Close()
 		childStartPipe.Close()
@@ -745,14 +758,12 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				if !errors.As(waitErr, &exitErr) || exitErr.ExitCode() != -1 {
 					retErr = fmt.Errorf("failed to wait %w after failing with: %w", waitErr, retErr)
 				}
+				// Clean up the PID registration since the exec failed
+				c.DeleteExecPID(pid)
 			}
 		}()
 
-		// A neat trick we can do is register the exec PID before we send info down the start pipe.
-		// Doing so guarantees we can short circuit the exec process if the container is stopping already.
-		if err := c.AddExecPID(cmd.Process.Pid, false); err != nil {
-			return err
-		}
+		// The exec PID was already registered atomically by StartExecCmd above
 
 		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer && r.config.InfraCtrCPUSet != "" {
 			// Update the exec's cgroup
@@ -761,7 +772,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				return err
 			}
 
-			err = cgmgr.MoveProcessToContainerCgroup(containerPid, cmd.Process.Pid)
+			err = cgmgr.MoveProcessToContainerCgroup(containerPid, pid)
 			if err != nil {
 				return err
 			}
@@ -783,9 +794,6 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			Err:      err,
 		}
 	}
-
-	// defer in case the Pid is changed after Wait()
-	pid := cmd.Process.Pid
 
 	// first, wait till the command is done
 	waitErr := cmd.Wait()
@@ -975,46 +983,33 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 	// when CRI-O is run directly in the foreground in the terminal.
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 
+	c.opLock.Lock()
+
 	defer func() {
 		// Kill the exec PIDs after the main container to avoid pod lifecycle regressions:
 		// Ref: https://github.com/kubernetes/kubernetes/issues/124743
-		c.opLock.Lock()
 		c.KillExecPIDs()
 		c.state.Finished = time.Now()
 		c.opLock.Unlock()
 		c.SetAsDoneStopping()
 	}()
 
-	c.opLock.Lock()
-	isPaused := c.state.Status == ContainerStatePaused
-	c.opLock.Unlock()
-
-	if isPaused {
-		c.opLock.Lock()
-
+	if c.state.Status == ContainerStatePaused {
 		if _, err := r.runtimeCmd("resume", c.ID()); err != nil {
 			log.Errorf(ctx, "Failed to unpause container %s: %v", c.Name(), err)
 		}
-
-		c.opLock.Unlock()
 	}
 
 	// Begin the actual kill.
-	c.opLock.Lock()
-
-	_, killErr := r.runtimeCmd("kill", c.ID(), c.GetStopSignal())
-	if killErr != nil {
+	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
 		if err := c.Living(); err != nil {
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
 			c.state.Finished = time.Now()
-			c.opLock.Unlock()
 
 			return
 		}
 	}
-
-	c.opLock.Unlock()
 
 	done := make(chan struct{})
 
@@ -1030,11 +1025,8 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 				// Periodically check if the container is still running.
 				// This avoids busy-waiting and reduces resource usage while
 				// ensuring timely detection of container termination.
-				c.opLock.RLock()
-				err := c.Living()
-				c.opLock.RUnlock()
-
-				if err != nil {
+				//
+				if err := c.Living(); err != nil {
 					// The initial container process either doesn't exist, or isn't ours.
 					if !errors.Is(err, ErrNotFound) {
 						log.Warnf(ctx, "Failed to find process for container %s: %v", c.ID(), err)
@@ -1054,20 +1046,15 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 	targetTime := time.Now().AddDate(+1, 0, 0) // A year from this one.
 
 	blockedTimer := time.AfterFunc(stopProcessBlockedInterval, func() {
-		c.opLock.RLock()
-		state, err := c.ProcessState()
-		initPid := c.state.InitPid
-		c.opLock.RUnlock()
-
-		if err == nil && state == "D" {
+		if state, err := c.ProcessState(); err == nil && state == "D" {
 			log.Errorf(ctx,
 				"Detected process (%d) blocked in uninterruptible sleep for more than %d seconds for container %s",
-				initPid, int(time.Since(startTime)/time.Second), c.ID(),
+				c.state.InitPid, int(time.Since(startTime)/time.Second), c.ID(),
 			)
 		} else {
 			log.Warnf(ctx,
 				"Detected process (%d) in state %s blocked for more than %d seconds for container %s. One of the child processes might be in uninterruptible sleep.",
-				initPid, state, int(time.Since(startTime)/time.Second), c.ID(),
+				c.state.InitPid, state, int(time.Since(startTime)/time.Second), c.ID(),
 			)
 		}
 	})
@@ -1105,21 +1092,15 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 killContainer:
 	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
 	kwait.BackoffUntil(func() {
-		c.opLock.Lock()
-
-		_, killErr := r.runtimeCmd("kill", c.ID(), "KILL")
-		if killErr != nil {
-			if !errors.Is(killErr, ErrNotFound) {
-				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), killErr)
+		if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
+			if !errors.Is(err, ErrNotFound) {
+				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
 			} else {
-				log.Debugf(ctx, "Error while killing container %s: %v", c.ID(), killErr)
+				log.Debugf(ctx, "Error while killing container %s: %v", c.ID(), err)
 			}
 		}
 
-		err := c.Living()
-		c.opLock.Unlock()
-
-		if err != nil {
+		if err := c.Living(); err != nil {
 			log.Debugf(ctx, "Container is no longer alive")
 			stop()
 
