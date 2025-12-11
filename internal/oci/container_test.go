@@ -869,6 +869,85 @@ var _ = t.Describe("Container", func() {
 		})
 	})
 
+	t.Describe("StartExecCmd", func() {
+		It("should fail when kill loop has begun", func() {
+			// Given
+			sut.SetAsStopping()
+			sut.SetStopKillLoopBegun()
+
+			mockStarter := &mockExecStarter{
+				startFunc: func() error { return nil },
+				pid:       12345,
+			}
+
+			// When
+			pid, err := sut.StartExecCmd(mockStarter, true)
+
+			// Then - Should fail because kill loop has begun
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("container is being killed"))
+			Expect(pid).To(Equal(0))
+			// Start should NOT have been called
+			Expect(mockStarter.startCalled).To(BeFalse())
+		})
+
+		It("should succeed during graceful termination", func() {
+			// Given - Container is stopping but kill loop hasn't begun
+			sut.SetAsStopping()
+
+			mockStarter := &mockExecStarter{
+				startFunc: func() error { return nil },
+				pid:       12345,
+			}
+
+			// When
+			pid, err := sut.StartExecCmd(mockStarter, true)
+
+			// Then - Should succeed because stopKillLoopBegun is false
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pid).To(Equal(12345))
+			Expect(mockStarter.startCalled).To(BeTrue())
+		})
+
+		It("should propagate start errors", func() {
+			// Given
+			expectedErr := errors.New("start failed")
+			mockStarter := &mockExecStarter{
+				startFunc: func() error { return expectedErr },
+				pid:       0,
+			}
+
+			// When
+			pid, err := sut.StartExecCmd(mockStarter, true)
+
+			// Then - Should propagate the error
+			Expect(err).To(Equal(expectedErr))
+			Expect(pid).To(Equal(0))
+			Expect(mockStarter.startCalled).To(BeTrue())
+		})
+
+		It("should register PID atomically on success", func() {
+			// Given
+			mockStarter := &mockExecStarter{
+				startFunc: func() error { return nil },
+				pid:       54321,
+			}
+
+			// When
+			pid, err := sut.StartExecCmd(mockStarter, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pid).To(Equal(54321))
+
+			// Verify PID is registered - we can check by trying to delete it
+			// (DeleteExecPID doesn't error on non-existent PIDs)
+			Expect(func() {
+				sut.DeleteExecPID(54321)
+			}).ToNot(Panic())
+		})
+	})
+
 	t.Describe("SetAsDoneStopping", func() {
 		It("should complete without error when no watchers exist", func() {
 			// Given - No watchers registered
@@ -1012,3 +1091,19 @@ var _ = t.Describe("SpoofedContainer", func() {
 		Expect(sut.Sandbox()).To(Equal("sbox"))
 	})
 })
+
+// mockExecStarter is a mock implementation of ExecStarter for testing.
+type mockExecStarter struct {
+	startFunc   func() error
+	pid         int
+	startCalled bool
+}
+
+func (m *mockExecStarter) Start() error {
+	m.startCalled = true
+	return m.startFunc()
+}
+
+func (m *mockExecStarter) GetPid() int {
+	return m.pid
+}
