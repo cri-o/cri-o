@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
+_Generated on Thu, 11 Dec 2025 21:41:16 UTC for commit [22417ca][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f6e5b12684d04d1c1127247c0918be9292bb2878
+[0]: https://github.com/cri-o/cri-o/commit/22417ca436cbf3fa25549e73107b25b26262b6d5
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | github.com/checkpoint-restore/checkpointctl            | v1.4.0                               | v1.4.1                             | true   | true             |
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251210151024-2137b1fa3a94 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251211201022-82e8e9fbe0ff | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
 | k8s.io/api                                             | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
@@ -28,11 +28,11 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.1                        | v3.1.0-alpha.2                     | false  | true             |
 | cel.dev/expr                                                                | v0.24.0                               | v0.25.1                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                              |                                    | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.44                               |                                    | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.44                               | v0.1.45                            | false  | true             |
 | cloud.google.com/go                                                         | v0.120.0                              | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.6                                | v1.8.8                             | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.6                                | v1.9.7                             | false  | true             |
-| cloud.google.com/go/aiplatform                                              | v1.89.0                               | v1.110.0                           | false  | true             |
+| cloud.google.com/go/aiplatform                                              | v1.89.0                               | v1.111.0                           | false  | true             |
 | cloud.google.com/go/analytics                                               | v0.28.1                               | v0.30.1                            | false  | true             |
 | cloud.google.com/go/apigateway                                              | v1.7.6                                | v1.7.7                             | false  | true             |
 | cloud.google.com/go/apigeeconnect                                           | v1.7.6                                | v1.7.7                             | false  | true             |
@@ -57,7 +57,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | cloud.google.com/go/cloudbuild                                              | v1.22.2                               | v1.24.0                            | false  | true             |
 | cloud.google.com/go/clouddms                                                | v1.8.7                                | v1.8.8                             | false  | true             |
 | cloud.google.com/go/cloudtasks                                              | v1.13.6                               | v1.13.7                            | false  | true             |
-| cloud.google.com/go/compute                                                 | v1.38.0                               | v1.50.0                            | false  | true             |
+| cloud.google.com/go/compute                                                 | v1.38.0                               | v1.51.0                            | false  | true             |
 | cloud.google.com/go/compute/metadata                                        | v0.9.0                                |                                    | false  | true             |
 | cloud.google.com/go/contactcenterinsights                                   | v1.17.3                               | v1.17.4                            | false  | true             |
 | cloud.google.com/go/container                                               | v1.43.0                               | v1.45.0                            | false  | true             |
@@ -125,7 +125,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | cloud.google.com/go/resourcemanager                                         | v1.10.6                               | v1.10.7                            | false  | true             |
 | cloud.google.com/go/resourcesettings                                        | v1.8.3                                |                                    | false  | true             |
 | cloud.google.com/go/retail                                                  | v1.21.0                               | v1.25.1                            | false  | true             |
-| cloud.google.com/go/run                                                     | v1.10.0                               | v1.12.1                            | false  | true             |
+| cloud.google.com/go/run                                                     | v1.10.0                               | v1.13.0                            | false  | true             |
 | cloud.google.com/go/scheduler                                               | v1.11.7                               | v1.11.8                            | false  | true             |
 | cloud.google.com/go/secretmanager                                           | v1.14.7                               | v1.16.0                            | false  | true             |
 | cloud.google.com/go/security                                                | v1.19.2                               |                                    | false  | true             |
@@ -150,7 +150,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | cloud.google.com/go/websecurityscanner                                      | v1.7.6                                | v1.7.7                             | false  | true             |
 | cloud.google.com/go/workflows                                               | v1.14.2                               | v1.14.3                            | false  | true             |
 | code.cloudfoundry.org/bytefmt                                               | v0.0.0-20211005130812-5bb3c17173e5    | v0.58.0                            | false  | true             |
-| cuelabs.dev/go/oci/ociregistry                                              | v0.0.0-20250224124241-b27552d3e05c    | v0.0.0-20251112093024-b12090c4dee0 | false  | true             |
+| cuelabs.dev/go/oci/ociregistry                                              | v0.0.0-20250224124241-b27552d3e05c    | v0.0.0-20251211171631-630db90f8c9d | false  | true             |
 | cuelang.org/go                                                              | v0.12.1                               | v0.15.1                            | false  | true             |
 | dario.cat/mergo                                                             | v1.0.2                                |                                    | false  | true             |
 | filippo.io/edwards25519                                                     | v1.1.0                                |                                    | false  | true             |
@@ -232,7 +232,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | github.com/blang/semver                                                     | v3.5.1+incompatible                   |                                    | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                |                                    | true   | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                |                                    | false  | true             |
-| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.114.1                           | false  | true             |
+| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.115.0                           | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.13.3                               | v0.16.0                            | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                |                                    | false  | true             |
 | github.com/buildkite/roko                                                   | v1.3.1                                | v1.4.0                             | false  | true             |
@@ -240,7 +240,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | github.com/cenkalti/backoff/v4                                              | v4.3.0                                |                                    | false  | true             |
 | github.com/cenkalti/backoff/v5                                              | v5.0.3                                |                                    | false  | true             |
 | github.com/cespare/xxhash/v2                                                | v2.3.0                                |                                    | false  | true             |
-| github.com/chainguard-dev/clog                                              | v1.7.0                                |                                    | false  | true             |
+| github.com/chainguard-dev/clog                                              | v1.7.0                                | v1.8.0                             | false  | true             |
 | github.com/checkpoint-restore/checkpointctl                                 | v1.4.0                                | v1.4.1                             | true   | true             |
 | github.com/checkpoint-restore/go-criu/v6                                    | v6.3.0                                |                                    | false  | true             |
 | github.com/checkpoint-restore/go-criu/v7                                    | v7.2.0                                |                                    | true   | true             |
@@ -440,7 +440,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251210151024-2137b1fa3a94 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251211201022-82e8e9fbe0ff | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                             | false  | true             |
@@ -500,7 +500,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | github.com/modern-go/concurrent                                             | v0.0.0-20180306012644-bacd9c7ef1dd    |                                    | false  | true             |
 | github.com/modern-go/reflect2                                               | v1.0.3-0.20250322232337-35a7c28c31ee  |                                    | false  | true             |
 | github.com/montanaflynn/stats                                               | v0.7.1                                |                                    | false  | true             |
-| github.com/morikuni/aec                                                     | v1.0.0                                |                                    | false  | true             |
+| github.com/morikuni/aec                                                     | v1.0.0                                | v1.1.0                             | false  | true             |
 | github.com/mozillazg/docker-credential-acr-helper                           | v0.4.0                                |                                    | false  | true             |
 | github.com/mrunalp/fileutils                                                | v0.5.1                                |                                    | false  | true             |
 | github.com/munnerz/goautoneg                                                | v0.0.0-20191010083416-a7dc8b61c822    |                                    | false  | true             |
@@ -573,7 +573,7 @@ _Generated on Wed, 10 Dec 2025 16:42:34 UTC for commit [f6e5b12][0]._
 | github.com/sigstore/protobuf-specs                                          | v0.5.0                                |                                    | false  | true             |
 | github.com/sigstore/rekor                                                   | v1.4.2                                | v1.4.3                             | false  | true             |
 | github.com/sigstore/sigstore                                                | v1.10.0                               | v1.10.2                            | false  | true             |
-| github.com/sigstore/sigstore-go                                             | v0.7.1                                | v1.1.3                             | false  | true             |
+| github.com/sigstore/sigstore-go                                             | v0.7.1                                | v1.1.4                             | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/aws                          | v1.10.0                               | v1.10.2                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/azure                        | v1.10.0                               | v1.10.2                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/gcp                          | v1.10.0                               | v1.10.2                            | false  | true             |
