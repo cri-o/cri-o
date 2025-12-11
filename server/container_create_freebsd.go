@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"go.podman.io/storage/pkg/idtools"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"go.podman.io/storage/pkg/idtools"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -39,7 +39,7 @@ func disableFipsForContainer(ctr ctrfactory.Container, containerDir string) erro
 	return nil
 }
 
-func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet bool) {
+func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet bool, sb *sandbox.Sandbox, containerIDMappings *idtools.IDMappings) {
 }
 
 func setOCIBindMountsPrivileged(g *generate.Generator) {
