@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
-	github.com/checkpoint-restore/checkpointctl v1.4.0
+	github.com/checkpoint-restore/checkpointctl v1.4.1
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.29
