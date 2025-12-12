@@ -20,10 +20,15 @@ type SeccompOCIArtifact struct {
 }
 
 // New creates a new seccomp OCI artifact handler.
-func New(root string, systemContext *types.SystemContext) *SeccompOCIArtifact {
-	return &SeccompOCIArtifact{
-		impl: ociartifact.NewStore(root, systemContext),
+func New(root string, systemContext *types.SystemContext) (*SeccompOCIArtifact, error) {
+	impl, err := ociartifact.NewStore(root, systemContext)
+	if err != nil {
+		return nil, err
 	}
+
+	return &SeccompOCIArtifact{
+		impl,
+	}, nil
 }
 
 const (

@@ -901,28 +901,39 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 	})
 	isOCIArtifact := false
 
+	var canonicalRef reference.Canonical
+
 	if err != nil {
-		artifactManifestBytes, artifactErr := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext).PullManifest(ctx, srcRef, &ociartifact.PullOptions{CopyOptions: &libimage.CopyOptions{
+		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext)
+		if artifactErr != nil {
+			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: create store err: %w", artifactErr)
+		}
+
+		manifestDigest, artifactErr := artifactStore.PullManifest(ctx, srcRef, &libimage.CopyOptions{
 			OciDecryptConfig: options.OciDecryptConfig,
 			Progress:         options.Progress,
 			RemoveSignatures: true, // signature is not supported for OCI layout dest
-		}})
+		})
 		if artifactErr != nil {
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: pull image err: %w; artifact err: %w", err, artifactErr)
 		}
 
-		manifestBytes = artifactManifestBytes
+		canonicalRef, err = reference.WithDigest(reference.TrimNamed(imageName.Raw()), *manifestDigest)
+		if err != nil {
+			return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
+		}
+
 		isOCIArtifact = true
-	}
+	} else {
+		manifestDigest, err := manifest.Digest(manifestBytes)
+		if err != nil {
+			return RegistryImageReference{}, fmt.Errorf("digesting image: %w", err)
+		}
 
-	manifestDigest, err := manifest.Digest(manifestBytes)
-	if err != nil {
-		return RegistryImageReference{}, fmt.Errorf("digesting image: %w", err)
-	}
-
-	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), manifestDigest)
-	if err != nil {
-		return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
+		canonicalRef, err = reference.WithDigest(reference.TrimNamed(imageName.Raw()), manifestDigest)
+		if err != nil {
+			return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
+		}
 	}
 
 	// The manifestDigest may differ from the requested reference for multi-arch images
