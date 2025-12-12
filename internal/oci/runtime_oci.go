@@ -101,6 +101,19 @@ type exitCodeInfo struct {
 	Message  string `json:"message,omitempty"`
 }
 
+// execCmdWrapper wraps exec.Cmd to implement the ExecStarter interface.
+type execCmdWrapper struct {
+	cmd *exec.Cmd
+}
+
+func (w *execCmdWrapper) Start() error {
+	return w.cmd.Start()
+}
+
+func (w *execCmdWrapper) GetPid() int {
+	return w.cmd.Process.Pid
+}
+
 // CreateContainer creates a container.
 func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) (retErr error) {
 	ctx, span := log.StartSpan(ctx)
@@ -525,12 +538,10 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 			execCmd.Stderr = stderr
 		}
 
-		if err := execCmd.Start(); err != nil {
-			return err
-		}
-
-		pid := execCmd.Process.Pid
-		if err := c.AddExecPID(pid, true); err != nil {
+		// Atomically start the exec and register its PID to prevent race conditions
+		// where the exec starts but isn't registered before the kill loop begins.
+		pid, err := c.StartExecCmd(&execCmdWrapper{cmd: execCmd}, true)
+		if err != nil {
 			return err
 		}
 		defer c.DeleteExecPID(pid)
@@ -677,7 +688,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	r.prepareEnv(cmd, true)
 
-	err = cmd.Start()
+	// Atomically start the command and register its PID to prevent race conditions
+	// where the exec starts but isn't registered before the kill loop begins.
+	pid, err := c.StartExecCmd(&execCmdWrapper{cmd: cmd}, false)
 	if err != nil {
 		childPipe.Close()
 		childStartPipe.Close()
@@ -712,14 +725,12 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				if !errors.As(waitErr, &exitErr) || exitErr.ExitCode() != -1 {
 					retErr = fmt.Errorf("failed to wait %w after failing with: %w", waitErr, retErr)
 				}
+				// Clean up the PID registration since the exec failed
+				c.DeleteExecPID(pid)
 			}
 		}()
 
-		// A neat trick we can do is register the exec PID before we send info down the start pipe.
-		// Doing so guarantees we can short circuit the exec process if the container is stopping already.
-		if err := c.AddExecPID(cmd.Process.Pid, false); err != nil {
-			return err
-		}
+		// The exec PID was already registered atomically by StartExecCmd above
 
 		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer && r.config.InfraCtrCPUSet != "" {
 			// Update the exec's cgroup
@@ -728,7 +739,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				return err
 			}
 
-			err = cgmgr.MoveProcessToContainerCgroup(containerPid, cmd.Process.Pid)
+			err = cgmgr.MoveProcessToContainerCgroup(containerPid, pid)
 			if err != nil {
 				return err
 			}
@@ -750,9 +761,6 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			Err:      err,
 		}
 	}
-
-	// defer in case the Pid is changed after Wait()
-	pid := cmd.Process.Pid
 
 	// first, wait till the command is done
 	waitErr := cmd.Wait()
@@ -984,6 +992,7 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 				// Periodically check if the container is still running.
 				// This avoids busy-waiting and reduces resource usage while
 				// ensuring timely detection of container termination.
+				//
 				if err := c.Living(); err != nil {
 					// The initial container process either doesn't exist, or isn't ours.
 					if !errors.Is(err, ErrNotFound) {
