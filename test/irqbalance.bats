@@ -74,6 +74,65 @@ function teardown_serial_test() {
 	fi
 }
 
+function hex_to_cpuset() {
+	# Convert a hexadecimal CPU mask to a space-separated list of CPU numbers
+	# Each hex digit represents 4 CPUs (bits 0-3)
+	# Example: "f" (hex) = 1111 (binary) = CPUs 0,1,2,3
+	local hex_mask="$1"
+	local cpus=()
+
+	# Process each hexadecimal character from left to right
+	for ((i = 0; i < ${#hex_mask}; i++)); do
+		# Extract one hex character at position i
+		local char=${hex_mask:$i:1}
+
+		# Convert hex character to decimal (e.g., 'f' -> 15, 'a' -> 10)
+		local decimal_char=$((16#$char))
+
+		# Check each of the 4 bits represented by this hex digit
+		for ((j = 0; j < 4; j++)); do
+			# Use bitwise AND to check if bit j is set
+			# (1 << j) creates a mask: j=0->1, j=1->2, j=2->4, j=3->8
+			if [[ $((decimal_char & (1 << j))) != 0 ]]; then
+				# If bit j is set, calculate the corresponding CPU number
+				# CPU = (hex_position * 4) + bit_position
+				cpus+=($((i * 4 + j)))
+			fi
+		done
+	done
+
+	echo "${cpus[@]}"
+}
+
+function expand_cpuset() {
+	# Convert CPU range notation (e.g., "0-19,24,25-27") to space-separated list
+	# Example: "0-3,5" -> "0 1 2 3 5"
+	local cpuset="$1"
+	local cpus=()
+
+	# Split by comma to get individual groups
+	IFS=',' read -ra groups <<< "$cpuset"
+
+	for group in "${groups[@]}"; do
+		# Check if this group contains a range (has a dash)
+		if [[ "$group" =~ ^[0-9]+-[0-9]+$ ]]; then
+			# Split the range by dash
+			local start=${group%-*} # Everything before the last dash
+			local end=${group#*-}   # Everything after the first dash
+
+			# Expand the range
+			for ((i = start; i <= end; i++)); do
+				cpus+=("$i")
+			done
+		else
+			# Single CPU number, not a range
+			cpus+=("$group")
+		fi
+	done
+
+	echo "${cpus[@]}"
+}
+
 # irqbalance tests have to run in sequence
 # shellcheck disable=SC2218
 @test "irqbalance tests (in sequence)" {
@@ -91,7 +150,7 @@ function teardown_serial_test() {
 # then
 #	we expect cri-o to save the irqbalance banned cpus mask in a file
 # 	pointed by the "$BANNEDCPUS_CONF" env var
-#	and the mask must have value stated in "IRQBALANCE_BANNED_CPUS" field
+#	and the mask must have value stated in "IRQBALANCE_BANNED_CPULIST" field
 #   from irqbalance service configuration file.
 irqbalance_cpu_ban_list_save() {
 	setup_serial_test
@@ -103,8 +162,13 @@ irqbalance_cpu_ban_list_save() {
 
 	[ -f "$BANNEDCPUS_CONF" ] && rm -f "$BANNEDCPUS_CONF"
 
+	# Check if IRQBALANCE_BANNED_CPULIST line exists in the config file
+	if ! grep -q "^IRQBALANCE_BANNED_CPULIST=" "$IRQBALANCE_CONF"; then
+		skip "IRQBALANCE_BANNED_CPULIST not configured in $IRQBALANCE_CONF"
+	fi
+
 	local expected_banned_cpus
-	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	# when
 	IRQBALANCE_CONFIG_FILE="${IRQBALANCE_CONF}" IRQBALANCE_CONFIG_RESTORE_FILE="$BANNEDCPUS_CONF" start_crio
@@ -117,7 +181,6 @@ irqbalance_cpu_ban_list_save() {
 
 	local banned_cpus
 	banned_cpus=$(cat "$BANNEDCPUS_CONF")
-
 	[ "$expected_banned_cpus" == "$banned_cpus" ]
 
 	teardown_serial_test
@@ -130,7 +193,7 @@ irqbalance_cpu_ban_list_save() {
 # then
 #	we expect cri-o to read the irqbalance banned cpus mask from a file
 # 	pointed by the "$BANNEDCPUS_CONF" env var
-#	and save the mask value in "IRQBALANCE_BANNED_CPUS" field
+#	and save the mask value in "IRQBALANCE_BANNED_CPULIST" field
 #   of irqbalance service configuration file.
 irqbalance_cpu_ban_list_restore_default() {
 	setup_serial_test
@@ -140,7 +203,8 @@ irqbalance_cpu_ban_list_restore_default() {
 	fi
 	[ -f "$CONFIGLET" ] && rm -f "$CONFIGLET"
 
-	echo "IRQBALANCE_BANNED_CPUS=\"0\"" > "$IRQBALANCE_CONF"
+	echo "IRQBALANCE_BANNED_CPUS=\"0\"" > "${IRQBALANCE_CONF}"
+	echo "IRQBALANCE_BANNED_CPULIST=-" >> "${IRQBALANCE_CONF}"
 
 	local banned_cpus_for_conf
 	banned_cpus_for_conf=$(cat /proc/irq/default_smp_affinity)
@@ -151,9 +215,8 @@ irqbalance_cpu_ban_list_restore_default() {
 
 	# then
 	local banned_cpus
-	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
-
-	[ "$banned_cpus_for_conf" == "$banned_cpus" ]
+	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	[ "$(hex_to_cpuset "$banned_cpus_for_conf")" == "$(expand_cpuset "$banned_cpus")" ]
 
 	teardown_serial_test
 }
@@ -166,7 +229,7 @@ irqbalance_cpu_ban_list_restore_default() {
 #   and we explicitly disable the restore file option
 # then
 #	restore option does not disturb cri-o behaviour
-#	so it reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
+#	so it reads banned cpus mask from "IRQBALANCE_BANNED_CPULIST" field
 #   and save it in a file pointer by "BANNEDCPUS_CONF"  env var
 irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
 	setup_serial_test
@@ -177,7 +240,7 @@ irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
 	[ -f "$CONFIGLET" ] && rm -f "$CONFIGLET"
 
 	local expected_banned_cpus
-	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ -f "$BANNEDCPUS_CONF" ] && rm -f "$BANNEDCPUS_CONF"
 
@@ -186,7 +249,7 @@ irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
 
 	# then
 	local banned_cpus
-	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ "$expected_banned_cpus" == "$banned_cpus" ] && [ ! -f "$BANNEDCPUS_CONF" ]
 
@@ -202,7 +265,7 @@ irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
 #   and we explicitly disable the restore file option
 # then
 #	restore option does not disturb cri-o behaviour
-#	so cri-o reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
+#	so cri-o reads banned cpus mask from "IRQBALANCE_BANNED_CPULIST" field
 #   and save it in a file pointer by "BANNEDCPUS_CONF"  env var
 irqbalance_cpu_ban_list_restore_disable() {
 	setup_serial_test
@@ -213,7 +276,7 @@ irqbalance_cpu_ban_list_restore_disable() {
 	[ -f "$CONFIGLET" ] && rm -f "$CONFIGLET"
 
 	local expected_banned_cpus
-	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	local banned_cpus_for_conf
 	banned_cpus_for_conf=$(cat /proc/irq/default_smp_affinity)
@@ -224,7 +287,7 @@ irqbalance_cpu_ban_list_restore_disable() {
 
 	# then
 	local banned_cpus
-	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ "$expected_banned_cpus" == "$banned_cpus" ]
 
@@ -239,7 +302,7 @@ irqbalance_cpu_ban_list_restore_disable() {
 #   and the restore file option pointing to an existing file.
 # then
 #	cri-o should read banned cpus mask from restore file
-#	and save it in "IRQBALANCE_BANNED_CPUS" field.
+#	and save it in "IRQBALANCE_BANNED_CPULIST" field.
 irqbalance_cpu_ban_list_restore_explicit_file() {
 	setup_serial_test
 	# given
@@ -250,7 +313,8 @@ irqbalance_cpu_ban_list_restore_explicit_file() {
 
 	[ -f "$BANNEDCPUS_CONF" ] && rm -f "$BANNEDCPUS_CONF"
 
-	echo "IRQBALANCE_BANNED_CPUS=\"0\"" > "$IRQBALANCE_CONF"
+	echo "IRQBALANCE_BANNED_CPUS=\"0\"" > "${IRQBALANCE_CONF}"
+	echo "IRQBALANCE_BANNED_CPULIST=-" >> "${IRQBALANCE_CONF}"
 
 	local irqbalance_restore_file
 	irqbalance_restore_file="$(mktemp /tmp/irq-restore.XXXXXXXXX)"
@@ -265,7 +329,7 @@ irqbalance_cpu_ban_list_restore_explicit_file() {
 
 	# then
 	local banned_cpus
-	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
+	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPULIST=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	# when a explicit file is used to restore default one is completely ignored,
 	# and so, it should not be created.( as it did not existed before)
