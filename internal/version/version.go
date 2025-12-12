@@ -13,8 +13,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/blang/semver/v4"
+	json "github.com/goccy/go-json"
 	"github.com/google/renameio"
-	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/common/pkg/seccomp"

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"time"
 
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	istorage "go.podman.io/image/v5/storage"

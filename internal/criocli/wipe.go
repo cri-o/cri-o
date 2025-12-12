@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	cstorage "go.podman.io/storage"
