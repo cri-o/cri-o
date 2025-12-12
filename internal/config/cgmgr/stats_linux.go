@@ -5,14 +5,12 @@ import (
 	"math"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/opencontainers/cgroups"
-	"github.com/opencontainers/cgroups/manager"
 
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/log"
@@ -131,34 +129,6 @@ func MemLimitGivenSystem(cgroupLimit uint64) uint64 {
 	}
 
 	return cgroupLimit
-}
-
-func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error) {
-	if systemd {
-		parent = filepath.Base(parent)
-		if parent == "." {
-			// libcontainer shorthand for root
-			// see https://github.com/opencontainers/runc/blob/9fffadae8/libcontainer/cgroups/systemd/common.go#L71
-			parent = "-.slice"
-		}
-	}
-
-	cg := &cgroups.Cgroup{
-		Name:   cgroup,
-		Parent: parent,
-		Resources: &cgroups.Resources{
-			SkipDevices: true,
-		},
-		Systemd: systemd,
-		// If the cgroup manager is systemd, then libcontainer
-		// will construct the cgroup path (for scopes) as:
-		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
-		// this will be ignored.
-		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
-		ScopePrefix: CrioPrefix,
-	}
-
-	return manager.New(cg)
 }
 
 func statsFromLibctrMgr(cgMgr cgroups.Manager) (*CgroupStats, error) {

@@ -481,7 +481,24 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	args := r.defaultRuntimeArgs()
 	args = append(args, "exec", "--process", processFile, c.ID())
 
-	execCmd := cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
+	var execCmd *exec.Cmd
+	// execCgroupPath is set only when ExecCPUAffinity is used.
+	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
+		// When execCgroupPath is used, we don't prepend the taskset command even if InfraCtrCPUSet is set.
+		// Otherwise, the taskset command may fail.
+		execCmd = exec.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
+
+		execCgroupFD, err := os.Open(execCgroupPath)
+		if err != nil {
+			return fmt.Errorf("failed to open exec cgroup %s: %w", execCgroupPath, err)
+		}
+		defer execCgroupFD.Close()
+
+		setSysProcAttr(execCmd, execCgroupFD.Fd())
+	} else {
+		execCmd = cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
+	}
+
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
@@ -656,7 +673,23 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	var cmd *exec.Cmd
 
-	if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { //nolint: gocritic
+	// execCgroupPath is set only when ExecCPUAffinity is used.
+	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
+		// When execCgroupPath is used, we don't prepend the taskset command even if InfraCtrCPUSet is set.
+		// Otherwise, the taskset command may fail.
+		cmd = exec.Command(r.handler.MonitorPath, args...) //nolint: gosec
+
+		execCgroupFD, err := os.Open(execCgroupPath)
+		if err != nil {
+			return nil, &ExecSyncError{
+				ExitCode: -1,
+				Err:      fmt.Errorf("failed to open exec cgroup %s: %w", execCgroupPath, err),
+			}
+		}
+		defer execCgroupFD.Close()
+
+		setSysProcAttr(cmd, execCgroupFD.Fd())
+	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { //nolint: gocritic
 		cmd = cmdrunner.Command(r.handler.MonitorPath, args...) //nolint: gosec
 	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer {
 		cmd = exec.Command(r.handler.MonitorPath, args...) //nolint: gosec

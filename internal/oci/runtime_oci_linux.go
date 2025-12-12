@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os/exec"
+	"syscall"
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -108,4 +110,14 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 	log.Infof(ctx, "Finished port forwarding for %q on port %d", c.ID(), port)
 
 	return nil
+}
+
+// setSysProcAttr sets Linux-specific SysProcAttr for exec commands
+// when an exec cgroup file descriptor is provided. It configures the command
+// to use the cgroup FD for cgroup placement.
+func setSysProcAttr(cmd *exec.Cmd, fd uintptr) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		UseCgroupFD: true,
+		CgroupFD:    int(fd),
+	}
 }

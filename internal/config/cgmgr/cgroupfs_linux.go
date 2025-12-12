@@ -3,6 +3,7 @@
 package cgmgr
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -79,7 +80,7 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 		return nil, err
 	}
 
-	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
+	cgMgr, err := LibctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +147,7 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.M
 		return nil, err
 	}
 
-	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
+	cgMgr, err := LibctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
 	if err != nil {
 		return nil, err
 	}
@@ -255,4 +256,54 @@ func (m *CgroupfsManager) RemoveSandboxCgroup(sbParent, containerID string) erro
 	// and the cgroup isn't created as a relative path to the cgroups of the CRI-O process.
 	// https://github.com/opencontainers/runc/blob/fd5debf3aa/libcontainer/cgroups/fs/paths.go#L156
 	return removeSandboxCgroup(filepath.Join("/", sbParent), containerCgroupPath(containerID))
+}
+
+// PodAndContainerCgroupManagers returns the libcontainer cgroup managers for both the pod and container cgroups.
+// The sbParent is the sandbox parent cgroup, and containerID is the container's ID.
+func (m *CgroupfsManager) PodAndContainerCgroupManagers(sbParent, containerID string) (podManager cgroups.Manager, containerManagers []cgroups.Manager, _ error) {
+	containerCgroupFullPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	podCgroupFullPath := filepath.Dir(containerCgroupFullPath)
+
+	podManager, err = LibctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	containerManager, err := LibctrManager(filepath.Base(containerCgroupFullPath), filepath.Dir(containerCgroupFullPath), false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	containerManagers = []cgroups.Manager{containerManager}
+
+	// crun actually does the cgroup configuration in a child of the cgroup CRI-O expects to be the container's
+	extraManager, err := crunContainerCgroupManager(containerCgroupFullPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if extraManager != nil {
+		containerManagers = append(containerManagers, extraManager)
+	}
+
+	return podManager, containerManagers, nil
+}
+
+// ExecCgroupManager returns the cgroup manager for the exec cgroup used to place exec processes.
+// For cgroupfs, the cgroupPath is a direct filesystem path.
+// This is only supported on cgroup v2.
+func (m *CgroupfsManager) ExecCgroupManager(cgroupPath string) (cgroups.Manager, error) {
+	if cgroupPath == "" {
+		return nil, errors.New("container cgroup path is empty")
+	}
+
+	if !node.CgroupIsV2() {
+		return nil, errors.New("exec cgroup with CgroupFD is only supported on cgroup v2")
+	}
+
+	return execCgroupManager(cgroupPath)
 }

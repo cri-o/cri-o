@@ -52,6 +52,7 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 
 		if hr.highPerformanceHooks == nil {
 			hr.highPerformanceHooks = &HighPerformanceHooks{
+				CgroupManager:            hr.config.CgroupManager(),
 				irqBalanceConfigFile:     hr.config.IrqBalanceConfigFile,
 				cpusetLock:               sync.Mutex{},
 				updateIRQSMPAffinityLock: sync.Mutex{},
@@ -66,7 +67,9 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 	}
 
 	if cpuLoadBalancingAllowed(hr.config) {
-		return &DefaultCPULoadBalanceHooks{}
+		return &DefaultCPULoadBalanceHooks{
+			CgroupManager: hr.config.CgroupManager(),
+		}
 	}
 
 	return nil
