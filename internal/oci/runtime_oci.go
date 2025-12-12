@@ -1303,25 +1303,6 @@ func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string)
 	return GetDiskUsageForPath(mountPoint)
 }
 
-// SignalContainer sends a signal to a container process.
-func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
-	_, span := log.StartSpan(ctx)
-	defer span.End()
-
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-
-	if c.Spoofed() {
-		return nil
-	}
-
-	if unix.SignalName(sig) == "" {
-		return fmt.Errorf("unable to find signal %s", sig.String())
-	}
-
-	return r.signalContainer(c, sig, false)
-}
-
 func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool) error {
 	args := []string{
 		"kill",
