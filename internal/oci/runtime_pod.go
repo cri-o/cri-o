@@ -350,8 +350,8 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 	})
 }
 
-func (r *runtimePod) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
-	return r.oci.PortForwardContainer(ctx, c, netNsPath, port, stream)
+func (r *runtimePod) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser, reverse bool) error {
+	return r.oci.PortForwardContainer(ctx, c, netNsPath, port, stream, reverse)
 }
 
 func (r *runtimePod) ReopenContainerLog(ctx context.Context, c *Container) error {
