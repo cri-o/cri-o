@@ -694,4 +694,30 @@ var _ = t.Describe("Image", func() {
 			Expect(func() { storage.CompileRegexpsForPinnedImages(patterns) }).To(Panic())
 		})
 	})
+
+	t.Describe("IsManifestBigData", func() {
+		It("should return true for 'manifest'", func() {
+			Expect(storage.IsManifestBigData("manifest")).To(BeTrue())
+		})
+
+		It("should return true for manifest by digest", func() {
+			Expect(storage.IsManifestBigData("manifest-sha256:abc123")).To(BeTrue())
+		})
+
+		It("should return false for 'config'", func() {
+			Expect(storage.IsManifestBigData("config")).To(BeFalse())
+		})
+
+		It("should return false for signatures", func() {
+			Expect(storage.IsManifestBigData("signatures-sha256:abc123")).To(BeFalse())
+		})
+
+		It("should return false for empty string", func() {
+			Expect(storage.IsManifestBigData("")).To(BeFalse())
+		})
+
+		It("should return false for arbitrary data", func() {
+			Expect(storage.IsManifestBigData("some-other-data")).To(BeFalse())
+		})
+	})
 })

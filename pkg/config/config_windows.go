@@ -19,7 +19,7 @@ const (
 	CrioSocketPath = "C:\\crio\\run\\crio.sock"
 
 	// CrioVersionPath is where the CRI-O version file is located
-	CrioConfigPath = "C:\\crio\\etc\\version"
+	CrioVersionPath = "C:\\crio\\etc\\version"
 )
 
 // checkKernelRROMountSupport checks the kernel support for the Recursive Read-only (RRO) mounts.
