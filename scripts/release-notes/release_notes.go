@@ -128,44 +128,35 @@ Download one of our static release bundles via our Google Cloud Bucket:
 
 - [cri-o.amd64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz)
   - [cri-o.amd64.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.sha256sum)
-  - [cri-o.amd64.%s.tar.gz.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.sig)
-  - [cri-o.amd64.%s.tar.gz.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.cert)
+  - [cri-o.amd64.%s.tar.gz.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.bundle)
   - [cri-o.amd64.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx)
-  - [cri-o.amd64.%s.tar.gz.spdx.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx.sig)
-  - [cri-o.amd64.%s.tar.gz.spdx.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx.cert)
+  - [cri-o.amd64.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx.bundle)
 - [cri-o.arm64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz)
   - [cri-o.arm64.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.sha256sum)
-  - [cri-o.arm64.%s.tar.gz.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.sig)
-  - [cri-o.arm64.%s.tar.gz.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.cert)
+  - [cri-o.arm64.%s.tar.gz.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.bundle)
   - [cri-o.arm64.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx)
-  - [cri-o.arm64.%s.tar.gz.spdx.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx.sig)
-  - [cri-o.arm64.%s.tar.gz.spdx.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx.cert)
+  - [cri-o.arm64.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx.bundle)
 - [cri-o.ppc64le.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz)
   - [cri-o.ppc64le.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.sha256sum)
-  - [cri-o.ppc64le.%s.tar.gz.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.sig)
-  - [cri-o.ppc64le.%s.tar.gz.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.cert)
+  - [cri-o.ppc64le.%s.tar.gz.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.bundle)
   - [cri-o.ppc64le.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.spdx)
-  - [cri-o.ppc64le.%s.tar.gz.spdx.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.spdx.sig)
-  - [cri-o.ppc64le.%s.tar.gz.spdx.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.spdx.cert)
+  - [cri-o.ppc64le.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.spdx.bundle)
 - [cri-o.s390x.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz)
   - [cri-o.s390x.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.sha256sum)
-  - [cri-o.s390x.%s.tar.gz.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.sig)
-  - [cri-o.s390x.%s.tar.gz.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.cert)
+  - [cri-o.s390x.%s.tar.gz.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.bundle)
   - [cri-o.s390x.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx)
-  - [cri-o.s390x.%s.tar.gz.spdx.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.sig)
-  - [cri-o.s390x.%s.tar.gz.spdx.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.cert)
+  - [cri-o.s390x.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.bundle)
 
 To verify the artifact signatures via [cosign](https://github.com/sigstore/cosign), run:
 
 `+"```"+`console
 > export COSIGN_EXPERIMENTAL=1
 > cosign verify-blob cri-o.amd64.%s.tar.gz \
-    --certificate-identity https://github.com/cri-o/cri-o/.github/workflows/test.yml@refs/tags/%s \
+    --certificate-identity https://github.com/cri-o/packaging/.github/workflows/obs.yml@refs/heads/main \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-    --certificate-github-workflow-repository cri-o/cri-o \
-    --certificate-github-workflow-ref refs/tags/%s \
-    --signature cri-o.amd64.%s.tar.gz.sig \
-    --certificate cri-o.amd64.%s.tar.gz.cert
+    --certificate-github-workflow-repository cri-o/packaging \
+    --certificate-github-workflow-ref refs/heads/main \
+    --bundle cri-o.amd64.%s.tar.gz.bundle
 `+"```"+`
 
 To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using the [bom](https://sigs.k8s.io/bom) tool, run:
@@ -216,15 +207,6 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		startTag,
 	); err != nil {
