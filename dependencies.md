@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 11 Dec 2025 21:41:16 UTC for commit [22417ca][0]._
+_Generated on Fri, 12 Dec 2025 12:11:48 UTC for commit [2934018][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/22417ca436cbf3fa25549e73107b25b26262b6d5
+[0]: https://github.com/cri-o/cri-o/commit/29340189a38c2439a155ad835cdb4815b7bbbe6b
 
 ## Outdated Dependencies
 
@@ -11,9 +11,10 @@ _Generated on Thu, 11 Dec 2025 21:41:16 UTC for commit [22417ca][0]._
 | github.com/checkpoint-restore/checkpointctl            | v1.4.0                               | v1.4.1                             | true   | true             |
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251211201022-82e8e9fbe0ff | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251212115233-1781fb8b0616 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
+| google.golang.org/protobuf                             | v1.36.10                             | v1.36.11                           | true   | true             |
 | k8s.io/api                                             | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
 | k8s.io/apimachinery                                    | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | true             |
 | k8s.io/client-go                                       | v0.35.0-rc.0                         | v0.36.0-alpha.0                    | true   | false            |
@@ -232,7 +233,7 @@ _Generated on Thu, 11 Dec 2025 21:41:16 UTC for commit [22417ca][0]._
 | github.com/blang/semver                                                     | v3.5.1+incompatible                   |                                    | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                |                                    | true   | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                |                                    | false  | true             |
-| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.115.0                           | false  | true             |
+| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.115.1                           | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.13.3                               | v0.16.0                            | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                |                                    | false  | true             |
 | github.com/buildkite/roko                                                   | v1.3.1                                | v1.4.0                             | false  | true             |
@@ -440,7 +441,7 @@ _Generated on Thu, 11 Dec 2025 21:41:16 UTC for commit [22417ca][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251211201022-82e8e9fbe0ff | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251212115233-1781fb8b0616 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                             | false  | true             |
@@ -714,7 +715,7 @@ _Generated on Thu, 11 Dec 2025 21:41:16 UTC for commit [22417ca][0]._
 | google.golang.org/genproto/googleapis/api                                   | v0.0.0-20251202230838-ff82c1b0f217    |                                    | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20251202230838-ff82c1b0f217    |                                    | false  | true             |
 | google.golang.org/grpc                                                      | v1.77.0                               |                                    | true   | true             |
-| google.golang.org/protobuf                                                  | v1.36.10                              |                                    | true   | true             |
+| google.golang.org/protobuf                                                  | v1.36.10                              | v1.36.11                           | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                | v2.4.0                             | false  | true             |
 | gopkg.in/check.v1                                                           | v1.0.0-20201130134442-10cb98267c6c    |                                    | false  | true             |
 | gopkg.in/evanphx/json-patch.v4                                              | v4.13.0                               |                                    | false  | true             |
