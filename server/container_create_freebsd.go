@@ -39,7 +39,7 @@ func disableFipsForContainer(ctr ctrfactory.Container, containerDir string) erro
 	return nil
 }
 
-func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet bool, sb *sandbox.Sandbox, containerIDMappings *idtools.IDMappings) {
+func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet, usernsEnabled bool) {
 }
 
 func setOCIBindMountsPrivileged(g *generate.Generator) {
