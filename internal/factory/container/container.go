@@ -798,7 +798,8 @@ func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *type
 
 	if !c.Privileged() {
 		if securityContext.MaskedPaths != nil {
-			for _, path := range securityContext.MaskedPaths {
+			filteredPaths := filterThermalThrottlePaths(securityContext.MaskedPaths)
+			for _, path := range filteredPaths {
 				specgen.AddLinuxMaskedPaths(path)
 			}
 		}
@@ -863,4 +864,23 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 		}
 	}
 	return nil
+}
+
+// filterThermalThrottlePaths removes thermal_throttle masked paths to prevent
+// severe performance degradation on high-CPU count systems.
+func filterThermalThrottlePaths(paths []string) []string {
+	const thermalThrottlePrefix = "/sys/devices/system/cpu/cpu"
+	const thermalThrottleSuffix = "/thermal_throttle"
+
+	result := make([]string, 0, len(paths))
+
+	for _, path := range paths {
+		// Skip thermal_throttle paths to avoid mount explosion
+		if strings.HasPrefix(path, thermalThrottlePrefix) && strings.HasSuffix(path, thermalThrottleSuffix) {
+			continue
+		}
+		result = append(result, path)
+	}
+
+	return result
 }
