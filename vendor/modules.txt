@@ -1053,6 +1053,9 @@ go.podman.io/common/pkg/filters
 go.podman.io/common/pkg/hooks
 go.podman.io/common/pkg/hooks/0.1.0
 go.podman.io/common/pkg/hooks/1.0.0
+go.podman.io/common/pkg/libartifact
+go.podman.io/common/pkg/libartifact/store
+go.podman.io/common/pkg/libartifact/types
 go.podman.io/common/pkg/manifests
 go.podman.io/common/pkg/resize
 go.podman.io/common/pkg/retry
