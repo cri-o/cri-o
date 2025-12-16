@@ -1015,9 +1015,14 @@ func (s *Server) setupContainerMountsAndSystemd(ctr container.Container, sb *san
 	if ctr.WillRunSystemd() {
 		var err error
 
-		processLabel, err = InitLabel(processLabel)
-		if err != nil {
-			return "", err
+		// Don't override the process label if it was already set.
+		// Otherwise, it should be set container_init_t to run the init process
+		// in a container.
+		if processLabel == "" {
+			processLabel, err = InitLabel(processLabel)
+			if err != nil {
+				return "", err
+			}
 		}
 
 		setupSystemd(specgen.Mounts(), *specgen)
