@@ -677,7 +677,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
-	mountLabel, processLabel, hostNet, maybeRelabel, skipRelabel := s.configureSELinuxLabels(ctr, sb, containerInfo, securityContext)
+	mountLabel, processLabel, maybeRelabel, skipRelabel, err := s.configureSELinuxLabels(ctr, sb, containerInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	cgroup2RWAnnotation, _ := v2.GetAnnotationValue(sb.Annotations(), v2.Cgroup2MountHierarchyRW)
 	cgroup2RW := node.CgroupIsV2() && cgroup2RWAnnotation == "true"
@@ -794,6 +797,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	}()
 
 	usernsEnabled := containerIDMappings != nil
+	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
 	addSysfsMounts(ctr, containerConfig, hostNet, usernsEnabled)
 
 	containerImageConfig := containerInfo.Config
@@ -813,7 +817,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	addShmMount(ctr, sb)
 
-	if err := s.setupContainerMounts(ctr, sb, containerConfig, mountLabel, hostNet, specgen); err != nil {
+	if err := s.setupBaseContainerMounts(ctr, sb, containerConfig, mountLabel, hostNet); err != nil {
 		return nil, err
 	}
 
@@ -851,7 +855,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		return nil, err
 	}
 
-	processLabel, err = s.setupContainerMountsAndSystemd(ctr, sb, containerInfo, containerIDMappings, mountPoint, mountLabel, processLabel, ociMounts, volumeMounts, specgen)
+	err = s.setupContainerMounts(ctr, sb, containerInfo, containerIDMappings, mountPoint, mountLabel, ociMounts, volumeMounts)
 	if err != nil {
 		return nil, err
 	}
@@ -962,7 +966,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	return ociContainer, nil
 }
 
-func (s *Server) setupContainerMountsAndSystemd(ctr container.Container, sb *sandbox.Sandbox, containerInfo *storage.ContainerInfo, containerIDMappings *idtools.IDMappings, mountPoint, mountLabel, processLabel string, ociMounts, volumeMounts []rspec.Mount, specgen *generate.Generator) (string, error) {
+// setupContainerMounts configures the container's OCI, volume, and secret mounts. It handles
+// ID mappings for user namespaces and sets up FIPS mode if disabled via annotation.
+func (s *Server) setupContainerMounts(ctr container.Container, sb *sandbox.Sandbox, containerInfo *storage.ContainerInfo, containerIDMappings *idtools.IDMappings, mountPoint, mountLabel string, ociMounts, volumeMounts []rspec.Mount) error {
 	rootUID, rootGID := 0, 0
 
 	if containerIDMappings != nil {
@@ -985,7 +991,7 @@ func (s *Server) setupContainerMountsAndSystemd(ctr container.Container, sb *san
 	disableFIPSAnnotation, _ := v2.GetAnnotationValue(sb.Annotations(), v2.DisableFIPS)
 	if ctr.DisableFips() && disableFIPSAnnotation == "true" {
 		if err := disableFipsForContainer(ctr, containerInfo.RunDir); err != nil {
-			return "", fmt.Errorf("failed to disable FIPS for container %s: %w", ctr.ID(), err)
+			return fmt.Errorf("failed to disable FIPS for container %s: %w", ctr.ID(), err)
 		}
 	}
 
@@ -1008,23 +1014,7 @@ func (s *Server) setupContainerMountsAndSystemd(ctr container.Container, sb *san
 		ctr.SpecAddMount(rspecMount)
 	}
 
-	if ctr.WillRunSystemd() {
-		var err error
-
-		// Don't override the process label if it was already set.
-		// Otherwise, it should be set container_init_t to run the init process
-		// in a container.
-		if processLabel == "" {
-			processLabel, err = InitLabel(processLabel)
-			if err != nil {
-				return "", err
-			}
-		}
-
-		setupSystemd(specgen.Mounts(), *specgen)
-	}
-
-	return processLabel, nil
+	return nil
 }
 
 func (s *Server) setupContainerEnvironmentAndWorkdir(ctx context.Context, specgen *generate.Generator, containerConfig *types.ContainerConfig, containerImageConfig *v1.Image, containerInfo *storage.ContainerInfo, mountPoint, mountLabel string, linux *types.LinuxContainerConfig, securityContext *types.LinuxContainerSecurityContext) ([]rspec.Mount, error) {
@@ -1126,7 +1116,10 @@ func (s *Server) setupSeccomp(ctx context.Context, ctr container.Container, sb *
 	return seccompRef, nil
 }
 
-func (s *Server) setupContainerMounts(ctr container.Container, sb *sandbox.Sandbox, containerConfig *types.ContainerConfig, mountLabel string, hostNet bool, specgen *generate.Generator) error {
+// setupBaseContainerMounts configures the base mounts for a container including resolv.conf,
+// hostname, containerenv, and /etc/hosts. It also sets up privileged bind mount options and
+// systemd-specific mounts when applicable.
+func (s *Server) setupBaseContainerMounts(ctr container.Container, sb *sandbox.Sandbox, containerConfig *types.ContainerConfig, mountLabel string, hostNet bool) error {
 	options := []string{"rw"}
 	if ctr.ReadOnly(s.config.ReadOnly) {
 		options = []string{"ro"}
@@ -1182,7 +1175,11 @@ func (s *Server) setupContainerMounts(ctr container.Container, sb *sandbox.Sandb
 	}
 
 	if ctr.Privileged() {
-		setOCIBindMountsPrivileged(specgen)
+		setOCIBindMountsPrivileged(ctr.Spec())
+	}
+
+	if ctr.WillRunSystemd() {
+		setupSystemdMounts(ctr.Spec())
 	}
 
 	return nil
@@ -1191,16 +1188,17 @@ func (s *Server) setupContainerMounts(ctr container.Container, sb *sandbox.Sandb
 // configureSELinuxLabels determines the appropriate SELinux labels for a container based on its
 // security context and namespace configuration. It returns the mount and process labels, along with
 // flags indicating network mode and whether volume relabeling should be skipped or made optional.
-func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.Sandbox, containerInfo *storage.ContainerInfo, securityContext *types.LinuxContainerSecurityContext) (mountLabel, processLabel string, hostNet, maybeRelabel, skipRelabel bool) {
+func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.Sandbox, containerInfo *storage.ContainerInfo) (mountLabel, processLabel string, maybeRelabel, skipRelabel bool, err error) {
 	mountLabel = containerInfo.MountLabel
 
 	if !ctr.Privileged() {
 		processLabel = containerInfo.ProcessLabel
 	}
 
+	securityContext := ctr.Config().GetLinux().GetSecurityContext()
 	hostIPC := securityContext.GetNamespaceOptions().GetIpc() == types.NamespaceMode_NODE
 	hostPID := securityContext.GetNamespaceOptions().GetPid() == types.NamespaceMode_NODE
-	hostNet = securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
+	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
 	if hostPID || hostIPC {
@@ -1211,6 +1209,17 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 		processLabel = ""
 	}
 
+	// Newer versions of container-selinux, container-selinux-2.132.0 or newer,
+	// supply a container_init_t label. If CRI-O is running systemd or init inside
+	// the container and the process label is unset, the init selinux label is required
+	// to run the container.
+	if ctr.WillRunSystemd() && processLabel == "" {
+		processLabel, err = InitLabel(processLabel)
+		if err != nil {
+			return "", "", false, false, fmt.Errorf("failed to get init label: %w", err)
+		}
+	}
+
 	if val, present := v2.GetAnnotationValue(sb.Annotations(), v2.TrySkipVolumeSELinuxLabel); present && val == "true" {
 		maybeRelabel = true
 	}
@@ -1218,15 +1227,12 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 	const superPrivilegedType = "spc_t"
 
 	if securityContext.GetSelinuxOptions().GetType() == superPrivilegedType || // super privileged container
-		(ctr.SandboxConfig().GetLinux() != nil &&
-			ctr.SandboxConfig().GetLinux().GetSecurityContext() != nil &&
-			ctr.SandboxConfig().GetLinux().GetSecurityContext().GetSelinuxOptions() != nil &&
-			ctr.SandboxConfig().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType() == superPrivilegedType && // super privileged pod
+		(ctr.SandboxConfig().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType() == superPrivilegedType && // super privileged pod
 			securityContext.GetSelinuxOptions().GetType() == "") {
 		skipRelabel = true
 	}
 
-	return mountLabel, processLabel, hostNet, maybeRelabel, skipRelabel
+	return mountLabel, processLabel, maybeRelabel, skipRelabel, nil
 }
 
 // createStorageContainer creates the storage layer container with the specified image and ID mappings.
