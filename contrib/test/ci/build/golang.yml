@@ -16,7 +16,7 @@
 - name: fetch Golang
   unarchive:
     remote_src: yes
-    src: "https://storage.googleapis.com/golang/go{{ go_version_number }}.linux-amd64.tar.gz"
+    src: "https://go.dev/dl/go{{ go_version_number }}.linux-amd64.tar.gz"
     dest: /usr/local
 
 - name: link go toolchain
