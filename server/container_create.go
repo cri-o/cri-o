@@ -1178,9 +1178,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	}
 
 	if ctr.WillRunSystemd() {
-		processLabel, err = InitLabel(processLabel)
-		if err != nil {
-			return nil, err
+		// Don't override the process label if it was already set.
+		// Otherwise, it should be set container_init_t to run the init process
+		// in a container.
+		if processLabel == "" {
+			processLabel, err = InitLabel(processLabel)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		setupSystemd(specgen.Mounts(), *specgen)
