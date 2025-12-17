@@ -1,6 +1,4 @@
-//go:build linux
-
-package oci
+package stats
 
 import (
 	"fmt"

@@ -10,6 +10,7 @@ import (
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/resize"
@@ -301,7 +302,7 @@ func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup st
 	return r.oci.ContainerStats(ctx, c, cgroup)
 }
 
-func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
+func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskMetrics, error) {
 	return r.oci.DiskStats(ctx, c, cgroup)
 }
 

@@ -19,6 +19,7 @@ import (
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/fsnotify/fsnotify"
 	json "github.com/goccy/go-json"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -1321,7 +1322,7 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 }
 
 // DiskStats provides disk usage statistics of a container.
-func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
+func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskMetrics, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1335,7 +1336,7 @@ func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string)
 	}
 
 	// Get disk usage statistics directly
-	return GetDiskUsageForPath(mountPoint)
+	return stats.GetDiskUsageForPath(mountPoint)
 }
 
 func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool) error {
