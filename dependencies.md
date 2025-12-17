@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 16 Dec 2025 23:51:53 UTC for commit [0e42a1f][0]._
+_Generated on Wed, 17 Dec 2025 11:47:34 UTC for commit [d41f131][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0e42a1f91112c2ae840ff5c64bef4d30d739522e
+[0]: https://github.com/cri-o/cri-o/commit/d41f1315d89e81423ff429ef7317e622b57dc266
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Tue, 16 Dec 2025 23:51:53 UTC for commit [0e42a1f][0]._
 | github.com/checkpoint-restore/checkpointctl            | v1.4.0                               | v1.4.1                             | true   | true             |
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251216205749-6e01ee6d4776 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251217085702-5415cf4e0f20 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
 | google.golang.org/protobuf                             | v1.36.10                             | v1.36.11                           | true   | true             |
@@ -374,7 +374,7 @@ _Generated on Tue, 16 Dec 2025 23:51:53 UTC for commit [0e42a1f][0]._
 | github.com/go-task/slim-sprig/v3                                            | v3.0.0                                |                                    | false  | true             |
 | github.com/go-viper/mapstructure/v2                                         | v2.4.0                                |                                    | false  | true             |
 | github.com/gobwas/glob                                                      | v0.2.3                                |                                    | false  | true             |
-| github.com/goccy/go-yaml                                                    | v1.18.0                               | v1.19.0                            | false  | true             |
+| github.com/goccy/go-yaml                                                    | v1.18.0                               | v1.19.1                            | false  | true             |
 | github.com/godbus/dbus/v5                                                   | v5.2.0                                |                                    | true   | true             |
 | github.com/gogo/protobuf                                                    | v1.3.2                                |                                    | false  | true             |
 | github.com/golang-jwt/jwt/v4                                                | v4.5.2                                |                                    | false  | true             |
@@ -441,7 +441,7 @@ _Generated on Tue, 16 Dec 2025 23:51:53 UTC for commit [0e42a1f][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251216205749-6e01ee6d4776 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251217085702-5415cf4e0f20 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                             | false  | true             |
