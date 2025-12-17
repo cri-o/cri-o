@@ -22,6 +22,7 @@ locale = "en"
 extend-ignore-identifiers-re = []
 extend-ignore-re = [
     "ClosID",
+    "ClosId",
     "stopp",
     "f0ZSIOvlD7vv5lOifRFivd680XjxIATWqwJARJ35QFUl9DiRuhPnDYok8Cj9PT8A",
     "CONTAINER_INCLUDED_POD_METRCIS",

@@ -18,5 +18,6 @@ func linuxContainerToNRI(ctr Container) *nri.LinuxContainer {
 		IoPriority:  lnx.GetIOPriority(),
 		Scheduler:   lnx.GetScheduler(),
 		NetDevices:  lnx.GetNetDevices(),
+		Rdt:         lnx.GetRdt(),
 	}
 }

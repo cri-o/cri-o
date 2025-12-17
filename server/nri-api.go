@@ -798,6 +798,19 @@ func (c *criContainer) GetNetDevices() map[string]*api.LinuxNetDevice {
 	return api.FromOCILinuxNetDevices(spec.Linux.NetDevices)
 }
 
+func (c *criContainer) GetRdt() *api.LinuxRdt {
+	spec := c.GetSpec()
+	if spec.Linux == nil || spec.Linux.IntelRdt == nil {
+		return nil
+	}
+
+	return &api.LinuxRdt{
+		ClosId:           api.String(spec.Linux.IntelRdt.ClosID),
+		Schemata:         api.RepeatedString(spec.Linux.IntelRdt.Schemata),
+		EnableMonitoring: api.Bool(spec.Linux.IntelRdt.EnableMonitoring),
+	}
+}
+
 func (c *criContainer) GetSpec() *rspec.Spec {
 	if c.spec != nil {
 		return c.spec
