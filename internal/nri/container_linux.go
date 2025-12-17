@@ -16,5 +16,6 @@ func linuxContainerToNRI(ctr Container) *nri.LinuxContainer {
 		OomScoreAdj: nri.Int(lnx.GetOOMScoreAdj()),
 		CgroupsPath: lnx.GetCgroupsPath(),
 		IoPriority:  lnx.GetIOPriority(),
+		Scheduler:   lnx.GetScheduler(),
 	}
 }

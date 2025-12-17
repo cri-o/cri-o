@@ -780,6 +780,15 @@ func (c *criContainer) GetIOPriority() *api.LinuxIOPriority {
 	return api.FromOCILinuxIOPriority(spec.Process.IOPriority)
 }
 
+func (c *criContainer) GetScheduler() *api.LinuxScheduler {
+	spec := c.GetSpec()
+	if spec.Process == nil || spec.Process.Scheduler == nil {
+		return nil
+	}
+
+	return api.FromOCILinuxScheduler(spec.Process.Scheduler)
+}
+
 func (c *criContainer) GetSpec() *rspec.Spec {
 	if c.spec != nil {
 		return c.spec
