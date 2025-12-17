@@ -25,7 +25,7 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	statsserver "github.com/cri-o/cri-o/internal/lib/stats"
+	"github.com/cri-o/cri-o/internal/lib/statsserver"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/memorystore"
 	"github.com/cri-o/cri-o/internal/oci"
