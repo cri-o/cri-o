@@ -119,10 +119,10 @@ func (mr *MockRuntimeImplMockRecorder) DeleteContainer(arg0, arg1 any) *gomock.C
 }
 
 // DiskStats mocks base method.
-func (m *MockRuntimeImpl) DiskStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*stats.DiskMetrics, error) {
+func (m *MockRuntimeImpl) DiskStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*stats.DiskStats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DiskStats", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*stats.DiskMetrics)
+	ret0, _ := ret[0].(*stats.DiskStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

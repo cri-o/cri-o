@@ -1322,7 +1322,7 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 }
 
 // DiskStats provides disk usage statistics of a container.
-func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskMetrics, error) {
+func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskStats, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
