@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
@@ -14,7 +15,7 @@ import (
 )
 
 // generateSandboxDiskMetrics computes filesystem disk metrics from DiskMetrics for a container sandbox.
-func generateContainerDiskMetrics(ctr *oci.Container, diskStats *oci.FilesystemMetrics) []*types.Metric {
+func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.FilesystemMetrics) []*types.Metric {
 	diskMetrics := []*containerMetric{
 		{
 			desc: containerFsInodesFree,

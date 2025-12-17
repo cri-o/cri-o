@@ -32,6 +32,7 @@ import (
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	katavolume "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -1086,8 +1087,8 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 	}
 }
 
-func (r *runtimeVM) DiskStats(ctx context.Context, c *Container, _ string) (*DiskMetrics, error) {
-	return &DiskMetrics{}, nil
+func (r *runtimeVM) DiskStats(ctx context.Context, c *Container, _ string) (*stats.DiskMetrics, error) {
+	return &stats.DiskMetrics{}, nil
 }
 
 func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.CgroupStats {

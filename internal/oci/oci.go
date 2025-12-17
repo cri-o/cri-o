@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/docker/go-units"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/client-go/tools/remotecommand"
@@ -70,7 +71,7 @@ type RuntimeImpl interface {
 	PauseContainer(context.Context, *Container) error
 	UnpauseContainer(context.Context, *Container) error
 	ContainerStats(context.Context, *Container, string) (*cgmgr.CgroupStats, error)
-	DiskStats(context.Context, *Container, string) (*DiskMetrics, error)
+	DiskStats(context.Context, *Container, string) (*stats.DiskMetrics, error)
 	AttachContainer(context.Context, *Container, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
 	PortForwardContainer(context.Context, *Container, string,
@@ -470,7 +471,7 @@ func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup strin
 }
 
 // DiskStats provides disk statistics for a container.
-func (r *Runtime) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
+func (r *Runtime) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskMetrics, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 

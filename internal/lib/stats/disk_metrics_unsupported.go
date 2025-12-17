@@ -1,6 +1,6 @@
 //go:build !linux && !freebsd
 
-package oci
+package stats
 
 import "fmt"
 

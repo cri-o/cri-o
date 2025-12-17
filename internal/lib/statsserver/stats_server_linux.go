@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/vishvananda/netlink"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -250,7 +251,7 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *o
 	return ss.containerMetricsFromContainerStats(sb, c, ctrStats, *diskStats)
 }
 
-func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c *oci.Container, containerStats *cgmgr.CgroupStats, diskstats oci.DiskMetrics) *types.ContainerMetrics {
+func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c *oci.Container, containerStats *cgmgr.CgroupStats, diskstats stats.DiskMetrics) *types.ContainerMetrics {
 	metrics := computeContainerMetrics(c, []*containerMetric{{
 		desc: containerLastSeen,
 		valueFunc: func() metricValues {
@@ -346,7 +347,7 @@ func linkToInterface(link netlink.Link) (*types.NetworkInterfaceUsage, error) {
 	}, nil
 }
 
-func containerCRIStats(stats *cgmgr.CgroupStats, diskStats *oci.DiskMetrics, ctr *oci.Container, systemNano int64) *types.ContainerStats {
+func containerCRIStats(stats *cgmgr.CgroupStats, diskStats *stats.DiskMetrics, ctr *oci.Container, systemNano int64) *types.ContainerStats {
 	criStats := &types.ContainerStats{
 		Attributes: ctr.CRIAttributes(),
 	}
@@ -396,7 +397,7 @@ func criProcessStats(pStats *cgmgr.PidsStats, systemNano int64) *types.ProcessUs
 	}
 }
 
-func criFilesystemStats(diskStats *oci.FilesystemMetrics, ctr *oci.Container, systemNano int64) *types.FilesystemUsage {
+func criFilesystemStats(diskStats *stats.FilesystemMetrics, ctr *oci.Container, systemNano int64) *types.FilesystemUsage {
 	mountpoint := ctr.MountPoint()
 	if mountpoint == "" {
 		// Skip FS stats as mount point is unknown
