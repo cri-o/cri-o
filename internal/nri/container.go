@@ -30,6 +30,7 @@ type LinuxContainer interface {
 	GetLinuxResources() *nri.LinuxResources
 	GetOOMScoreAdj() *int
 	GetCgroupsPath() string
+	GetIOPriority() *nri.LinuxIOPriority
 }
 
 func containerToNRI(ctr Container) *nri.Container {

@@ -771,6 +771,15 @@ func (c *criContainer) GetCgroupsPath() string {
 	return c.GetSpec().Linux.CgroupsPath
 }
 
+func (c *criContainer) GetIOPriority() *api.LinuxIOPriority {
+	spec := c.GetSpec()
+	if spec.Process == nil {
+		return nil
+	}
+
+	return api.FromOCILinuxIOPriority(spec.Process.IOPriority)
+}
+
 func (c *criContainer) GetSpec() *rspec.Spec {
 	if c.spec != nil {
 		return c.spec
