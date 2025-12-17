@@ -789,6 +789,15 @@ func (c *criContainer) GetScheduler() *api.LinuxScheduler {
 	return api.FromOCILinuxScheduler(spec.Process.Scheduler)
 }
 
+func (c *criContainer) GetNetDevices() map[string]*api.LinuxNetDevice {
+	spec := c.GetSpec()
+	if spec.Linux == nil {
+		return nil
+	}
+
+	return api.FromOCILinuxNetDevices(spec.Linux.NetDevices)
+}
+
 func (c *criContainer) GetSpec() *rspec.Spec {
 	if c.spec != nil {
 		return c.spec
