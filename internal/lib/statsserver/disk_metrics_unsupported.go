@@ -9,7 +9,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.FilesystemMetrics) []*types.Metric {
+func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.FilesystemStats) []*types.Metric {
 	return []*types.Metric{}
 }
 

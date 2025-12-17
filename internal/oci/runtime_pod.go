@@ -302,7 +302,7 @@ func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup st
 	return r.oci.ContainerStats(ctx, c, cgroup)
 }
 
-func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskMetrics, error) {
+func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskStats, error) {
 	return r.oci.DiskStats(ctx, c, cgroup)
 }
 

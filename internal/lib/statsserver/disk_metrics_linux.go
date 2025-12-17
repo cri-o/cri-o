@@ -14,8 +14,8 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-// generateSandboxDiskMetrics computes filesystem disk metrics from DiskMetrics for a container sandbox.
-func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.FilesystemMetrics) []*types.Metric {
+// generateSandboxDiskMetrics computes filesystem disk metrics from DiskStats for a container sandbox.
+func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.FilesystemStats) []*types.Metric {
 	diskMetrics := []*containerMetric{
 		{
 			desc: containerFsInodesFree,
@@ -46,7 +46,7 @@ func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.Filesyste
 	return computeContainerMetrics(ctr, diskMetrics, "disk")
 }
 
-// generateSandboxDiskIOMetrics computes filesystem disk metrics from DiskMetrics for a container sandbox.
+// generateSandboxDiskIOMetrics computes filesystem disk metrics from DiskStats for a container sandbox.
 func generateContainerDiskIOMetrics(ctr *oci.Container, ioStats *cgmgr.DiskIOStats) []*types.Metric {
 	diskMetrics := []*containerMetric{}
 

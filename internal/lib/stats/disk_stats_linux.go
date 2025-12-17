@@ -7,13 +7,13 @@ import (
 	"github.com/cri-o/cri-o/utils"
 )
 
-// DiskMetrics represents comprehensive disk statistics for a container.
-type DiskMetrics struct {
-	Filesystem FilesystemMetrics
+// DiskStats represents comprehensive disk statistics for a container.
+type DiskStats struct {
+	Filesystem FilesystemStats
 }
 
-// FilesystemMetrics represents filesystem usage statistics.
-type FilesystemMetrics struct {
+// FilesystemStats represents filesystem usage statistics.
+type FilesystemStats struct {
 	UsageBytes  uint64 `json:"usage_bytes"`
 	LimitBytes  uint64 `json:"limit_bytes"`
 	InodesFree  uint64 `json:"inodes_free"`
@@ -21,7 +21,7 @@ type FilesystemMetrics struct {
 }
 
 // GetDiskUsageForPath returns disk usage statistics for a given path.
-func GetDiskUsageForPath(path string) (*DiskMetrics, error) {
+func GetDiskUsageForPath(path string) (*DiskStats, error) {
 	usageBytes, _, err := utils.GetDiskUsageStats(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get disk usage stats: %w", err)
@@ -36,8 +36,8 @@ func GetDiskUsageForPath(path string) (*DiskMetrics, error) {
 	totalInodes := stat.Files
 	freeInodes := stat.Ffree
 
-	return &DiskMetrics{
-		Filesystem: FilesystemMetrics{
+	return &DiskStats{
+		Filesystem: FilesystemStats{
 			UsageBytes:  usageBytes,
 			LimitBytes:  totalBytes,
 			InodesFree:  freeInodes,

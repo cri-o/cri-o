@@ -1087,8 +1087,8 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 	}
 }
 
-func (r *runtimeVM) DiskStats(ctx context.Context, c *Container, _ string) (*stats.DiskMetrics, error) {
-	return &stats.DiskMetrics{}, nil
+func (r *runtimeVM) DiskStats(ctx context.Context, c *Container, _ string) (*stats.DiskStats, error) {
+	return &stats.DiskStats{}, nil
 }
 
 func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.CgroupStats {

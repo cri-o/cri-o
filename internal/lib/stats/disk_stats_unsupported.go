@@ -4,12 +4,12 @@ package stats
 
 import "fmt"
 
-// DiskMetrics represents comprehensive disk statistics for a container
+// DiskStats represents comprehensive disk statistics for a container
 type DiskMetrics struct {
 	Filesystem FilesystemMetrics
 }
 
-// FilesystemMetrics represents filesystem usage statistics
+// FilesystemStats represents filesystem usage statistics
 type FilesystemMetrics struct {
 	UsageBytes  uint64 `json:"usage_bytes"`
 	LimitBytes  uint64 `json:"limit_bytes"`
