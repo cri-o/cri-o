@@ -12,7 +12,7 @@ require (
 	github.com/containerd/containerd v1.7.29
 	github.com/containerd/containerd/api v1.10.0
 	github.com/containerd/fifo v1.1.0
-	github.com/containerd/nri v0.10.1-0.20251203135108-649a151c2106
+	github.com/containerd/nri v0.11.0
 	github.com/containerd/otelttrpc v0.1.0
 	github.com/containerd/ttrpc v1.2.7
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
@@ -216,7 +216,7 @@ require (
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.22.0 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
-	github.com/tetratelabs/wazero v1.9.0 // indirect
+	github.com/tetratelabs/wazero v1.10.1 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2 // indirect
 	github.com/vbatts/tar-split v0.12.2 // indirect

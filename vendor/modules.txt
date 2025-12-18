@@ -171,7 +171,7 @@ github.com/containerd/go-runc
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/containerd/nri v0.10.1-0.20251203135108-649a151c2106
+# github.com/containerd/nri v0.11.0
 ## explicit; go 1.24.0
 github.com/containerd/nri/pkg/adaptation
 github.com/containerd/nri/pkg/adaptation/builtin
@@ -866,8 +866,8 @@ github.com/sylabs/sif/v2/pkg/sif
 # github.com/tchap/go-patricia/v2 v2.3.3
 ## explicit; go 1.16
 github.com/tchap/go-patricia/v2/patricia
-# github.com/tetratelabs/wazero v1.9.0
-## explicit; go 1.22.0
+# github.com/tetratelabs/wazero v1.10.1
+## explicit; go 1.23.0
 github.com/tetratelabs/wazero
 github.com/tetratelabs/wazero/api
 github.com/tetratelabs/wazero/experimental
