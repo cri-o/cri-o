@@ -4,19 +4,23 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/opencontainers/cgroups"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-func generateContainerCPUMetrics(ctr *oci.Container, cpu *cgmgr.CPUStats) []*types.Metric {
+func generateContainerCPUMetrics(ctr *oci.Container, cpu *cgroups.CpuStats) []*types.Metric {
+	if cpu == nil {
+		return []*types.Metric{}
+	}
+
 	cpuMetrics := []*containerMetric{
 		{
 			desc: containerCpuUserSecondsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.UsageInUsermode / uint64(time.Second),
+					value:      cpu.CpuUsage.UsageInUsermode / uint64(time.Second),
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -24,23 +28,23 @@ func generateContainerCPUMetrics(ctr *oci.Container, cpu *cgmgr.CPUStats) []*typ
 			desc: containerCpuSystemSecondsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.UsageInKernelmode / uint64(time.Second),
+					value:      cpu.CpuUsage.UsageInKernelmode / uint64(time.Second),
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
 		}, {
 			desc: containerCpuUsageSecondsTotal,
 			valueFunc: func() metricValues {
-				if len(cpu.PerCPUUsage) == 0 && cpu.TotalUsageNano > 0 {
+				if len(cpu.CpuUsage.PercpuUsage) == 0 && cpu.CpuUsage.TotalUsage > 0 {
 					return metricValues{{
-						value:      cpu.TotalUsageNano / uint64(time.Second),
+						value:      cpu.CpuUsage.TotalUsage / uint64(time.Second),
 						labels:     []string{"total"},
 						metricType: types.MetricType_COUNTER,
 					}}
 				}
 
-				metricValues := make(metricValues, 0, len(cpu.PerCPUUsage))
-				for i, value := range cpu.PerCPUUsage {
+				metricValues := make(metricValues, 0, len(cpu.CpuUsage.PercpuUsage))
+				for i, value := range cpu.CpuUsage.PercpuUsage {
 					if value > 0 {
 						metricValues = append(metricValues, metricValue{
 							value:      value / uint64(time.Second),
@@ -56,7 +60,7 @@ func generateContainerCPUMetrics(ctr *oci.Container, cpu *cgmgr.CPUStats) []*typ
 			desc: containerCpuCfsPeriodsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.ThrottlingActivePeriods,
+					value:      cpu.ThrottlingData.Periods,
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -64,7 +68,7 @@ func generateContainerCPUMetrics(ctr *oci.Container, cpu *cgmgr.CPUStats) []*typ
 			desc: containerCpuCfsThrottledPeriodsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.ThrottledPeriods,
+					value:      cpu.ThrottlingData.ThrottledPeriods,
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -72,7 +76,7 @@ func generateContainerCPUMetrics(ctr *oci.Container, cpu *cgmgr.CPUStats) []*typ
 			desc: containerCpuCfsThrottledSecondsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.ThrottledTime / uint64(time.Second),
+					value:      cpu.ThrottlingData.ThrottledTime / uint64(time.Second),
 					metricType: types.MetricType_COUNTER,
 				}}
 			},

@@ -10,14 +10,13 @@ import (
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
-	"github.com/cri-o/cri-o/internal/lib/stats"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/resize"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -298,8 +297,8 @@ func (r *runtimePod) UnpauseContainer(ctx context.Context, c *Container) error {
 	return r.oci.UnpauseContainer(ctx, c)
 }
 
-func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
-	return r.oci.ContainerStats(ctx, c, cgroup)
+func (r *runtimePod) CgroupStats(ctx context.Context, c *Container, cgroup string) (*stats.CgroupStats, error) {
+	return r.oci.CgroupStats(ctx, c, cgroup)
 }
 
 func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskStats, error) {

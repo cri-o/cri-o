@@ -1,13 +1,13 @@
 package statsserver
 
 import (
+	"github.com/opencontainers/cgroups"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-func generateContainerHugetlbMetrics(ctr *oci.Container, hugetlb map[string]cgmgr.HugetlbStats) []*types.Metric {
+func generateContainerHugetlbMetrics(ctr *oci.Container, hugetlb map[string]cgroups.HugetlbStats) []*types.Metric {
 	hugetlbMetrics := []*containerMetric{
 		{
 			desc: containerHugetlbUsageBytes,
@@ -29,7 +29,7 @@ func generateContainerHugetlbMetrics(ctr *oci.Container, hugetlb map[string]cgmg
 				metricValues := make(metricValues, 0, len(hugetlb))
 				for pagesize, stat := range hugetlb {
 					metricValues = append(metricValues, metricValue{
-						value:      stat.Max,
+						value:      stat.MaxUsage,
 						labels:     []string{pagesize},
 						metricType: types.MetricType_GAUGE,
 					})
