@@ -7,15 +7,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cri-o/cri-o/internal/lib/stats"
+	"github.com/opencontainers/cgroups"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-// generateSandboxDiskMetrics computes filesystem disk metrics from DiskStats for a container sandbox.
+// generateContainerDiskMetrics computes filesystem disk metrics from DiskStats for a container sandbox.
 func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.FilesystemStats) []*types.Metric {
+	if diskStats == nil {
+		return []*types.Metric{}
+	}
+
 	diskMetrics := []*containerMetric{
 		{
 			desc: containerFsInodesFree,
@@ -46,11 +50,15 @@ func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.Filesyste
 	return computeContainerMetrics(ctr, diskMetrics, "disk")
 }
 
-// generateSandboxDiskIOMetrics computes filesystem disk metrics from DiskStats for a container sandbox.
-func generateContainerDiskIOMetrics(ctr *oci.Container, ioStats *cgmgr.DiskIOStats) []*types.Metric {
+// generateContainerDiskIOMetrics computes filesystem disk metrics from DiskStats for a container sandbox.
+func generateContainerDiskIOMetrics(ctr *oci.Container, ioStats *cgroups.BlkioStats) []*types.Metric {
+	if ioStats == nil {
+		return []*types.Metric{}
+	}
+
 	diskMetrics := []*containerMetric{}
 
-	for _, stat := range ioStats.IoServiced {
+	for _, stat := range ioStats.IoServicedRecursive {
 		// TODO (@haircommander): cadvisor translates to device name, but finding the device is tricky
 		// update to populate device name
 		device := fmt.Sprintf("%d:%d", stat.Major, stat.Minor)
@@ -72,7 +80,7 @@ func generateContainerDiskIOMetrics(ctr *oci.Container, ioStats *cgmgr.DiskIOSta
 		}
 	}
 
-	for _, stat := range ioStats.IoServiceBytes {
+	for _, stat := range ioStats.IoServiceBytesRecursive {
 		// TODO (@haircommander): cadvisor translates to device name, but finding the device is tricky
 		// update to populate device name
 		device := fmt.Sprintf("%d:%d", stat.Major, stat.Minor)
