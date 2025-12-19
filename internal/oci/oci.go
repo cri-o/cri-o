@@ -74,7 +74,7 @@ type RuntimeImpl interface {
 	AttachContainer(context.Context, *Container, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
 	PortForwardContainer(context.Context, *Container, string,
-		int32, io.ReadWriteCloser) error
+		int32, io.ReadWriteCloser, bool) error
 	ReopenContainerLog(context.Context, *Container) error
 	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
 	RestoreContainer(context.Context, *Container, string, string) error
@@ -496,7 +496,10 @@ func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *Runtime) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+// If reverse is true, creates a listener in the container's network namespace and forwards
+// connections back to the host stream. Otherwise, connects to the container's port and
+// forwards to the stream (normal forward mode).
+func (r *Runtime) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser, reverse bool) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -505,7 +508,7 @@ func (r *Runtime) PortForwardContainer(ctx context.Context, c *Container, netNsP
 		return err
 	}
 
-	return impl.PortForwardContainer(ctx, c, netNsPath, port, stream)
+	return impl.PortForwardContainer(ctx, c, netNsPath, port, stream, reverse)
 }
 
 // ReopenContainerLog reopens the log file of a container.

@@ -1257,9 +1257,13 @@ func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStre
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *runtimeVM) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+func (r *runtimeVM) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser, reverse bool) error {
 	log.Debugf(ctx, "RuntimeVM.PortForwardContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.PortForwardContainer() end")
+
+	if reverse {
+		return fmt.Errorf("reverse port forwarding is not supported for VM-based runtimes")
+	}
 
 	return nil
 }
