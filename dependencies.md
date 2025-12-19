@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
+_Generated on Fri, 19 Dec 2025 19:20:27 UTC for commit [07ea24f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9e979af0dd57f614d64a444f86c68cf33bb71d58
+[0]: https://github.com/cri-o/cri-o/commit/07ea24f4aa729bea2bb676e34f58206c46d98405
 
 ## Outdated Dependencies
 
@@ -13,7 +13,8 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | github.com/containerd/containerd                       | v1.7.29                              | v1.7.30                            | true   | true             |
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251218174109-51e9b7e9d14d | true   | true             |
+| github.com/godbus/dbus/v5                              | v5.2.0                               | v5.2.1                             | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251219160533-97603608ac20 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
 | google.golang.org/protobuf                             | v1.36.10                             | v1.36.11                           | true   | true             |
@@ -23,7 +24,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | k8s.io/cri-api                                         | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/cri-client                                      | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/kubelet                                         | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
-| k8s.io/utils                                           | v0.0.0-20251002143259-bc988d571ff4   | v0.0.0-20251218160917-61b37f7a4624 | true   | true             |
+| k8s.io/utils                                           | v0.0.0-20251002143259-bc988d571ff4   | v0.0.0-20251219084037-98d557b7f1e7 | true   | true             |
 
 ## All Dependencies
 
@@ -351,7 +352,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | github.com/go-logr/stdr                                                     | v1.2.2                                |                                    | false  | true             |
 | github.com/go-logr/zapr                                                     | v1.3.0                                |                                    | false  | true             |
 | github.com/go-openapi/analysis                                              | v0.23.0                               | v0.24.2                            | false  | true             |
-| github.com/go-openapi/errors                                                | v0.22.2                               | v0.22.5                            | false  | true             |
+| github.com/go-openapi/errors                                                | v0.22.2                               | v0.22.6                            | false  | true             |
 | github.com/go-openapi/jsonpointer                                           | v0.21.0                               | v0.22.4                            | false  | true             |
 | github.com/go-openapi/jsonreference                                         | v0.21.0                               | v0.21.4                            | false  | true             |
 | github.com/go-openapi/loads                                                 | v0.22.0                               | v0.23.2                            | false  | true             |
@@ -378,7 +379,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | github.com/go-viper/mapstructure/v2                                         | v2.4.0                                |                                    | false  | true             |
 | github.com/gobwas/glob                                                      | v0.2.3                                |                                    | false  | true             |
 | github.com/goccy/go-yaml                                                    | v1.18.0                               | v1.19.1                            | false  | true             |
-| github.com/godbus/dbus/v5                                                   | v5.2.0                                |                                    | true   | true             |
+| github.com/godbus/dbus/v5                                                   | v5.2.0                                | v5.2.1                             | true   | true             |
 | github.com/gogo/protobuf                                                    | v1.3.2                                |                                    | false  | true             |
 | github.com/golang-jwt/jwt/v4                                                | v4.5.2                                |                                    | false  | true             |
 | github.com/golang-jwt/jwt/v5                                                | v5.3.0                                |                                    | false  | true             |
@@ -444,7 +445,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251218174109-51e9b7e9d14d | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251219160533-97603608ac20 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                             | false  | true             |
@@ -522,7 +523,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                    | false  | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.27.3                               |                                    | true   | true             |
 | github.com/onsi/gomega                                                      | v1.38.3                               |                                    | true   | true             |
-| github.com/open-policy-agent/opa                                            | v1.4.0                                | v1.12.0                            | false  | true             |
+| github.com/open-policy-agent/opa                                            | v1.4.0                                | v1.12.1                            | false  | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.6                                |                                    | true   | true             |
 | github.com/opencontainers/go-digest                                         | v1.0.0                                |                                    | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.1                                |                                    | true   | true             |
@@ -605,7 +606,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | github.com/syndtr/gocapability                                              | v0.0.0-20200815063812-42c35b437635    |                                    | false  | true             |
 | github.com/syndtr/goleveldb                                                 | v1.0.1-0.20220721030215-126854af5e6d  |                                    | false  | true             |
 | github.com/tchap/go-patricia/v2                                             | v2.3.3                                |                                    | false  | true             |
-| github.com/tetratelabs/wazero                                               | v1.10.1                               |                                    | false  | true             |
+| github.com/tetratelabs/wazero                                               | v1.10.1                               | v1.11.0                            | false  | true             |
 | github.com/thales-e-security/pool                                           | v0.0.2                                |                                    | false  | true             |
 | github.com/theupdateframework/go-tuf                                        | v0.7.0                                |                                    | false  | true             |
 | github.com/theupdateframework/go-tuf/v2                                     | v2.0.2                                | v2.3.0                             | false  | true             |
@@ -630,7 +631,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | github.com/urfave/cli/v2                                                    | v2.27.7                               |                                    | true   | true             |
 | github.com/uwu-tools/magex                                                  | v0.10.1                               |                                    | false  | true             |
 | github.com/vbatts/tar-split                                                 | v0.12.2                               |                                    | false  | true             |
-| github.com/vbauerster/mpb/v8                                                | v8.10.2                               | v8.11.2                            | false  | true             |
+| github.com/vbauerster/mpb/v8                                                | v8.10.2                               | v8.11.3                            | false  | true             |
 | github.com/vishvananda/netlink                                              | v1.3.1                                |                                    | true   | true             |
 | github.com/vishvananda/netns                                                | v0.0.5                                |                                    | false  | true             |
 | github.com/x448/float16                                                     | v0.8.4                                |                                    | false  | true             |
@@ -704,7 +705,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | golang.org/x/oauth2                                                         | v0.33.0                               | v0.34.0                            | false  | true             |
 | golang.org/x/sync                                                           | v0.19.0                               |                                    | true   | true             |
 | golang.org/x/sys                                                            | v0.39.0                               |                                    | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20251111182119-bc8e575c7b54    | v0.0.0-20251218154919-7004b7402f6a | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20251111182119-bc8e575c7b54    | v0.0.0-20251219171224-e0dd3dd4fbaf | false  | true             |
 | golang.org/x/term                                                           | v0.38.0                               |                                    | false  | true             |
 | golang.org/x/text                                                           | v0.32.0                               |                                    | false  | true             |
 | golang.org/x/time                                                           | v0.14.0                               |                                    | false  | true             |
@@ -742,7 +743,7 @@ _Generated on Thu, 18 Dec 2025 21:08:30 UTC for commit [9e979af][0]._
 | k8s.io/kms                                                                  | v0.35.0-rc.0                          | v0.35.0                            | false  | true             |
 | k8s.io/kube-openapi                                                         | v0.0.0-20250910181357-589584f1c912    | v0.0.0-20251125145642-4e65d59e963e | false  | true             |
 | k8s.io/kubelet                                                              | v0.35.0-rc.0                          | v0.35.0                            | true   | true             |
-| k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    | v0.0.0-20251218160917-61b37f7a4624 | true   | true             |
+| k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    | v0.0.0-20251219084037-98d557b7f1e7 | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                     | v0.31.2                               | v0.34.0                            | false  | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20250730193827-2d320260d730    |                                    | false  | true             |
 | sigs.k8s.io/knftables                                                       | v0.0.19                               |                                    | true   | true             |
