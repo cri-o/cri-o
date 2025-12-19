@@ -16,8 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	cgroupsV1 "github.com/containerd/cgroups/stats/v1"
-	cgroupsV2 "github.com/containerd/cgroups/v2/stats"
 	"github.com/containerd/containerd/api/runtime/task/v2"
 	containerdTypes "github.com/containerd/containerd/api/types"
 	tasktypes "github.com/containerd/containerd/api/types/task"
@@ -42,7 +40,6 @@ import (
 	utilexec "k8s.io/utils/exec"
 
 	"github.com/cri-o/cri-o/internal/annotations"
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -1042,180 +1039,6 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 	}
 
 	return nil
-}
-
-// ContainerStats provides statistics of a container.
-func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*cgmgr.CgroupStats, error) {
-	log.Debugf(ctx, "RuntimeVM.ContainerStats() start")
-	defer log.Debugf(ctx, "RuntimeVM.ContainerStats() end")
-
-	// Lock the container with a shared lock
-	c.opLock.RLock()
-	defer c.opLock.RUnlock()
-
-	resp, err := r.task.Stats(r.ctx, &task.StatsRequest{
-		ID: c.ID(),
-	})
-	if err != nil {
-		return nil, errdefs.FromGRPC(err)
-	}
-
-	if resp == nil {
-		return nil, errors.New("could not retrieve container stats")
-	}
-
-	stats, err := typeurl.UnmarshalAny(resp.GetStats())
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract container metrics: %w", err)
-	}
-
-	// We can't assume the version of metrics we will get based on the host system,
-	// because the guest VM may be using a different version.
-	// Trying to retrieve the V1 metrics first, and if it fails, try the v2
-
-	m, ok := stats.(*cgroupsV1.Metrics)
-	if ok {
-		return metricsV1ToCgroupStats(ctx, m), nil
-	} else {
-		m, ok := stats.(*cgroupsV2.Metrics)
-		if ok {
-			return metricsV2ToCgroupStats(ctx, m), nil
-		} else {
-			return nil, fmt.Errorf("unknown stats type %T", stats)
-		}
-	}
-}
-
-func (r *runtimeVM) DiskStats(ctx context.Context, c *Container, _ string) (*DiskMetrics, error) {
-	return &DiskMetrics{}, nil
-}
-
-func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.CgroupStats {
-	var (
-		memLimit        uint64
-		memUsage        uint64
-		workingSetBytes uint64
-	)
-
-	memUsage = m.Memory.Usage.Usage
-	memLimit = cgmgr.MemLimitGivenSystem(m.Memory.Usage.Limit)
-
-	if memUsage > m.Memory.TotalInactiveFile {
-		workingSetBytes = memUsage - m.Memory.TotalInactiveFile
-	} else {
-		log.Debugf(ctx,
-			"Unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
-			m.Memory.TotalInactiveFile, memUsage,
-		)
-	}
-
-	hugetlbStats := map[string]cgmgr.HugetlbStats{}
-	for _, hugetlb := range m.Hugetlb {
-		hugetlbStats[hugetlb.Pagesize] = cgmgr.HugetlbStats{
-			Usage: hugetlb.Usage,
-			Max:   hugetlb.Max,
-		}
-	}
-
-	return &cgmgr.CgroupStats{
-		Memory: &cgmgr.MemoryStats{
-			Usage:           memUsage,
-			WorkingSetBytes: workingSetBytes,
-			Limit:           memLimit,
-			AvailableBytes:  memLimit - workingSetBytes,
-			RssBytes:        m.Memory.RSS,
-			PageFaults:      m.Memory.PgFault,
-			MajorPageFaults: m.Memory.PgMajFault,
-			Cache:           m.Memory.Cache,
-			MaxUsage:        m.Memory.Usage.Max,
-			KernelUsage:     m.Memory.Kernel.Usage,
-			KernelTCPUsage:  m.Memory.KernelTCP.Usage,
-			SwapUsage:       m.Memory.Swap.Usage,
-			SwapLimit:       m.Memory.Swap.Limit,
-			// There is also m.Memory.TotalMappedFile
-			// TODO: See which one is the best to use here
-			FileMapped: m.Memory.MappedFile,
-			Failcnt:    m.Memory.Usage.Failcnt,
-		},
-		CPU: &cgmgr.CPUStats{
-			TotalUsageNano:          m.CPU.Usage.Total,
-			PerCPUUsage:             m.CPU.Usage.PerCPU,
-			ThrottledTime:           m.CPU.Throttling.ThrottledTime,
-			ThrottlingActivePeriods: m.CPU.Throttling.Periods,
-			ThrottledPeriods:        m.CPU.Throttling.ThrottledPeriods,
-		},
-		Hugetlb: hugetlbStats,
-		Pid: &cgmgr.PidsStats{
-			Current: m.Pids.Current,
-			Limit:   m.Pids.Limit,
-		},
-		SystemNano: time.Now().UnixNano(),
-	}
-}
-
-func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *cgmgr.CgroupStats {
-	var (
-		memLimit        uint64
-		memUsage        uint64
-		workingSetBytes uint64
-	)
-
-	if m != nil {
-		memUsage = m.Memory.Usage
-		memLimit = cgmgr.MemLimitGivenSystem(m.Memory.UsageLimit)
-
-		if memUsage > m.Memory.InactiveFile {
-			workingSetBytes = memUsage - m.Memory.InactiveFile
-		} else {
-			log.Debugf(ctx,
-				"Unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
-				m.Memory.InactiveFile, memUsage,
-			)
-		}
-	}
-
-	hugetlbStats := map[string]cgmgr.HugetlbStats{}
-	for _, hugetlb := range m.Hugetlb {
-		hugetlbStats[hugetlb.Pagesize] = cgmgr.HugetlbStats{
-			Usage: hugetlb.Current,
-			Max:   hugetlb.Max,
-		}
-	}
-
-	return &cgmgr.CgroupStats{
-		Memory: &cgmgr.MemoryStats{
-			Usage:           memUsage,
-			WorkingSetBytes: workingSetBytes,
-			Limit:           memLimit,
-			AvailableBytes:  memLimit - workingSetBytes,
-			PageFaults:      m.Memory.Pgfault,
-			MajorPageFaults: m.Memory.Pgmajfault,
-			// Use Memory.Anon as Rss for cgroup v2 as in cAdvisor
-			// See: https://github.com/google/cadvisor/blob/786dbcfdf5b1aae8341b47e71ab115066a9b4c06/container/libcontainer/handler.go#L809
-			RssBytes: m.Memory.Anon,
-			// Use Memory.File as Cache for cgroup v2 as in cAdvisor
-			// See: https://github.com/google/cadvisor/blob/786dbcfdf5b1aae8341b47e71ab115066a9b4c06/container/libcontainer/handler.go#L808
-			Cache:       m.Memory.File,
-			KernelUsage: m.Memory.KernelStack,
-			SwapUsage:   m.Memory.SwapUsage,
-			SwapLimit:   m.Memory.SwapLimit,
-			FileMapped:  m.Memory.FileMapped,
-		},
-		CPU: &cgmgr.CPUStats{
-			TotalUsageNano:          m.CPU.UsageUsec * 1000,
-			UsageInKernelmode:       m.CPU.SystemUsec * 1000,
-			UsageInUsermode:         m.CPU.UserUsec * 1000,
-			ThrottlingActivePeriods: m.CPU.NrPeriods,
-			ThrottledPeriods:        m.CPU.NrThrottled,
-			ThrottledTime:           m.CPU.ThrottledUsec * 1000,
-		},
-		Hugetlb: hugetlbStats,
-		Pid: &cgmgr.PidsStats{
-			Current: m.Pids.Current,
-			Limit:   m.Pids.Limit,
-		},
-		SystemNano: time.Now().UnixNano(),
-	}
 }
 
 // AttachContainer attaches IO to a running container.
