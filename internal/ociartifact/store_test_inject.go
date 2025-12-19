@@ -9,3 +9,7 @@ package ociartifact
 func (s *Store) SetImpl(impl Impl) {
 	s.impl = impl
 }
+
+func (s *Store) SetFakeStore(l LibartifactStore) {
+	s.LibartifactStore = l
+}
