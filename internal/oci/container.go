@@ -866,28 +866,6 @@ func (c *Container) RuntimePathForPlatform(r *runtimeOCI) string {
 	return c.runtimePath
 }
 
-// AddExecPID registers a PID associated with an exec session.
-// It is tracked so exec sessions can be cancelled when the container is being stopped.
-// If the PID is conmon, shouldKill should be false, as we should not call SIGKILL on conmon.
-// If it is an exec session, shouldKill should be true, as we can't guarantee the exec process
-// will have a SIGINT handler.
-func (c *Container) AddExecPID(pid int, shouldKill bool) error {
-	c.stopLock.Lock()
-	defer c.stopLock.Unlock()
-
-	logrus.Debugf("Starting to track exec PID %d for container %s (should kill = %t) ...", pid, c.ID(), shouldKill)
-
-	// Allow exec during graceful termination (stopping=true but kill loop not begun)
-	// Only block exec once the kill loop has started (force kill with SIGKILL)
-	if c.stopKillLoopBegun {
-		return errors.New("cannot register an exec PID: container is being killed")
-	}
-
-	c.execPIDs[pid] = shouldKill
-
-	return nil
-}
-
 // StartExecCmd atomically starts an exec command and registers its PID.
 func (c *Container) StartExecCmd(cmd ExecStarter, shouldKill bool) (int, error) {
 	c.stopLock.Lock()

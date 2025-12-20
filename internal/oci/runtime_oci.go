@@ -555,8 +555,6 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 			execCmd.Stderr = stderr
 		}
 
-		// Atomically start the exec and register its PID to prevent race conditions
-		// where the exec starts but isn't registered before the kill loop begins.
 		pid, err := c.StartExecCmd(&execCmdWrapper{cmd: execCmd}, true)
 		if err != nil {
 			return err
@@ -721,8 +719,6 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	r.prepareEnv(cmd, true)
 
-	// Atomically start the command and register its PID to prevent race conditions
-	// where the exec starts but isn't registered before the kill loop begins.
 	pid, err := c.StartExecCmd(&execCmdWrapper{cmd: cmd}, false)
 	if err != nil {
 		childPipe.Close()
@@ -762,8 +758,6 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				c.DeleteExecPID(pid)
 			}
 		}()
-
-		// The exec PID was already registered atomically by StartExecCmd above
 
 		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer && r.config.InfraCtrCPUSet != "" {
 			// Update the exec's cgroup
@@ -1025,7 +1019,6 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 				// Periodically check if the container is still running.
 				// This avoids busy-waiting and reduces resource usage while
 				// ensuring timely detection of container termination.
-				//
 				if err := c.Living(); err != nil {
 					// The initial container process either doesn't exist, or isn't ours.
 					if !errors.Is(err, ErrNotFound) {

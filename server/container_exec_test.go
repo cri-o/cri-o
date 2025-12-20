@@ -12,6 +12,19 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
+// mockExecStarter is a mock implementation of oci.ExecStarter for testing.
+type mockExecStarter struct {
+	pid int
+}
+
+func (m *mockExecStarter) Start() error {
+	return nil
+}
+
+func (m *mockExecStarter) GetPid() int {
+	return m.pid
+}
+
 // The actual test suite.
 var _ = t.Describe("ContainerExec", func() {
 	// Prepare the sut
@@ -90,11 +103,13 @@ var _ = t.Describe("ContainerExec", func() {
 			// Container is stopping but kill loop hasn't started
 			testContainer.SetAsStopping()
 
-			// When - Try to add an exec PID during graceful termination
-			err := testContainer.AddExecPID(12345, true)
+			// When - Try to start an exec during graceful termination
+			mockStarter := &mockExecStarter{pid: 12345}
+			pid, err := testContainer.StartExecCmd(mockStarter, true)
 
 			// Then - Should succeed because stopKillLoopBegun is still false
 			Expect(err).ToNot(HaveOccurred())
+			Expect(pid).To(Equal(12345))
 		})
 
 		It("should fail when container process is not alive", func() {
