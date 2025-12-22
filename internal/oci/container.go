@@ -866,24 +866,33 @@ func (c *Container) RuntimePathForPlatform(r *runtimeOCI) string {
 	return c.runtimePath
 }
 
-// AddExecPID registers a PID associated with an exec session.
-// It is tracked so exec sessions can be cancelled when the container is being stopped.
-// If the PID is conmon, shouldKill should be false, as we should not call SIGKILL on conmon.
-// If it is an exec session, shouldKill should be true, as we can't guarantee the exec process
-// will have a SIGINT handler.
-func (c *Container) AddExecPID(pid int, shouldKill bool) error {
+// StartExecCmd atomically starts an exec command and registers its PID.
+func (c *Container) StartExecCmd(cmd ExecStarter, shouldKill bool) (int, error) {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
 
-	logrus.Debugf("Starting to track exec PID %d for container %s (should kill = %t) ...", pid, c.ID(), shouldKill)
-
-	if c.stopping {
-		return errors.New("cannot register an exec PID: container is stopping")
+	// Check before starting - if kill loop has begun, don't start new execs
+	if c.stopKillLoopBegun {
+		return 0, errors.New("cannot start exec: container is being killed")
 	}
 
+	// Start the command while holding the lock
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+
+	pid := cmd.GetPid()
+	logrus.Debugf("Started and tracking exec PID %d for container %s (should kill = %t) ...", pid, c.ID(), shouldKill)
 	c.execPIDs[pid] = shouldKill
 
-	return nil
+	return pid, nil
+}
+
+// ExecStarter is an interface for starting exec commands.
+// This abstraction allows for easier testing and decouples from exec.Cmd.
+type ExecStarter interface {
+	Start() error
+	GetPid() int
 }
 
 // DeleteExecPID is for deregistering a pid after it has exited.
