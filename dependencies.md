@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 22 Dec 2025 16:15:08 UTC for commit [bcc6495][0]._
+_Generated on Mon, 22 Dec 2025 19:55:37 UTC for commit [92c18a2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bcc6495a9bf55bcbb16ff7d40776c096ca4bb7f7
+[0]: https://github.com/cri-o/cri-o/commit/92c18a2e2673764cd10f89b1a5061e2b26f44209
 
 ## Outdated Dependencies
 
@@ -24,7 +24,7 @@ _Generated on Mon, 22 Dec 2025 16:15:08 UTC for commit [bcc6495][0]._
 | k8s.io/cri-api                                         | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/cri-client                                      | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/kubelet                                         | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
-| k8s.io/utils                                           | v0.0.0-20251002143259-bc988d571ff4   | v0.0.0-20251220205832-9d40a56c1308 | true   | true             |
+| k8s.io/utils                                           | v0.0.0-20251002143259-bc988d571ff4   | v0.0.0-20251222190033-383b50a9004e | true   | true             |
 
 ## All Dependencies
 
@@ -706,7 +706,7 @@ _Generated on Mon, 22 Dec 2025 16:15:08 UTC for commit [bcc6495][0]._
 | golang.org/x/oauth2                                                         | v0.33.0                               | v0.34.0                            | false  | true             |
 | golang.org/x/sync                                                           | v0.19.0                               |                                    | true   | true             |
 | golang.org/x/sys                                                            | v0.39.0                               |                                    | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20251111182119-bc8e575c7b54    | v0.0.0-20251219171224-e0dd3dd4fbaf | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20251111182119-bc8e575c7b54    | v0.0.0-20251222180846-3f2a21fb04ff | false  | true             |
 | golang.org/x/term                                                           | v0.38.0                               |                                    | false  | true             |
 | golang.org/x/text                                                           | v0.32.0                               |                                    | false  | true             |
 | golang.org/x/time                                                           | v0.14.0                               |                                    | false  | true             |
@@ -716,9 +716,9 @@ _Generated on Mon, 22 Dec 2025 16:15:08 UTC for commit [bcc6495][0]._
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1    | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.16.0                               |                                    | false  | true             |
 | google.golang.org/api                                                       | v0.256.0                              | v0.258.0                           | false  | true             |
-| google.golang.org/genproto                                                  | v0.0.0-20250603155806-513f23925822    | v0.0.0-20251213004720-97cd9d5aeac2 | false  | true             |
-| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20251202230838-ff82c1b0f217    | v0.0.0-20251213004720-97cd9d5aeac2 | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20251202230838-ff82c1b0f217    | v0.0.0-20251213004720-97cd9d5aeac2 | false  | true             |
+| google.golang.org/genproto                                                  | v0.0.0-20250603155806-513f23925822    | v0.0.0-20251222181119-0a764e51fe1b | false  | true             |
+| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20251202230838-ff82c1b0f217    | v0.0.0-20251222181119-0a764e51fe1b | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20251202230838-ff82c1b0f217    | v0.0.0-20251222181119-0a764e51fe1b | false  | true             |
 | google.golang.org/grpc                                                      | v1.77.0                               |                                    | true   | true             |
 | google.golang.org/protobuf                                                  | v1.36.10                              | v1.36.11                           | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                | v2.4.0                             | false  | true             |
@@ -744,7 +744,7 @@ _Generated on Mon, 22 Dec 2025 16:15:08 UTC for commit [bcc6495][0]._
 | k8s.io/kms                                                                  | v0.35.0-rc.0                          | v0.35.0                            | false  | true             |
 | k8s.io/kube-openapi                                                         | v0.0.0-20250910181357-589584f1c912    | v0.0.0-20251125145642-4e65d59e963e | false  | true             |
 | k8s.io/kubelet                                                              | v0.35.0-rc.0                          | v0.35.0                            | true   | true             |
-| k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    | v0.0.0-20251220205832-9d40a56c1308 | true   | true             |
+| k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    | v0.0.0-20251222190033-383b50a9004e | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                     | v0.31.2                               | v0.34.0                            | false  | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20250730193827-2d320260d730    |                                    | false  | true             |
 | sigs.k8s.io/knftables                                                       | v0.0.19                               |                                    | true   | true             |
