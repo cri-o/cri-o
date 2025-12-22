@@ -27,7 +27,9 @@ type ptyStarter struct {
 
 func (p *ptyStarter) Start() error {
 	var err error
+
 	p.pty, err = pty.Start(p.cmd)
+
 	return err
 }
 
@@ -56,6 +58,7 @@ func setSize(fd uintptr, size remotecommand.TerminalSize) error {
 
 func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resizeChan <-chan remotecommand.TerminalSize, c *Container) error {
 	starter := &ptyStarter{cmd: execCmd}
+
 	pid, err := c.StartExecCmd(starter, true)
 	if err != nil {
 		return err
