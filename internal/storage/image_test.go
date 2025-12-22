@@ -668,6 +668,163 @@ var _ = t.Describe("Image", func() {
 		})
 	})
 
+	t.Describe("BuildRepoDigests", func() {
+		// Helper to create canonical reference
+		mustCanonical := func(s string) reference.Canonical {
+			ref, err := reference.ParseNormalizedNamed(s)
+			Expect(err).ToNot(HaveOccurred())
+			canonical, ok := ref.(reference.Canonical)
+			Expect(ok).To(BeTrue(), "expected canonical reference for %s", s)
+
+			return canonical
+		}
+
+		// Helper to convert result to strings for easier comparison
+		toStrings := func(refs []reference.Canonical) []string {
+			result := make([]string, 0, len(refs))
+			for _, r := range refs {
+				result = append(result, r.String())
+			}
+
+			return result
+		}
+
+		It("should return empty slice for empty inputs", func() {
+			// Given
+			var knownDigests, repoDigests []reference.Canonical
+
+			// When
+			result := storage.BuildRepoDigests(knownDigests, repoDigests)
+
+			// Then
+			Expect(result).To(BeEmpty())
+		})
+
+		It("should return only known digests when no additional digests", func() {
+			// Given
+			knownDigests := []reference.Canonical{
+				mustCanonical("docker.io/library/image@sha256:" + testSHA256),
+			}
+			repoDigests := knownDigests // repoDigests is same as knownDigests
+
+			// When
+			result := storage.BuildRepoDigests(knownDigests, repoDigests)
+
+			// Then
+			Expect(result).To(HaveLen(1))
+			Expect(result[0].String()).To(Equal("docker.io/library/image@sha256:" + testSHA256))
+		})
+
+		It("should return sorted additional digests when no known digests", func() {
+			// Given
+			var knownDigests []reference.Canonical
+			repoDigests := []reference.Canonical{
+				mustCanonical("quay.io/repo/image@sha256:" + testSHA256),
+				mustCanonical("docker.io/library/image@sha256:" + testSHA256),
+				mustCanonical("gcr.io/project/image@sha256:" + testSHA256),
+			}
+
+			// When
+			result := storage.BuildRepoDigests(knownDigests, repoDigests)
+
+			// Then
+			Expect(toStrings(result)).To(Equal([]string{
+				"docker.io/library/image@sha256:" + testSHA256,
+				"gcr.io/project/image@sha256:" + testSHA256,
+				"quay.io/repo/image@sha256:" + testSHA256,
+			}))
+		})
+
+		It("should preserve known digests order and sort additional digests", func() {
+			// Given
+			knownDigests := []reference.Canonical{
+				mustCanonical("quay.io/primary/image@sha256:" + testSHA256),
+				mustCanonical("docker.io/secondary/image@sha256:" + testSHA256),
+			}
+			repoDigests := []reference.Canonical{
+				mustCanonical("quay.io/primary/image@sha256:" + testSHA256),
+				mustCanonical("docker.io/secondary/image@sha256:" + testSHA256),
+				mustCanonical("gcr.io/computed/image@sha256:" + testSHA256),
+				mustCanonical("azurecr.io/additional/image@sha256:" + testSHA256),
+			}
+
+			// When
+			result := storage.BuildRepoDigests(knownDigests, repoDigests)
+
+			// Then
+			Expect(toStrings(result)).To(Equal([]string{
+				// Known digests first, in original order
+				"quay.io/primary/image@sha256:" + testSHA256,
+				"docker.io/secondary/image@sha256:" + testSHA256,
+				// Additional digests sorted alphabetically
+				"azurecr.io/additional/image@sha256:" + testSHA256,
+				"gcr.io/computed/image@sha256:" + testSHA256,
+			}))
+		})
+
+		It("should filter duplicates that exist in known digests", func() {
+			// Given
+			knownDigests := []reference.Canonical{
+				mustCanonical("docker.io/library/image@sha256:" + testSHA256),
+			}
+			repoDigests := []reference.Canonical{
+				mustCanonical("docker.io/library/image@sha256:" + testSHA256), // duplicate
+				mustCanonical("docker.io/library/image@sha256:" + testSHA256), // another duplicate
+				mustCanonical("quay.io/repo/image@sha256:" + testSHA256),
+			}
+
+			// When
+			result := storage.BuildRepoDigests(knownDigests, repoDigests)
+
+			// Then
+			Expect(toStrings(result)).To(Equal([]string{
+				"docker.io/library/image@sha256:" + testSHA256,
+				"quay.io/repo/image@sha256:" + testSHA256,
+			}))
+		})
+
+		It("should handle multiple digests for the same repository", func() {
+			// Given
+			const anotherSHA = "3a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465813"
+			knownDigests := []reference.Canonical{
+				mustCanonical("docker.io/library/image@sha256:" + testSHA256),
+			}
+			repoDigests := []reference.Canonical{
+				mustCanonical("docker.io/library/image@sha256:" + testSHA256),
+				mustCanonical("docker.io/library/image@sha256:" + anotherSHA),
+			}
+
+			// When
+			result := storage.BuildRepoDigests(knownDigests, repoDigests)
+
+			// Then
+			Expect(toStrings(result)).To(Equal([]string{
+				"docker.io/library/image@sha256:" + testSHA256,
+				"docker.io/library/image@sha256:" + anotherSHA,
+			}))
+		})
+
+		It("should ensure pulled digest appears first for kubernetes credential tracking", func() {
+			// Given - this is the key use case described in kubernetes/kubernetes#135369
+			// When an image is pulled by tag, the platform-specific digest should appear first
+			pulledDigest := mustCanonical("docker.io/library/nginx@sha256:" + testSHA256)
+			knownDigests := []reference.Canonical{pulledDigest}
+			repoDigests := []reference.Canonical{
+				pulledDigest,
+				mustCanonical("quay.io/mirror/nginx@sha256:" + testSHA256),
+				mustCanonical("gcr.io/mirror/nginx@sha256:" + testSHA256),
+			}
+
+			// When
+			result := storage.BuildRepoDigests(knownDigests, repoDigests)
+
+			// Then
+			Expect(result).To(HaveLen(3))
+			// The pulled digest should be first
+			Expect(result[0].String()).To(Equal("docker.io/library/nginx@sha256:" + testSHA256))
+		})
+	})
+
 	t.Describe("CompileRegexpsForPinnedImages", func() {
 		It("should return regexps for exact patterns", func() {
 			patterns := []string{"quay.io/crio/pause:latest", "docker.io/crio/sandbox:latest", "registry.k8s.io/pause:3.10.1"}

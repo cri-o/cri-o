@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/go-digest"
+	"go.podman.io/image/v5/docker/reference"
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -13,6 +14,18 @@ import (
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/server"
 )
+
+func mustParseCanonical(s string) reference.Canonical {
+	GinkgoHelper()
+
+	ref, err := reference.ParseNormalizedNamed(s)
+	Expect(err).ToNot(HaveOccurred())
+
+	canonical, ok := ref.(reference.Canonical)
+	Expect(ok).To(BeTrue(), "expected canonical reference for %s", s)
+
+	return canonical
+}
 
 // The actual test suite.
 var _ = t.Describe("ImageList", func() {
@@ -136,10 +149,12 @@ var _ = t.Describe("ImageList", func() {
 		It("should succeed with repo tags and digests", func() {
 			// Given
 			size := uint64(100)
+			digest1 := mustParseCanonical("docker.io/library/image@sha256:2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+			digest2 := mustParseCanonical("docker.io/library/other@sha256:3b14b7168f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465813")
 			image := &storage.ImageResult{
 				ID:          imageID,
 				RepoTags:    []string{"1", "2"},
-				RepoDigests: []string{"3", "4"},
+				RepoDigests: []reference.Canonical{digest1, digest2},
 				Size:        &size,
 				User:        "10",
 			}
@@ -152,7 +167,7 @@ var _ = t.Describe("ImageList", func() {
 			Expect(result.GetRepoTags()).To(HaveLen(2))
 			Expect(result.GetRepoTags()).To(ConsistOf("1", "2"))
 			Expect(result.GetRepoDigests()).To(HaveLen(2))
-			Expect(result.GetRepoDigests()).To(ConsistOf("3", "4"))
+			Expect(result.GetRepoDigests()).To(ConsistOf(digest1.String(), digest2.String()))
 			Expect(result.GetSize()).To(Equal(size))
 			Expect(result.GetUid().GetValue()).To(BeEquivalentTo(10))
 		})

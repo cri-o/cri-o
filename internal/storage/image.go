@@ -58,7 +58,7 @@ type ImageResult struct {
 	// It also has NO RELATIONSHIP to user input when returned by ImageStatusByName.
 	SomeNameOfThisImage *RegistryImageReference
 	RepoTags            []string
-	RepoDigests         []string
+	RepoDigests         []reference.Canonical
 	Size                *uint64
 	Digest              digest.Digest
 	User                string
@@ -324,43 +324,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 
 	sort.Strings(repoTagStrings)
 
-	// Build repo digest strings with stable ordering:
-	// - Keep knownRepoDigests (from image's stored names) in original order
-	// - Sort additional computed digests alphabetically
-	// This ensures the PullImage digest appears first, allowing Kubernetes to rely on
-	// the first RepoDigest for credential tracking (kubernetes/kubernetes#135369).
-
-	// Convert known digests to strings (preserve order)
-	// `digests` contains canonical references from the image's stored names - these are
-	// the "known" digests that should appear first in RepoDigests in their original order.
-	// `repoDigests` (returned from makeRepoDigests earlier) contains the union of:
-	// - known digests from the image's stored names
-	// - computed digests from combining the image digest with repository names from tags
-	repoDigestStrings := make([]string, 0, len(repoDigests))
-	for _, d := range digests {
-		repoDigestStrings = append(repoDigestStrings, d.String())
-	}
-
-	// Collect additional (computed) digests
-	knownSet := make(map[string]bool, len(digests))
-	for _, d := range repoDigestStrings {
-		knownSet[d] = true
-	}
-
-	additionalDigests := make([]string, 0)
-
-	for _, d := range repoDigests {
-		digestString := d.String()
-		if !knownSet[digestString] {
-			additionalDigests = append(additionalDigests, digestString)
-		}
-	}
-
-	// Sort only the additional digests
-	sort.Strings(additionalDigests)
-
-	// Combine: known (in original order) + additional (sorted)
-	repoDigestStrings = append(repoDigestStrings, additionalDigests...)
+	orderedRepoDigests := BuildRepoDigests(digests, repoDigests)
 
 	previousName := ""
 
@@ -410,7 +374,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		ID:                  storageImageIDFromImage(image),
 		SomeNameOfThisImage: someName,
 		RepoTags:            repoTagStrings,
-		RepoDigests:         repoDigestStrings,
+		RepoDigests:         orderedRepoDigests,
 		Size:                cacheItem.size,
 		Digest:              imageDigest,
 		User:                cacheItem.config.Config.User,
@@ -421,6 +385,45 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		Pinned:              imagePinned,
 		MountPoint:          mountPoint,
 	}, nil
+}
+
+// BuildRepoDigests builds repo digests with stable ordering:
+// - Keep knownRepoDigests (from image's stored names) in original order
+// - Sort additional computed digests alphabetically
+// This ensures the PullImage digest appears first, allowing Kubernetes to rely on
+// the first RepoDigest for credential tracking (kubernetes/kubernetes#135369).
+//
+// `knownDigests` contains canonical references from the image's stored names - these are
+// the "known" digests that should appear first in RepoDigests in their original order.
+// `repoDigests` contains the union of:
+// - known digests from the image's stored names
+// - computed digests from combining the image digest with repository names from tags.
+func BuildRepoDigests(knownDigests, repoDigests []reference.Canonical) []reference.Canonical {
+	// Start with known digests (preserve order)
+	result := make([]reference.Canonical, 0, len(repoDigests))
+	result = append(result, knownDigests...)
+
+	// Collect additional (computed) digests
+	knownSet := make(map[string]bool, len(knownDigests))
+	for _, d := range knownDigests {
+		knownSet[d.String()] = true
+	}
+
+	additionalDigests := make([]reference.Canonical, 0)
+
+	for _, d := range repoDigests {
+		if !knownSet[d.String()] {
+			additionalDigests = append(additionalDigests, d)
+		}
+	}
+
+	// Sort only the additional digests
+	sort.Slice(additionalDigests, func(i, j int) bool {
+		return additionalDigests[i].String() < additionalDigests[j].String()
+	})
+
+	// Combine: known (in original order) + additional (sorted)
+	return append(result, additionalDigests...)
 }
 
 func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]ImageResult, error) {

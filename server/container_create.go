@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,6 +20,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.podman.io/common/pkg/subscriptions"
 	"go.podman.io/common/pkg/timezone"
+	"go.podman.io/image/v5/docker/reference"
 	cstorage "go.podman.io/storage"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/mount"
@@ -1305,6 +1305,10 @@ func (s *Server) resolveAndVerifyContainerImage(ctx context.Context, ctr contain
 		}
 	}
 
+	if imgResult == nil {
+		return nil, fmt.Errorf("failed to find image %q", userRequestedImage)
+	}
+
 	if userRequestedImage == "" {
 		return nil, errors.New("internal error: successfully found an image, but userRequestedImage is empty")
 	}
@@ -1312,15 +1316,7 @@ func (s *Server) resolveAndVerifyContainerImage(ctx context.Context, ctr contain
 	someNameOfTheImage := imgResult.SomeNameOfThisImage
 	imageID := imgResult.ID
 
-	// For ImageRef, prefer user-requested image if it's a digest in RepoDigests.
-	// This ensures manifest list digests appear in ImageRef (not platform-specific ones).
-	someRepoDigest := ""
-	if len(imgResult.RepoDigests) > 0 {
-		someRepoDigest = imgResult.RepoDigests[0]
-		if slices.Contains(imgResult.RepoDigests, userRequestedImage) {
-			someRepoDigest = userRequestedImage
-		}
-	}
+	someRepoDigest := FindRepoDigestForImage(imgResult.RepoDigests, userRequestedImage)
 
 	if err := s.verifyImageSignature(ctx, sb.Metadata().GetNamespace(), ctr.Config().GetImage().GetUserSpecifiedImage(), imgResult); err != nil {
 		return nil, err
@@ -1333,6 +1329,43 @@ func (s *Server) resolveAndVerifyContainerImage(ctx context.Context, ctr contain
 		imageID:            imageID,
 		someRepoDigest:     someRepoDigest,
 	}, nil
+}
+
+// FindRepoDigestForImage finds an appropriate repo digest to use for imageRef.
+// Priority:
+// 1. If userRequestedImage exactly matches a repo digest, return it
+// 2. Otherwise, find a digest with matching repository name
+// 3. If no match is found, returns the first repo digest
+// Returns empty string if repoDigests is empty.
+func FindRepoDigestForImage(repoDigests []reference.Canonical, userRequestedImage string) string {
+	if len(repoDigests) == 0 {
+		return ""
+	}
+
+	// Default to the first repo digest
+	result := repoDigests[0].String()
+
+	// First, check for exact match (e.g., user requested a manifest list digest)
+	for _, d := range repoDigests {
+		if d.String() == userRequestedImage {
+			return userRequestedImage
+		}
+	}
+
+	// Try to find a digest with matching repository name
+	userRef, err := reference.ParseNormalizedNamed(userRequestedImage)
+	if err != nil {
+		return result
+	}
+
+	userRepo := reference.TrimNamed(userRef).String()
+	for _, d := range repoDigests {
+		if reference.TrimNamed(d).String() == userRepo {
+			return d.String()
+		}
+	}
+
+	return result
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {

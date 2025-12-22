@@ -64,7 +64,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		Image: &types.Image{
 			Id:          status.ID.IDStringForOutOfProcessConsumptionOnly(),
 			RepoTags:    status.RepoTags,
-			RepoDigests: status.RepoDigests,
+			RepoDigests: repoDigestsToStrings(status.RepoDigests),
 			Size:        size,
 			Spec: &types.ImageSpec{
 				Annotations: status.Annotations,

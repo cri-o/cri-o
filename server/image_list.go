@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"go.podman.io/image/v5/docker/reference"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -83,7 +84,7 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	}
 
 	if len(from.RepoDigests) > 0 {
-		repoDigests = from.RepoDigests
+		repoDigests = repoDigestsToStrings(from.RepoDigests)
 	} else if from.PreviousName != "" && from.Digest != "" {
 		repoDigests = []string{from.PreviousName + "@" + string(from.Digest)}
 	}
@@ -107,4 +108,14 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	}
 
 	return to
+}
+
+// repoDigestsToStrings converts a slice of reference.Canonical to a slice of strings.
+func repoDigestsToStrings(digests []reference.Canonical) []string {
+	result := make([]string, 0, len(digests))
+	for _, d := range digests {
+		result = append(result, d.String())
+	}
+
+	return result
 }
