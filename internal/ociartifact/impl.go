@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/docker/reference"
@@ -75,21 +74,14 @@ func (*defaultImpl) ReadAll(r io.Reader) ([]byte, error) {
 // CandidatesForPotentiallyShortImageName resolves locally an artifact name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
 // It will only return an empty slice if err != nil.
 func (d *defaultImpl) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]reference.Named, error) {
-	// Always resolve unqualified names to all candidates. We should use a more secure mode once we settle on a shortname alias table.
-	sc := types.SystemContext{}
-	if systemContext != nil {
-		sc = *systemContext // A shallow copy
+	if shortnames.IsShortName(imageName) {
+		return nil, fmt.Errorf("artifact %q must be a fully-qualified reference; short names and unqualified-search-registries are not supported for artifacts", imageName)
 	}
 
-	resolved, err := shortnames.ResolveLocally(&sc, imageName)
+	namedRef, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
-		// Error is not very clear in this context, and unfortunately is also not a variable.
-		if strings.Contains(err.Error(), "short-name resolution enforced but cannot prompt without a TTY") {
-			return nil, fmt.Errorf("short name mode is enforcing, but image name %s returns ambiguous list", imageName)
-		}
-
-		return nil, err
+		return nil, fmt.Errorf("invalid artifact name %q: %w", imageName, err)
 	}
 
-	return resolved, nil
+	return []reference.Named{reference.TagNameOnly(namedRef)}, nil
 }

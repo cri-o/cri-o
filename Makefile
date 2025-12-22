@@ -526,7 +526,7 @@ mock-ociartifact-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
 		-package ociartifactmock \
 		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
-		github.com/cri-o/cri-o/internal/ociartifact Impl
+		github.com/cri-o/cri-o/internal/ociartifact Impl,LibartifactStore
 
 .PHONY: mock-systemd
 mock-systemd: ${MOCKGEN}

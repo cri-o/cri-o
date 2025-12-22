@@ -34,7 +34,7 @@ var ErrNotFound = errors.New("no artifact found")
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
-	*libartStore.ArtifactStore
+	LibartifactStore
 
 	rootPath string
 	impl     Impl
@@ -50,10 +50,9 @@ func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, erro
 	}
 
 	return &Store{
-		ArtifactStore: store,
-
-		rootPath: storePath,
-		impl:     &defaultImpl{},
+		LibartifactStore: RealLibartifactStore{store},
+		rootPath:         storePath,
+		impl:             &defaultImpl{},
 	}, nil
 }
 
@@ -129,7 +128,7 @@ func (s *Store) PullManifest(
 
 // List creates a slice of all available artifacts.
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
-	arts, err := s.ArtifactStore.List(ctx)
+	arts, err := s.LibartifactStore.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list artifacts: %w", err)
 	}
@@ -165,7 +164,7 @@ func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
 		return fmt.Errorf("get artifact by name or digest: %w", err)
 	}
 
-	_, err = s.ArtifactStore.Remove(ctx, artifact.Reference())
+	_, err = s.LibartifactStore.Remove(ctx, artifact.Reference())
 
 	return err
 }
@@ -227,7 +226,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		return nil, fmt.Errorf("create new reference: %w", err)
 	}
 
-	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.SystemContext)
+	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.SystemContext())
 	if err != nil {
 		return nil, fmt.Errorf("build image source: %w", err)
 	}
@@ -263,7 +262,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 }
 
 func (s *Store) readBlob(ctx context.Context, src types.ImageSource, layer *manifest.LayerInfo, maxArtifactSize uint64) ([]byte, error) {
-	bic := blobinfocache.DefaultCache(s.SystemContext)
+	bic := blobinfocache.DefaultCache(s.SystemContext())
 
 	rc, size, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: layer.Digest}, bic)
 	if err != nil {
@@ -334,8 +333,14 @@ func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact
 	}
 
 	// if strRef is named reference
-	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.SystemContext, strRef)
+	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.SystemContext(), strRef)
 	if err != nil {
+		// If there are no artifacts in the store, return ErrNotFound regardless of name validation errors
+		// This maintains backward compatibility where invalid names simply weren't found
+		if len(artifacts) == 0 {
+			return nil, false, fmt.Errorf("%w with name or digest of: %s", ErrNotFound, strRef)
+		}
+
 		return nil, false, fmt.Errorf("get candidates for potentially short image name: %w", err)
 	}
 
