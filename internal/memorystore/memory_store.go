@@ -21,8 +21,6 @@ type Storer[T AnyCreated[T]] interface {
 	Delete(string)
 	// List returns a list of values from the store.
 	List() []T
-	// Size returns the number of values in the store.
-	Size() int
 	// First returns the first value found in the store by a given filter.
 	First(StoreFilter[T]) T
 	// ApplyAll calls the reducer function with every value in the store.
@@ -75,15 +73,6 @@ func (c *memoryStore[T]) List() []T {
 	values.sort()
 
 	return values
-}
-
-// Size returns the number of values in the store.
-func (c *memoryStore[T]) Size() (l int) {
-	for range c.s.Range {
-		l++
-	}
-
-	return l
 }
 
 // First returns the first value found in the store by a given filter.
