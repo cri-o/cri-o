@@ -707,9 +707,9 @@ var _ = t.Describe("Container", func() {
 			pid1 := 12345
 			pid2 := 12346
 			pid3 := 12347
-			Expect(addTestExecPID(sut,pid1, true)).To(Succeed())
-			Expect(addTestExecPID(sut,pid2, false)).To(Succeed())
-			Expect(addTestExecPID(sut,pid3, true)).To(Succeed())
+			Expect(addTestExecPID(sut, pid1, true)).To(Succeed())
+			Expect(addTestExecPID(sut, pid2, false)).To(Succeed())
+			Expect(addTestExecPID(sut, pid3, true)).To(Succeed())
 
 			// When
 			sut.DeleteExecPID(pid2)
@@ -726,7 +726,7 @@ var _ = t.Describe("Container", func() {
 		It("should be safe to delete same PID multiple times", func() {
 			// Given
 			testPID := 12345
-			Expect(addTestExecPID(sut,testPID, true)).To(Succeed())
+			Expect(addTestExecPID(sut, testPID, true)).To(Succeed())
 
 			// When/Then - Multiple deletes should not panic
 			Expect(func() {
@@ -765,7 +765,7 @@ var _ = t.Describe("Container", func() {
 			// Given - Add a PID that doesn't exist
 			// KillExecPIDs will try to kill this PID, get ESRCH error, and should handle it
 			nonExistentPID := neverRunningPid
-			Expect(addTestExecPID(sut,nonExistentPID, true)).To(Succeed())
+			Expect(addTestExecPID(sut, nonExistentPID, true)).To(Succeed())
 
 			// When/Then - Should handle ESRCH error and complete without panic
 			Expect(func() {
@@ -778,9 +778,9 @@ var _ = t.Describe("Container", func() {
 			pid1 := neverRunningPid
 			pid2 := neverRunningPid - 1
 			pid3 := neverRunningPid - 2
-			Expect(addTestExecPID(sut,pid1, true)).To(Succeed())
-			Expect(addTestExecPID(sut,pid2, false)).To(Succeed())
-			Expect(addTestExecPID(sut,pid3, true)).To(Succeed())
+			Expect(addTestExecPID(sut, pid1, true)).To(Succeed())
+			Expect(addTestExecPID(sut, pid2, false)).To(Succeed())
+			Expect(addTestExecPID(sut, pid3, true)).To(Succeed())
 
 			// When/Then - Should attempt to kill all PIDs
 			Expect(func() {
@@ -794,8 +794,8 @@ var _ = t.Describe("Container", func() {
 			// but we can verify the function completes without error
 			pid1 := neverRunningPid
 			pid2 := neverRunningPid - 1
-			Expect(addTestExecPID(sut,pid1, true)).To(Succeed())  // Should use SIGKILL
-			Expect(addTestExecPID(sut,pid2, false)).To(Succeed()) // Should use SIGINT
+			Expect(addTestExecPID(sut, pid1, true)).To(Succeed())  // Should use SIGKILL
+			Expect(addTestExecPID(sut, pid2, false)).To(Succeed()) // Should use SIGINT
 
 			// When/Then - Should complete successfully
 			Expect(func() {
@@ -806,13 +806,13 @@ var _ = t.Describe("Container", func() {
 		It("should clear exec PIDs map after killing", func() {
 			// Given
 			pid1 := neverRunningPid
-			Expect(addTestExecPID(sut,pid1, true)).To(Succeed())
+			Expect(addTestExecPID(sut, pid1, true)).To(Succeed())
 
 			// When
 			sut.KillExecPIDs()
 
 			// Then - Should be able to add the same PID again (map was cleared)
-			Expect(addTestExecPID(sut,pid1, false)).To(Succeed())
+			Expect(addTestExecPID(sut, pid1, false)).To(Succeed())
 		})
 	})
 
@@ -1048,6 +1048,7 @@ type mockExecStarter struct {
 
 func (m *mockExecStarter) Start() error {
 	m.startCalled = true
+
 	return m.startFunc()
 }
 
@@ -1062,5 +1063,6 @@ func addTestExecPID(c *oci.Container, pid int, shouldKill bool) error {
 		pid:       pid,
 	}
 	_, err := c.StartExecCmd(mock, shouldKill)
+
 	return err
 }

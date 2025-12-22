@@ -421,6 +421,10 @@ func (c *Container) CrioAnnotations() map[string]string {
 // UserRequestedImage returns the users' input originally used to find imageID; it might evaluate to a different image
 // (or to a different kind of reference!) at any future time.
 func (c *Container) UserRequestedImage() string {
+	if userSpecifiedImage := c.criContainer.GetImage().GetUserSpecifiedImage(); userSpecifiedImage != "" {
+		return userSpecifiedImage
+	}
+	// Fallback to image to keep old behavior just in case.
 	return c.criContainer.GetImage().GetImage()
 }
 

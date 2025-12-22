@@ -597,3 +597,12 @@ upload-artifacts: ## Upload the built artifacts.
 .PHONY: push-oci-artifacts
 push-oci-artifacts: ## Push OCI Artifacts to quay.io/crio
 	./test/testdata/artifacts/push-oci-artifacts
+
+.PHONY: push-mirror-image
+push-mirror-image: ## Push mirror image of fedora-crio-ci
+	./test/testdata/mirror-fedora-crio-ci-image.sh
+
+.PHONY: push-test-images ## Push Images and OCI Artifacts to quay.io/crio for tests
+push-test-images: \
+	push-oci-artifacts \
+	push-mirror-image
