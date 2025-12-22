@@ -871,7 +871,6 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	containerID := filepath.Base(event.Name)
 	log.Debugf(ctx, "Container or sandbox exited: %v", containerID)
 	c := s.GetContainer(ctx, containerID)
-	nriCtr := c
 	resource := "container"
 
 	var sb *sandbox.Sandbox
@@ -895,21 +894,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 
 	log.Debugf(ctx, "%s exited and found: %v", resource, containerID)
 
-	if err := s.ContainerStateToDisk(ctx, c); err != nil {
-		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
-	}
-
-	if nriCtr != nil {
-		if err := s.nri.stopContainer(ctx, nil, nriCtr); err != nil {
-			log.Warnf(ctx, "NRI stop container request of %s failed: %v", nriCtr.ID(), err)
-		}
-	}
-
-	if hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations()); hooks != nil {
-		if err := hooks.PostStop(ctx, c, sb); err != nil {
-			log.Errorf(ctx, "Failed to run post-stop hook for container %s: %v", c.ID(), err)
-		}
-	}
+	s.postStopCleanup(ctx, c, sb, s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations()))
 
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STOPPED_EVENT)
 

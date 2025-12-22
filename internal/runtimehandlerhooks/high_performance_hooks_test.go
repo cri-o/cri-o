@@ -111,8 +111,6 @@ var _ = Describe("high_performance_hooks", func() {
 		false, "", "", time.Now(), "")
 	Expect(err).ToNot(HaveOccurred())
 
-	var flags, bannedCPUFlags string
-
 	baseSandboxBuilder := func() sandbox.Builder {
 		sbox := sandbox.NewBuilder()
 		createdAt := time.Now()
@@ -154,11 +152,24 @@ var _ = Describe("high_performance_hooks", func() {
 	Describe("setIRQLoadBalancingUsingDaemonCommand", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
-		verifySetIRQLoadBalancing := func(enabled bool, expected string) {
-			h := &HighPerformanceHooks{
-				irqBalanceConfigFile: irqBalanceConfigFile,
-				irqSMPAffinityFile:   irqSmpAffinityFile,
-			}
+		verifySetIRQLoadBalancing := func(h *HighPerformanceHooks, enabled bool, given, expected string) {
+			// set container CPUs
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus: "4,5",
+							},
+						},
+					},
+				},
+			)
+
+			// create tests affinity file
+			err = os.WriteFile(irqSmpAffinityFile, []byte(given), 0o644)
+			Expect(err).ToNot(HaveOccurred())
+
 			err := h.setIRQLoadBalancing(context.TODO(), container, cpuset.CPUSet{}, enabled)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -168,7 +179,39 @@ var _ = Describe("high_performance_hooks", func() {
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
 		}
 
-		JustBeforeEach(func() {
+		Context("should set the irq bit mask", func() {
+			It("from true to false, then false to true", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+				verifySetIRQLoadBalancing(h, false, "00000000,00003033", "00000000,00003003")
+				verifySetIRQLoadBalancing(h, true, "0000,00003003", "00000000,00003033")
+			})
+			It("only if false was called first", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+				verifySetIRQLoadBalancing(h, true, "00000000,00003003", "00000000,00003003")
+			})
+		})
+	})
+
+	Describe("setIRQLoadBalancingUsingServiceRestart", func() {
+		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
+		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
+		verifySetIRQLoadBalancing := func(h *HighPerformanceHooks, enabled bool, givenSmp, expectedSmp, givenBan, expectedBan string) {
+			// set irqbalanace config file with no banned cpus
+			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
+			Expect(err).ToNot(HaveOccurred())
+			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, givenBan)
+			Expect(err).ToNot(HaveOccurred())
+			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bannedCPUs).To(Equal(givenBan))
 			// set container CPUs
 			container.SetSpec(
 				&specs.Spec{
@@ -183,39 +226,9 @@ var _ = Describe("high_performance_hooks", func() {
 			)
 
 			// create tests affinity file
-			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
+			err = os.WriteFile(irqSmpAffinityFile, []byte(givenSmp), 0o644)
 			Expect(err).ToNot(HaveOccurred())
-		})
 
-		Context("with enabled equals to true", func() {
-			BeforeEach(func() {
-				flags = "0000,00003003"
-			})
-
-			It("should set the irq bit mask", func() {
-				verifySetIRQLoadBalancing(true, "00000000,00003033")
-			})
-		})
-
-		Context("with enabled equals to false", func() {
-			BeforeEach(func() {
-				flags = "00000000,00003033"
-			})
-
-			It("should clear the irq bit mask", func() {
-				verifySetIRQLoadBalancing(false, "00000000,00003003")
-			})
-		})
-	})
-
-	Describe("setIRQLoadBalancingUsingServiceRestart", func() {
-		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
-		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
-		verifySetIRQLoadBalancing := func(enabled bool, expectedSmp, expectedBan string) {
-			h := &HighPerformanceHooks{
-				irqBalanceConfigFile: irqBalanceConfigFile,
-				irqSMPAffinityFile:   irqSmpAffinityFile,
-			}
 			err = h.setIRQLoadBalancing(context.TODO(), container, cpuset.CPUSet{}, enabled)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -224,58 +237,29 @@ var _ = Describe("high_performance_hooks", func() {
 
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedSmp))
 
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			bannedCPUs, err = retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(bannedCPUs).To(Equal(expectedBan))
 		}
 
-		JustBeforeEach(func() {
-			// set irqbalanace config file with no banned cpus
-			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
-			Expect(err).ToNot(HaveOccurred())
-			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUFlags)
-			Expect(err).ToNot(HaveOccurred())
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(bannedCPUs).To(Equal(bannedCPUFlags))
-			// set container CPUs
-			container.SetSpec(
-				&specs.Spec{
-					Linux: &specs.Linux{
-						Resources: &specs.LinuxResources{
-							CPU: &specs.LinuxCPU{
-								Cpus: "4,5",
-							},
-						},
-					},
-				},
-			)
-
-			// create tests affinity file
-			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("with enabled equals to true", func() {
-			BeforeEach(func() {
-				flags = "00000000,00003003"
-				bannedCPUFlags = "ffffffff,ffffcffc"
+		Context("should set the irq bit mask", func() {
+			It("only if false was called first", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+				verifySetIRQLoadBalancing(h, true, "00000000,00003003", "00000000,00003003", "ffffffff,ffffcffc", "ffffffff,ffffcffc")
 			})
-
-			It("should set the irq bit mask", func() {
-				verifySetIRQLoadBalancing(true, "00000000,00003033", "ffffffff,ffffcfcc")
-			})
-		})
-
-		Context("with enabled equals to false", func() {
-			BeforeEach(func() {
-				flags = "00000000,00003033"
-				bannedCPUFlags = "ffffffff,ffffcfcc"
-			})
-
-			It("should clear the irq bit mask", func() {
-				verifySetIRQLoadBalancing(false, "00000000,00003003", "ffffffff,ffffcffc")
+			It("from true to false, then false to true", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+				verifySetIRQLoadBalancing(h, false, "00000000,00003033", "00000000,00003003", "ffffffff,ffffcfcc", "ffffffff,ffffcffc")
+				verifySetIRQLoadBalancing(h, true, "00000000,00003003", "00000000,00003033", "ffffffff,ffffcffc", "ffffffff,ffffcfcc")
 			})
 		})
 	})
@@ -354,14 +338,18 @@ var _ = Describe("high_performance_hooks", func() {
 			return c, sb
 		}
 
-		verifySetIRQLoadBalancing := func(c *oci.Container, sb *sandbox.Sandbox, enabled bool,
-			expectedSmp, expectedBan, expectedHousekeepingCPUs string, expectFailure bool,
+		verifySetIRQLoadBalancing := func(h *HighPerformanceHooks, c *oci.Container, sb *sandbox.Sandbox, enabled bool,
+			givenSmp, expectedSmp, givenBan, expectedBan, expectedHousekeepingCPUs string, expectFailure bool,
 		) {
-			h := &HighPerformanceHooks{
-				irqBalanceConfigFile: irqBalanceConfigFile,
-				irqSMPAffinityFile:   irqSmpAffinityFile,
-				sysCPUDir:            sysCPUDir,
-			}
+			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
+			Expect(err).ToNot(HaveOccurred())
+			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, givenBan)
+			Expect(err).ToNot(HaveOccurred())
+			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bannedCPUs).To(Equal(givenBan))
+			err = os.WriteFile(irqSmpAffinityFile, []byte(givenSmp), 0o644)
+			Expect(err).ToNot(HaveOccurred())
 
 			// For container start (enabled == false), we must calculate the housekeeping CPUs,
 			// otherwise housekeepingSiblings is the empty set.
@@ -386,7 +374,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedSmp))
 
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			bannedCPUs, err = retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bannedCPUs).To(Equal(expectedBan))
 
@@ -406,81 +394,130 @@ var _ = Describe("high_performance_hooks", func() {
 			Expect(specgen.Config.Process.Env).To(Equal(expectedHousekeepingAnnotation))
 		}
 
-		JustBeforeEach(func() {
-			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
-			Expect(err).ToNot(HaveOccurred())
-			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUFlags)
-			Expect(err).ToNot(HaveOccurred())
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(bannedCPUs).To(Equal(bannedCPUFlags))
-			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		// This should be covered in other tests already, but test this here for completeness and safe measure.
 		Context("with enabled equals to true", func() {
-			BeforeEach(func() {
-				flags = "00000000,ffffff0f"
-				bannedCPUFlags = "ffffffff,000000f0"
-			})
-
-			It("should set the irq bit mask with housekeeping CPUs annotation present", func() {
+			It("should not set the irq bit mask with housekeeping CPUs annotation present without disable first", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, true, "00000000,ffffffff", "ffffffff,00000000", "", false)
+				startFlags := "00000000,ffffffff"
+				startBanned := "ffffffff,00000000"
+
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					sysCPUDir:                 sysCPUDir,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+
+				verifySetIRQLoadBalancing(h, c, sb, true, startFlags, startFlags, startBanned, startBanned, "", false)
+			})
+			It("should set the irq bit mask with housekeeping CPUs annotation present with disable first", func() {
+				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
+					crioannotations.IRQLoadBalancing: annotationHousekeeping,
+				})
+				startFlags := "00000000,ffffffff"
+				startBanned := "ffffffff,00000000"
+				endFlags := "00000000,ffffff1f"
+				endBanned := "ffffffff,000000e0"
+
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					sysCPUDir:                 sysCPUDir,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+
+				verifySetIRQLoadBalancing(h, c, sb, false, startFlags, endFlags, startBanned, endBanned, "4", false)
+				verifySetIRQLoadBalancing(h, c, sb, true, endFlags, startFlags, endBanned, startBanned, "", false)
 			})
 		})
 
 		Context("with enabled equals to false", func() {
-			BeforeEach(func() {
-				flags = "00000000,ffffffff"
-				bannedCPUFlags = "ffffffff,00000000"
-			})
-
 			It("should set the irq bit mask without housekeeping CPUs", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					sysCPUDir:                 sysCPUDir,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff0f", "ffffffff,000000f0", "", false)
+				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,ffffff0f", "ffffffff,00000000", "ffffffff,000000f0", "", false)
 			})
 
 			It("should set the irq bit mask with housekeeping CPUs when no thread siblings files are present", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					sysCPUDir:                 sysCPUDir,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff1f", "ffffffff,000000e0", "4", false)
+				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,ffffff1f", "ffffffff,00000000", "ffffffff,000000e0", "4", false)
 			})
 
 			It("should set the irq bit mask with housekeeping CPUs and no siblings", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					sysCPUDir:                 sysCPUDir,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+
 				createSysCPUThreadSiblingsDir(sysCPUDir, 64, 1)
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff1f", "ffffffff,000000e0", "4", false)
+				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,ffffff1f", "ffffffff,00000000", "ffffffff,000000e0", "4", false)
 			})
 
 			It("should set the irq bit mask with housekeeping CPUs and siblings (topology 2)", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					sysCPUDir:                 sysCPUDir,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+
 				createSysCPUThreadSiblingsDir(sysCPUDir, 64, 2)
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,ffffff3f", "ffffffff,000000c0", "4-5", false)
+				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,ffffff3f", "ffffffff,00000000", "ffffffff,000000c0", "4-5", false)
 			})
 
 			It("should set the irq bit mask with housekeeping CPUs and siblings (topology 4)", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					sysCPUDir:                 sysCPUDir,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+
 				createSysCPUThreadSiblingsDir(sysCPUDir, 64, 4)
 				c, sb := createContainerSandbox("4-11", map[string]string{
 					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,fffff0ff", "ffffffff,00000f00", "4-7", false)
+				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,fffff0ff", "ffffffff,00000000", "ffffffff,00000f00", "4-7", false)
 			})
 
 			It("should fail with invalid siblings files", func() {
+				h := &HighPerformanceHooks{
+					irqBalanceConfigFile:      irqBalanceConfigFile,
+					irqSMPAffinityFile:        irqSmpAffinityFile,
+					sysCPUDir:                 sysCPUDir,
+					irqSMPAffinityDisabledSet: map[string]struct{}{},
+				}
+
 				createInvalidSysCPUThreadSiblingsDir(sysCPUDir, 64)
 				c, sb := createContainerSandbox("4-11", map[string]string{
 					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(c, sb, false, "00000000,fffff0ff", "ffffffff,00000f00", "4-7", true)
+				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,fffff0ff", "ffffffff,00000000", "ffffffff,00000f00", "4-7", true)
 			})
 		})
 	})
@@ -930,7 +967,8 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 
 		h := &HighPerformanceHooks{
-			irqBalanceConfigFile: irqBalanceConfigFile,
+			irqBalanceConfigFile:      irqBalanceConfigFile,
+			irqSMPAffinityDisabledSet: map[string]struct{}{},
 		}
 
 		type parameters struct {
@@ -1054,8 +1092,9 @@ var _ = Describe("high_performance_hooks", func() {
 		irqSMPAffinityFile := filepath.Join(fixturesDir, "irqsmpaffinity")
 
 		h := &HighPerformanceHooks{
-			irqSMPAffinityFile:   irqSMPAffinityFile,
-			irqBalanceConfigFile: irqBalanceConfigFile,
+			irqSMPAffinityFile:        irqSMPAffinityFile,
+			irqBalanceConfigFile:      irqBalanceConfigFile,
+			irqSMPAffinityDisabledSet: map[string]struct{}{},
 		}
 
 		type parameters struct {
@@ -1402,7 +1441,7 @@ var _ = Describe("high_performance_hooks", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		flags := "0000,0000ffff"
-		bannedCPUFlags = "ffffffff,ffff0000"
+		bannedCPUFlags := "ffffffff,ffff0000"
 
 		ctx := context.Background()
 
@@ -1577,6 +1616,7 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(ok).To(BeTrue())
 				hph.irqSMPAffinityFile = irqSmpAffinityFile
 				hph.irqBalanceConfigFile = irqBalanceConfigFile
+				hph.irqSMPAffinityDisabledSet = map[string]struct{}{}
 
 				var wg sync.WaitGroup
 				for cpu := range 16 {

@@ -109,13 +109,14 @@ var (
 type HighPerformanceHooks struct {
 	cgmgr.CgroupManager
 
-	irqBalanceConfigFile     string
-	cpusetLock               sync.Mutex
-	updateIRQSMPAffinityLock sync.Mutex
-	sharedCPUs               string
-	execCPUAffinity          config.ExecCPUAffinityType
-	irqSMPAffinityFile       string
-	sysCPUDir                string
+	irqBalanceConfigFile      string
+	cpusetLock                sync.Mutex
+	updateIRQSMPAffinityLock  sync.Mutex
+	irqSMPAffinityDisabledSet map[string]struct{}
+	sharedCPUs                string
+	execCPUAffinity           config.ExecCPUAffinityType
+	irqSMPAffinityFile        string
+	sysCPUDir                 string
 }
 
 func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
@@ -818,6 +819,17 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 
 	h.updateIRQSMPAffinityLock.Lock()
 	defer h.updateIRQSMPAffinityLock.Unlock()
+
+	if !enable {
+		// If we're disabling IRQ SMP Affinity, save the container ID
+		h.irqSMPAffinityDisabledSet[c.ID()] = struct{}{}
+	} else if _, ok := h.irqSMPAffinityDisabledSet[c.ID()]; ok {
+		// If we're reenabling, and we haven't already reenabled, delete from the set
+		delete(h.irqSMPAffinityDisabledSet, c.ID())
+	} else {
+		// Otherwise, skip the operation to not redo the cleanup
+		return nil
+	}
 
 	newIRQBalanceSetting, err := h.updateNewIRQSMPAffinityMask(ctx, c.ID(), c.Name(), cpuSet, enable)
 	if err != nil {
