@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 19 Dec 2025 19:20:27 UTC for commit [07ea24f][0]._
+_Generated on Mon, 22 Dec 2025 10:39:09 UTC for commit [44f68df][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/07ea24f4aa729bea2bb676e34f58206c46d98405
+[0]: https://github.com/cri-o/cri-o/commit/44f68dfc10397eba597cd39f145feee335756bb2
 
 ## Outdated Dependencies
 
@@ -24,7 +24,7 @@ _Generated on Fri, 19 Dec 2025 19:20:27 UTC for commit [07ea24f][0]._
 | k8s.io/cri-api                                         | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/cri-client                                      | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/kubelet                                         | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
-| k8s.io/utils                                           | v0.0.0-20251002143259-bc988d571ff4   | v0.0.0-20251219084037-98d557b7f1e7 | true   | true             |
+| k8s.io/utils                                           | v0.0.0-20251002143259-bc988d571ff4   | v0.0.0-20251220205832-9d40a56c1308 | true   | true             |
 
 ## All Dependencies
 
@@ -655,7 +655,7 @@ _Generated on Fri, 19 Dec 2025 19:20:27 UTC for commit [07ea24f][0]._
 | github.com/ysmood/leakless                                                  | v0.9.0                                |                                    | false  | true             |
 | github.com/yuin/goldmark                                                    | v1.4.13                               | v1.7.13                            | false  | true             |
 | github.com/zeebo/errs                                                       | v1.4.0                                |                                    | false  | true             |
-| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.9.1                             | false  | true             |
+| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.10.0                            | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1 | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.3                                |                                    | false  | true             |
 | go.etcd.io/etcd/api/v3                                                      | v3.6.5                                | v3.6.7                             | false  | true             |
@@ -699,7 +699,7 @@ _Generated on Fri, 19 Dec 2025 19:20:27 UTC for commit [07ea24f][0]._
 | go.yaml.in/yaml/v3                                                          | v3.0.4                                |                                    | false  | true             |
 | goa.design/goa/v3                                                           | v3.22.6                               | v3.23.4                            | false  | true             |
 | golang.org/x/crypto                                                         | v0.46.0                               |                                    | false  | true             |
-| golang.org/x/exp                                                            | v0.0.0-20250620022241-b7579e27df2b    | v0.0.0-20251209150349-8475f28825e9 | false  | true             |
+| golang.org/x/exp                                                            | v0.0.0-20250620022241-b7579e27df2b    | v0.0.0-20251219203646-944ab1f22d93 | false  | true             |
 | golang.org/x/mod                                                            | v0.30.0                               | v0.31.0                            | false  | true             |
 | golang.org/x/net                                                            | v0.48.0                               |                                    | true   | true             |
 | golang.org/x/oauth2                                                         | v0.33.0                               | v0.34.0                            | false  | true             |
@@ -743,7 +743,7 @@ _Generated on Fri, 19 Dec 2025 19:20:27 UTC for commit [07ea24f][0]._
 | k8s.io/kms                                                                  | v0.35.0-rc.0                          | v0.35.0                            | false  | true             |
 | k8s.io/kube-openapi                                                         | v0.0.0-20250910181357-589584f1c912    | v0.0.0-20251125145642-4e65d59e963e | false  | true             |
 | k8s.io/kubelet                                                              | v0.35.0-rc.0                          | v0.35.0                            | true   | true             |
-| k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    | v0.0.0-20251219084037-98d557b7f1e7 | true   | true             |
+| k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    | v0.0.0-20251220205832-9d40a56c1308 | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                     | v0.31.2                               | v0.34.0                            | false  | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20250730193827-2d320260d730    |                                    | false  | true             |
 | sigs.k8s.io/knftables                                                       | v0.0.19                               |                                    | true   | true             |
