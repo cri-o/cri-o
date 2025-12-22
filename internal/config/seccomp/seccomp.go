@@ -12,7 +12,7 @@ import (
 	"slices"
 	"sync"
 
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/seccomp"
@@ -199,11 +199,11 @@ func (c *Config) LoadDefaultProfile() error {
 	c.profile = DefaultProfile()
 
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		profileString, err := json.MarshalToString(c.profile)
+		profileBytes, err := json.Marshal(c.profile)
 		if err != nil {
-			return fmt.Errorf("marshal default seccomp profile to string: %w", err)
+			return fmt.Errorf("marshal default seccomp profile: %w", err)
 		}
-		logrus.Tracef("Default seccomp profile content: %s", profileString)
+		logrus.Tracef("Default seccomp profile content: %s", string(profileBytes))
 	}
 
 	return nil

@@ -14,10 +14,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.podman.io/common/pkg/seccomp"
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	libseccomp "github.com/seccomp/libseccomp-golang"
+	"go.podman.io/common/pkg/seccomp"
 	"golang.org/x/sys/unix"
 
 	"github.com/cri-o/cri-o/internal/log"

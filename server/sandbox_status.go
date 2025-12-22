@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	json "github.com/json-iterator/go"
+	json "github.com/goccy/go-json"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
