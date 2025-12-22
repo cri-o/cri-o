@@ -15,6 +15,7 @@ import (
 	"github.com/intel/goresctrl/pkg/blockio"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/mount"
 	"golang.org/x/sys/unix"
@@ -477,14 +478,14 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 	return volumes, nil
 }
 
-func FilterMountPathsBySubPath(ctx context.Context, artifact, subPath string, paths []ociartifact.BlobMountPath) (filteredPaths []ociartifact.BlobMountPath, err error) {
+func FilterMountPathsBySubPath(ctx context.Context, artifact, subPath string, paths []libartTypes.BlobMountPath) (filteredPaths []libartTypes.BlobMountPath, err error) {
 	if subPath == "" || subPath == "." {
 		return paths, nil
 	}
 
 	cleanSubPath := filepath.Clean(subPath) + "/"
 
-	if !slices.ContainsFunc(paths, func(val ociartifact.BlobMountPath) bool {
+	if !slices.ContainsFunc(paths, func(val libartTypes.BlobMountPath) bool {
 		return strings.HasPrefix(val.Name, cleanSubPath)
 	}) {
 		return nil, fmt.Errorf("%w: sub path %q does not exist in OCI artifact volume %q", crierrors.ErrImageVolumeMountFailed, subPath, artifact)
@@ -499,7 +500,7 @@ func FilterMountPathsBySubPath(ctx context.Context, artifact, subPath string, pa
 
 		newPath := strings.TrimPrefix(path.Name, cleanSubPath)
 		log.Debugf(ctx, "Modifying artifact mount path from %q to %q because of user specified sub path %q", path.Name, newPath, cleanSubPath)
-		filteredPaths = append(filteredPaths, ociartifact.BlobMountPath{Name: newPath, SourcePath: path.SourcePath})
+		filteredPaths = append(filteredPaths, libartTypes.BlobMountPath{Name: newPath, SourcePath: path.SourcePath})
 	}
 
 	return filteredPaths, nil
@@ -869,22 +870,35 @@ func (s *Server) specSetDevices(ctr ctrfactory.Container, sb *sandbox.Sandbox) e
 	return ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext)
 }
 
-func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet bool) {
+func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet bool, sb *sandbox.Sandbox, containerIDMappings *idtools.IDMappings) {
+	usernsEnabled := containerIDMappings != nil
+
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
 	if hostNet {
 		if !isInCRIMounts("/sys", containerConfig.GetMounts()) {
-			ctr.SpecAddMount(rspec.Mount{
-				Destination: "/sys",
-				Type:        "sysfs",
-				Source:      "sysfs",
-				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
-			})
-			ctr.SpecAddMount(rspec.Mount{
-				Destination: cgroupSysFsPath,
-				Type:        "cgroup",
-				Source:      "cgroup",
-				Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
-			})
+			// When using both host network and user namespace, use bind mount for /sys
+			// to avoid sysfs mounting failures in this configuration
+			if usernsEnabled {
+				ctr.SpecAddMount(rspec.Mount{
+					Destination: "/sys",
+					Type:        "bind",
+					Source:      "/sys",
+					Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+				})
+			} else {
+				ctr.SpecAddMount(rspec.Mount{
+					Destination: "/sys",
+					Type:        "sysfs",
+					Source:      "sysfs",
+					Options:     []string{"nosuid", "noexec", "nodev", "ro"},
+				})
+				ctr.SpecAddMount(rspec.Mount{
+					Destination: cgroupSysFsPath,
+					Type:        "cgroup",
+					Source:      "cgroup",
+					Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+				})
+			}
 		}
 	}
 

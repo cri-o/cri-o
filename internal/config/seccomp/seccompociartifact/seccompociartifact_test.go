@@ -27,12 +27,17 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			implMock      *seccompociartifactmock.MockImpl
 			mockCtrl      *gomock.Controller
 			errTest       = errors.New("test")
+			tempDir       string
+			err           error
 		)
 
 		BeforeEach(func() {
 			logrus.SetOutput(io.Discard)
 
-			sut = seccompociartifact.New("", nil)
+			tempDir = t.MustTempDir("ociartifact")
+
+			sut, err = seccompociartifact.New(tempDir, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(sut).NotTo(BeNil())
 
 			mockCtrl = gomock.NewController(GinkgoT())

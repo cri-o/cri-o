@@ -28,24 +28,6 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	crictl images | grep -qE "$ARTIFACT_REPO.*singlefile"
 }
 
-@test "should be able to pull and list an OCI artifact with shortname" {
-	CONTAINER_REGISTRIES_CONF_DIR="$TESTDIR/containers/registries.conf.d"
-	mkdir -p "$CONTAINER_REGISTRIES_CONF_DIR"
-	printf 'unqualified-search-registries = ["quay.io"]' >> "$CONTAINER_REGISTRIES_CONF_DIR/99-registry.conf"
-
-	IMAGE=crio/artifact:singlefile
-	CONTAINER_REGISTRIES_CONF_DIR=$CONTAINER_REGISTRIES_CONF_DIR start_crio
-	cleanup_images
-	crictl pull $IMAGE
-
-	# Should get listed as filtered artifact
-	run crictl images -q $IMAGE
-	[ "$output" != "" ]
-
-	# Should be available on the whole list
-	crictl images | grep -qE "quay.io/crio/artifact.*singlefile"
-}
-
 @test "should be able to inspect an OCI artifact" {
 	start_crio
 	crictl pull $ARTIFACT_IMAGE
@@ -59,11 +41,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 }
 
 @test "should be able to inspect an OCI artifact with other references" {
-	CONTAINER_REGISTRIES_CONF_DIR="$TESTDIR/containers/registries.conf.d"
-	mkdir -p "$CONTAINER_REGISTRIES_CONF_DIR"
-	printf 'unqualified-search-registries = ["quay.io"]' >> "$CONTAINER_REGISTRIES_CONF_DIR/99-registry.conf"
-
-	CONTAINER_REGISTRIES_CONF_DIR=$CONTAINER_REGISTRIES_CONF_DIR start_crio
+	start_crio
 	crictl pull $ARTIFACT_IMAGE
 
 	# canonical name
@@ -74,9 +52,6 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	imageId=$(crictl inspecti $ARTIFACT_IMAGE | jq -r '.status.id')
 	crictl inspecti "$imageId"
 	crictl inspecti "${imageId:0:12}"
-
-	# shortname
-	crictl inspecti crio/artifact:singlefile
 }
 
 @test "should be able to remove an OCI artifact" {

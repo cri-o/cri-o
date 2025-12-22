@@ -569,6 +569,11 @@ var _ = t.Describe("Image", func() {
 	})
 
 	t.Describe("PullImage", func() {
+		var graphRoot string
+		BeforeEach(func() {
+			graphRoot = t.MustTempDir("ociartifact")
+		})
+
 		It("should fail on invalid policy path", func() {
 			// Given
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
@@ -587,7 +592,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on copy image", func() {
 			// Given
 			mockutils.InOrder(
-				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(graphRoot),
 			)
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
 			Expect(err).ToNot(HaveOccurred())
@@ -605,7 +610,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on canonical copy image", func() {
 			// Given
 			mockutils.InOrder(
-				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(graphRoot),
 			)
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox@sha256:" + testSHA256)
 			Expect(err).ToNot(HaveOccurred())
@@ -623,7 +628,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on cancelled context", func() {
 			// Given
 			mockutils.InOrder(
-				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(graphRoot),
 			)
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
 			Expect(err).ToNot(HaveOccurred())
@@ -644,7 +649,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on timed out context", func() {
 			// Given
 			mockutils.InOrder(
-				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(graphRoot),
 			)
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
 			Expect(err).ToNot(HaveOccurred())

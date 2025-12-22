@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/docker/go-units"
@@ -72,7 +71,6 @@ type RuntimeImpl interface {
 	UnpauseContainer(context.Context, *Container) error
 	ContainerStats(context.Context, *Container, string) (*cgmgr.CgroupStats, error)
 	DiskStats(context.Context, *Container, string) (*DiskMetrics, error)
-	SignalContainer(context.Context, *Container, syscall.Signal) error
 	AttachContainer(context.Context, *Container, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
 	PortForwardContainer(context.Context, *Container, string,
@@ -482,19 +480,6 @@ func (r *Runtime) DiskStats(ctx context.Context, c *Container, cgroup string) (*
 	}
 
 	return impl.DiskStats(ctx, c, cgroup)
-}
-
-// SignalContainer sends a signal to a container process.
-func (r *Runtime) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
-	ctx, span := log.StartSpan(ctx)
-	defer span.End()
-
-	impl, err := r.RuntimeImpl(c)
-	if err != nil {
-		return err
-	}
-
-	return impl.SignalContainer(ctx, c, sig)
 }
 
 // AttachContainer attaches IO to a running container.

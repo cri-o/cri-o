@@ -98,6 +98,8 @@ type Server struct {
 	nri *nriAPI
 	// hooksRetriever allows getting the runtime hooks for the sandboxes.
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
+
+	artifactStore *ociartifact.Store
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -456,6 +458,11 @@ func New(
 		os.Unsetenv("DBUS_SESSION_BUS_ADDRESS")
 	}
 
+	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.SystemContext)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Server{
 		ContainerServer:          containerServer,
 		hostportManager:          hostportManager,
@@ -468,6 +475,7 @@ func New(
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 		resourceStore:            resourcestore.New(),
 		hooksRetriever:           runtimehandlerhooks.NewHooksRetriever(ctx, config),
+		artifactStore:            artifactStore,
 	}
 
 	if s.config.EnablePodEvents {
@@ -933,9 +941,9 @@ func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([
 		return []*types.ContainerStatus{}, err
 	}
 
-	containerStatuses := make([]*types.ContainerStatus, len(containers.GetContainers()))
+	containerStatuses := make([]*types.ContainerStatus, 0, len(containers.GetContainers()))
 
-	for i, cc := range containers.GetContainers() {
+	for _, cc := range containers.GetContainers() {
 		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.GetId()}
 
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
@@ -947,7 +955,7 @@ func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([
 			return []*types.ContainerStatus{}, err
 		}
 
-		containerStatuses[i] = resp.GetStatus()
+		containerStatuses = append(containerStatuses, resp.GetStatus())
 	}
 
 	return containerStatuses, nil
@@ -961,9 +969,9 @@ func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxI
 		return []*types.ContainerStatus{}, err
 	}
 
-	containerStatuses := make([]*types.ContainerStatus, len(containers.GetContainers()))
+	containerStatuses := make([]*types.ContainerStatus, 0, len(containers.GetContainers()))
 
-	for i, cc := range containers.GetContainers() {
+	for _, cc := range containers.GetContainers() {
 		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.GetId(), Verbose: false}
 
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
@@ -975,7 +983,7 @@ func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxI
 			return []*types.ContainerStatus{}, err
 		}
 
-		containerStatuses[i] = resp.GetStatus()
+		containerStatuses = append(containerStatuses, resp.GetStatus())
 	}
 
 	return containerStatuses, nil
@@ -1124,5 +1132,5 @@ func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context
 
 // ArtifactStore returns a new artifact store instance.
 func (s *Server) ArtifactStore() *ociartifact.Store {
-	return ociartifact.NewStore(s.Store().GraphRoot(), s.Config().SystemContext)
+	return s.artifactStore
 }

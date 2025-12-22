@@ -44,7 +44,6 @@ var _ = t.Describe("ImageRemove", func() {
 					Return(&storage.ImageResult{ID: storageID}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					resolvedImageName).Return(nil),
-				storeMock.EXPECT().GraphRoot().Return(""),
 			)
 			// When
 			_, err := sut.RemoveImage(context.Background(),

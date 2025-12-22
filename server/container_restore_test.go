@@ -350,6 +350,10 @@ var _ = t.Describe("ContainerRestore", func() {
 			{`{"rootfsImageName": "image"}`, false},
 			{`{"rootfsImageRef": "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"}`, true},
 		}
+		var graphRoot string
+		BeforeEach(func() {
+			graphRoot = t.MustTempDir("ociartifact")
+		})
 		for _, image := range images {
 			It(fmt.Sprintf("should succeed (%s)", image.config), func() {
 				if unshare.IsRootless() {
@@ -476,7 +480,7 @@ var _ = t.Describe("ContainerRestore", func() {
 						),
 					runtimeServerMock.EXPECT().StartContainer(gomock.Any()).
 						Return(emptyDir, nil),
-					storeMock.EXPECT().GraphRoot().Return(""),
+					storeMock.EXPECT().GraphRoot().Return(graphRoot),
 				)
 
 				// When

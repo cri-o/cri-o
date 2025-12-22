@@ -238,7 +238,11 @@ func (c *Config) Setup(
 	// Specifically set profile fields always have a higher priority than OCI artifact annotations
 	// TODO(sgrunert): allow merging OCI artifact profiles with security context ones.
 	if profileField == nil || profileField.ProfileType == types.SecurityProfile_Unconfined {
-		ociArtifactProfile, err := seccompociartifact.New(graphRoot, sys).TryPull(ctx, containerName, sandboxAnnotations, imageAnnotations)
+		store, err := seccompociartifact.New(graphRoot, sys)
+		if err != nil {
+			return nil, "", fmt.Errorf("create OCI artifact seccomp profile store: %w", err)
+		}
+		ociArtifactProfile, err := store.TryPull(ctx, containerName, sandboxAnnotations, imageAnnotations)
 		if err != nil {
 			return nil, "", fmt.Errorf("try to pull OCI artifact seccomp profile: %w", err)
 		}

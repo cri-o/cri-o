@@ -131,7 +131,6 @@ var _ = t.Describe("ImageStatus", func() {
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(nil, istorage.ErrNoSuchImage),
-				storeMock.EXPECT().GraphRoot().Return(""),
 			)
 
 			// When

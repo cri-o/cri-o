@@ -298,6 +298,30 @@ func (a *ContainerAdjustment) SetLinuxRDTClass(value string) {
 	a.Linux.Resources.RdtClass = String(value)
 }
 
+// SetLinuxRDTClosID records setting the RDT CLOS id for a container.
+func (a *ContainerAdjustment) SetLinuxRDTClosID(value string) {
+	a.initLinuxRdt()
+	a.Linux.Rdt.ClosId = String(value)
+}
+
+// SetLinuxRDTSchemata records setting the RDT schemata for a container.
+func (a *ContainerAdjustment) SetLinuxRDTSchemata(value []string) {
+	a.initLinuxRdt()
+	a.Linux.Rdt.Schemata = RepeatedString(value)
+}
+
+// SetLinuxRDTEnableMonitoring records enabling RDT monitoring for a container.
+func (a *ContainerAdjustment) SetLinuxRDTEnableMonitoring(value bool) {
+	a.initLinuxRdt()
+	a.Linux.Rdt.EnableMonitoring = Bool(value)
+}
+
+// RemoveLinuxRDT records the removal of the RDT configuration.
+func (a *ContainerAdjustment) RemoveLinuxRDT() {
+	a.initLinuxRdt()
+	a.Linux.Rdt.Remove = true
+}
+
 // AddLinuxUnified sets a cgroupv2 unified resource.
 func (a *ContainerAdjustment) AddLinuxUnified(key, value string) {
 	a.initLinuxResourcesUnified()
@@ -335,6 +359,12 @@ func (a *ContainerAdjustment) SetLinuxSysctl(key, value string) {
 		a.Linux.Sysctl = make(map[string]string)
 	}
 	a.Linux.Sysctl[key] = value
+}
+
+// SetLinuxScheduler records setting the Linux scheduler attributes for a container.
+func (a *ContainerAdjustment) SetLinuxScheduler(sch *LinuxScheduler) {
+	a.initLinux()
+	a.Linux.Scheduler = sch
 }
 
 //
@@ -411,5 +441,12 @@ func (a *ContainerAdjustment) initLinuxNetDevices() {
 	a.initLinux()
 	if a.Linux.NetDevices == nil {
 		a.Linux.NetDevices = make(map[string]*LinuxNetDevice)
+	}
+}
+
+func (a *ContainerAdjustment) initLinuxRdt() {
+	a.initLinux()
+	if a.Linux.Rdt == nil {
+		a.Linux.Rdt = &LinuxRdt{}
 	}
 }
