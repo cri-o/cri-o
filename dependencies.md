@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 22 Dec 2025 10:39:09 UTC for commit [44f68df][0]._
+_Generated on Mon, 22 Dec 2025 13:27:55 UTC for commit [8e6c6a3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/44f68dfc10397eba597cd39f145feee335756bb2
+[0]: https://github.com/cri-o/cri-o/commit/8e6c6a32208a4f72b4fe928f294fe3cbe2069517
 
 ## Outdated Dependencies
 
@@ -378,6 +378,7 @@ _Generated on Mon, 22 Dec 2025 10:39:09 UTC for commit [44f68df][0]._
 | github.com/go-task/slim-sprig/v3                                            | v3.0.0                                |                                    | false  | true             |
 | github.com/go-viper/mapstructure/v2                                         | v2.4.0                                |                                    | false  | true             |
 | github.com/gobwas/glob                                                      | v0.2.3                                |                                    | false  | true             |
+| github.com/goccy/go-json                                                    | v0.10.5                               |                                    | true   | true             |
 | github.com/goccy/go-yaml                                                    | v1.18.0                               | v1.19.1                            | false  | true             |
 | github.com/godbus/dbus/v5                                                   | v5.2.0                                | v5.2.1                             | true   | true             |
 | github.com/gogo/protobuf                                                    | v1.3.2                                |                                    | false  | true             |
@@ -443,7 +444,7 @@ _Generated on Mon, 22 Dec 2025 10:39:09 UTC for commit [44f68df][0]._
 | github.com/josharian/native                                                 | v1.1.0                                |                                    | false  | true             |
 | github.com/joshdk/go-junit                                                  | v1.0.0                                |                                    | false  | true             |
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
-| github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
+| github.com/json-iterator/go                                                 | v1.1.12                               |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251219160533-97603608ac20 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                             | false  | true             |
