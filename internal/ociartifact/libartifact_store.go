@@ -7,27 +7,13 @@ import (
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/libartifact"
 	libartStore "go.podman.io/common/pkg/libartifact/store"
-	"go.podman.io/image/v5/types"
 )
 
+// LibartifactStore is the interface to mock libartifact store.
+// It should have the same methods signature as libartifact.ArtifactStore.
 type LibartifactStore interface {
-	// Remove an artifact from the local artifact store.
-	Remove(ctx context.Context, name string) (*digest.Digest, error)
-
-	// List artifacts in the local store.
+	Remove(ctx context.Context, ref libartStore.ArtifactStoreReference) (*digest.Digest, error)
 	List(ctx context.Context) (libartifact.ArtifactList, error)
-
-	// Pull an artifact from an image registry to a local store.
-	Pull(ctx context.Context, name string, opts libimage.CopyOptions) (digest.Digest, error)
-
-	// SystemContext returns the internal system context
-	SystemContext() *types.SystemContext
-}
-
-type RealLibartifactStore struct {
-	*libartStore.ArtifactStore
-}
-
-func (r RealLibartifactStore) SystemContext() *types.SystemContext {
-	return r.ArtifactStore.SystemContext
+	Pull(ctx context.Context, ref libartStore.ArtifactReference, opts libimage.CopyOptions) (digest.Digest, error)
+	Inspect(ctx context.Context, ref libartStore.ArtifactStoreReference) (*libartifact.Artifact, error)
 }
