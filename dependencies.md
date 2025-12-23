@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 23 Dec 2025 06:06:24 UTC for commit [3f37af3][0]._
+_Generated on Tue, 23 Dec 2025 22:53:33 UTC for commit [c004fd1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3f37af334a54935acb1b9709a51844e761a3180e
+[0]: https://github.com/cri-o/cri-o/commit/c004fd1d627f5404d0cb37749f9fb5851a7d335d
 
 ## Outdated Dependencies
 
@@ -14,9 +14,10 @@ _Generated on Tue, 23 Dec 2025 06:06:24 UTC for commit [3f37af3][0]._
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.4.1                               | v0.6.1                             | true   | true             |
 | github.com/godbus/dbus/v5                              | v5.2.0                               | v5.2.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251219160533-97603608ac20 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20251223213842-bdc5f7d4be80 | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
 | github.com/opencontainers/selinux                      | v1.12.0                              | v1.13.1                            | true   | true             |
+| google.golang.org/grpc                                 | v1.77.0                              | v1.78.0                            | true   | true             |
 | google.golang.org/protobuf                             | v1.36.10                             | v1.36.11                           | true   | true             |
 | k8s.io/api                                             | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/apimachinery                                    | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
@@ -446,7 +447,7 @@ _Generated on Tue, 23 Dec 2025 06:06:24 UTC for commit [3f37af3][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251219160533-97603608ac20 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20251223213842-bdc5f7d4be80 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                             | false  | true             |
@@ -719,7 +720,7 @@ _Generated on Tue, 23 Dec 2025 06:06:24 UTC for commit [3f37af3][0]._
 | google.golang.org/genproto                                                  | v0.0.0-20250603155806-513f23925822    | v0.0.0-20251222181119-0a764e51fe1b | false  | true             |
 | google.golang.org/genproto/googleapis/api                                   | v0.0.0-20251202230838-ff82c1b0f217    | v0.0.0-20251222181119-0a764e51fe1b | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20251202230838-ff82c1b0f217    | v0.0.0-20251222181119-0a764e51fe1b | false  | true             |
-| google.golang.org/grpc                                                      | v1.77.0                               |                                    | true   | true             |
+| google.golang.org/grpc                                                      | v1.77.0                               | v1.78.0                            | true   | true             |
 | google.golang.org/protobuf                                                  | v1.36.10                              | v1.36.11                           | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                | v2.4.0                             | false  | true             |
 | gopkg.in/check.v1                                                           | v1.0.0-20201130134442-10cb98267c6c    |                                    | false  | true             |
