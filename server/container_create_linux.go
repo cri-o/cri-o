@@ -870,9 +870,7 @@ func (s *Server) specSetDevices(ctr ctrfactory.Container, sb *sandbox.Sandbox) e
 	return ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext)
 }
 
-func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet bool, sb *sandbox.Sandbox, containerIDMappings *idtools.IDMappings) {
-	usernsEnabled := containerIDMappings != nil
-
+func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet, usernsEnabled bool) {
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
 	if hostNet {
 		if !isInCRIMounts("/sys", containerConfig.GetMounts()) {
