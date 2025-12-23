@@ -33,7 +33,7 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 				return &types.ListImagesResponse{Images: []*types.Image{ConvertImage(status)}}, nil
 			}
 
-			if artifact, err := s.ArtifactStore().Status(ctx, filterImage.GetImage()); err == nil {
+			if artifact, err := s.ArtifactStore().Inspect(ctx, filterImage.GetImage()); err == nil {
 				resp.Images = append(resp.Images, artifact.CRIImage())
 			} else if !errors.Is(err, ociartifact.ErrNotFound) {
 				log.Errorf(ctx, "Unable to get filtered artifact: %v", err)

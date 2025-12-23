@@ -14,7 +14,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
-	"go.podman.io/common/pkg/libartifact"
 	libartStore "go.podman.io/common/pkg/libartifact/store"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/docker/reference"
@@ -30,14 +29,15 @@ import (
 const defaultMaxArtifactSize = 1 * 1024 * 1024 // 1 MiB
 
 // ErrNotFound is indicating that the artifact could not be found in the storage.
-var ErrNotFound = errors.New("no artifact found")
+var ErrNotFound = libartTypes.ErrArtifactNotExist
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
-	LibartifactStore
+	libartStore LibartifactStore
 
-	rootPath string
-	impl     Impl
+	rootPath      string
+	impl          Impl
+	systemContext *types.SystemContext
 }
 
 // NewStore creates a new OCI artifact store.
@@ -50,9 +50,10 @@ func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, erro
 	}
 
 	return &Store{
-		LibartifactStore: RealLibartifactStore{store},
-		rootPath:         storePath,
-		impl:             &defaultImpl{},
+		libartStore:   store,
+		rootPath:      storePath,
+		impl:          &defaultImpl{},
+		systemContext: systemContext,
 	}, nil
 }
 
@@ -94,7 +95,7 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 		return nil, fmt.Errorf("failed to get image reference: %w", err)
 	}
 
-	manifestDigest, err := s.PullManifest(ctx, dockerRef, opts.CopyOptions)
+	manifestDigest, err := s.Pull(ctx, dockerRef, opts.CopyOptions)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -107,18 +108,23 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 	return artifactData, nil
 }
 
-// PullManifest tries to pull the artifact and returns the manifest bytes if the
+// Pull tries to pull the artifact and returns the manifest bytes if the
 // provided reference is a valid OCI artifact.
 //
 // copyOptions will be passed down to libimage.
-func (s *Store) PullManifest(
+func (s *Store) Pull(
 	ctx context.Context,
 	ref types.ImageReference,
 	opts *libimage.CopyOptions,
 ) (manifestDigest *digest.Digest, err error) {
-	strRef := s.impl.DockerReferenceString(ref)
+	strRef := ref.DockerReference().String()
 
-	dgst, err := s.Pull(ctx, strRef, *opts)
+	artRef, err := libartStore.NewArtifactReference(strRef)
+	if err != nil {
+		return nil, fmt.Errorf("invalid reference: %w", err)
+	}
+
+	dgst, err := s.libartStore.Pull(ctx, artRef, *opts)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -128,13 +134,13 @@ func (s *Store) PullManifest(
 
 // List creates a slice of all available artifacts.
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
-	arts, err := s.LibartifactStore.List(ctx)
+	arts, err := s.libartStore.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list artifacts: %w", err)
 	}
 
 	for _, art := range arts {
-		artifact, err := s.buildArtifact(ctx, art)
+		artifact, err := NewArtifact(art)
 		if err != nil {
 			return nil, fmt.Errorf("build artifact: %w", err)
 		}
@@ -145,26 +151,31 @@ func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
 	return res, nil
 }
 
-// Status retrieves the artifact by referencing a name or digest.
+// Inspect retrieves the artifact by referencing a name or digest.
 // Returns ErrNotFound if the artifact is not available.
-func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, error) {
-	artifact, _, err := s.getByNameOrDigest(ctx, nameOrDigest)
+func (s *Store) Inspect(ctx context.Context, nameOrDigest string) (*Artifact, error) {
+	artRef, err := libartStore.NewArtifactStorageReference(nameOrDigest)
 	if err != nil {
-		return nil, fmt.Errorf("get artifact by name or digest: %w", err)
+		return nil, fmt.Errorf("invalid nameOrDigest: %w", err)
 	}
 
-	return artifact, nil
+	artifact, err := s.libartStore.Inspect(ctx, artRef)
+	if err != nil {
+		return nil, fmt.Errorf("inspect artifact: %w", err)
+	}
+
+	return NewArtifact(artifact)
 }
 
 // Remove deletes a name or digest from the artifact store.
 // Returns ErrNotFound if the artifact is not available.
 func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
-	artifact, _, err := s.getByNameOrDigest(ctx, nameOrDigest)
+	artRef, err := libartStore.NewArtifactStorageReference(nameOrDigest)
 	if err != nil {
-		return fmt.Errorf("get artifact by name or digest: %w", err)
+		return fmt.Errorf("invalid nameOrDigest: %w", err)
 	}
 
-	_, err = s.LibartifactStore.Remove(ctx, artifact.Reference())
+	_, err = s.libartStore.Remove(ctx, artRef)
 
 	return err
 }
@@ -185,32 +196,6 @@ func sanitizeOptions(opts *PullOptions) *PullOptions {
 	return opts
 }
 
-func (s *Store) buildArtifact(ctx context.Context, art *libartifact.Artifact) (*Artifact, error) {
-	dgst, err := art.GetDigest()
-	if err != nil {
-		return nil, fmt.Errorf("get digest: %w", err)
-	}
-
-	artifact := &Artifact{
-		Artifact: art,
-		namedRef: unknownRef{},
-		digest:   *dgst,
-	}
-
-	if art.Name != "" {
-		namedRef, err := reference.ParseNormalizedNamed(art.Name)
-		if err != nil {
-			log.Warnf(ctx, "Failed to parse artifact name %s with the error %s", art.Name, err)
-
-			namedRef = unknownRef{}
-		}
-
-		artifact.namedRef = namedRef
-	}
-
-	return artifact, nil
-}
-
 func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifactSize uint64) (res []ArtifactData, err error) {
 	artifact, nameIsDigest, err := s.getByNameOrDigest(ctx, nameOrDigest)
 	if err != nil {
@@ -226,7 +211,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		return nil, fmt.Errorf("create new reference: %w", err)
 	}
 
-	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.SystemContext())
+	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.systemContext)
 	if err != nil {
 		return nil, fmt.Errorf("build image source: %w", err)
 	}
@@ -262,7 +247,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 }
 
 func (s *Store) readBlob(ctx context.Context, src types.ImageSource, layer *manifest.LayerInfo, maxArtifactSize uint64) ([]byte, error) {
-	bic := blobinfocache.DefaultCache(s.SystemContext())
+	bic := blobinfocache.DefaultCache(s.systemContext)
 
 	rc, size, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: layer.Digest}, bic)
 	if err != nil {
@@ -333,7 +318,7 @@ func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact
 	}
 
 	// if strRef is named reference
-	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.SystemContext(), strRef)
+	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.systemContext, strRef)
 	if err != nil {
 		// If there are no artifacts in the store, return ErrNotFound regardless of name validation errors
 		// This maintains backward compatibility where invalid names simply weren't found
