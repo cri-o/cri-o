@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/utils/cpuset"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
+	cgmgrmock "github.com/cri-o/cri-o/test/mocks/config/cgmgr"
 )
 
 const (
@@ -123,7 +125,7 @@ var _ = Describe("high_performance_hooks", func() {
 		sbox.SetKubeName("")
 		sbox.SetMountLabel("test")
 		sbox.SetProcessLabel("test")
-		sbox.SetCgroupParent("")
+		sbox.SetCgroupParent("kubepods.slice")
 		sbox.SetRuntimeHandler("")
 		sbox.SetResolvPath("")
 		sbox.SetHostname("")
@@ -1486,8 +1488,37 @@ var _ = Describe("high_performance_hooks", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		successfulScenario := func(mockCgMgr *cgmgrmock.MockCgroupManager) {
+			mockCgMgr.EXPECT().PodAndContainerCgroupManagers(gomock.Any(), gomock.Any()).Return(nil, nil, nil).AnyTimes()
+			hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+			Expect(hooks).NotTo(BeNil())
+			if hph, ok := hooks.(*HighPerformanceHooks); ok {
+				hph.irqSMPAffinityFile = irqSmpAffinityFile
+				hph.irqBalanceConfigFile = irqBalanceConfigFile
+			}
+			var wg sync.WaitGroup
+			for cpu := range 16 {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					defer GinkgoRecover()
+					container, err := createContainer(strconv.Itoa(cpu))
+					Expect(err).ToNot(HaveOccurred())
+					err = hooks.PreStart(ctx, container, sb)
+					Expect(err).ToNot(HaveOccurred())
+				}()
+			}
+			wg.Wait()
+			verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
+		}
+
 		Context("with runtime name high-performance and sandbox disable annotation", func() {
+			var mockCtrl *gomock.Controller
+			var mockCgMgr *cgmgrmock.MockCgroupManager
+
 			BeforeEach(func() {
+				mockCtrl = gomock.NewController(GinkgoT())
+				mockCgMgr = cgmgrmock.NewMockCgroupManager(mockCtrl)
 				runtimeName = "high-performance"
 				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
 				cfg = &config.Config{
@@ -1501,33 +1532,25 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				cfg.SetCgroupManager(mockCgMgr)
 			})
 
-			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				if hph, ok := hooks.(*HighPerformanceHooks); ok {
-					hph.irqSMPAffinityFile = irqSmpAffinityFile
-					hph.irqBalanceConfigFile = irqBalanceConfigFile
-				}
-				var wg sync.WaitGroup
-				for cpu := range 16 {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						container, err := createContainer(strconv.Itoa(cpu))
-						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
-						Expect(err).ToNot(HaveOccurred())
-					}()
-				}
-				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
+			AfterEach(func() {
+				mockCtrl.Finish()
+			})
+
+			It("should set the correct irq bit mask with concurrency", func() {
+				successfulScenario(mockCgMgr)
 			})
 		})
 
 		Context("with runtime name high-performance and sandbox without any annotation", func() {
+			var mockCtrl *gomock.Controller
+			var mockCgMgr *cgmgrmock.MockCgroupManager
+
 			BeforeEach(func() {
+				mockCtrl = gomock.NewController(GinkgoT())
+				mockCgMgr = cgmgrmock.NewMockCgroupManager(mockCtrl)
 				runtimeName = "high-performance"
 				sandboxAnnotations = map[string]string{}
 				cfg = &config.Config{
@@ -1541,9 +1564,15 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				cfg.SetCgroupManager(mockCgMgr)
+			})
+
+			AfterEach(func() {
+				mockCtrl.Finish()
 			})
 
 			It("should keep the current irq bit mask but return a high performance hooks", func(ctx context.Context) {
+				mockCgMgr.EXPECT().PodAndContainerCgroupManagers(gomock.Any(), gomock.Any()).Return(nil, nil, nil).AnyTimes()
 				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				hph, ok := hooks.(*HighPerformanceHooks)
@@ -1556,6 +1585,7 @@ var _ = Describe("high_performance_hooks", func() {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
+						defer GinkgoRecover()
 						container, err := createContainer(strconv.Itoa(cpu))
 						Expect(err).ToNot(HaveOccurred())
 						err = hooks.PreStart(ctx, container, sb)
@@ -1568,7 +1598,12 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 
 		Context("with runtime name hp and sandbox disable annotation", func() {
+			var mockCtrl *gomock.Controller
+			var mockCgMgr *cgmgrmock.MockCgroupManager
+
 			BeforeEach(func() {
+				mockCtrl = gomock.NewController(GinkgoT())
+				mockCgMgr = cgmgrmock.NewMockCgroupManager(mockCtrl)
 				runtimeName = "hp"
 				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
 				cfg = &config.Config{
@@ -1584,33 +1619,25 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				cfg.SetCgroupManager(mockCgMgr)
 			})
 
-			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				if hph, ok := hooks.(*HighPerformanceHooks); ok {
-					hph.irqSMPAffinityFile = irqSmpAffinityFile
-					hph.irqBalanceConfigFile = irqBalanceConfigFile
-				}
-				var wg sync.WaitGroup
-				for cpu := range 16 {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						container, err := createContainer(strconv.Itoa(cpu))
-						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
-						Expect(err).ToNot(HaveOccurred())
-					}()
-				}
-				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
+			AfterEach(func() {
+				mockCtrl.Finish()
+			})
+
+			It("should set the correct irq bit mask with concurrency", func() {
+				successfulScenario(mockCgMgr)
 			})
 		})
 
 		Context("with runtime name hp and sandbox without any annotation", func() {
+			var mockCtrl *gomock.Controller
+			var mockCgMgr *cgmgrmock.MockCgroupManager
+
 			BeforeEach(func() {
+				mockCtrl = gomock.NewController(GinkgoT())
+				mockCgMgr = cgmgrmock.NewMockCgroupManager(mockCtrl)
 				runtimeName = "hp"
 				sandboxAnnotations = map[string]string{}
 				cfg = &config.Config{
@@ -1626,6 +1653,11 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				cfg.SetCgroupManager(mockCgMgr)
+			})
+
+			AfterEach(func() {
+				mockCtrl.Finish()
 			})
 
 			It("should return a nil hook", func(ctx context.Context) {
@@ -1638,7 +1670,12 @@ var _ = Describe("high_performance_hooks", func() {
 		// actually look at the runtime name and at the sandbox annotation and if _either_ signals that high performance
 		// hooks should be enabled then enable them.
 		Context("with runtime name default and sandbox disable annotation", func() {
+			var mockCtrl *gomock.Controller
+			var mockCgMgr *cgmgrmock.MockCgroupManager
+
 			BeforeEach(func() {
+				mockCtrl = gomock.NewController(GinkgoT())
+				mockCgMgr = cgmgrmock.NewMockCgroupManager(mockCtrl)
 				runtimeName = "default"
 				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancingAnnotation: "disable"}
 				cfg = &config.Config{
@@ -1649,33 +1686,25 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				cfg.SetCgroupManager(mockCgMgr)
 			})
 
-			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				if hph, ok := hooks.(*HighPerformanceHooks); ok {
-					hph.irqSMPAffinityFile = irqSmpAffinityFile
-					hph.irqBalanceConfigFile = irqBalanceConfigFile
-				}
-				var wg sync.WaitGroup
-				for cpu := range 16 {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						container, err := createContainer(strconv.Itoa(cpu))
-						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
-						Expect(err).ToNot(HaveOccurred())
-					}()
-				}
-				wg.Wait()
-				verifySetIRQLoadBalancing("00000000,00000000", "ffffffff,ffffffff")
+			AfterEach(func() {
+				mockCtrl.Finish()
+			})
+
+			It("should set the correct irq bit mask with concurrency", func() {
+				successfulScenario(mockCgMgr)
 			})
 		})
 
 		Context("with runtime name default, CPU balancing annotation present and sandbox without any annotation", func() {
+			var mockCtrl *gomock.Controller
+			var mockCgMgr *cgmgrmock.MockCgroupManager
+
 			BeforeEach(func() {
+				mockCtrl = gomock.NewController(GinkgoT())
+				mockCgMgr = cgmgrmock.NewMockCgroupManager(mockCtrl)
 				runtimeName = "default"
 				sandboxAnnotations = map[string]string{}
 				cfg = &config.Config{
@@ -1699,6 +1728,11 @@ var _ = Describe("high_performance_hooks", func() {
 						},
 					},
 				}
+				cfg.SetCgroupManager(mockCgMgr)
+			})
+
+			AfterEach(func() {
+				mockCtrl.Finish()
 			})
 
 			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func(ctx context.Context) {
@@ -1711,6 +1745,7 @@ var _ = Describe("high_performance_hooks", func() {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
+						defer GinkgoRecover()
 						container, err := createContainer(strconv.Itoa(cpu))
 						Expect(err).ToNot(HaveOccurred())
 						err = hooks.PreStart(ctx, container, sb)
