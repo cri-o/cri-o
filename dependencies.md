@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 22 Dec 2025 19:55:37 UTC for commit [92c18a2][0]._
+_Generated on Tue, 23 Dec 2025 06:06:24 UTC for commit [3f37af3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/92c18a2e2673764cd10f89b1a5061e2b26f44209
+[0]: https://github.com/cri-o/cri-o/commit/3f37af334a54935acb1b9709a51844e761a3180e
 
 ## Outdated Dependencies
 
@@ -24,7 +24,7 @@ _Generated on Mon, 22 Dec 2025 19:55:37 UTC for commit [92c18a2][0]._
 | k8s.io/cri-api                                         | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/cri-client                                      | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
 | k8s.io/kubelet                                         | v0.35.0-rc.0                         | v0.35.0                            | true   | true             |
-| k8s.io/utils                                           | v0.0.0-20251002143259-bc988d571ff4   | v0.0.0-20251222190033-383b50a9004e | true   | true             |
+| k8s.io/utils                                           | v0.0.0-20251002143259-bc988d571ff4   | v0.0.0-20251222233032-718f0e51e6d2 | true   | true             |
 
 ## All Dependencies
 
@@ -255,7 +255,7 @@ _Generated on Mon, 22 Dec 2025 19:55:37 UTC for commit [92c18a2][0]._
 | github.com/chzyer/test                                                      | v1.0.0                                |                                    | false  | true             |
 | github.com/cilium/ebpf                                                      | v0.17.3                               | v0.20.0                            | false  | true             |
 | github.com/clbanning/mxj/v2                                                 | v2.7.0                                |                                    | false  | true             |
-| github.com/cloudflare/circl                                                 | v1.6.1                                |                                    | false  | true             |
+| github.com/cloudflare/circl                                                 | v1.6.1                                | v1.6.2                             | false  | true             |
 | github.com/cncf/xds/go                                                      | v0.0.0-20251022180443-0feb69152e9f    | v0.0.0-20251210132809-ee656c7534f5 | false  | true             |
 | github.com/cockroachdb/apd/v3                                               | v3.2.1                                |                                    | false  | true             |
 | github.com/codahale/rfc6979                                                 | v0.0.0-20141003034818-6a90f24967eb    |                                    | false  | true             |
@@ -744,7 +744,7 @@ _Generated on Mon, 22 Dec 2025 19:55:37 UTC for commit [92c18a2][0]._
 | k8s.io/kms                                                                  | v0.35.0-rc.0                          | v0.35.0                            | false  | true             |
 | k8s.io/kube-openapi                                                         | v0.0.0-20250910181357-589584f1c912    | v0.0.0-20251125145642-4e65d59e963e | false  | true             |
 | k8s.io/kubelet                                                              | v0.35.0-rc.0                          | v0.35.0                            | true   | true             |
-| k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    | v0.0.0-20251222190033-383b50a9004e | true   | true             |
+| k8s.io/utils                                                                | v0.0.0-20251002143259-bc988d571ff4    | v0.0.0-20251222233032-718f0e51e6d2 | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                     | v0.31.2                               | v0.34.0                            | false  | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20250730193827-2d320260d730    |                                    | false  | true             |
 | sigs.k8s.io/knftables                                                       | v0.0.19                               |                                    | true   | true             |
