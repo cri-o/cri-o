@@ -238,11 +238,43 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(img).To(BeEmpty())
 		})
-		It("should be succeed when set", func() {
+		It("should succeed when Image is set", func() {
 			// Given
 			testImage := "img"
 			config.Image = &types.ImageSpec{
 				Image: testImage,
+			}
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+
+			// Then
+			img, err := sut.UserRequestedImage()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(img).To(Equal(testImage))
+		})
+		It("should succeed when UserSpecifiedImage is set", func() {
+			// Given
+			testImage := "img"
+			config.Image = &types.ImageSpec{
+				UserSpecifiedImage: testImage,
+			}
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+
+			// Then
+			img, err := sut.UserRequestedImage()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(img).To(Equal(testImage))
+		})
+
+		It("should prioritize UserSpecifiedImage when both are set", func() {
+			// Given
+			testImage := "img"
+			config.Image = &types.ImageSpec{
+				Image:              "dummy",
+				UserSpecifiedImage: testImage,
 			}
 
 			// When
