@@ -56,34 +56,19 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 		}
 
 		if imageConfig != nil {
+			// Pre-compute env keys map for O(1) lookup instead of O(M) repeated splits
+			envKeys := make(map[string]bool, len(envs))
+			for _, kubeEnv := range envs {
+				if key, _, ok := strings.Cut(kubeEnv, "="); ok && key != "" {
+					envKeys[key] = true
+				}
+			}
+
 			for _, imageEnv := range imageConfig.Config.Env {
-				var found bool
-
-				parts := strings.SplitN(imageEnv, "=", 2)
-				if len(parts) != 2 {
-					continue
-				}
-
-				imageEnvKey := parts[0]
-				if imageEnvKey == "" {
-					continue
-				}
-
-				for _, kubeEnv := range envs {
-					kubeEnvKey := strings.SplitN(kubeEnv, "=", 2)[0]
-					if kubeEnvKey == "" {
-						continue
+				if key, _, ok := strings.Cut(imageEnv, "="); ok && key != "" {
+					if !envKeys[key] {
+						envs = append(envs, imageEnv)
 					}
-
-					if imageEnvKey == kubeEnvKey {
-						found = true
-
-						break
-					}
-				}
-
-				if !found {
-					envs = append(envs, imageEnv)
 				}
 			}
 		}
