@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"testing"
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -8,7 +9,7 @@ import (
 )
 
 // BenchmarkMergeEnvs benchmarks the optimized mergeEnvs function
-// to demonstrate performance improvement over the original O(N*M) implementation
+// to demonstrate performance improvement over the original O(N*M) implementation.
 func BenchmarkMergeEnvs(b *testing.B) {
 	// Simulate realistic container environment:
 	// - 10 image env vars (common for base images)
@@ -54,32 +55,34 @@ func BenchmarkMergeEnvs(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_ = mergeEnvs(configImage, configKube)
 	}
 }
 
-// BenchmarkMergeEnvsWorstCase benchmarks the worst case where no env vars overlap
+// BenchmarkMergeEnvsWorstCase benchmarks the worst case where no env vars overlap.
 func BenchmarkMergeEnvsWorstCase(b *testing.B) {
 	configImage := &v1.Image{
 		Config: v1.ImageConfig{
 			Env: make([]string, 50),
 		},
 	}
-	for i := 0; i < 50; i++ {
-		configImage.Config.Env[i] = "IMAGE_VAR_" + string(rune('A'+i)) + "=value"
+	for i := range 50 {
+		configImage.Config.Env[i] = fmt.Sprintf("IMAGE_VAR_%d=value", i)
 	}
 
 	configKube := make([]*types.KeyValue, 50)
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		configKube[i] = &types.KeyValue{
-			Key:   "KUBE_VAR_" + string(rune('A'+i)),
+			Key:   fmt.Sprintf("KUBE_VAR_%d", i),
 			Value: "value",
 		}
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_ = mergeEnvs(configImage, configKube)
 	}
 }
