@@ -22,6 +22,27 @@ type ArtifactData struct {
 	data []byte
 }
 
+func NewArtifact(art *libartifact.Artifact) (*Artifact, error) {
+	dgst, err := art.GetDigest()
+	if err != nil {
+		return nil, fmt.Errorf("get digest: %w", err)
+	}
+
+	artifact := &Artifact{
+		Artifact: art,
+		namedRef: unknownRef{},
+		digest:   *dgst,
+	}
+
+	artifact.namedRef, err = reference.ParseNormalizedNamed(art.Name)
+	if err != nil {
+		// We assume the artifact name is a valid reference.
+		return nil, fmt.Errorf("parse reference: %w", err)
+	}
+
+	return artifact, nil
+}
+
 // Reference returns the reference of the artifact.
 func (a *Artifact) Reference() string {
 	return a.namedRef.String()

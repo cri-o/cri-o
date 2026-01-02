@@ -413,7 +413,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 
 // mountArtifact binds artifact blobs to the container filesystem based on the provided mount configuration.
 func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator, m *types.Mount, mountLabel string, isSPC, maybeRelabel bool) ([]oci.ContainerVolume, error) {
-	artifact, err := s.ArtifactStore().Status(ctx, m.GetImage().GetImage())
+	artifact, err := s.ArtifactStore().Inspect(ctx, m.GetImage().GetImage())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get artifact status: %w", err)
 	}
