@@ -16,6 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 )
 
 const (
@@ -59,7 +60,7 @@ type CgroupManager interface {
 	// ContainerCgroupStats takes the sandbox parent, and container ID.
 	// It creates a new cgroup if one does not already exist.
 	// It returns the cgroup stats for that container.
-	ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error)
+	ContainerCgroupStats(sbParent, containerID string) (*stats.CgroupStats, error)
 	// SandboxCgroupPath takes the sandbox parent, and sandbox ID, and container minimum memory. It
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
@@ -83,7 +84,7 @@ type CgroupManager interface {
 	// SandboxCgroupStats takes the sandbox parent, and sandbox ID.
 	// It creates a new cgroup for that sandbox if it does not already exist.
 	// It returns the cgroup stats for that sandbox.
-	SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error)
+	SandboxCgroupStats(sbParent, sbID string) (*stats.CgroupStats, error)
 	// ExecCgroupManager returns the cgroup manager for the exec cgroup used to place exec processes.
 	// The cgroupPath parameter is the container's cgroup path from spec.Linux.CgroupsPath.
 	// This is only supported on cgroup v2.

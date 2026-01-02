@@ -1,9 +1,9 @@
 package statsserver
 
 import (
+	"github.com/opencontainers/cgroups"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
@@ -16,7 +16,7 @@ func microSecondsToSeconds(microSeconds uint64) uint64 {
 // Because cAdvisor returns in seconds, we convert to seconds here, though we can't
 // return float64 because of the CRI API spec.
 // https://github.com/google/cadvisor/pull/3649/files#diff-583dd1a38478c42e7ee4f90a9c3dfb5fd8a07b82f57d4ed24fa6a98a5951a4e7R1754
-func generateContainerPressureMetrics(ctr *oci.Container, cpu *cgmgr.CPUStats, memory *cgmgr.MemoryStats, blkio *cgmgr.DiskIOStats) []*types.Metric {
+func generateContainerPressureMetrics(ctr *oci.Container, cpu *cgroups.CpuStats, memory *cgroups.MemoryStats, blkio *cgroups.BlkioStats) []*types.Metric {
 	var metrics []*containerMetric
 
 	if cpu != nil && cpu.PSI != nil {
