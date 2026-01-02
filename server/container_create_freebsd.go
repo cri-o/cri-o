@@ -153,7 +153,8 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 func addShmMount(ctr ctrfactory.Container, sb *sandbox.Sandbox) {
 }
 
-func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
+// setupSystemdMounts is a no-op on FreeBSD as systemd is not supported.
+func setupSystemdMounts(g *generate.Generator) {
 }
 
 // Returns the spec Generator for the container, with some values set.
