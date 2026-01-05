@@ -656,8 +656,9 @@ func mountExists(specMounts []rspec.Mount, dest string) bool {
 
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal.
-func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
+func setupSystemdMounts(g *generate.Generator) {
 	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
+	mounts := g.Mounts()
 
 	for _, dest := range []string{"/run", "/run/lock"} {
 		if mountExists(mounts, dest) {
