@@ -35,6 +35,10 @@ func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox) []*types.Metr
 }
 
 func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs) []*types.Metric {
+	if attr == nil || attr.Statistics == nil {
+		return []*types.Metric{}
+	}
+
 	networkMetrics := []*containerMetric{
 		{
 			desc: containerNetworkReceiveBytesTotal,
