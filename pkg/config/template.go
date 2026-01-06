@@ -568,6 +568,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.OCIArtifactMountSupport, c.OCIArtifactMountSupport),
 		},
 		{
+			templateString: templateStringCrioImageContentCacheDir,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.ImageContentCacheDir, c.ImageContentCacheDir),
+		},
+		{
 			templateString: templateStringCrioNetworkCniDefaultNetwork,
 			group:          crioNetworkConfig,
 			isDefaultValue: simpleEqual(dc.CNIDefaultNetwork, c.CNIDefaultNetwork),
@@ -1555,6 +1560,12 @@ const templateStringCrioImageShortNameMode = `# The mode of short name resolutio
 # If "disabled", the first result will be chosen.
 {{ $.Comment }}short_name_mode = "{{ .ShortNameMode }}"
 
+`
+
+const templateStringCrioImageContentCacheDir = `# The directory where compressed layer blobs are cached for P2P image distribution.
+# When set, enables caching of compressed image layers that can be served to peer nodes.
+# If empty, CRI-O will not retain the image content cache.
+{{ $.Comment }}image_content_cache_dir = "{{ .ImageContentCacheDir }}"
 `
 
 const templateStringCrioNetwork = `# The crio.network table containers settings pertaining to the management of
