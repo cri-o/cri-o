@@ -38,3 +38,15 @@ func (c *RuntimeConfig) SetCheckpointRestore(cr bool) {
 func (c *RuntimeConfig) SetCgroupManager(mgr cgmgr.CgroupManager) {
 	c.cgroupManager = mgr
 }
+
+// SetCgroupManager sets the cgroup manager.
+// Used for testing only.
+func (c *Config) SetCgroupManager(manager cgmgr.CgroupManager) {
+	c.cgroupManager = manager
+}
+
+// SetCheckpointRestore sets the checkpoint/restore support.
+// Used for testing only.
+func (c *Config) SetCheckpointRestore(enabled bool) {
+	c.EnableCriuSupport = enabled
+}

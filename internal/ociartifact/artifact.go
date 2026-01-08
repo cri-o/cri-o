@@ -26,13 +26,15 @@ func (u unknownRef) Name() string {
 type Artifact struct {
 	*libartifact.Artifact
 
+	rootPath string
 	namedRef reference.Named
 }
 
 // NewArtifact creates a new Artifact from a libartifact.Artifact.
-func NewArtifact(art *libartifact.Artifact) *Artifact {
+func NewArtifact(art *libartifact.Artifact, rootPath string) *Artifact {
 	artifact := &Artifact{
 		Artifact: art,
+		rootPath: rootPath,
 		namedRef: unknownRef{},
 	}
 
@@ -62,6 +64,11 @@ func (a *Artifact) CanonicalName() string {
 // Digest returns the digest of the artifact.
 func (a *Artifact) Digest() digest.Digest {
 	return a.Artifact.Digest
+}
+
+// RootPath returns the root path where the artifact is stored.
+func (a *Artifact) RootPath() string {
+	return a.rootPath
 }
 
 // CRIImage returns an CRI image version of the artifact.

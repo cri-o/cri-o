@@ -296,16 +296,18 @@ containerEdits:
 				},
 				expectDevices: []rspec.LinuxDevice{
 					{
-						Path:  "/dev/loop8",
-						Type:  "b",
-						Major: 7,
-						Minor: 8,
+						Path:     "/dev/loop8",
+						Type:     "b",
+						Major:    7,
+						Minor:    8,
+						FileMode: func() *os.FileMode { m := os.FileMode(0o660); return &m }(),
 					},
 					{
-						Path:  "/dev/loop9",
-						Type:  "b",
-						Major: 7,
-						Minor: 9,
+						Path:     "/dev/loop9",
+						Type:     "b",
+						Major:    7,
+						Minor:    9,
+						FileMode: func() *os.FileMode { m := os.FileMode(0o660); return &m }(),
 					},
 				},
 				expectEnv: []string{
@@ -381,16 +383,18 @@ containerEdits:
 				},
 				expectDevices: []rspec.LinuxDevice{
 					{
-						Path:  "/dev/loop8",
-						Type:  "b",
-						Major: 7,
-						Minor: 8,
+						Path:     "/dev/loop8",
+						Type:     "b",
+						Major:    7,
+						Minor:    8,
+						FileMode: func() *os.FileMode { m := os.FileMode(0o660); return &m }(),
 					},
 					{
-						Path:  "/dev/loop9",
-						Type:  "b",
-						Major: 7,
-						Minor: 9,
+						Path:     "/dev/loop9",
+						Type:     "b",
+						Major:    7,
+						Minor:    9,
+						FileMode: func() *os.FileMode { m := os.FileMode(0o660); return &m }(),
 					},
 				},
 				expectEnv: []string{
