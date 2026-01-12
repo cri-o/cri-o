@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"slices"
 
 	"github.com/containerd/nri/pkg/api"
 	nrigen "github.com/containerd/nri/pkg/runtime-tools/generate"
@@ -808,6 +809,20 @@ func (c *criContainer) GetRdt() *api.LinuxRdt {
 		ClosId:           api.String(spec.Linux.IntelRdt.ClosID),
 		Schemata:         api.RepeatedString(spec.Linux.IntelRdt.Schemata),
 		EnableMonitoring: api.Bool(spec.Linux.IntelRdt.EnableMonitoring),
+	}
+}
+
+func (c *criContainer) GetUser() *api.User {
+	spec := c.GetSpec()
+
+	if spec.Process == nil {
+		return nil
+	}
+
+	return &api.User{
+		Uid:            spec.Process.User.UID,
+		Gid:            spec.Process.User.GID,
+		AdditionalGids: slices.Clone(spec.Process.User.AdditionalGids),
 	}
 }
 
