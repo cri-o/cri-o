@@ -110,7 +110,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 
 			// Then
 			Expect(err).ToNot(BeNil())
-			Expect(err.Error()).To(ContainSubstring(`failed to checkpoint container containerID`))
+			Expect(err.Error()).To(ContainSubstring(`failed to pause container "containerID" before checkpointing`))
 		})
 	})
 	t.Describe("ContainerCheckpoint", func() {
