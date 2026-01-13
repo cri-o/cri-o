@@ -826,6 +826,25 @@ func (c *criContainer) GetUser() *api.User {
 	}
 }
 
+func (c *criContainer) GetRlimits() []*api.POSIXRlimit {
+	spec := c.GetSpec()
+	if spec.Process == nil {
+		return nil
+	}
+
+	rlimits := make([]*api.POSIXRlimit, 0, len(spec.Process.Rlimits))
+
+	for _, l := range spec.Process.Rlimits {
+		rlimits = append(rlimits, &api.POSIXRlimit{
+			Type: l.Type,
+			Hard: l.Hard,
+			Soft: l.Soft,
+		})
+	}
+
+	return rlimits
+}
+
 func (c *criContainer) GetSpec() *rspec.Spec {
 	if c.spec != nil {
 		return c.spec
