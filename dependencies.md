@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 13 Jan 2026 07:32:16 UTC for commit [eba847c][0]._
+_Generated on Tue, 13 Jan 2026 20:13:25 UTC for commit [8e35b9d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/eba847c315999645532cabd61e52235cb493a3cc
+[0]: https://github.com/cri-o/cri-o/commit/8e35b9d423a08e6917102fb5eb4521fd6ab1c4ea
 
 ## Outdated Dependencies
 
@@ -15,7 +15,7 @@ _Generated on Tue, 13 Jan 2026 07:32:16 UTC for commit [eba847c][0]._
 | github.com/containers/conmon-rs                        | v0.7.3-0.20250910105203-737e4d6bf1ab | v0.7.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.5.2                               | v0.6.1                             | true   | true             |
 | github.com/godbus/dbus/v5                              | v5.2.0                               | v5.2.2                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20260113030840-3377d729ea6c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20260113114202-94fde1356c52 | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.27.3                              | v2.27.5                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.38.3                              | v1.39.0                            | true   | true             |
 | github.com/opencontainers/runc                         | v1.3.2                               | v1.4.0                             | true   | true             |
@@ -169,7 +169,7 @@ _Generated on Tue, 13 Jan 2026 07:32:16 UTC for commit [eba847c][0]._
 | github.com/AdamKorcz/go-118-fuzz-build                                      | v0.0.0-20230306123547-8075edf89bb0    | v0.0.0-20250520111509-a70c2aa677fa | false  | true             |
 | github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/provider     | v0.16.1                               | v0.20.0                            | false  | true             |
 | github.com/Azure/azure-sdk-for-go                                           | v68.0.0+incompatible                  |                                    | false  | true             |
-| github.com/Azure/azure-sdk-for-go/sdk/azcore                                | v1.20.0                               |                                    | false  | true             |
+| github.com/Azure/azure-sdk-for-go/sdk/azcore                                | v1.20.0                               | v1.21.0                            | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                            | v1.13.1                               |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/internal                              | v1.11.2                               |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys              | v1.4.0                                |                                    | false  | true             |
@@ -301,7 +301,7 @@ _Generated on Tue, 13 Jan 2026 07:32:16 UTC for commit [eba847c][0]._
 | github.com/containers/ocicrypt                                              | v1.2.1                                |                                    | true   | true             |
 | github.com/containers/storage                                               | v1.59.1                               |                                    | false  | true             |
 | github.com/coreos/go-iptables                                               | v0.8.0                                |                                    | false  | true             |
-| github.com/coreos/go-oidc                                                   | v2.3.0+incompatible                   | v2.4.0+incompatible                | false  | true             |
+| github.com/coreos/go-oidc                                                   | v2.3.0+incompatible                   | v2.5.0+incompatible                | false  | true             |
 | github.com/coreos/go-oidc/v3                                                | v3.17.0                               |                                    | false  | true             |
 | github.com/coreos/go-semver                                                 | v0.3.1                                |                                    | false  | true             |
 | github.com/coreos/go-systemd/v22                                            | v22.6.0                               |                                    | true   | true             |
@@ -452,7 +452,7 @@ _Generated on Tue, 13 Jan 2026 07:32:16 UTC for commit [eba847c][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260113030840-3377d729ea6c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260113114202-94fde1356c52 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.4.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.9.0                             | false  | true             |
