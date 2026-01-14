@@ -1456,19 +1456,17 @@ func (s *Server) setupContainerIDMappings(sb *sandbox.Sandbox, specgen *generate
 	if containerIDMappings != nil {
 		s.finalizeUserMapping(sb, specgen, containerIDMappings)
 
-		// Only add ID mappings if we're not joining the sandbox's user namespace.
-		// If the sandbox has a user namespace, the container will join it via namespace path
-		// (configured in SpecAddNamespaces). In this case, we should NOT add ID mappings to
-		// avoid the conflict of having both a userns path and ID mappings in the OCI spec.
-		sandboxHasUserNs := sb.UserNsPath() != ""
-		if !sandboxHasUserNs {
-			for _, uidmap := range containerIDMappings.UIDs() {
-				specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
-			}
+		// Always add ID mappings to the OCI spec, even when joining a user namespace via path.
+		// The namespace path tells the runtime which namespace to join, while the UID/GID
+		// mappings are required for proper file ownership setup, especially for cgroup delegation
+		// in systemd containers. crun needs these mappings to chown the cgroup directory to the
+		// mapped UID 0, allowing systemd inside the container to create cgroups.
+		for _, uidmap := range containerIDMappings.UIDs() {
+			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
 
-			for _, gidmap := range containerIDMappings.GIDs() {
-				specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
-			}
+		for _, gidmap := range containerIDMappings.GIDs() {
+			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
 
 		rootPair := containerIDMappings.RootPair()
