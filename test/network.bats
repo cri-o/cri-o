@@ -185,5 +185,99 @@ function check_networking() {
 
 	# be able to remove the sandbox
 	crictl rmp -f "$POD"
-	grep -q "Removed invalid netns path $NETNS_PATH$NS from pod sandbox" "$CRIO_LOG"
+	grep -q "Removed netns path $NETNS_PATH$NS from pod sandbox" "$CRIO_LOG"
+}
+
+@test "Network recovery after reboot with destroyed netns" {
+	# This test simulates a reboot scenario where network namespaces are destroyed
+	# but CRI-O needs to clean up pod network resources gracefully.
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	# Get the network namespace path
+	NETNS_PATH=/var/run/netns/
+	NS=$(crictl inspectp "$pod_id" |
+		jq -er '.info.runtimeSpec.linux.namespaces[] | select(.type == "network").path | sub("'$NETNS_PATH'"; "")')
+
+	# Remove the network namespace.
+	ip netns del "$NS"
+
+	# Create a fake netns file.
+	touch "$NETNS_PATH$NS"
+
+	restart_crio
+
+	# Try to remove the pod.
+	crictl rmp -f "$pod_id" 2> /dev/null || true
+
+	grep -q "Successfully cleaned up network for pod" "$CRIO_LOG"
+
+	new_pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	# Verify the new pod is running.
+	output=$(crictl inspectp "$new_pod_id" | jq -r '.status.state')
+	[[ "$output" == "SANDBOX_READY" ]]
+
+	# Clean up the new pod
+	crictl stopp "$new_pod_id"
+	crictl rmp "$new_pod_id"
+}
+
+@test "CNI teardown called even with missing or invalid netns to prevent IP leaks" {
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	# Get the network namespace path
+	NETNS_PATH=/var/run/netns/
+	NS=$(crictl inspectp "$pod_id" |
+		jq -er '.info.runtimeSpec.linux.namespaces[] | select(.type == "network").path | sub("'$NETNS_PATH'"; "")')
+
+	output=$(crictl inspectp "$pod_id" | jq -r '.status.state')
+	[[ "$output" == "SANDBOX_READY" ]]
+
+	# Stop the pod first to release the network namespace.
+	crictl stopp "$pod_id"
+
+	# Now remove the network namespace file to simulate the issue.
+	rm -f "$NETNS_PATH$NS"
+
+	# Remove the pod - this should still call CNI teardown.
+	crictl rmp "$pod_id"
+
+	# Verify CNI teardown was called by checking logs.
+	grep -q "Deleting pod.*from CNI network" "$CRIO_LOG"
+
+	# Verify the pod is gone.
+	run ! crictl inspectp "$pod_id"
+}
+
+@test "pod deletion succeeds when NetNS path is missing" {
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	crictl ps --id "$ctr_id" | grep Running
+
+	netns_path=$(crictl inspectp "$pod_id" | jq -r '.status.network.namespace_path')
+
+	# Simulating the scenario where infra container dies and NetNS becomes invalid
+	# by removing the network namespace file.
+	if [[ -n "$netns_path" && -f "$netns_path" ]]; then
+		rm -f "$netns_path"
+	fi
+
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+
+	crictl stopp "$pod_id"
+
+	# Pod deletion should succeed even with missing NetNS
+	crictl rmp "$pod_id"
+
+	run ! crictl inspectp "$pod_id"
 }
