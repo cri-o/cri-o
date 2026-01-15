@@ -869,6 +869,10 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 
 		specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
 
+		// Save the original memory limit for memory.high calculation before it gets
+		// potentially overwritten by swap limit below
+		memoryMax := memoryLimit
+
 		if resources.GetMemorySwapLimitInBytes() != 0 {
 			if resources.GetMemorySwapLimitInBytes() > 0 && resources.GetMemorySwapLimitInBytes() < resources.GetMemoryLimitInBytes() {
 				return fmt.Errorf(
@@ -885,6 +889,27 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 		// otherwise the container creation fails.
 		if node.CgroupHasMemorySwap() {
 			specgen.SetLinuxResourcesMemorySwap(memoryLimit)
+		}
+
+		// For cgroup v2, automatically set memory.high to enable memory reclaim
+		// and PSI pressure metrics generation before hitting the hard limit (memory.max).
+		// This mitigates OOM kills on systems like Fedora CoreOS where file cache
+		// reclaim is less aggressive, allowing containers to generate sustained
+		// memory pressure metrics instead of immediate OOM.
+		// Only set if not explicitly configured via Unified field.
+		if node.CgroupIsV2() {
+			// Check if memory.high is already set in unified cgroup settings
+			_, alreadySet := resources.GetUnified()["memory.high"]
+			if !alreadySet {
+				// Set memory.high to 95% of memory.max to trigger reclaim before OOM
+				memoryHigh := int64(float64(memoryMax) * 0.95)
+
+				if specgen.Config.Linux.Resources.Unified == nil {
+					specgen.Config.Linux.Resources.Unified = make(map[string]string)
+				}
+
+				specgen.Config.Linux.Resources.Unified["memory.high"] = strconv.FormatInt(memoryHigh, 10)
+			}
 		}
 	}
 
