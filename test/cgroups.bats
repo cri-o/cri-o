@@ -249,3 +249,68 @@ EOF
 	output=$(crictl inspect "$ctr_id" | jq -r '.status.state')
 	[[ "$output" == "CONTAINER_RUNNING" ]]
 }
+
+@test "user namespace containers include UID/GID mappings for cgroup delegation" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS already enabled globally"
+	fi
+	if ! is_cgroup_v2; then
+		skip "test requires cgroup v2"
+	fi
+
+	start_crio
+
+	# Create a pod with user namespace enabled (hostUsers: false)
+	jq '	.linux.security_context.namespace_options.userns_options = {
+			"mode": 0,
+			"uids": [{
+				"host_id": 100000,
+				"container_id": 0,
+				"length": 65536
+			}],
+			"gids": [{
+				"host_id": 100000,
+				"container_id": 0,
+				"length": 65536
+			}]
+		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_userns.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox_userns.json)
+
+	# Create a container in the user namespace pod
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDIR"/sandbox_userns.json)
+
+	# Start the container and verify it can run successfully
+	# Without proper UID/GID mappings, systemd containers would fail to create cgroups
+	crictl start "$ctr_id"
+
+	output=$(crictl inspect "$ctr_id" | jq -r '.status.state')
+	[[ "$output" == "CONTAINER_RUNNING" ]]
+
+	# Get container info including the runtime spec
+	container_info=$(crictl inspect --output json "$ctr_id")
+
+	# Verify that BOTH user namespace path AND uidMappings/gidMappings are present
+	# in the container's runtime information
+
+	# Check that user namespace has a path (joining the sandbox's userns)
+	user_ns_path=$(echo "$container_info" | jq -r '.info.runtimeSpec.linux.namespaces[] | select(.type == "user") | .path')
+	[[ -n "$user_ns_path" ]]
+
+	# Check that uidMappings and gidMappings are present in the spec
+	# These are required for proper cgroup delegation even when joining an existing userns
+	uid_mappings=$(echo "$container_info" | jq -r '.info.runtimeSpec.linux.uidMappings')
+	gid_mappings=$(echo "$container_info" | jq -r '.info.runtimeSpec.linux.gidMappings')
+	[[ "$uid_mappings" != "null" ]]
+	[[ "$gid_mappings" != "null" ]]
+
+	# Verify the mappings contain the expected values
+	uid_host_id=$(echo "$container_info" | jq -r '.info.runtimeSpec.linux.uidMappings[0].hostID')
+	gid_host_id=$(echo "$container_info" | jq -r '.info.runtimeSpec.linux.gidMappings[0].hostID')
+	[[ "$uid_host_id" == "100000" ]]
+	[[ "$gid_host_id" == "100000" ]]
+
+	# Verify the container can access its cgroup (regression test for #9705)
+	# The container should be able to read its cgroup files
+	crictl exec --sync "$ctr_id" cat /proc/self/cgroup
+}
