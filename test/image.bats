@@ -5,6 +5,8 @@ CRUN_WASM_BINARY=${CRUN_WASM_BINARY:-$(command -v crun-wasm || true)}
 
 IMAGE=quay.io/crio/pause
 SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
+FEDORA_CRIO_CI=quay.io/crio/fedora-crio-ci:latest
+FEDORA_CRIO_CI_MIRROR=quay.io/crio/fedora-crio-ci-mirror:latest
 
 IMAGE_LIST_TAG=quay.io/crio/alpine:3.9
 IMAGE_LIST_DIGEST_FOR_TAG=quay.io/crio/alpine@sha256:414e0518bb9228d35e4cd5165567fb91d26c6a214e9c95899e1e056fcd349011
@@ -83,6 +85,44 @@ function teardown() {
 	output=$(crictl inspect -o yaml "$ctr_id")
 	[[ "$output" == *"image: $IMAGE_LIST_DIGEST"* ]]
 	[[ "$output" == *"imageRef: $IMAGE_LIST_DIGEST"* ]]
+}
+
+@test "imageRef matches user-specified repository for fedora-crio-ci and fedora-crio-ci-mirror" {
+	start_crio
+
+	# Pull both images first
+	crictl pull "$FEDORA_CRIO_CI"
+	crictl pull "$FEDORA_CRIO_CI_MIRROR"
+
+	# Test 1: Create container using fedora-crio-ci:latest
+	jq --arg img "$FEDORA_CRIO_CI" '.image.image = $img | .image.user_specified_image = $img' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr1.json
+
+	pod_id1=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id1=$(crictl create "$pod_id1" "$TESTDIR"/ctr1.json "$TESTDATA"/sandbox_config.json)
+
+	# Get imageRef from container status
+	imageRef1=$(crictl inspect -o json "$ctr_id1" | jq -r '.status.imageRef')
+
+	# Verify imageRef contains a digest reference from the fedora-crio-ci repository
+	[[ "$imageRef1" == "quay.io/crio/fedora-crio-ci@sha256:"* ]]
+
+	# Test 2: Create container using fedora-crio-ci-mirror:latest
+	jq '.metadata.name = "podsandbox2" | .metadata.uid = "redhat-test-crio-2"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox2.json
+
+	jq --arg img "$FEDORA_CRIO_CI_MIRROR" \
+		'.metadata.name = "ctr2" | .image.image = $img | .image.user_specified_image = $img' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr2.json
+
+	pod_id2=$(crictl runp "$TESTDIR"/sandbox2.json)
+	ctr_id2=$(crictl create "$pod_id2" "$TESTDIR"/ctr2.json "$TESTDIR"/sandbox2.json)
+
+	# Get imageRef from container status
+	imageRef2=$(crictl inspect -o json "$ctr_id2" | jq -r '.status.imageRef')
+
+	# Verify imageRef contains a digest reference from the fedora-crio-ci-mirror repository
+	[[ "$imageRef2" == "quay.io/crio/fedora-crio-ci-mirror@sha256:"* ]]
 }
 
 @test "image pull and list" {
