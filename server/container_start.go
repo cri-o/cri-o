@@ -89,7 +89,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 				}
 			}
 
-			if err := s.nri.stopContainer(ctx, sandbox, c); err != nil {
+			if err := s.nri.stopContainer(ctx, sandbox, c, false); err != nil {
 				log.Warnf(ctx, "NRI stop failed for container %q: %v", c.ID(), err)
 			}
 
