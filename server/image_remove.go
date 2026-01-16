@@ -99,7 +99,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		return untagErr
 	}
 
-	artifact, err := s.ArtifactStore().Status(ctx, imageRef)
+	artifact, err := s.ArtifactStore().Inspect(ctx, imageRef)
 	if errors.Is(err, ociartifact.ErrNotFound) {
 		return nil
 	}

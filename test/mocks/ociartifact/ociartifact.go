@@ -17,6 +17,7 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	libimage "go.podman.io/common/libimage"
 	libartifact "go.podman.io/common/pkg/libartifact"
+	store "go.podman.io/common/pkg/libartifact/store"
 	reference "go.podman.io/image/v5/docker/reference"
 	manifest "go.podman.io/image/v5/manifest"
 	types "go.podman.io/image/v5/types"
@@ -89,34 +90,6 @@ func (m *MockImpl) DockerNewReference(arg0 reference.Named) (types.ImageReferenc
 func (mr *MockImplMockRecorder) DockerNewReference(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DockerNewReference", reflect.TypeOf((*MockImpl)(nil).DockerNewReference), arg0)
-}
-
-// DockerReferenceName mocks base method.
-func (m *MockImpl) DockerReferenceName(arg0 types.ImageReference) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DockerReferenceName", arg0)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// DockerReferenceName indicates an expected call of DockerReferenceName.
-func (mr *MockImplMockRecorder) DockerReferenceName(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DockerReferenceName", reflect.TypeOf((*MockImpl)(nil).DockerReferenceName), arg0)
-}
-
-// DockerReferenceString mocks base method.
-func (m *MockImpl) DockerReferenceString(arg0 types.ImageReference) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DockerReferenceString", arg0)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// DockerReferenceString indicates an expected call of DockerReferenceString.
-func (mr *MockImplMockRecorder) DockerReferenceString(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DockerReferenceString", reflect.TypeOf((*MockImpl)(nil).DockerReferenceString), arg0)
 }
 
 // GetBlob mocks base method.
@@ -233,6 +206,21 @@ func (m *MockLibartifactStore) EXPECT() *MockLibartifactStoreMockRecorder {
 	return m.recorder
 }
 
+// Inspect mocks base method.
+func (m *MockLibartifactStore) Inspect(ctx context.Context, ref store.ArtifactStoreReference) (*libartifact.Artifact, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Inspect", ctx, ref)
+	ret0, _ := ret[0].(*libartifact.Artifact)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Inspect indicates an expected call of Inspect.
+func (mr *MockLibartifactStoreMockRecorder) Inspect(ctx, ref any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Inspect", reflect.TypeOf((*MockLibartifactStore)(nil).Inspect), ctx, ref)
+}
+
 // List mocks base method.
 func (m *MockLibartifactStore) List(ctx context.Context) (libartifact.ArtifactList, error) {
 	m.ctrl.T.Helper()
@@ -249,45 +237,31 @@ func (mr *MockLibartifactStoreMockRecorder) List(ctx any) *gomock.Call {
 }
 
 // Pull mocks base method.
-func (m *MockLibartifactStore) Pull(ctx context.Context, name string, opts libimage.CopyOptions) (digest.Digest, error) {
+func (m *MockLibartifactStore) Pull(ctx context.Context, ref store.ArtifactReference, opts libimage.CopyOptions) (digest.Digest, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pull", ctx, name, opts)
+	ret := m.ctrl.Call(m, "Pull", ctx, ref, opts)
 	ret0, _ := ret[0].(digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Pull indicates an expected call of Pull.
-func (mr *MockLibartifactStoreMockRecorder) Pull(ctx, name, opts any) *gomock.Call {
+func (mr *MockLibartifactStoreMockRecorder) Pull(ctx, ref, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockLibartifactStore)(nil).Pull), ctx, name, opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockLibartifactStore)(nil).Pull), ctx, ref, opts)
 }
 
 // Remove mocks base method.
-func (m *MockLibartifactStore) Remove(ctx context.Context, name string) (*digest.Digest, error) {
+func (m *MockLibartifactStore) Remove(ctx context.Context, ref store.ArtifactStoreReference) (*digest.Digest, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Remove", ctx, name)
+	ret := m.ctrl.Call(m, "Remove", ctx, ref)
 	ret0, _ := ret[0].(*digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Remove indicates an expected call of Remove.
-func (mr *MockLibartifactStoreMockRecorder) Remove(ctx, name any) *gomock.Call {
+func (mr *MockLibartifactStoreMockRecorder) Remove(ctx, ref any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Remove", reflect.TypeOf((*MockLibartifactStore)(nil).Remove), ctx, name)
-}
-
-// SystemContext mocks base method.
-func (m *MockLibartifactStore) SystemContext() *types.SystemContext {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SystemContext")
-	ret0, _ := ret[0].(*types.SystemContext)
-	return ret0
-}
-
-// SystemContext indicates an expected call of SystemContext.
-func (mr *MockLibartifactStoreMockRecorder) SystemContext() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SystemContext", reflect.TypeOf((*MockLibartifactStore)(nil).SystemContext))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Remove", reflect.TypeOf((*MockLibartifactStore)(nil).Remove), ctx, ref)
 }
