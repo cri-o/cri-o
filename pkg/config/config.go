@@ -422,6 +422,10 @@ type RuntimeConfig struct {
 	// DecryptionKeysPath is the path where keys for image decryption are stored.
 	DecryptionKeysPath string `toml:"decryption_keys_path"`
 
+	// AdditionalArtifactStores is a list of additional read-only artifact stores.
+	// Each path behaves like the main artifact store but is read-only.
+	AdditionalArtifactStores []string `toml:"additional_artifact_stores,omitempty"`
+
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	// This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorConfig.Path.
 	Conmon string `toml:"conmon"`
@@ -2224,4 +2228,22 @@ func (c *StatsConfig) Validate() error {
 	}
 
 	return nil
+}
+
+// SetCgroupManager sets the cgroup manager.
+// Used for testing only.
+func (c *Config) SetCgroupManager(manager cgmgr.CgroupManager) {
+	c.cgroupManager = manager
+}
+
+// SetNamespaceManager sets the namespace manager.
+// Used for testing only.
+func (c *Config) SetNamespaceManager(manager *nsmgr.NamespaceManager) {
+	c.namespaceManager = manager
+}
+
+// SetCheckpointRestore sets the checkpoint/restore support.
+// Used for testing only.
+func (c *Config) SetCheckpointRestore(enabled bool) {
+	c.EnableCriuSupport = enabled
 }

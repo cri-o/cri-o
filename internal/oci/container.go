@@ -999,3 +999,18 @@ func (c *Container) SetMonitorProcess(ctx context.Context) {
 		log.Errorf(ctx, "Failed to load conmon process for container %s: %q", c.ID(), err)
 	}
 }
+
+// SetState sets the container state.
+// Used for testing only.
+func (c *Container) SetState(state *ContainerState) {
+	c.state = state
+}
+
+// SetStateAndSpoofPid sets the container state and spoofs the PID.
+// Used for testing only.
+func (c *Container) SetStateAndSpoofPid(state *ContainerState) {
+	c.state = state
+	if c.state != nil {
+		c.state.Pid = 12345
+	}
+}
