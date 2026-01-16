@@ -1,6 +1,6 @@
 //go:build freebsd
 
-package oci
+package stats
 
 import (
 	"fmt"
@@ -9,18 +9,18 @@ import (
 	"github.com/cri-o/cri-o/utils"
 )
 
-type DiskMetrics struct {
-	Filesystem FilesystemMetrics
+type DiskStats struct {
+	Filesystem FilesystemStats
 }
 
-type FilesystemMetrics struct {
+type FilesystemStats struct {
 	UsageBytes  uint64 `json:"usage_bytes"`
 	LimitBytes  uint64 `json:"limit_bytes"`
 	InodesFree  uint64 `json:"inodes_free"`
 	InodesTotal uint64 `json:"inodes_total"`
 }
 
-func GetDiskUsageForPath(path string) (*DiskMetrics, error) {
+func GetDiskUsageForPath(path string) (*DiskStats, error) {
 	usageBytes, _, err := utils.GetDiskUsageStats(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get disk usage stats: %w", err)
@@ -35,8 +35,8 @@ func GetDiskUsageForPath(path string) (*DiskMetrics, error) {
 	totalInodes := stat.Files
 	freeInodes := uint64(stat.Ffree) // Ffree is int64 on FreeBSD
 
-	return &DiskMetrics{
-		Filesystem: FilesystemMetrics{
+	return &DiskStats{
+		Filesystem: FilesystemStats{
 			UsageBytes:  usageBytes,
 			LimitBytes:  totalBytes,
 			InodesFree:  freeInodes,

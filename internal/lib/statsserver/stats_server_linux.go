@@ -3,15 +3,18 @@ package statsserver
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/opencontainers/cgroups"
 	"github.com/vishvananda/netlink"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -51,9 +54,9 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	if cgstats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent(), sb.ID()); err != nil {
 		log.Errorf(ss.ctx, "Error getting sandbox stats %s: %v", sb.ID(), err)
 	} else {
-		sandboxStats.Linux.Cpu = criCPUStats(cgstats.CPU, cgstats.SystemNano)
-		sandboxStats.Linux.Memory = criMemStats(cgstats.Memory, cgstats.SystemNano)
-		sandboxStats.Linux.Process = criProcessStats(cgstats.Pid, cgstats.SystemNano)
+		sandboxStats.Linux.Cpu = criCPUStats(&cgstats.CpuStats, cgstats.SystemNano)
+		sandboxStats.Linux.Memory = criMemStats(&cgstats.MemoryStats, cgstats.SystemNano)
+		sandboxStats.Linux.Process = criProcessStats(&cgstats.PidsStats, cgstats.SystemNano)
 	}
 
 	if err := ss.populateNetworkUsage(sandboxStats, sb); err != nil {
@@ -89,7 +92,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		containerStats = append(containerStats, cStats)
 
 		// Convert cgroups stats to CRI metrics.
-		cMetrics := ss.containerMetricsFromContainerStats(sb, c, ctrStats, *diskStats)
+		cMetrics := ss.containerMetricsFromContainerStats(sb, c, ctrStats, diskStats)
 		containerMetrics = append(containerMetrics, cMetrics)
 	}
 
@@ -145,7 +148,7 @@ func (ss *StatsServer) updateContainerStats(c *oci.Container, sb *sandbox.Sandbo
 }
 
 // populateNetworkUsage gathers information about the network from within the sandbox's network namespace.
-func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sandbox.Sandbox) error {
+func (ss *StatsServer) populateNetworkUsage(sbStats *types.PodSandboxStats, sb *sandbox.Sandbox) error {
 	return ns.WithNetNSPath(sb.NetNsPath(), func(_ ns.NetNS) error {
 		links, err := netlink.LinkList()
 		if err != nil {
@@ -154,7 +157,7 @@ func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sa
 			return err
 		}
 
-		stats.Linux.Network = &types.NetworkUsage{
+		sbStats.Linux.Network = &types.NetworkUsage{
 			Interfaces: make([]*types.NetworkInterfaceUsage, 0, len(links)-1),
 		}
 
@@ -167,9 +170,9 @@ func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sa
 			}
 			// TODO FIXME or DefaultInterfaceName?
 			if i == 0 {
-				stats.Linux.Network.DefaultInterface = iface
+				sbStats.Linux.Network.DefaultInterface = iface
 			} else {
-				stats.Linux.Network.Interfaces = append(stats.Linux.Network.Interfaces, iface)
+				sbStats.Linux.Network.Interfaces = append(sbStats.Linux.Network.Interfaces, iface)
 			}
 		}
 
@@ -247,10 +250,10 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *o
 		return nil
 	}
 
-	return ss.containerMetricsFromContainerStats(sb, c, ctrStats, *diskStats)
+	return ss.containerMetricsFromContainerStats(sb, c, ctrStats, diskStats)
 }
 
-func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c *oci.Container, containerStats *cgmgr.CgroupStats, diskstats oci.DiskMetrics) *types.ContainerMetrics {
+func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c *oci.Container, cgroupStats *stats.CgroupStats, diskStats *stats.DiskStats) *types.ContainerMetrics {
 	metrics := computeContainerMetrics(c, []*containerMetric{{
 		desc: containerLastSeen,
 		valueFunc: func() metricValues {
@@ -264,23 +267,23 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 	for _, m := range ss.Config().IncludedPodMetrics {
 		switch m {
 		case config.CPUMetrics:
-			if cpuMetrics := generateContainerCPUMetrics(c, containerStats.CPU); cpuMetrics != nil {
+			if cpuMetrics := generateContainerCPUMetrics(c, &cgroupStats.CpuStats); cpuMetrics != nil {
 				metrics = append(metrics, cpuMetrics...)
 			}
 		case config.HugetlbMetrics:
-			if hugetlbMetrics := generateContainerHugetlbMetrics(c, containerStats.Hugetlb); hugetlbMetrics != nil {
+			if hugetlbMetrics := generateContainerHugetlbMetrics(c, cgroupStats.HugetlbStats); hugetlbMetrics != nil {
 				metrics = append(metrics, hugetlbMetrics...)
 			}
 		case config.DiskMetrics:
-			if diskMetrics := generateContainerDiskMetrics(c, &diskstats.Filesystem); diskMetrics != nil {
+			if diskMetrics := generateContainerDiskMetrics(c, &diskStats.Filesystem); diskMetrics != nil {
 				metrics = append(metrics, diskMetrics...)
 			}
 		case config.DiskIOMetrics:
-			if diskIOMetrics := generateContainerDiskIOMetrics(c, containerStats.DiskIO); diskIOMetrics != nil {
+			if diskIOMetrics := generateContainerDiskIOMetrics(c, &cgroupStats.BlkioStats); diskIOMetrics != nil {
 				metrics = append(metrics, diskIOMetrics...)
 			}
 		case config.MemoryMetrics:
-			if memoryMetrics := generateContainerMemoryMetrics(c, containerStats.Memory); memoryMetrics != nil {
+			if memoryMetrics := generateContainerMemoryMetrics(c, &cgroupStats.MemoryStats); memoryMetrics != nil {
 				metrics = append(metrics, memoryMetrics...)
 			}
 		case config.OOMMetrics:
@@ -303,7 +306,7 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 		case config.NetworkMetrics:
 			continue // Network metrics are collected at the pod level only.
 		case config.ProcessMetrics:
-			if processMetrics := generateContainerProcessMetrics(c, containerStats.Pid); processMetrics != nil {
+			if processMetrics := generateContainerProcessMetrics(c, &cgroupStats.PidsStats, &cgroupStats.ProcessStats); processMetrics != nil {
 				metrics = append(metrics, processMetrics...)
 			}
 		case config.SpecMetrics:
@@ -311,7 +314,7 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 				metrics = append(metrics, specMetrics...)
 			}
 		case config.PressureMetrics:
-			if pressureMetrics := generateContainerPressureMetrics(c, containerStats.CPU, containerStats.Memory, containerStats.DiskIO); pressureMetrics != nil {
+			if pressureMetrics := generateContainerPressureMetrics(c, &cgroupStats.CpuStats, &cgroupStats.MemoryStats, &cgroupStats.BlkioStats); pressureMetrics != nil {
 				metrics = append(metrics, pressureMetrics...)
 			}
 		default:
@@ -346,13 +349,13 @@ func linkToInterface(link netlink.Link) (*types.NetworkInterfaceUsage, error) {
 	}, nil
 }
 
-func containerCRIStats(stats *cgmgr.CgroupStats, diskStats *oci.DiskMetrics, ctr *oci.Container, systemNano int64) *types.ContainerStats {
+func containerCRIStats(cgstats *stats.CgroupStats, diskStats *stats.DiskStats, ctr *oci.Container, systemNano int64) *types.ContainerStats {
 	criStats := &types.ContainerStats{
 		Attributes: ctr.CRIAttributes(),
 	}
-	criStats.Cpu = criCPUStats(stats.CPU, systemNano)
-	criStats.Memory = criMemStats(stats.Memory, systemNano)
-	criStats.Swap = criSwapStats(stats.Memory, systemNano)
+	criStats.Cpu = criCPUStats(&cgstats.CpuStats, systemNano)
+	criStats.Memory = criMemStats(&cgstats.MemoryStats, systemNano)
+	criStats.Swap = criSwapStats(&cgstats.MemoryStats, systemNano)
 
 	// Add filesystem stats if available
 	if diskStats != nil {
@@ -362,41 +365,45 @@ func containerCRIStats(stats *cgmgr.CgroupStats, diskStats *oci.DiskMetrics, ctr
 	return criStats
 }
 
-func criCPUStats(cpuStats *cgmgr.CPUStats, systemNano int64) *types.CpuUsage {
+func criCPUStats(cpuStats *cgroups.CpuStats, systemNano int64) *types.CpuUsage {
 	return &types.CpuUsage{
 		Timestamp:            systemNano,
-		UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuStats.TotalUsageNano},
+		UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuStats.CpuUsage.TotalUsage},
 	}
 }
 
-func criMemStats(memStats *cgmgr.MemoryStats, systemNano int64) *types.MemoryUsage {
+func criMemStats(memStats *cgroups.MemoryStats, systemNano int64) *types.MemoryUsage {
+	workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes := computeMemoryStats(memStats)
+
 	return &types.MemoryUsage{
 		Timestamp:       systemNano,
-		WorkingSetBytes: &types.UInt64Value{Value: memStats.WorkingSetBytes},
-		RssBytes:        &types.UInt64Value{Value: memStats.RssBytes},
-		PageFaults:      &types.UInt64Value{Value: memStats.PageFaults},
-		MajorPageFaults: &types.UInt64Value{Value: memStats.MajorPageFaults},
-		UsageBytes:      &types.UInt64Value{Value: memStats.Usage},
-		AvailableBytes:  &types.UInt64Value{Value: memStats.AvailableBytes},
+		WorkingSetBytes: &types.UInt64Value{Value: workingSetBytes},
+		RssBytes:        &types.UInt64Value{Value: rssBytes},
+		PageFaults:      &types.UInt64Value{Value: pageFaults},
+		MajorPageFaults: &types.UInt64Value{Value: majorPageFaults},
+		UsageBytes:      &types.UInt64Value{Value: memStats.Usage.Usage},
+		AvailableBytes:  &types.UInt64Value{Value: availableBytes},
 	}
 }
 
-func criSwapStats(memStats *cgmgr.MemoryStats, systemNano int64) *types.SwapUsage {
+func criSwapStats(memStats *cgroups.MemoryStats, systemNano int64) *types.SwapUsage {
+	swapUsage := computeSwapUsage(memStats)
+
 	return &types.SwapUsage{
 		Timestamp:          systemNano,
-		SwapUsageBytes:     &types.UInt64Value{Value: memStats.SwapUsage},
-		SwapAvailableBytes: &types.UInt64Value{Value: memStats.SwapLimit - memStats.SwapUsage},
+		SwapUsageBytes:     &types.UInt64Value{Value: swapUsage},
+		SwapAvailableBytes: &types.UInt64Value{Value: memStats.SwapUsage.Limit - swapUsage},
 	}
 }
 
-func criProcessStats(pStats *cgmgr.PidsStats, systemNano int64) *types.ProcessUsage {
+func criProcessStats(pStats *cgroups.PidsStats, systemNano int64) *types.ProcessUsage {
 	return &types.ProcessUsage{
 		Timestamp:    systemNano,
 		ProcessCount: &types.UInt64Value{Value: pStats.Current},
 	}
 }
 
-func criFilesystemStats(diskStats *oci.FilesystemMetrics, ctr *oci.Container, systemNano int64) *types.FilesystemUsage {
+func criFilesystemStats(diskStats *stats.FilesystemStats, ctr *oci.Container, systemNano int64) *types.FilesystemUsage {
 	mountpoint := ctr.MountPoint()
 	if mountpoint == "" {
 		// Skip FS stats as mount point is unknown
@@ -408,4 +415,60 @@ func criFilesystemStats(diskStats *oci.FilesystemMetrics, ctr *oci.Container, sy
 		FsId:      &types.FilesystemIdentifier{Mountpoint: mountpoint},
 		UsedBytes: &types.UInt64Value{Value: diskStats.UsageBytes},
 	}
+}
+
+// computeMemoryStats computes derived memory statistics from cgroups.MemoryStats.
+// Returns workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes.
+func computeMemoryStats(memStats *cgroups.MemoryStats) (workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes uint64) {
+	var inactiveFileName string
+
+	usageBytes := memStats.Usage.Usage
+
+	if node.CgroupIsV2() {
+		// Use anon for rssBytes for cgroup v2 as in cAdvisor
+		rssBytes = memStats.Stats["anon"]
+		inactiveFileName = "inactive_file"
+		pageFaults = memStats.Stats["pgfault"]
+		majorPageFaults = memStats.Stats["pgmajfault"]
+	} else {
+		inactiveFileName = "total_inactive_file"
+		rssBytes = memStats.Stats["total_rss"]
+		// cgroup v1 doesn't have equivalent stats for pgfault and pgmajfault
+	}
+
+	workingSetBytes = usageBytes
+	if v, ok := memStats.Stats[inactiveFileName]; ok {
+		if workingSetBytes < v {
+			workingSetBytes = 0
+		} else {
+			workingSetBytes -= v
+		}
+	}
+
+	if !isMemoryUnlimited(memStats.Usage.Limit) {
+		availableBytes = memStats.Usage.Limit - workingSetBytes
+	}
+
+	return workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes
+}
+
+// computeSwapUsage computes the actual swap usage from cgroups.MemoryStats.
+func computeSwapUsage(memStats *cgroups.MemoryStats) uint64 {
+	if node.CgroupIsV2() {
+		// libcontainer adds memory.swap.current to memory.current and reports them as SwapUsage to be compatible with cgroup v1,
+		// because cgroup v1 reports SwapUsage as mem+swap combined.
+		// Here we subtract SwapUsage from memory usage to get the actual swap value.
+		if memStats.SwapUsage.Usage > memStats.Usage.Usage {
+			return memStats.SwapUsage.Usage - memStats.Usage.Usage
+		}
+
+		return 0
+	}
+
+	return memStats.SwapUsage.Usage
+}
+
+// isMemoryUnlimited checks if the memory limit is effectively unlimited.
+func isMemoryUnlimited(v uint64) bool {
+	return v == math.MaxUint64
 }

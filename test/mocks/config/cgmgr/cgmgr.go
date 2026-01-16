@@ -12,7 +12,7 @@ package cgmgr
 import (
 	reflect "reflect"
 
-	cgmgr "github.com/cri-o/cri-o/internal/config/cgmgr"
+	stats "github.com/cri-o/cri-o/internal/lib/stats"
 	cgroups "github.com/opencontainers/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	gomock "go.uber.org/mock/gomock"
@@ -87,10 +87,10 @@ func (mr *MockCgroupManagerMockRecorder) ContainerCgroupPath(arg0, arg1 any) *go
 }
 
 // ContainerCgroupStats mocks base method.
-func (m *MockCgroupManager) ContainerCgroupStats(sbParent, containerID string) (*cgmgr.CgroupStats, error) {
+func (m *MockCgroupManager) ContainerCgroupStats(sbParent, containerID string) (*stats.CgroupStats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerCgroupStats", sbParent, containerID)
-	ret0, _ := ret[0].(*cgmgr.CgroupStats)
+	ret0, _ := ret[0].(*stats.CgroupStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -259,10 +259,10 @@ func (mr *MockCgroupManagerMockRecorder) SandboxCgroupPath(arg0, arg1, arg2 any)
 }
 
 // SandboxCgroupStats mocks base method.
-func (m *MockCgroupManager) SandboxCgroupStats(sbParent, sbID string) (*cgmgr.CgroupStats, error) {
+func (m *MockCgroupManager) SandboxCgroupStats(sbParent, sbID string) (*stats.CgroupStats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SandboxCgroupStats", sbParent, sbID)
-	ret0, _ := ret[0].(*cgmgr.CgroupStats)
+	ret0, _ := ret[0].(*stats.CgroupStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

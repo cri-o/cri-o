@@ -16,8 +16,8 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -69,8 +69,8 @@ type RuntimeImpl interface {
 	UpdateContainerStatus(context.Context, *Container) error
 	PauseContainer(context.Context, *Container) error
 	UnpauseContainer(context.Context, *Container) error
-	ContainerStats(context.Context, *Container, string) (*cgmgr.CgroupStats, error)
-	DiskStats(context.Context, *Container, string) (*DiskMetrics, error)
+	CgroupStats(context.Context, *Container, string) (*stats.CgroupStats, error)
+	DiskStats(context.Context, *Container, string) (*stats.DiskStats, error)
 	AttachContainer(context.Context, *Container, io.Reader, io.WriteCloser, io.WriteCloser,
 		bool, <-chan remotecommand.TerminalSize) error
 	PortForwardContainer(context.Context, *Container, string,
@@ -457,7 +457,7 @@ func (r *Runtime) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
+func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup string) (*stats.CgroupStats, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -466,11 +466,11 @@ func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup strin
 		return nil, err
 	}
 
-	return impl.ContainerStats(ctx, c, cgroup)
+	return impl.CgroupStats(ctx, c, cgroup)
 }
 
 // DiskStats provides disk statistics for a container.
-func (r *Runtime) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
+func (r *Runtime) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskStats, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 

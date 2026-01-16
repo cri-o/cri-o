@@ -33,6 +33,7 @@ import (
 	utilexec "k8s.io/utils/exec"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -1310,7 +1311,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
+func (r *runtimeOCI) CgroupStats(ctx context.Context, c *Container, cgroup string) (*stats.CgroupStats, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1321,7 +1322,7 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 }
 
 // DiskStats provides disk usage statistics of a container.
-func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*DiskMetrics, error) {
+func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskStats, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1335,7 +1336,7 @@ func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string)
 	}
 
 	// Get disk usage statistics directly
-	return GetDiskUsageForPath(mountPoint)
+	return stats.GetDiskUsageForPath(mountPoint)
 }
 
 func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool) error {
