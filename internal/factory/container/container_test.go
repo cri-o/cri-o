@@ -17,6 +17,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -870,6 +871,78 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(sut.Spec().Config.Linux.Resources.Unified).To(HaveLen(len(resources.GetUnified())))
+		})
+		It("Automatically set memory.high for cgroup v2 when memory limit is set", func() {
+			if !node.CgroupIsV2() {
+				Skip("Test requires cgroup v2")
+			}
+
+			// Given - memory limit without explicit memory.high
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes: 200000000, // 200MB
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then - memory.high should be automatically set to 95% of limit (190000000)
+			Expect(sut.Spec().Config.Linux.Resources.Unified).NotTo(BeNil())
+			Expect(sut.Spec().Config.Linux.Resources.Unified["memory.high"]).To(Equal("190000000"))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.GetMemoryLimitInBytes()))
+		})
+		It("Respect user-provided memory.high and not overwrite it", func() {
+			if !node.CgroupIsV2() {
+				Skip("Test requires cgroup v2")
+			}
+
+			// Given - explicit memory.high in unified resources
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes: 200000000, // 200MB
+				Unified:            map[string]string{"memory.high": "180000000"},
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then - user's memory.high value should be preserved
+			Expect(sut.Spec().Config.Linux.Resources.Unified["memory.high"]).To(Equal("180000000"))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.GetMemoryLimitInBytes()))
+		})
+		It("Not set memory.high when memory limit is zero", func() {
+			if !node.CgroupIsV2() {
+				Skip("Test requires cgroup v2")
+			}
+
+			// Given - no memory limit
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes: 0,
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then - no memory.high should be set
+			if sut.Spec().Config.Linux.Resources.Unified != nil {
+				Expect(sut.Spec().Config.Linux.Resources.Unified["memory.high"]).To(BeEmpty())
+			}
+		})
+		It("Set memory.high correctly when swap limit is also configured", func() {
+			if !node.CgroupIsV2() {
+				Skip("Test requires cgroup v2")
+			}
+
+			// Given - memory and swap limits with different values
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes:     200000000, // 200MB
+				MemorySwapLimitInBytes: 400000000, // 400MB total (200MB swap)
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then - memory.high should be 95% of memory limit (190MB), not swap limit (380MB)
+			Expect(sut.Spec().Config.Linux.Resources.Unified).NotTo(BeNil())
+			Expect(sut.Spec().Config.Linux.Resources.Unified["memory.high"]).To(Equal("190000000"))
 		})
 	})
 })
