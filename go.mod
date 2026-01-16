@@ -26,7 +26,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/cri-o/crio-credential-provider v0.1.2
 	github.com/cri-o/ocicni v0.5.0
-	github.com/cyphar/filepath-securejoin v0.5.2
+	github.com/cyphar/filepath-securejoin v0.6.0
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/go-units v0.5.0
 	github.com/fsnotify/fsnotify v1.9.0
@@ -52,7 +52,7 @@ require (
 	github.com/opencontainers/runc v1.3.2
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20251114084447-edf4cb3d2116
-	github.com/opencontainers/selinux v1.12.0
+	github.com/opencontainers/selinux v1.13.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/seccomp/libseccomp-golang v0.11.1
 	github.com/sirupsen/logrus v1.9.3
@@ -92,6 +92,7 @@ require (
 
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.1 // indirect
+	cyphar.com/go-pathrs v0.2.1 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
