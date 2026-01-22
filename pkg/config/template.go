@@ -208,6 +208,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.StreamTLSCA, c.StreamTLSCA),
 		},
 		{
+			templateString: templateStringCrioAPITLSMinVersion,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.TLSMinVersion, c.TLSMinVersion),
+		},
+		{
+			templateString: templateStringCrioAPITLSCipherSuites,
+			group:          crioAPIConfig,
+			isDefaultValue: slices.Equal(dc.TLSCipherSuites, c.TLSCipherSuites),
+		},
+		{
 			templateString: templateStringCrioAPIGrpcMaxSendMsgSize,
 			group:          crioAPIConfig,
 			isDefaultValue: simpleEqual(dc.GRPCMaxSendMsgSize, c.GRPCMaxSendMsgSize),
@@ -875,6 +885,28 @@ const templateStringCrioAPIStreamTLSCa = `# Path to the x509 CA(s) file used to 
 # communication with the encrypted stream. This file can change and CRI-O will
 # automatically pick up the changes.
 {{ $.Comment }}stream_tls_ca = "{{ .StreamTLSCA }}"
+
+`
+
+const templateStringCrioAPITLSMinVersion = `# Minimum TLS version for CRI-O's TLS servers (streaming and metrics).
+# Valid values are: "VersionTLS12" and "VersionTLS13" (matching Kubernetes conventions).
+# Default is "VersionTLS12".
+{{ $.Comment }}tls_min_version = "{{ .TLSMinVersion }}"
+
+`
+
+const templateStringCrioAPITLSCipherSuites = `# List of cipher suites for TLS 1.2 (TOML array).
+# If omitted, the default Go cipher suites will be used.
+# This has no effect on TLS 1.3 as Go manages cipher suites automatically.
+# Preferred TLS 1.2 values: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+#   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+#   TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256.
+# Insecure values: TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+#   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+#   TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_256_GCM_SHA384,
+#   TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_AES_256_CBC_SHA.
+{{ $.Comment }}tls_cipher_suites = [
+{{ range $cs := .TLSCipherSuites }}{{ $.Comment }}{{ printf "\t%q,\n" $cs }}{{ end }}{{ $.Comment }}]
 
 `
 

@@ -143,6 +143,8 @@ h
 --stream-tls-cert
 --stream-tls-key
 --timezone
+--tls-cipher-suites
+--tls-min-version
 --tracing-endpoint
 --tracing-sampling-rate-per-million
 --uid-mappings

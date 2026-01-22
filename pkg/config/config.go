@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ import (
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
+	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/utils/cpuset"
 	"k8s.io/utils/ptr"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
@@ -735,6 +737,20 @@ type APIConfig struct {
 
 	// StreamIdleTimeout is how long to leave idle connections open for
 	StreamIdleTimeout string `toml:"stream_idle_timeout"`
+
+	// TLSMinVersion is the minimum TLS version for CRI-O's TLS servers (streaming and metrics).
+	// Valid values are: "VersionTLS12" and "VersionTLS13" (matching Kubernetes conventions).
+	// Default is "VersionTLS12".
+	TLSMinVersion string `toml:"tls_min_version"`
+
+	// TLSCipherSuites is the list of cipher suites to use for TLS 1.2.
+	// If empty, the Go default cipher suites are used.
+	// This has no effect on TLS 1.3 as Go manages cipher suites automatically for TLS 1.3.
+	TLSCipherSuites []string `toml:"tls_cipher_suites"`
+
+	// Parsed TLS values (populated during Validate)
+	tlsMinVersionParsed   uint16
+	tlsCipherSuitesParsed []uint16
 }
 
 // MetricsConfig specifies all necessary configuration for Prometheus based
@@ -1042,6 +1058,7 @@ func DefaultConfig() (*Config, error) {
 			StreamPort:         "0",
 			GRPCMaxSendMsgSize: defaultGRPCMaxMsgSize,
 			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
+			TLSMinVersion:      DefaultTLSMinVersion,
 		},
 		RuntimeConfig: *DefaultRuntimeConfig(cgroupManager),
 		ImageConfig: ImageConfig{
@@ -1204,6 +1221,36 @@ func (c *APIConfig) Validate(onExecution bool) error {
 		if c.StreamTLSKey == "" {
 			return errors.New("stream TLS key path is empty")
 		}
+	}
+
+	// Reset parsed TLS state to avoid stale values after reloads
+	c.tlsMinVersionParsed = 0
+	c.tlsCipherSuitesParsed = nil
+
+	// Parse and validate TLS version using Kubernetes component-base
+	tlsVersion, err := cliflag.TLSVersion(c.TLSMinVersion)
+	if err != nil {
+		return fmt.Errorf("validating tls_min_version: %w", err)
+	}
+
+	// Only TLS 1.2 and TLS 1.3 are supported
+	if tlsVersion != tls.VersionTLS12 && tlsVersion != tls.VersionTLS13 {
+		return errors.New("tls_min_version must be VersionTLS12 or VersionTLS13, got unsupported version")
+	}
+
+	c.tlsMinVersionParsed = tlsVersion
+
+	// Parse and validate TLS cipher suites using Kubernetes component-base
+	// Note: TLS 1.3 cipher suites are managed by Go automatically
+	if tlsVersion == tls.VersionTLS12 && len(c.TLSCipherSuites) > 0 {
+		cipherSuites, err := cliflag.TLSCipherSuites(c.TLSCipherSuites)
+		if err != nil {
+			return fmt.Errorf("validating tls_cipher_suites: %w", err)
+		}
+
+		c.tlsCipherSuitesParsed = cipherSuites
+	} else if tlsVersion == tls.VersionTLS13 && len(c.TLSCipherSuites) > 0 {
+		logrus.Warn("tls_cipher_suites configuration is ignored when tls_min_version is VersionTLS13 (Go manages TLS 1.3 cipher suites automatically)")
 	}
 
 	if onExecution {
@@ -2224,4 +2271,20 @@ func (c *StatsConfig) Validate() error {
 	}
 
 	return nil
+}
+
+// DefaultTLSMinVersion is the default minimum TLS version.
+const DefaultTLSMinVersion = "VersionTLS12"
+
+// GetTLSMinVersion returns the parsed TLS minimum version.
+// The value is parsed and validated during Validate().
+func (c *APIConfig) GetTLSMinVersion() uint16 {
+	return c.tlsMinVersionParsed
+}
+
+// GetTLSCipherSuites returns the TLS cipher suites for the API config.
+// Returns nil if no cipher suites are configured or if TLS 1.3+ (uses Go defaults).
+// The value is parsed and validated during Validate().
+func (c *APIConfig) GetTLSCipherSuites() []uint16 {
+	return c.tlsCipherSuitesParsed
 }

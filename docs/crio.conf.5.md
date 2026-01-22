@@ -103,6 +103,12 @@ Path to the key file used to serve the encrypted stream. This file can change an
 **stream_tls_ca**=""
 Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
+**tls_min_version**="VersionTLS12"
+Minimum TLS version for streaming and metrics servers. Valid values are "VersionTLS12" and "VersionTLS13". Default is "VersionTLS12".
+
+**tls_cipher_suites**=[]
+List of cipher suites for TLS 1.2. If omitted, the default Go cipher suites will be used. This has no effect on TLS 1.3 as Go manages cipher suites automatically.
+
 **grpc_max_send_msg_size**=83886080
 Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 80 _ 1024 _ 1024.
 
