@@ -176,6 +176,8 @@ complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-ca -r -d 'Path to 
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-cert -r -d 'Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes.'
 complete -c crio -n '__fish_crio_no_subcommand' -l stream-tls-key -r -d 'Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l timezone -s tz -r -d 'To set the timezone for a container in CRI-O. If an empty string is provided, CRI-O retains its default behavior. Use \'Local\' to match the timezone of the host machine.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l tls-cipher-suites -r -d 'Comma-separated list of cipher suites for TLS 1.2.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l tls-min-version -r -d 'Minimum TLS version for streaming and metrics servers (VersionTLS12 or VersionTLS13).'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l tracing-endpoint -r -d 'Address on which the gRPC tracing collector will listen.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l tracing-sampling-rate-per-million -r -d 'Number of samples to collect per million OpenTelemetry spans. Set to 1000000 to always sample.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l uid-mappings -r -d 'Specify the UID mappings to use for the user namespace. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.'
