@@ -36,22 +36,43 @@ var ErrNotFound = errors.New("no artifact found")
 type Store struct {
 	LibartifactStore
 
-	rootPath string
-	impl     Impl
+	rootPath         string
+	additionalPaths  []string
+	additionalStores []LibartifactStore
+	impl             Impl
 }
 
 // NewStore creates a new OCI artifact store.
-func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, error) {
+func NewStore(rootPath string, additionalPaths []string, systemContext *types.SystemContext) (*Store, error) {
 	storePath := filepath.Join(rootPath, "artifacts")
-
 	store, err := libartStore.NewArtifactStore(storePath, systemContext)
 	if err != nil {
 		return nil, err
 	}
 
+	// Configure additional stores (RO)
+	var additionalStores []LibartifactStore
+	var validAdditionalPaths []string
+
+	for _, path := range additionalPaths {
+		// Assume the pattern is to have an "artifacts" directory within the configured path,
+		// similar to how additionalimagestores works in containers/storage.
+		addPath := filepath.Join(path, "artifacts")
+
+		addStore, err := libartStore.NewArtifactStore(addPath, systemContext)
+		if err != nil {
+			// Just ignore invalid stores to prevent breaking CRI-O startup
+			continue
+		}
+		additionalStores = append(additionalStores, RealLibartifactStore{addStore})
+		validAdditionalPaths = append(validAdditionalPaths, addPath)
+	}
+
 	return &Store{
 		LibartifactStore: RealLibartifactStore{store},
 		rootPath:         storePath,
+		additionalPaths:  validAdditionalPaths,
+		additionalStores: additionalStores,
 		impl:             &defaultImpl{},
 	}, nil
 }
@@ -86,20 +107,29 @@ type PullOptions struct {
 // Returns ErrNotFound if the artifact is not available.
 func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]ArtifactData, error) {
 	opts = sanitizeOptions(opts)
+	log.Infof(ctx, "Checking/Pulling OCI artifact from ref: %s", ref)
 
-	log.Infof(ctx, "Pulling OCI artifact from ref: %s", ref)
+	var manifestDigestEncoded string
 
-	dockerRef, err := s.getImageReference(ref)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get image reference: %w", err)
+	existingArt, _, err := s.getByNameOrDigest(ctx, ref)
+
+	if err == nil && existingArt != nil {
+		log.Infof(ctx, "Artifact %s found locally, skipping pull", ref)
+		manifestDigestEncoded = existingArt.digest.Encoded()
+	} else {
+		dockerRef, err := s.getImageReference(ref)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get image reference: %w", err)
+		}
+
+		manifestDigest, err := s.PullManifest(ctx, dockerRef, opts.CopyOptions)
+		if err != nil {
+			return nil, fmt.Errorf("pull artifact: %w", err)
+		}
+		manifestDigestEncoded = manifestDigest.Encoded()
 	}
 
-	manifestDigest, err := s.PullManifest(ctx, dockerRef, opts.CopyOptions)
-	if err != nil {
-		return nil, fmt.Errorf("pull artifact: %w", err)
-	}
-
-	artifactData, err := s.artifactData(ctx, manifestDigest.Encoded(), opts.MaxSize)
+	artifactData, err := s.artifactData(ctx, manifestDigestEncoded, opts.MaxSize)
 	if err != nil {
 		return nil, fmt.Errorf("get artifact data: %w", err)
 	}
@@ -130,7 +160,15 @@ func (s *Store) PullManifest(
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
 	arts, err := s.LibartifactStore.List(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("list artifacts: %w", err)
+		return nil, fmt.Errorf("list artifacts from main store: %w", err)
+	}
+
+	for _, addStore := range s.additionalStores {
+		addArts, err := addStore.List(ctx)
+		if err != nil {
+			continue
+		}
+		arts = append(arts, addArts...)
 	}
 
 	for _, art := range arts {
@@ -221,7 +259,12 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		nameOrDigest = artifact.Reference()
 	}
 
-	imageReference, err := s.impl.LayoutNewReference(s.rootPath, nameOrDigest)
+	rootPath, err := s.resolveRootPath(ctx, artifact.digest.Encoded())
+	if err != nil {
+		rootPath = s.rootPath
+	}
+
+	imageReference, err := s.impl.LayoutNewReference(rootPath, nameOrDigest)
 	if err != nil {
 		return nil, fmt.Errorf("create new reference: %w", err)
 	}
@@ -374,7 +417,12 @@ func (s *Store) getImageReference(nameOrDigest string) (types.ImageReference, er
 // BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
 // This should be replaced by BlobMountPaths in c/common, but it doesn't support modelpack, so we keep it here for now.
 func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]libartTypes.BlobMountPath, error) {
-	ref, err := layout.NewReference(s.rootPath, artifact.Reference())
+	rootPath, err := s.resolveRootPath(ctx, artifact.digest.Encoded())
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve artifact path: %w", err)
+	}
+
+	ref, err := layout.NewReference(rootPath, artifact.Reference())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
 	}
@@ -420,4 +468,59 @@ func artifactName(annotations map[string]string) string {
 	}
 
 	return ""
+}
+
+// resolveRootPath finds which directory (main or additional) the artifact resides in.
+func (s *Store) resolveRootPath(ctx context.Context, nameOrDigest string) (string, error) {
+	arts, _ := s.LibartifactStore.List(ctx)
+	if s.containsArtifact(arts, nameOrDigest) {
+		return s.rootPath, nil
+	}
+
+	for i, store := range s.additionalStores {
+		arts, _ := store.List(ctx)
+		if s.containsArtifact(arts, nameOrDigest) {
+			return s.additionalPaths[i], nil
+		}
+	}
+
+	return "", fmt.Errorf("artifact %s not found in any store", nameOrDigest)
+}
+
+// Helper to check if the artifact exists in the list (by digest or name)
+func (s *Store) containsArtifact(artifacts []*libartifact.Artifact, ref string) bool {
+	for _, art := range artifacts {
+		dgst, _ := art.GetDigest()
+		if strings.HasPrefix(dgst.Encoded(), ref) {
+			return true
+		}
+		if art.Name == ref {
+			return true
+		}
+	}
+	return false
+}
+
+// SetImpl sets the implementation of the store.
+// Used for testing only.
+func (s *Store) SetImpl(impl Impl) {
+	s.impl = impl
+}
+
+// SetFakeStore sets the LibartifactStore.
+// Used for testing only.
+func (s *Store) SetFakeStore(store LibartifactStore) {
+	s.LibartifactStore = store
+}
+
+// FakeLibartifactStore is a wrapper for the LibartifactStore interface.
+// It is exported to be used in tests.
+type FakeLibartifactStore struct {
+	LibartifactStore
+}
+
+// SetData sets the data of the artifact.
+// Used for testing only.
+func (a *ArtifactData) SetData(data []byte) {
+	a.data = data
 }

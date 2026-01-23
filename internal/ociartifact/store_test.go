@@ -24,9 +24,11 @@ var errTest = errors.New("test")
 var _ = t.Describe("OCIArtifact", func() {
 	t.Describe("PullData", func() {
 		var (
-			implMock *ociartifactmock.MockImpl
-			mockCtrl *gomock.Controller
-			testRef  reference.Named
+			implMock   *ociartifactmock.MockImpl
+			mockCtrl   *gomock.Controller
+			testRef    reference.Named
+			libartMock *ociartifactmock.MockLibartifactStore
+			sut        *ociartifact.Store
 		)
 
 		BeforeEach(func() {
@@ -34,6 +36,7 @@ var _ = t.Describe("OCIArtifact", func() {
 
 			mockCtrl = gomock.NewController(GinkgoT())
 			implMock = ociartifactmock.NewMockImpl(mockCtrl)
+			libartMock = ociartifactmock.NewMockLibartifactStore(mockCtrl)
 
 			var err error
 			testRef, err = reference.ParseNormalizedNamed("quay.io/crio/nginx-seccomp:v2")
@@ -46,16 +49,26 @@ var _ = t.Describe("OCIArtifact", func() {
 
 		It("should fail when ParseNormalizedNamed fails", func() {
 			// Given
-			store, err := ociartifact.NewStore(t.MustTempDir("artifact"), nil)
+			var err error
+			sut, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil)
 			Expect(err).NotTo(HaveOccurred())
-			store.SetImpl(implMock)
+			sut.SetImpl(implMock)
+			sut.SetFakeStore(ociartifact.FakeLibartifactStore{LibartifactStore: libartMock})
+
+			libartMock.EXPECT().SystemContext().Return(&types.SystemContext{}).AnyTimes()
+			libartMock.EXPECT().List(gomock.Any()).Return(libartifact.ArtifactList{}, nil).AnyTimes()
+
+			implMock.EXPECT().
+				CandidatesForPotentiallyShortImageName(gomock.Any(), "invalid-ref").
+				Return(nil, errors.New("not found locally")).
+				AnyTimes()
 
 			implMock.EXPECT().
 				ParseNormalizedNamed(gomock.Any()).
 				Return(nil, errTest)
 
 			// When
-			res, err := store.PullData(context.Background(), "invalid-ref", nil)
+			res, err := sut.PullData(context.Background(), "invalid-ref", nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -65,9 +78,19 @@ var _ = t.Describe("OCIArtifact", func() {
 
 		It("should fail when DockerNewReference fails", func() {
 			// Given
-			store, err := ociartifact.NewStore(t.MustTempDir("artifact"), nil)
+			var err error
+			sut, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil)
 			Expect(err).NotTo(HaveOccurred())
-			store.SetImpl(implMock)
+			sut.SetImpl(implMock)
+			sut.SetFakeStore(ociartifact.FakeLibartifactStore{LibartifactStore: libartMock})
+
+			libartMock.EXPECT().SystemContext().Return(&types.SystemContext{}).AnyTimes()
+			libartMock.EXPECT().List(gomock.Any()).Return(libartifact.ArtifactList{}, nil).AnyTimes()
+
+			implMock.EXPECT().
+				CandidatesForPotentiallyShortImageName(gomock.Any(), "quay.io/crio/nginx-seccomp:v2").
+				Return(nil, errors.New("not found locally")).
+				AnyTimes()
 
 			implMock.EXPECT().
 				ParseNormalizedNamed(gomock.Any()).
@@ -77,7 +100,7 @@ var _ = t.Describe("OCIArtifact", func() {
 				Return(nil, errTest)
 
 			// When
-			res, err := store.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
+			res, err := sut.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -102,10 +125,10 @@ var _ = t.Describe("OCIArtifact", func() {
 			implMock = ociartifactmock.NewMockImpl(mockCtrl)
 			libartMock = ociartifactmock.NewMockLibartifactStore(mockCtrl)
 
-			sut, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil)
+			sut, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			sut.SetImpl(implMock)
-			sut.SetFakeStore(ociartifact.FakeLibartifactStore{libartMock})
+			sut.SetFakeStore(ociartifact.FakeLibartifactStore{LibartifactStore: libartMock})
 		})
 
 		AfterEach(func() {
