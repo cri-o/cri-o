@@ -160,10 +160,10 @@ func (mr *MockImageServerMockRecorder) ListImages(systemContext any) *gomock.Cal
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(ctx context.Context, imageName storage.RegistryImageReference, options *storage.ImageCopyOptions) (storage.RegistryImageReference, error) {
+func (m *MockImageServer) PullImage(ctx context.Context, imageName storage.RegistryImageReference, options *storage.ImageCopyOptions) (*storage.StorageImageID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", ctx, imageName, options)
-	ret0, _ := ret[0].(storage.RegistryImageReference)
+	ret0, _ := ret[0].(*storage.StorageImageID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

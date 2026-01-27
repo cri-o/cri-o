@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"time"
 
@@ -338,7 +339,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 			sourceCtx.AuthFilePath = imageAuthFile
 		}
 
-		pulledRef, err := r.storageImageServer.PullImage(context.Background(), pauseImage, &ImageCopyOptions{
+		imageID, err := r.storageImageServer.PullImage(context.Background(), pauseImage, &ImageCopyOptions{
 			SourceCtx:      &sourceCtx,
 			DestinationCtx: systemContext,
 		})
@@ -346,7 +347,11 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 			return ContainerInfo{}, err
 		}
 
-		ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), pulledRef.Raw(), "")
+		if imageID == nil {
+			return ContainerInfo{}, fmt.Errorf("pulled pause image %q but got nil image ID (OCI artifacts not supported for pause images)", pauseImage)
+		}
+
+		ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), nil, imageID.IDStringForOutOfProcessConsumptionOnly())
 		if err != nil {
 			return ContainerInfo{}, err
 		}

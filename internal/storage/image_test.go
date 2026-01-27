@@ -580,13 +580,13 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
+			imageID, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "/not-existing"},
 			})
 
 			// Then
 			Expect(err).To(HaveOccurred())
-			Expect(res).To(Equal(storage.RegistryImageReference{}))
+			Expect(imageID).To(BeNil())
 		})
 
 		It("should fail on copy image", func() {
@@ -598,13 +598,13 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
+			imageID, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
 			// Then
 			Expect(err).To(HaveOccurred())
-			Expect(res).To(Equal(storage.RegistryImageReference{}))
+			Expect(imageID).To(BeNil())
 		})
 
 		It("should fail on canonical copy image", func() {
@@ -616,13 +616,13 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
+			imageID, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
 			// Then
 			Expect(err).To(HaveOccurred())
-			Expect(res).To(Equal(storage.RegistryImageReference{}))
+			Expect(imageID).To(BeNil())
 		})
 
 		It("should fail on cancelled context", func() {
@@ -636,14 +636,14 @@ var _ = t.Describe("Image", func() {
 			// When
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
+			imageID, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("context canceled"))
-			Expect(res).To(Equal(storage.RegistryImageReference{}))
+			Expect(imageID).To(BeNil())
 		})
 
 		It("should fail on timed out context", func() {
@@ -657,14 +657,14 @@ var _ = t.Describe("Image", func() {
 			// When
 			ctx, cancel := context.WithTimeout(context.Background(), 0)
 			defer cancel()
-			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
+			imageID, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("context deadline exceeded"))
-			Expect(res).To(Equal(storage.RegistryImageReference{}))
+			Expect(imageID).To(BeNil())
 		})
 	})
 
