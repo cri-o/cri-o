@@ -9,7 +9,6 @@ import (
 	"go.podman.io/image/v5/types"
 
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/ociartifact/datastore"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
@@ -22,13 +21,13 @@ type SeccompOCIArtifact struct {
 
 // New creates a new seccomp OCI artifact handler.
 func New(root string, systemContext *types.SystemContext) (*SeccompOCIArtifact, error) {
-	store, err := ociartifact.NewStore(root, systemContext)
+	store, err := datastore.New(root, systemContext)
 	if err != nil {
 		return nil, err
 	}
 
 	return &SeccompOCIArtifact{
-		datastore.New(store),
+		store,
 	}, nil
 }
 

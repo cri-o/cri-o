@@ -871,7 +871,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: create store err: %w", artifactErr)
 		}
 
-		artifactManifestDigest, artifactErr := artifactStore.PullManifest(ctx, srcRef, &libimage.CopyOptions{
+		artifactManifestDigest, artifactErr := artifactStore.Pull(ctx, srcRef, &libimage.CopyOptions{
 			OciDecryptConfig: options.OciDecryptConfig,
 			Progress:         options.Progress,
 			RemoveSignatures: true, // signature is not supported for OCI layout dest
