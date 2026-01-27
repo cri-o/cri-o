@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/checkpoint-restore/go-criu/v7/stats"
+	"github.com/checkpoint-restore/go-criu/v8/stats"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/crutils"
