@@ -1,4 +1,4 @@
-package ociartifact_test
+package datastore_test
 
 import (
 	"context"
@@ -12,16 +12,17 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/internal/ociartifact"
-	ociartifactmock "github.com/cri-o/cri-o/test/mocks/ociartifact"
+	"github.com/cri-o/cri-o/internal/ociartifact/datastore"
+	datastoremock "github.com/cri-o/cri-o/test/mocks/ociartifact/datastore"
 )
 
 var errTest = errors.New("test")
 
 // The actual test suite.
-var _ = t.Describe("OCIArtifact", func() {
+var _ = t.Describe("DataStore", func() {
 	t.Describe("PullData", func() {
 		var (
-			implMock *ociartifactmock.MockImpl
+			implMock *datastoremock.MockImpl
 			mockCtrl *gomock.Controller
 			testRef  reference.Named
 		)
@@ -30,7 +31,7 @@ var _ = t.Describe("OCIArtifact", func() {
 			logrus.SetOutput(io.Discard)
 
 			mockCtrl = gomock.NewController(GinkgoT())
-			implMock = ociartifactmock.NewMockImpl(mockCtrl)
+			implMock = datastoremock.NewMockImpl(mockCtrl)
 
 			var err error
 			testRef, err = reference.ParseNormalizedNamed("quay.io/crio/nginx-seccomp:v2")
@@ -45,14 +46,15 @@ var _ = t.Describe("OCIArtifact", func() {
 			// Given
 			store, err := ociartifact.NewStore(t.MustTempDir("artifact"), nil)
 			Expect(err).NotTo(HaveOccurred())
-			store.SetImpl(implMock)
+			dataStore := datastore.New(store)
+			dataStore.SetImpl(implMock)
 
 			implMock.EXPECT().
 				ParseNormalizedNamed(gomock.Any()).
 				Return(nil, errTest)
 
 			// When
-			res, err := store.PullData(context.Background(), "invalid-ref", nil)
+			res, err := dataStore.PullData(context.Background(), "invalid-ref", nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -64,7 +66,8 @@ var _ = t.Describe("OCIArtifact", func() {
 			// Given
 			store, err := ociartifact.NewStore(t.MustTempDir("artifact"), nil)
 			Expect(err).NotTo(HaveOccurred())
-			store.SetImpl(implMock)
+			dataStore := datastore.New(store)
+			dataStore.SetImpl(implMock)
 
 			implMock.EXPECT().
 				ParseNormalizedNamed(gomock.Any()).
@@ -74,7 +77,7 @@ var _ = t.Describe("OCIArtifact", func() {
 				Return(nil, errTest)
 
 			// When
-			res, err := store.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
+			res, err := dataStore.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
