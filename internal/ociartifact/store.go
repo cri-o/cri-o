@@ -14,8 +14,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
-	"go.podman.io/common/pkg/libartifact"
-	libartStore "go.podman.io/common/pkg/libartifact/store"
+	libart "go.podman.io/common/pkg/libartifact"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/manifest"
@@ -30,7 +29,7 @@ import (
 const defaultMaxArtifactSize = 1 * 1024 * 1024 // 1 MiB
 
 // ErrNotFound is indicating that the artifact could not be found in the storage.
-var ErrNotFound = errors.New("no artifact found")
+var ErrNotFound = libartTypes.ErrArtifactNotExist
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
@@ -44,7 +43,7 @@ type Store struct {
 func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, error) {
 	storePath := filepath.Join(rootPath, "artifacts")
 
-	store, err := libartStore.NewArtifactStore(storePath, systemContext)
+	store, err := libart.NewArtifactStore(storePath, systemContext)
 	if err != nil {
 		return nil, err
 	}
@@ -116,9 +115,14 @@ func (s *Store) PullManifest(
 	ref types.ImageReference,
 	opts *libimage.CopyOptions,
 ) (manifestDigest *digest.Digest, err error) {
-	strRef := s.impl.DockerReferenceString(ref)
+	strRef := ref.DockerReference().String()
 
-	dgst, err := s.Pull(ctx, strRef, *opts)
+	artRef, err := libart.NewArtifactReference(strRef)
+	if err != nil {
+		return nil, fmt.Errorf("invalid reference: %w", err)
+	}
+
+	dgst, err := s.Pull(ctx, artRef, *opts)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -148,23 +152,28 @@ func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
 // Status retrieves the artifact by referencing a name or digest.
 // Returns ErrNotFound if the artifact is not available.
 func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, error) {
-	artifact, _, err := s.getByNameOrDigest(ctx, nameOrDigest)
+	artRef, err := libart.NewArtifactStorageReference(nameOrDigest)
 	if err != nil {
-		return nil, fmt.Errorf("get artifact by name or digest: %w", err)
+		return nil, fmt.Errorf("invalid nameOrDigest: %w", err)
 	}
 
-	return artifact, nil
+	artifact, err := s.Inspect(ctx, artRef)
+	if err != nil {
+		return nil, fmt.Errorf("inspect artifact: %w", err)
+	}
+
+	return s.buildArtifact(ctx, artifact)
 }
 
 // Remove deletes a name or digest from the artifact store.
 // Returns ErrNotFound if the artifact is not available.
 func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
-	artifact, _, err := s.getByNameOrDigest(ctx, nameOrDigest)
+	artRef, err := libart.NewArtifactStorageReference(nameOrDigest)
 	if err != nil {
-		return fmt.Errorf("get artifact by name or digest: %w", err)
+		return fmt.Errorf("invalid nameOrDigest: %w", err)
 	}
 
-	_, err = s.LibartifactStore.Remove(ctx, artifact.Reference())
+	_, err = s.LibartifactStore.Remove(ctx, artRef)
 
 	return err
 }
@@ -185,16 +194,11 @@ func sanitizeOptions(opts *PullOptions) *PullOptions {
 	return opts
 }
 
-func (s *Store) buildArtifact(ctx context.Context, art *libartifact.Artifact) (*Artifact, error) {
-	dgst, err := art.GetDigest()
-	if err != nil {
-		return nil, fmt.Errorf("get digest: %w", err)
-	}
-
+func (s *Store) buildArtifact(ctx context.Context, art *libart.Artifact) (*Artifact, error) {
 	artifact := &Artifact{
 		Artifact: art,
 		namedRef: unknownRef{},
-		digest:   *dgst,
+		digest:   art.Digest,
 	}
 
 	if art.Name != "" {

@@ -233,6 +233,21 @@ func (m *MockLibartifactStore) EXPECT() *MockLibartifactStoreMockRecorder {
 	return m.recorder
 }
 
+// Inspect mocks base method.
+func (m *MockLibartifactStore) Inspect(ctx context.Context, asr libartifact.ArtifactStoreReference) (*libartifact.Artifact, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Inspect", ctx, asr)
+	ret0, _ := ret[0].(*libartifact.Artifact)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Inspect indicates an expected call of Inspect.
+func (mr *MockLibartifactStoreMockRecorder) Inspect(ctx, asr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Inspect", reflect.TypeOf((*MockLibartifactStore)(nil).Inspect), ctx, asr)
+}
+
 // List mocks base method.
 func (m *MockLibartifactStore) List(ctx context.Context) (libartifact.ArtifactList, error) {
 	m.ctrl.T.Helper()
@@ -249,33 +264,33 @@ func (mr *MockLibartifactStoreMockRecorder) List(ctx any) *gomock.Call {
 }
 
 // Pull mocks base method.
-func (m *MockLibartifactStore) Pull(ctx context.Context, name string, opts libimage.CopyOptions) (digest.Digest, error) {
+func (m *MockLibartifactStore) Pull(ctx context.Context, ref libartifact.ArtifactReference, opts libimage.CopyOptions) (digest.Digest, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pull", ctx, name, opts)
+	ret := m.ctrl.Call(m, "Pull", ctx, ref, opts)
 	ret0, _ := ret[0].(digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Pull indicates an expected call of Pull.
-func (mr *MockLibartifactStoreMockRecorder) Pull(ctx, name, opts any) *gomock.Call {
+func (mr *MockLibartifactStoreMockRecorder) Pull(ctx, ref, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockLibartifactStore)(nil).Pull), ctx, name, opts)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockLibartifactStore)(nil).Pull), ctx, ref, opts)
 }
 
 // Remove mocks base method.
-func (m *MockLibartifactStore) Remove(ctx context.Context, name string) (*digest.Digest, error) {
+func (m *MockLibartifactStore) Remove(ctx context.Context, asr libartifact.ArtifactStoreReference) (*digest.Digest, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Remove", ctx, name)
+	ret := m.ctrl.Call(m, "Remove", ctx, asr)
 	ret0, _ := ret[0].(*digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Remove indicates an expected call of Remove.
-func (mr *MockLibartifactStoreMockRecorder) Remove(ctx, name any) *gomock.Call {
+func (mr *MockLibartifactStoreMockRecorder) Remove(ctx, asr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Remove", reflect.TypeOf((*MockLibartifactStore)(nil).Remove), ctx, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Remove", reflect.TypeOf((*MockLibartifactStore)(nil).Remove), ctx, asr)
 }
 
 // SystemContext mocks base method.
