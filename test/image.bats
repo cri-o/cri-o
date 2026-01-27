@@ -413,3 +413,33 @@ EOF
 	# There should be many nginx images
 	crictl pull nginx
 }
+
+@test "image pull returns image ID not repo digest" {
+	start_crio
+
+	# Pull an image and capture the returned image reference
+	pulled_ref=$(crictl pull "$IMAGE")
+
+	# Extract the image ID from crictl output
+	# crictl may output "Image is up to date for <id>" or just "<id>"
+	# We want just the ID part (the last word)
+	pulled_id=$(echo "$pulled_ref" | awk '{print $NF}')
+
+	# Ensure we actually got an ID back (format is storage-defined)
+	[ "$pulled_id" != "" ]
+
+	# Get the image status for the same image
+	imageid=$(crictl images --quiet "$IMAGE")
+	[ "$imageid" != "" ]
+
+	# The pulled reference should match the image ID from ImageStatus
+	# Both PullImage and GetImageRef (via ImageStatus) should return the same value
+	# to ensure Kubernetes credential verification works correctly
+	[ "$pulled_id" = "$imageid" ]
+
+	# Verify we can use the image ID to inspect the image
+	output=$(crictl inspecti "$imageid")
+	[[ "$output" == *"$IMAGE"* ]]
+
+	cleanup_images
+}
