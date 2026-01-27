@@ -37,15 +37,22 @@ func (a *ArtifactData) Data() []byte {
 type Store struct {
 	*ociartifact.Store
 
-	impl Impl
+	systemContext *types.SystemContext
+	impl          Impl
 }
 
 // New creates a new OCI artifact data store.
-func New(store *ociartifact.Store) *Store {
-	return &Store{
-		Store: store,
-		impl:  &defaultImpl{},
+func New(rootPath string, systemContext *types.SystemContext) (*Store, error) {
+	ociStore, err := ociartifact.NewStore(rootPath, systemContext)
+	if err != nil {
+		return nil, fmt.Errorf("create OCI artifact store: %w", err)
 	}
+
+	return &Store{
+		Store:         ociStore,
+		systemContext: systemContext,
+		impl:          &defaultImpl{},
+	}, nil
 }
 
 // PullOptions can be used to customize the pull behavior.
@@ -76,7 +83,7 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 		return nil, fmt.Errorf("failed to get image reference: %w", err)
 	}
 
-	manifestDigest, err := s.PullManifest(ctx, dockerRef, opts.CopyOptions)
+	manifestDigest, err := s.Pull(ctx, dockerRef, opts.CopyOptions)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -120,7 +127,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 		return nil, fmt.Errorf("create new reference: %w", err)
 	}
 
-	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.SystemContext())
+	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.systemContext)
 	if err != nil {
 		return nil, fmt.Errorf("build image source: %w", err)
 	}
@@ -154,7 +161,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 }
 
 func (s *Store) readBlob(ctx context.Context, src types.ImageSource, layer *manifest.LayerInfo, maxArtifactSize uint64) ([]byte, error) {
-	bic := blobinfocache.DefaultCache(s.SystemContext())
+	bic := blobinfocache.DefaultCache(s.systemContext)
 
 	rc, size, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: layer.Digest}, bic)
 	if err != nil {
@@ -224,7 +231,7 @@ func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*ociartif
 	}
 
 	// if strRef is named reference
-	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.SystemContext(), strRef)
+	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.systemContext, strRef)
 	if err != nil {
 		// If there are no artifacts in the store, return ErrNotFound regardless of name validation errors
 		// This maintains backward compatibility where invalid names simply weren't found
