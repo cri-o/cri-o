@@ -11,7 +11,6 @@ import (
 	"go.podman.io/image/v5/docker/reference"
 	"go.uber.org/mock/gomock"
 
-	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/ociartifact/datastore"
 	datastoremock "github.com/cri-o/cri-o/test/mocks/ociartifact/datastore"
 )
@@ -44,9 +43,8 @@ var _ = t.Describe("DataStore", func() {
 
 		It("should fail when ParseNormalizedNamed fails", func() {
 			// Given
-			store, err := ociartifact.NewStore(t.MustTempDir("artifact"), nil)
+			dataStore, err := datastore.New(t.MustTempDir("artifact"), nil)
 			Expect(err).NotTo(HaveOccurred())
-			dataStore := datastore.New(store)
 			dataStore.SetImpl(implMock)
 
 			implMock.EXPECT().
@@ -64,9 +62,8 @@ var _ = t.Describe("DataStore", func() {
 
 		It("should fail when DockerNewReference fails", func() {
 			// Given
-			store, err := ociartifact.NewStore(t.MustTempDir("artifact"), nil)
+			dataStore, err := datastore.New(t.MustTempDir("artifact"), nil)
 			Expect(err).NotTo(HaveOccurred())
-			dataStore := datastore.New(store)
 			dataStore.SetImpl(implMock)
 
 			implMock.EXPECT().

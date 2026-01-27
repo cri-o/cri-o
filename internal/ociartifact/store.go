@@ -22,15 +22,10 @@ var ErrNotFound = libartTypes.ErrArtifactNotExist
 
 // Store is the main structure to build an artifact storage.
 type Store struct {
-	LibartifactStore
+	libartifactStore LibartifactStore
 
 	// It's required for BlobMountPaths.
 	rootPath string
-}
-
-// RootPath returns the root path of the store.
-func (s *Store) RootPath() string {
-	return s.rootPath
 }
 
 // NewStore creates a new OCI artifact store.
@@ -43,16 +38,16 @@ func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, erro
 	}
 
 	return &Store{
-		LibartifactStore: RealLibartifactStore{store},
+		libartifactStore: store,
 		rootPath:         storePath,
 	}, nil
 }
 
-// PullManifest tries to pull the artifact and returns the manifest bytes if the
+// Pull tries to pull the artifact and returns the manifest bytes if the
 // provided reference is a valid OCI artifact.
 //
 // copyOptions will be passed down to libimage.
-func (s *Store) PullManifest(
+func (s *Store) Pull(
 	ctx context.Context,
 	ref types.ImageReference,
 	opts *libimage.CopyOptions,
@@ -64,7 +59,7 @@ func (s *Store) PullManifest(
 		return nil, fmt.Errorf("invalid reference: %w", err)
 	}
 
-	dgst, err := s.Pull(ctx, artRef, *opts)
+	dgst, err := s.libartifactStore.Pull(ctx, artRef, *opts)
 	if err != nil {
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
@@ -74,7 +69,7 @@ func (s *Store) PullManifest(
 
 // List creates a slice of all available artifacts.
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
-	arts, err := s.LibartifactStore.List(ctx)
+	arts, err := s.libartifactStore.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list artifacts: %w", err)
 	}
@@ -94,7 +89,7 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 		return nil, fmt.Errorf("invalid nameOrDigest: %w", err)
 	}
 
-	artifact, err := s.Inspect(ctx, artRef)
+	artifact, err := s.libartifactStore.Inspect(ctx, artRef)
 	if err != nil {
 		return nil, fmt.Errorf("inspect artifact: %w", err)
 	}
@@ -110,7 +105,7 @@ func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
 		return fmt.Errorf("invalid nameOrDigest: %w", err)
 	}
 
-	_, err = s.LibartifactStore.Remove(ctx, artRef)
+	_, err = s.libartifactStore.Remove(ctx, artRef)
 
 	return err
 }
@@ -164,4 +159,9 @@ func artifactName(annotations map[string]string) string {
 	}
 
 	return ""
+}
+
+// RootPath returns the root path of the store.
+func (s *Store) RootPath() string {
+	return s.rootPath
 }
