@@ -27,6 +27,11 @@ import (
 	"github.com/cri-o/cri-o/utils"
 )
 
+// sha256Prefix is the prefix used for image IDs returned by the CRI.
+// This matches containerd's behavior and is required for Kubernetes
+// credential verification compatibility.
+const sha256Prefix = string(digest.SHA256) + ":"
+
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
 	ctx, span := log.StartSpan(ctx)
@@ -125,9 +130,28 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 
 	log.Infof(ctx, "Pulled image: %v", pullOp.imageRef)
 
-	return &types.PullImageResponse{
-		ImageRef: pullOp.imageRef.StringForOutOfProcessConsumptionOnly(),
-	}, nil
+	// Get the image status to retrieve the image ID (config hash) instead of returning
+	// the repo digest. This ensures consistency with containerd and compatibility with
+	// Kubernetes credential verification which expects PullImage and GetImageRef to
+	// return compatible values that can be used as keys for pull record lookups.
+	// containerd returns the image ID (e.g. "sha256:abc...") from PullImage, so we must do the same.
+	imageStatus, err := s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, pullOp.imageRef)
+	if err == nil {
+		return &types.PullImageResponse{
+			ImageRef: sha256Prefix + imageStatus.ID.IDStringForOutOfProcessConsumptionOnly(),
+		}, nil
+	}
+
+	// If not found in regular image storage, check if it's an OCI artifact
+	artifact, artifactErr := s.ArtifactStore().Status(ctx, pullOp.imageRef.StringForOutOfProcessConsumptionOnly())
+	if artifactErr == nil {
+		return &types.PullImageResponse{
+			ImageRef: sha256Prefix + artifact.CRIImage().GetId(),
+		}, nil
+	}
+
+	// Neither regular image nor artifact found, return the original error
+	return nil, fmt.Errorf("get image status after pull: %w", err)
 }
 
 // pullImage performs the actual pull operation of PullImage. Used to separate
