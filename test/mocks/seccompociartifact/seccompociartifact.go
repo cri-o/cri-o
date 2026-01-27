@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	ociartifact "github.com/cri-o/cri-o/internal/ociartifact"
+	datastore "github.com/cri-o/cri-o/internal/ociartifact/datastore"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,10 +42,10 @@ func (m *MockImpl) EXPECT() *MockImplMockRecorder {
 }
 
 // PullData mocks base method.
-func (m *MockImpl) PullData(arg0 context.Context, arg1 string, arg2 *ociartifact.PullOptions) ([]ociartifact.ArtifactData, error) {
+func (m *MockImpl) PullData(arg0 context.Context, arg1 string, arg2 *datastore.PullOptions) ([]datastore.ArtifactData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullData", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]ociartifact.ArtifactData)
+	ret0, _ := ret[0].([]datastore.ArtifactData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
