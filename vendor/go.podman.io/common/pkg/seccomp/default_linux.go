@@ -616,6 +616,7 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"bpf",
 				"lookup_dcookie",
+				"perf_event_open",
 				"quotactl",
 				"quotactl_fd",
 				"setdomainname",
@@ -631,7 +632,6 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"lookup_dcookie",
-				"perf_event_open",
 				"quotactl",
 				"quotactl_fd",
 				"setdomainname",
@@ -814,6 +814,21 @@ func DefaultProfile() *Seccomp {
 			Args:     []*Arg{},
 			Excludes: Filter{
 				Caps: []string{"CAP_SYS_TTY_CONFIG"},
+			},
+		},
+		{
+			Names: []string{
+				"socket",
+			},
+			Action:   ActErrno,
+			Errno:    "EPERM",
+			ErrnoRet: &eperm,
+			Args: []*Arg{
+				{
+					Index: 0,
+					Value: unix.AF_VSOCK,
+					Op:    OpEqualTo,
+				},
 			},
 		},
 		{
@@ -846,6 +861,11 @@ func DefaultProfile() *Seccomp {
 			Action: ActAllow,
 			Args: []*Arg{
 				{
+					Index: 0,
+					Value: unix.AF_NETLINK,
+					Op:    OpEqualTo,
+				},
+				{
 					Index: 2,
 					Value: unix.NETLINK_AUDIT,
 					Op:    OpNotEqual,
@@ -878,20 +898,11 @@ func DefaultProfile() *Seccomp {
 			Action: ActAllow,
 			Args: []*Arg{
 				{
-					Index: 2,
-					Value: unix.NETLINK_AUDIT,
+					Index: 0,
+					Value: unix.AF_VSOCK,
 					Op:    OpNotEqual,
 				},
 			},
-			Excludes: Filter{
-				Caps: []string{"CAP_AUDIT_WRITE"},
-			},
-		},
-		{
-			Names: []string{
-				"socket",
-			},
-			Action: ActAllow,
 			Includes: Filter{
 				Caps: []string{"CAP_AUDIT_WRITE"},
 			},
@@ -927,7 +938,7 @@ func DefaultProfile() *Seccomp {
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
-				Caps: []string{"CAP_SYS_ADMIN", "CAP_BPF"},
+				Caps: []string{"CAP_SYS_ADMIN", "CAP_PERFMON"},
 			},
 		},
 		{
