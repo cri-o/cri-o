@@ -50,11 +50,6 @@ func NewArtifact(art *libartifact.Artifact) *Artifact {
 	return artifact
 }
 
-// ArtifactData separates the artifact metadata from the actual content.
-type ArtifactData struct {
-	data []byte
-}
-
 // Reference returns the reference of the artifact.
 func (a *Artifact) Reference() string {
 	return a.namedRef.String()
@@ -83,9 +78,4 @@ func (a *Artifact) CRIImage() *critypes.Image {
 		RepoDigests: []string{a.CanonicalName()},
 		Pinned:      true,
 	}
-}
-
-// Data returns the data of the artifact.
-func (a *ArtifactData) Data() []byte {
-	return a.data
 }
