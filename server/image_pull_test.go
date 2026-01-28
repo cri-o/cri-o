@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/go-digest"
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -27,14 +28,20 @@ var _ = t.Describe("ImagePull", func() {
 	AfterEach(afterEach)
 
 	t.Describe("ImagePull", func() {
-		It("should succeed with pull", func() {
+		It("should succeed with pull and return image ID", func() {
 			// Given
+			const idHex = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+			idWithPrefix := string(digest.SHA256) + ":" + idHex
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(idHex)
+			Expect(err).ToNot(HaveOccurred())
 			gomock.InOrder(
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), imageCandidate, gomock.Any()).
 					Return(canonicalImageCandidate, nil),
+				imageServerMock.EXPECT().ImageStatusByName(gomock.Any(), canonicalImageCandidate).
+					Return(&storage.ImageResult{ID: imageID}, nil),
 			)
 
 			// When
@@ -46,6 +53,7 @@ var _ = t.Describe("ImagePull", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
+			Expect(response.GetImageRef()).To(Equal(idWithPrefix))
 		})
 
 		It("should fail credential decode errors", func() {
