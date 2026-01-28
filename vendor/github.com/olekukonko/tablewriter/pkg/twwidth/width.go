@@ -6,31 +6,54 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/clipperhouse/displaywidth"
 	"github.com/mattn/go-runewidth"
+	"github.com/olekukonko/tablewriter/pkg/twcache"
 )
 
-// condition holds the global runewidth configuration, including East Asian width settings.
-var condition *runewidth.Condition
+const (
+	cacheCapacity = 8192
 
-// mu protects access to condition and widthCache for thread safety.
+	cachePrefix          = "0:"
+	cacheEastAsianPrefix = "1:"
+)
+
+// Options allows for configuring width calculation on a per-call basis.
+type Options struct {
+	EastAsianWidth bool
+}
+
+// globalOptions holds the global displaywidth configuration, including East Asian width settings.
+var globalOptions Options
+
+// mu protects access to globalOptions for thread safety.
 var mu sync.Mutex
+
+// widthCache stores memoized results of Width calculations to improve performance.
+var widthCache *twcache.LRU[string, int]
 
 // ansi is a compiled regular expression for stripping ANSI escape codes from strings.
 var ansi = Filter()
 
 func init() {
-	condition = runewidth.NewCondition()
-	widthCache = make(map[cacheKey]int)
+	// Initialize global options by detecting from the environment,
+	// which is the one key feature we get from go-runewidth.
+	cond := runewidth.NewCondition()
+	globalOptions = Options{
+		EastAsianWidth: cond.EastAsianWidth,
+	}
+	widthCache = twcache.NewLRU[string, int](cacheCapacity)
 }
 
-// cacheKey is used as a key for memoizing string width results in widthCache.
-type cacheKey struct {
-	str            string // Input string
-	eastAsianWidth bool   // East Asian width setting
+// makeCacheKey generates a string key for the LRU cache from the input string
+// and the current East Asian width setting.
+// Prefix "0:" for false, "1:" for true.
+func makeCacheKey(str string, eastAsianWidth bool) string {
+	if eastAsianWidth {
+		return cacheEastAsianPrefix + str
+	}
+	return cachePrefix + str
 }
-
-// widthCache stores memoized results of Width calculations to improve performance.
-var widthCache map[cacheKey]int
 
 // Filter compiles and returns a regular expression for matching ANSI escape sequences,
 // including CSI (Control Sequence Introducer) and OSC (Operating System Command) sequences.
@@ -50,99 +73,102 @@ func Filter() *regexp.Regexp {
 	return regexp.MustCompile("(" + regCSI + "|" + regOSC + ")")
 }
 
-// SetEastAsian enables or disables East Asian width handling for width calculations.
-// When the setting changes, the width cache is cleared to ensure accuracy.
+// SetOptions sets the global options for width calculation.
+// This function is thread-safe.
+func SetOptions(opts Options) {
+	mu.Lock()
+	defer mu.Unlock()
+	if globalOptions.EastAsianWidth != opts.EastAsianWidth {
+		globalOptions = opts
+		widthCache.Purge()
+	}
+}
+
+// SetEastAsian enables or disables East Asian width handling globally.
 // This function is thread-safe.
 //
 // Example:
 //
 //	twdw.SetEastAsian(true) // Enable East Asian width handling
 func SetEastAsian(enable bool) {
-	mu.Lock()
-	defer mu.Unlock()
-	if condition.EastAsianWidth != enable {
-		condition.EastAsianWidth = enable
-		widthCache = make(map[cacheKey]int) // Clear cache on setting change
-	}
+	SetOptions(Options{EastAsianWidth: enable})
 }
 
-// SetCondition updates the global runewidth.Condition used for width calculations.
-// When the condition is changed, the width cache is cleared.
+// IsEastAsian returns the current East Asian width setting.
 // This function is thread-safe.
 //
 // Example:
 //
-//	newCond := runewidth.NewCondition()
-//	newCond.EastAsianWidth = true
-//	twdw.SetCondition(newCond)
-func SetCondition(newCond *runewidth.Condition) {
+//	if twdw.IsEastAsian() {
+//		// Handle East Asian width characters
+//	}
+func IsEastAsian() bool {
 	mu.Lock()
 	defer mu.Unlock()
-	condition = newCond
-	widthCache = make(map[cacheKey]int) // Clear cache on setting change
+	return globalOptions.EastAsianWidth
 }
 
-// Width calculates the visual width of a string, excluding ANSI escape sequences,
-// using the go-runewidth package for accurate Unicode handling. It accounts for the
-// current East Asian width setting and caches results for performance.
+// Deprecated: use SetOptions with the new twwidth.Options struct instead.
+// This function is kept for backward compatibility.
+func SetCondition(cond *runewidth.Condition) {
+	mu.Lock()
+	defer mu.Unlock()
+	newEastAsianWidth := cond.EastAsianWidth
+	if globalOptions.EastAsianWidth != newEastAsianWidth {
+		globalOptions.EastAsianWidth = newEastAsianWidth
+		widthCache.Purge()
+	}
+}
+
+// Width calculates the visual width of a string using the global cache for performance.
+// It excludes ANSI escape sequences and accounts for the global East Asian width setting.
 // This function is thread-safe.
 //
 // Example:
 //
 //	width := twdw.Width("Hello\x1b[31mWorld") // Returns 10
 func Width(str string) int {
-	mu.Lock()
-	key := cacheKey{str: str, eastAsianWidth: condition.EastAsianWidth}
-	if w, found := widthCache[key]; found {
-		mu.Unlock()
+	currentEA := IsEastAsian()
+	key := makeCacheKey(str, currentEA)
+
+	if w, found := widthCache.Get(key); found {
 		return w
 	}
-	mu.Unlock()
 
-	// Use a temporary condition to avoid holding the lock during calculation
-	tempCond := runewidth.NewCondition()
-	tempCond.EastAsianWidth = key.eastAsianWidth
-
+	opts := displaywidth.Options{EastAsianWidth: currentEA}
 	stripped := ansi.ReplaceAllLiteralString(str, "")
-	calculatedWidth := tempCond.StringWidth(stripped)
+	calculatedWidth := opts.String(stripped)
 
-	mu.Lock()
-	widthCache[key] = calculatedWidth
-	mu.Unlock()
-
+	widthCache.Add(key, calculatedWidth)
 	return calculatedWidth
 }
 
-// WidthNoCache calculates the visual width of a string without using or
-// updating the global cache. It uses the current global East Asian width setting.
-// This function is intended for internal use (e.g., benchmarking) and is thread-safe.
+// WidthWithOptions calculates the visual width of a string with specific options,
+// bypassing the global settings and cache. This is useful for one-shot calculations
+// where global state is not desired.
+func WidthWithOptions(str string, opts Options) int {
+	dwOpts := displaywidth.Options{EastAsianWidth: opts.EastAsianWidth}
+	stripped := ansi.ReplaceAllLiteralString(str, "")
+	return dwOpts.String(stripped)
+}
+
+// WidthNoCache calculates the visual width of a string without using the global cache.
 //
 // Example:
 //
 //	width := twdw.WidthNoCache("Hello\x1b[31mWorld") // Returns 10
 func WidthNoCache(str string) int {
-	mu.Lock()
-	currentEA := condition.EastAsianWidth
-	mu.Unlock()
-
-	tempCond := runewidth.NewCondition()
-	tempCond.EastAsianWidth = currentEA
-
-	stripped := ansi.ReplaceAllLiteralString(str, "")
-	return tempCond.StringWidth(stripped)
+	// This function's behavior is equivalent to a one-shot calculation
+	// using the current global options. The WidthWithOptions function
+	// does not interact with the cache, thus fulfilling the requirement.
+	return WidthWithOptions(str, Options{EastAsianWidth: IsEastAsian()})
 }
 
-// Display calculates the visual width of a string, excluding ANSI escape sequences,
-// using the provided runewidth condition. Unlike Width, it does not use caching
-// and is intended for cases where a specific condition is required.
-// This function is thread-safe with respect to the provided condition.
-//
-// Example:
-//
-//	cond := runewidth.NewCondition()
-//	width := twdw.Display(cond, "Hello\x1b[31mWorld") // Returns 10
+// Deprecated: use WidthWithOptions with the new twwidth.Options struct instead.
+// This function is kept for backward compatibility.
 func Display(cond *runewidth.Condition, str string) int {
-	return cond.StringWidth(ansi.ReplaceAllLiteralString(str, ""))
+	opts := Options{EastAsianWidth: cond.EastAsianWidth}
+	return WidthWithOptions(str, opts)
 }
 
 // Truncate shortens a string to fit within a specified visual width, optionally
@@ -189,31 +215,34 @@ func Truncate(s string, maxWidth int, suffix ...string) string {
 	// Case 3: String fits completely or fits with suffix.
 	// Here, maxWidth is the total budget for the line.
 	if sDisplayWidth <= maxWidth {
+		// If the string contains ANSI, we must ensure it ends with a reset
+		// to prevent bleeding, even if we don't truncate.
+		safeS := s
+		if strings.Contains(s, "\x1b") && !strings.HasSuffix(s, "\x1b[0m") {
+			safeS += "\x1b[0m"
+		}
+
 		if len(suffixStr) == 0 { // No suffix.
-			return s
+			return safeS
 		}
 		// Suffix is provided. Check if s + suffix fits.
 		if sDisplayWidth+suffixDisplayWidth <= maxWidth {
-			return s + suffixStr
+			return safeS + suffixStr
 		}
-		// s fits, but s + suffix is too long. Return s.
-		return s
+		// s fits, but s + suffix is too long. Return s (with reset if needed).
+		return safeS
 	}
 
 	// Case 4: String needs truncation (sDisplayWidth > maxWidth).
 	// maxWidth is the total budget for the final string (content + suffix).
-
-	// Capture the global EastAsianWidth setting once for consistent use
-	mu.Lock()
-	currentGlobalEastAsianWidth := condition.EastAsianWidth
-	mu.Unlock()
+	currentGlobalEastAsianWidth := IsEastAsian()
 
 	// Special case for EastAsian true: if only suffix fits, return suffix.
 	// This was derived from previous test behavior.
 	if len(suffixStr) > 0 && currentGlobalEastAsianWidth {
 		provisionalContentWidth := maxWidth - suffixDisplayWidth
 		if provisionalContentWidth == 0 { // Exactly enough space for suffix only
-			return suffixStr // <<<< MODIFIED: No ANSI reset here
+			return suffixStr
 		}
 	}
 
@@ -235,7 +264,6 @@ func Truncate(s string, maxWidth int, suffix ...string) string {
 		}
 		return "" // Cannot fit anything.
 	}
-	// If targetContentForIteration is 0, loop won't run, result will be empty string, then suffix is added.
 
 	var contentBuf bytes.Buffer
 	var currentContentDisplayWidth int
@@ -243,8 +271,7 @@ func Truncate(s string, maxWidth int, suffix ...string) string {
 	inAnsiSequence := false
 	ansiWrittenToContent := false
 
-	localRunewidthCond := runewidth.NewCondition()
-	localRunewidthCond.EastAsianWidth = currentGlobalEastAsianWidth
+	dwOpts := displaywidth.Options{EastAsianWidth: currentGlobalEastAsianWidth}
 
 	for _, r := range s {
 		if r == '\x1b' {
@@ -278,7 +305,7 @@ func Truncate(s string, maxWidth int, suffix ...string) string {
 				ansiSeqBuf.Reset()
 			}
 		} else { // Normal character
-			runeDisplayWidth := localRunewidthCond.RuneWidth(r)
+			runeDisplayWidth := dwOpts.Rune(r)
 			if targetContentForIteration == 0 { // No budget for content at all
 				break
 			}
@@ -292,32 +319,51 @@ func Truncate(s string, maxWidth int, suffix ...string) string {
 
 	result := contentBuf.String()
 
-	// Suffix is added if:
-	// 1. A suffix string is provided.
-	// 2. Truncation actually happened (sDisplayWidth > maxWidth originally)
-	//    OR if the content part is empty but a suffix is meant to be shown
-	//    (e.g. targetContentForIteration was 0).
-	if len(suffixStr) > 0 {
-		// Add suffix if we are in the truncation path (sDisplayWidth > maxWidth)
-		// OR if targetContentForIteration was 0 (meaning only suffix should be shown)
-		// but we must ensure we don't exceed original maxWidth.
-		// The logic above for targetContentForIteration already ensures space.
-
-		needsReset := false
-		// Condition for reset: if styling was active in 's' and might affect suffix
-		if (ansiWrittenToContent || (inAnsiSequence && strings.Contains(s, "\x1b["))) && (currentContentDisplayWidth > 0 || ansiWrittenToContent) {
-			if !strings.HasSuffix(result, "\x1b[0m") {
-				needsReset = true
-			}
-		} else if currentContentDisplayWidth > 0 && strings.Contains(result, "\x1b[") && !strings.HasSuffix(result, "\x1b[0m") && strings.Contains(s, "\x1b[") {
-			// If result has content and ANSI, and original had ANSI, and result not already reset
+	// Determine if we need to append a reset sequence to prevent color bleeding.
+	// This is needed if we wrote any ANSI codes or if the input had active codes
+	// that we might have cut off or left open.
+	needsReset := false
+	if (ansiWrittenToContent || (inAnsiSequence && strings.Contains(s, "\x1b["))) && (currentContentDisplayWidth > 0 || ansiWrittenToContent) {
+		if !strings.HasSuffix(result, "\x1b[0m") {
 			needsReset = true
 		}
+	} else if currentContentDisplayWidth > 0 && strings.Contains(result, "\x1b[") && !strings.HasSuffix(result, "\x1b[0m") && strings.Contains(s, "\x1b[") {
+		needsReset = true
+	}
 
-		if needsReset {
-			result += "\x1b[0m"
-		}
+	if needsReset {
+		result += "\x1b[0m"
+	}
+
+	// Suffix is added if provided.
+	if len(suffixStr) > 0 {
 		result += suffixStr
 	}
 	return result
+}
+
+// SetCacheCapacity changes the cache size dynamically
+// If capacity <= 0, disables caching entirely
+func SetCacheCapacity(capacity int) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if capacity <= 0 {
+		widthCache = nil // nil = fully disabled
+		return
+	}
+
+	newCache := twcache.NewLRU[string, int](capacity)
+	widthCache = newCache
+}
+
+// GetCacheStats returns current cache statistics
+func GetCacheStats() (size, capacity int, hitRate float64) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if widthCache == nil {
+		return 0, 0, 0
+	}
+	return widthCache.Len(), widthCache.Cap(), widthCache.HitRate()
 }
