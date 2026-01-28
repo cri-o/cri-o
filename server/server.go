@@ -545,13 +545,19 @@ func New(
 			return nil, fmt.Errorf("load stream server x509 key pair: %w", err)
 		}
 
+		// Warn if cipher suites are configured with TLS 1.3 (they have no effect)
+		if config.GetTLSMinVersion() == tls.VersionTLS13 && len(config.TLSCipherSuites) > 0 {
+			log.Warnf(ctx, "tls_cipher_suites configuration is ignored when tls_min_version is 1.3 (Go manages TLS 1.3 cipher suites automatically)")
+		}
+
 		streamServerConfig.TLSConfig = &tls.Config{
 			GetConfigForClient: certConf.GetConfigForClient,
 			Certificates:       []tls.Certificate{certificate},
-			MinVersion:         tls.VersionTLS12,
+			MinVersion:         config.GetTLSMinVersion(),
+			CipherSuites:       config.GetTLSCipherSuites(),
 		}
 
-		log.Debugf(ctx, "Applying stream server TLS configuration")
+		log.Debugf(ctx, "Applying stream server TLS configuration with min version %s", config.TLSMinVersion)
 	}
 
 	s.stream.ctx = ctx
@@ -579,7 +585,7 @@ func New(
 	}
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
-		if err := metrics.New(&s.config.MetricsConfig).Start(ctx, s.monitorsChan); err != nil {
+		if err := metrics.New(&s.config.MetricsConfig, &s.config.APIConfig).Start(ctx, s.monitorsChan); err != nil {
 			return nil, err
 		}
 	} else {

@@ -208,6 +208,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.StreamTLSCA, c.StreamTLSCA),
 		},
 		{
+			templateString: templateStringCrioAPITLSMinVersion,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.TLSMinVersion, c.TLSMinVersion),
+		},
+		{
+			templateString: templateStringCrioAPITLSCipherSuites,
+			group:          crioAPIConfig,
+			isDefaultValue: slices.Equal(dc.TLSCipherSuites, c.TLSCipherSuites),
+		},
+		{
 			templateString: templateStringCrioAPIGrpcMaxSendMsgSize,
 			group:          crioAPIConfig,
 			isDefaultValue: simpleEqual(dc.GRPCMaxSendMsgSize, c.GRPCMaxSendMsgSize),
@@ -875,6 +885,22 @@ const templateStringCrioAPIStreamTLSCa = `# Path to the x509 CA(s) file used to 
 # communication with the encrypted stream. This file can change and CRI-O will
 # automatically pick up the changes.
 {{ $.Comment }}stream_tls_ca = "{{ .StreamTLSCA }}"
+
+`
+
+const templateStringCrioAPITLSMinVersion = `# Minimum TLS version for CRI-O's TLS servers (streaming and metrics).
+# Valid values are: "VersionTLS12" and "VersionTLS13" (matching Kubernetes conventions).
+# Default is "VersionTLS12".
+{{ $.Comment }}tls_min_version = "{{ .TLSMinVersion }}"
+
+`
+
+const templateStringCrioAPITLSCipherSuites = `# List of cipher suites to use for TLS 1.2.
+# If empty, the Go default cipher suites are used.
+# This has no effect on TLS 1.3 as Go manages cipher suites automatically.
+# Example cipher suites: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+{{ $.Comment }}tls_cipher_suites = [
+{{ range $cs := .TLSCipherSuites }}{{ $.Comment }}{{ printf "\t%q,\n" $cs }}{{ end }}{{ $.Comment }}]
 
 `
 
@@ -1627,6 +1653,7 @@ const templateStringCrioMetricsMetricsKey = `# The certificate key for the secur
 {{ $.Comment }}metrics_key = "{{ .MetricsKey }}"
 
 `
+
 
 const templateStringCrioTracing = `# A necessary configuration for OpenTelemetry trace data exporting
 [crio.tracing]
