@@ -8,11 +8,11 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/olekukonko/errors"
 	"github.com/olekukonko/ll"
 	"github.com/olekukonko/ll/lh"
+	"github.com/olekukonko/tablewriter/pkg/twcache"
 	"github.com/olekukonko/tablewriter/pkg/twwarp"
 	"github.com/olekukonko/tablewriter/pkg/twwidth"
 	"github.com/olekukonko/tablewriter/renderer"
@@ -23,7 +23,7 @@ import (
 type Table struct {
 	writer       io.Writer           // Destination for table output
 	counters     []tw.Counter        // Counters for indices
-	rows         [][][]string        // Row data, supporting multi-line cells
+	rows         [][]string          // Row data, one slice of strings per logical row
 	headers      [][]string          // Header content
 	footers      [][]string          // Footer content
 	headerWidths tw.Mapper[int, int] // Computed widths for header columns
@@ -52,9 +52,7 @@ type Table struct {
 	streamRowCounter        int                           // Counter for rows rendered in streaming mode (0-indexed logical rows)
 
 	// cache
-	stringerCache        map[reflect.Type]reflect.Value // Cache for stringer reflection
-	stringerCacheMu      sync.RWMutex                   // Mutex for thread-safe cache access
-	stringerCacheEnabled bool                           // Flag to enable/disable caching
+	stringerCache twcache.Cache[reflect.Type, reflect.Value] // Cache for stringer reflection
 
 	batchRenderNumCols      int
 	isBatchRenderNumColsSet bool
@@ -126,8 +124,7 @@ func NewTable(w io.Writer, opts ...Option) *Table {
 		streamRowCounter:       0,
 
 		//  Cache
-		stringerCache:        make(map[reflect.Type]reflect.Value),
-		stringerCacheEnabled: false, // Disabled by default
+		stringerCache: twcache.NewLRU[reflect.Type, reflect.Value](tw.DefaultCacheStringCapacity),
 	}
 
 	// set Options
@@ -221,13 +218,12 @@ func (t *Table) Append(rows ...interface{}) error {
 		}
 	}
 
-	// The rest of the function proceeds as before, converting the data to string lines.
-	lines, err := t.toStringLines(cellsSource, t.config.Row)
+	cells, err := t.convertCellsToStrings(cellsSource, t.config.Row)
 	if err != nil {
 		t.logger.Errorf("Append (Batch) failed for cellsSource %v: %v", cellsSource, err)
 		return err
 	}
-	t.rows = append(t.rows, lines)
+	t.rows = append(t.rows, cells)
 
 	t.logger.Debugf("Append (Batch) completed for one row, total rows in table: %d", len(t.rows))
 	return nil
@@ -456,7 +452,7 @@ func (t *Table) Reset() {
 	t.logger.Debug("Reset() called. Clearing table data and render state.")
 
 	// Clear data slices
-	t.rows = nil    // Or t.rows = make([][][]string, 0)
+	t.rows = nil    // Or t.rows = make([][]string, 0)
 	t.headers = nil // Or t.headers = make([][]string, 0)
 	t.footers = nil // Or t.footers = make([][]string, 0)
 
@@ -484,10 +480,11 @@ func (t *Table) Reset() {
 	t.streamRowCounter = 0
 
 	// The stringer and its cache are part of the table's configuration,
-	if t.stringerCacheEnabled {
-		t.stringerCacheMu.Lock()
-		t.stringerCache = make(map[reflect.Type]reflect.Value)
-		t.stringerCacheMu.Unlock()
+	if t.stringerCache == nil {
+		t.stringerCache = twcache.NewLRU[reflect.Type, reflect.Value](tw.DefaultCacheStringCapacity)
+		t.logger.Debug("Reset(): Stringer cache reset to default capacity.")
+	} else {
+		t.stringerCache.Purge()
 		t.logger.Debug("Reset(): Stringer cache cleared.")
 	}
 
@@ -556,16 +553,14 @@ func (t *Table) appendSingle(row interface{}) error {
 		t.logger.Debugf("appendSingle: Dispatching to streamAppendRow for row: %v", row)
 		return t.streamAppendRow(row) // Call the streaming render function
 	}
-	// Existing batch logic:
+
 	t.logger.Debugf("appendSingle: Processing for batch mode, row: %v", row)
-	// toStringLines now uses the new convertCellsToStrings internally, then prepareContent.
-	// This is fine for batch.
-	lines, err := t.toStringLines(row, t.config.Row)
+	cells, err := t.convertCellsToStrings(row, t.config.Row)
 	if err != nil {
-		t.logger.Debugf("Error in toStringLines (batch mode): %v", err)
+		t.logger.Debugf("Error in convertCellsToStrings (batch mode): %v", err)
 		return err
 	}
-	t.rows = append(t.rows, lines) // Add to batch storage
+	t.rows = append(t.rows, cells) // Add to batch storage
 	t.logger.Debugf("Row appended to batch t.rows, total batch rows: %d", len(t.rows))
 	return nil
 }
@@ -775,8 +770,8 @@ func (t *Table) maxColumns() int {
 		m = len(t.headers[0])
 	}
 	for _, row := range t.rows {
-		if len(row) > 0 && len(row[0]) > m {
-			m = len(row[0])
+		if len(row) > m {
+			m = len(row)
 		}
 	}
 	if len(t.footers) > 0 && len(t.footers[0]) > m {
@@ -811,7 +806,7 @@ func (t *Table) printTopBottomCaption(w io.Writer, actualTableWidth int) {
 		t.logger.Debugf("[printCaption] Empty table, no user caption.Width: Using natural caption width %d.", captionWrapWidth)
 	} else {
 		captionWrapWidth = actualTableWidth
-		t.logger.Debugf("[printCaption] Non-empty table, no user caption.Width: Using actualTableWidth %d for wrapping.", actualTableWidth)
+		t.logger.Debugf("[printCaption] Non-empty table, no user caption.Width: Using actualTableWidth %d for wrapping.", captionWrapWidth)
 	}
 
 	if captionWrapWidth <= 0 {
@@ -1066,13 +1061,20 @@ func (t *Table) prepareContexts() (*renderContext, *mergeContext, error) {
 		logger: t.logger,
 	}
 
-	isEmpty, visibleCount := t.getEmptyColumnInfo(numOriginalCols)
+	// Process raw rows into visual, multi-line rows
+	processedRowLines := make([][][]string, len(t.rows))
+	for i, rawRow := range t.rows {
+		processedRowLines[i] = t.prepareContent(rawRow, t.config.Row)
+	}
+	ctx.rowLines = processedRowLines
+
+	isEmpty, visibleCount := t.getEmptyColumnInfo(ctx.rowLines, numOriginalCols)
 	ctx.emptyColumns = isEmpty
 	ctx.visibleColCount = visibleCount
 
 	mctx := &mergeContext{
 		headerMerges: make(map[int]tw.MergeState),
-		rowMerges:    make([]map[int]tw.MergeState, len(t.rows)),
+		rowMerges:    make([]map[int]tw.MergeState, len(ctx.rowLines)),
 		footerMerges: make(map[int]tw.MergeState),
 		horzMerges:   make(map[tw.Position]map[int]bool),
 	}
@@ -1081,7 +1083,6 @@ func (t *Table) prepareContexts() (*renderContext, *mergeContext, error) {
 	}
 
 	ctx.headerLines = t.headers
-	ctx.rowLines = t.rows
 	ctx.footerLines = t.footers
 
 	if err := t.calculateAndNormalizeWidths(ctx); err != nil {
@@ -1095,21 +1096,28 @@ func (t *Table) prepareContexts() (*renderContext, *mergeContext, error) {
 	ctx.headerLines = preparedHeaderLines
 	mctx.headerMerges = headerMerges
 
-	processedRowLines := make([][][]string, len(ctx.rowLines))
+	// Re-process row lines for merges now that widths are known
+	processedRowLinesWithMerges := make([][][]string, len(ctx.rowLines))
 	for i, row := range ctx.rowLines {
 		if mctx.rowMerges[i] == nil {
 			mctx.rowMerges[i] = make(map[int]tw.MergeState)
 		}
-		processedRowLines[i], mctx.rowMerges[i], _ = t.prepareWithMerges(row, t.config.Row, tw.Row)
+		processedRowLinesWithMerges[i], mctx.rowMerges[i], _ = t.prepareWithMerges(row, t.config.Row, tw.Row)
 	}
-	ctx.rowLines = processedRowLines
+	ctx.rowLines = processedRowLinesWithMerges
 
-	t.applyHorizontalMergeWidths(tw.Header, ctx, mctx.headerMerges)
+	t.applyHorizontalMerges(tw.Header, ctx, mctx.headerMerges)
 
-	if t.config.Row.Formatting.MergeMode&tw.MergeVertical != 0 {
+	mergeMode := t.config.Row.Merging.Mode
+	if mergeMode == 0 {
+		mergeMode = t.config.Row.Formatting.MergeMode
+	}
+
+	// Now check against the effective mode
+	if mergeMode&tw.MergeVertical != 0 {
 		t.applyVerticalMerges(ctx, mctx)
 	}
-	if t.config.Row.Formatting.MergeMode&tw.MergeHierarchical != 0 {
+	if mergeMode&tw.MergeHierarchical != 0 {
 		t.applyHierarchicalMerges(ctx, mctx)
 	}
 
@@ -1166,7 +1174,7 @@ func (t *Table) prepareFooter(ctx *renderContext, mctx *mergeContext) {
 	mctx.footerMerges = mergeStates
 	ctx.footerLines = t.footers
 	t.logger.Debugf("Base footer widths (normalized from rows/header): %v", ctx.widths[tw.Footer])
-	t.applyHorizontalMergeWidths(tw.Footer, ctx, mctx.footerMerges)
+	t.applyHorizontalMerges(tw.Footer, ctx, mctx.footerMerges)
 	ctx.footerPrepared = true
 	t.logger.Debugf("Footer preparation completed. Final footer widths: %v", ctx.widths[tw.Footer])
 }
