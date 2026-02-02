@@ -324,43 +324,12 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 
 	sort.Strings(repoTagStrings)
 
-	// Build repo digest strings with stable ordering:
-	// - Keep knownRepoDigests (from image's stored names) in original order
-	// - Sort additional computed digests alphabetically
-	// This ensures the PullImage digest appears first, allowing Kubernetes to rely on
-	// the first RepoDigest for credential tracking (kubernetes/kubernetes#135369).
-
-	// Convert known digests to strings (preserve order)
-	// `digests` contains canonical references from the image's stored names - these are
-	// the "known" digests that should appear first in RepoDigests in their original order.
-	// `repoDigests` (returned from makeRepoDigests earlier) contains the union of:
-	// - known digests from the image's stored names
-	// - computed digests from combining the image digest with repository names from tags
 	repoDigestStrings := make([]string, 0, len(repoDigests))
-	for _, d := range digests {
+	for _, d := range repoDigests {
 		repoDigestStrings = append(repoDigestStrings, d.String())
 	}
 
-	// Collect additional (computed) digests
-	knownSet := make(map[string]bool, len(digests))
-	for _, d := range repoDigestStrings {
-		knownSet[d] = true
-	}
-
-	additionalDigests := make([]string, 0)
-
-	for _, d := range repoDigests {
-		digestString := d.String()
-		if !knownSet[digestString] {
-			additionalDigests = append(additionalDigests, digestString)
-		}
-	}
-
-	// Sort only the additional digests
-	sort.Strings(additionalDigests)
-
-	// Combine: known (in original order) + additional (sorted)
-	repoDigestStrings = append(repoDigestStrings, additionalDigests...)
+	sort.Strings(repoDigestStrings)
 
 	previousName := ""
 
@@ -896,17 +865,13 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		ProgressInterval: options.ProgressInterval,
 		Progress:         options.Progress,
 	})
-	isOCIArtifact := false
-
-	var canonicalRef reference.Canonical
-
 	if err != nil {
 		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext)
 		if artifactErr != nil {
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: create store err: %w", artifactErr)
 		}
 
-		manifestDigest, artifactErr := artifactStore.PullManifest(ctx, srcRef, &libimage.CopyOptions{
+		artifactManifestDigest, artifactErr := artifactStore.PullManifest(ctx, srcRef, &libimage.CopyOptions{
 			OciDecryptConfig: options.OciDecryptConfig,
 			Progress:         options.Progress,
 			RemoveSignatures: true, // signature is not supported for OCI layout dest
@@ -915,49 +880,22 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: pull image err: %w; artifact err: %w", err, artifactErr)
 		}
 
-		canonicalRef, err = reference.WithDigest(reference.TrimNamed(imageName.Raw()), *manifestDigest)
+		canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), *artifactManifestDigest)
 		if err != nil {
 			return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
 		}
 
-		isOCIArtifact = true
-	} else {
-		manifestDigest, err := manifest.Digest(manifestBytes)
-		if err != nil {
-			return RegistryImageReference{}, fmt.Errorf("digesting image: %w", err)
-		}
-
-		canonicalRef, err = reference.WithDigest(reference.TrimNamed(imageName.Raw()), manifestDigest)
-		if err != nil {
-			return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
-		}
+		return references.RegistryImageReferenceFromRaw(canonicalRef), nil
 	}
 
-	// The manifestDigest may differ from the requested reference for multi-arch images
-	// (platform-specific vs manifest list digest) or pull-by-tag (tag -> digest form).
-	// Ensure the pulled digest appears first in image names so Kubernetes can find it
-	// in ImageStatus RepoDigests for credential tracking (kubernetes/kubernetes#135369).
-	// Note: This only applies to regular container images, not OCI artifacts.
-	canonicalRefString := canonicalRef.String()
-	if !isOCIArtifact && canonicalRefString != imageName.Raw().String() {
-		// The pulled digest differs from the requested reference
-		// Look up the image to reorder its names (reuse destRef from above)
-		_, img, err := istorage.ResolveReference(destRef)
-		if err != nil {
-			return RegistryImageReference{}, fmt.Errorf("looking up pulled image: %w", err)
-		}
+	manifestDigest, err := manifest.Digest(manifestBytes)
+	if err != nil {
+		return RegistryImageReference{}, fmt.Errorf("digesting image: %w", err)
+	}
 
-		// Reorder names to put the platform-specific digest first
-		reorderedNames := []string{canonicalRefString}
-		for _, name := range img.Names {
-			if name != canonicalRefString {
-				reorderedNames = append(reorderedNames, name)
-			}
-		}
-
-		if err := store.SetNames(img.ID, reorderedNames); err != nil {
-			return RegistryImageReference{}, fmt.Errorf("reordering image names: %w", err)
-		}
+	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), manifestDigest)
+	if err != nil {
+		return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
 	}
 
 	return references.RegistryImageReferenceFromRaw(canonicalRef), nil

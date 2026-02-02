@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1314,14 +1313,9 @@ func (s *Server) resolveAndVerifyContainerImage(ctx context.Context, ctr contain
 	someNameOfTheImage := imgResult.SomeNameOfThisImage
 	imageID := imgResult.ID
 
-	// For ImageRef, prefer user-requested image if it's a digest in RepoDigests.
-	// This ensures manifest list digests appear in ImageRef (not platform-specific ones).
 	someRepoDigest := ""
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
-		if slices.Contains(imgResult.RepoDigests, userRequestedImage) {
-			someRepoDigest = userRequestedImage
-		}
 	}
 
 	if err := s.verifyImageSignature(ctx, sb.Metadata().GetNamespace(), ctr.Config().GetImage().GetUserSpecifiedImage(), imgResult); err != nil {
