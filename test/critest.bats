@@ -23,7 +23,6 @@ function teardown() {
 		--ginkgo.randomize-all \
 		--ginkgo.timeout 5m \
 		--ginkgo.trace \
-		--ginkgo.vv \
 		--ginkgo.flake-attempts 3 >&3
 
 	if [[ $RUNTIME_TYPE == pod ]]; then
