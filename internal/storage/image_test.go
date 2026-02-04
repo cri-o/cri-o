@@ -309,11 +309,17 @@ var _ = t.Describe("Image", func() {
 	t.Describe("UntagImage", func() {
 		It("should succeed to untag an image", func() {
 			// Given
+			// Allow multiple calls because deleteImageInternal creates storage references
+			storeMock.EXPECT().GraphOptions().Return([]string{}).AnyTimes()
+			storeMock.EXPECT().GraphDriverName().Return("").AnyTimes()
+			storeMock.EXPECT().GraphRoot().Return("").AnyTimes()
+			storeMock.EXPECT().RunRoot().Return("").AnyTimes()
+
 			mockutils.InOrder(
 				mockResolveReference(storeMock, storageTransportMock,
 					testNormalizedImageName, "", testSHA256),
 				storeMock.EXPECT().Image(testSHA256).
-					Return(&cs.Image{ID: testSHA256}, nil),
+					Return(&cs.Image{ID: testSHA256, Names: []string{testNormalizedImageName}}, nil),
 				storeMock.EXPECT().DeleteImage(testSHA256, true).
 					Return(nil, nil),
 			)
@@ -360,7 +366,7 @@ var _ = t.Describe("Image", func() {
 							Names: []string{testNormalizedImageName, "localhost/b:latest", "localhost/c:latest"},
 						},
 						nil),
-
+				mockStorageReferenceStringWithinTransport(storeMock),
 				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest"}).
 					Return(t.TestError),
 			)
@@ -397,6 +403,7 @@ var _ = t.Describe("Image", func() {
 								"localhost/c:latest",
 							},
 						}, nil),
+				mockStorageReferenceStringWithinTransport(storeMock),
 				// buildImageCacheItem
 				mockNewImage(storeMock, namedRef.String(), testSHA256, testSHA256),
 				storeMock.EXPECT().Image(testSHA256).
@@ -449,6 +456,7 @@ var _ = t.Describe("Image", func() {
 			mockutils.InOrder(
 				mockResolveReference(storeMock, storageTransportMock,
 					testNormalizedImageName, "", testSHA256),
+				mockStorageReferenceStringWithinTransport(storeMock),
 				// In buildImageCacheItem, storageReference.NewImage fails reading the manifest:
 				mockResolveImage(storeMock, testNormalizedImageName, testSHA256, testSHA256),
 				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
