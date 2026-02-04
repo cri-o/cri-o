@@ -19,7 +19,7 @@ dependencies:
         match: Version
 
   - name: supported versions
-    version: '{"1.34", "1.33", "1.32"}'
+    version: '{"1.34", "1.33"}'
     refPaths:
       - path: internal/version/version.go
         match: ReleaseMinorVersions
