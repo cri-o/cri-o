@@ -246,3 +246,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
+
+replace github.com/containers/storage => github.com/bitoku/storage v0.0.0-20260204184651-56dc87d1c743
