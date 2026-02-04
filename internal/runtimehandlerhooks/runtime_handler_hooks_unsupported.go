@@ -13,11 +13,22 @@ const (
 	IrqSmpAffinityProcFile = ""
 )
 
-// GetRuntimeHandlerHooks returns RuntimeHandlerHooks implementation by the runtime handler name
-func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handler string, annotations map[string]string) (RuntimeHandlerHooks, error) {
+// NewHooksRetriever returns a pointer to a new retriever.
+func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetriever {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	return &DefaultCPULoadBalanceHooks{}, nil
+
+	rhh := &HooksRetriever{
+		config:               config,
+		highPerformanceHooks: nil,
+	}
+
+	return rhh
+}
+
+// Get always returns DefaultCPULoadBalanceHooks for non-linux architectures.
+func (hr *HooksRetriever) Get(runtimeName string, sandboxAnnotations map[string]string) RuntimeHandlerHooks {
+	return &DefaultCPULoadBalanceHooks{}
 }
 
 // RestoreIrqBalanceConfig restores irqbalance service with original banned cpu mask settings
