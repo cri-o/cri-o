@@ -5,7 +5,7 @@ load helpers
 
 function setup() {
 	if is_cgroup_v2; then
-		skip "not yet supported on cgroup2"
+		skip "must be configured with cgroupv1 for this test"
 	fi
 	export activation="cpu-load-balancing.crio.io"
 	export prefix="io.openshift.workload.management"
