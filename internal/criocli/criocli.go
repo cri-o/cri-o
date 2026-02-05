@@ -604,6 +604,7 @@ func mergeMetricsConfig(config *libconfig.Config, ctx *cli.Context) {
 	}
 
 	if ctx.IsSet("included-pod-metrics") {
+		//nolint:staticcheck // Needs to use the user input config.
 		config.IncludedPodMetrics = StringSliceTrySplit(ctx, "included-pod-metrics")
 	}
 }
@@ -1497,6 +1498,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 				"CONTAINER_INCLUDED_POD_METRCIS", // TODO: This typo'ed variable is deprecated and can be removed in a future release.
 				"CONTAINER_INCLUDED_POD_METRICS",
 			},
+			//nolint:staticcheck // Needs to use the user input config.
 			Value: cli.NewStringSlice(defConf.IncludedPodMetrics...),
 		},
 		&cli.BoolFlag{
