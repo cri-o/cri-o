@@ -866,7 +866,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		Progress:         options.Progress,
 	})
 	if err != nil {
-		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext)
+		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), nil, &srcSystemContext)
 		if artifactErr != nil {
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: create store err: %w", artifactErr)
 		}
