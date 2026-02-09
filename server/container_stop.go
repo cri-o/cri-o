@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
@@ -46,11 +47,7 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 
 	sb := s.getSandbox(ctx, ctr.Sandbox())
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
-	if err != nil {
-		return fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
-	}
-
+	hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
 	if hooks != nil {
 		if err := hooks.PreStop(ctx, ctr, sb); err != nil {
 			return fmt.Errorf("failed to run pre-stop hook for container %q: %w", ctr.ID(), err)
@@ -61,12 +58,14 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 	}
 
-	if err := s.StorageRuntimeServer().StopContainer(ctx, ctr.ID()); err != nil {
-		return fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
-	}
+	s.postStopCleanup(ctx, ctr, sb, hooks)
 
-	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
-		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
+	return nil
+}
+
+func (s *Server) postStopCleanup(ctx context.Context, ctr *oci.Container, sb *sandbox.Sandbox, hooks runtimehandlerhooks.RuntimeHandlerHooks) {
+	if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, ctr.ID()); err != nil {
+		log.Errorf(ctx, "Failed to unmount container %s: %v", ctr.ID(), err)
 	}
 
 	if hooks != nil {
@@ -77,8 +76,11 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	}
 
 	if err := s.nri.stopContainer(ctx, sb, ctr); err != nil {
-		return err
+		log.Warnf(ctx, "NRI stop container request of %s failed: %v", ctr.ID(), err)
 	}
-
-	return nil
+	// persist container state at the end, so there's no window where CRI-O reports the container
+	// as stopped, but hasn't run post stop hooks.
+	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
+		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
+	}
 }

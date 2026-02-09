@@ -92,6 +92,8 @@ type Server struct {
 
 	// NRI runtime interface
 	nri *nriAPI
+	// hooksRetriever allows getting the runtime hooks for the sandboxes.
+	hooksRetriever *runtimehandlerhooks.HooksRetriever
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -449,7 +451,9 @@ func New(
 		minimumMappableGID:       config.MinimumMappableGID,
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 		resourceStore:            resourcestore.New(),
+		hooksRetriever:           runtimehandlerhooks.NewHooksRetriever(ctx, config),
 	}
+
 	if s.config.EnablePodEvents {
 		// creating a container events channel only if the evented pleg is enabled
 		s.ContainerEventsChan = make(chan types.ContainerEventResponse, 1000)
@@ -798,7 +802,6 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	containerID := filepath.Base(event.Name)
 	log.Debugf(ctx, "Container or sandbox exited: %v", containerID)
 	c := s.GetContainer(ctx, containerID)
-	nriCtr := c
 	resource := "container"
 	var sb *sandbox.Sandbox
 	if c == nil {
@@ -819,24 +822,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	}
 	log.Debugf(ctx, "%s exited and found: %v", resource, containerID)
 
-	if err := s.ContainerStateToDisk(ctx, c); err != nil {
-		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
-	}
-
-	if nriCtr != nil {
-		if err := s.nri.stopContainer(ctx, nil, nriCtr); err != nil {
-			log.Warnf(ctx, "NRI stop container request of %s failed: %v", nriCtr.ID(), err)
-		}
-	}
-
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
-	if err != nil {
-		log.Warnf(ctx, "Failed to get runtime handler %q hooks", sb.RuntimeHandler())
-	} else if hooks != nil {
-		if err := hooks.PostStop(ctx, c, sb); err != nil {
-			log.Errorf(ctx, "Failed to run post-stop hook for container %s: %v", c.ID(), err)
-		}
-	}
+	s.postStopCleanup(ctx, c, sb, s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations()))
 
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STOPPED_EVENT)
 	if err := os.Remove(event.Name); err != nil {
