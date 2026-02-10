@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/image"
@@ -74,7 +75,13 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	// Please keep this policy check BEFORE reading any other information about the image.
 	// (The multiImage check above only matches the MIME type, which we have received anyway.
 	// Actual parsing of anything should be deferred.)
-	if allowed, err := c.policyContext.IsRunningImageAllowed(ctx, unparsedImage); !allowed || err != nil { // Be paranoid and fail if either return value indicates so.
+	// Create a timeout context for GPG key import operations to prevent indefinite hanging.
+	// This timeout is passed down to the cancellable reader which will interrupt operations
+	// if they take too long, preventing file descriptor leaks.
+	const importTimeout = 60 * time.Second
+	policyCtx, cancel := context.WithTimeout(ctx, importTimeout)
+	defer cancel()
+	if allowed, err := c.policyContext.IsRunningImageAllowed(policyCtx, unparsedImage); !allowed || err != nil { // Be paranoid and fail if either return value indicates so.
 		return copySingleImageResult{}, fmt.Errorf("Source image rejected: %w", err)
 	}
 	src, err := image.FromUnparsedImage(ctx, c.options.SourceCtx, unparsedImage)

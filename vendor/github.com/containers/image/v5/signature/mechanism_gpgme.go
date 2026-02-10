@@ -5,8 +5,10 @@ package signature
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/containers/image/v5/signature/internal"
@@ -36,7 +38,9 @@ func newGPGSigningMechanismInDirectory(optionalDir string) (signingMechanismWith
 // recognizes _only_ public keys from the supplied blobs, and returns the identities
 // of these keys.
 // The caller must call .Close() on the returned SigningMechanism.
-func newEphemeralGPGSigningMechanism(blobs [][]byte) (signingMechanismWithPassphrase, []string, error) {
+// The context is used for cancellation - when it times out or is cancelled, the
+// cancellable reader will interrupt key import operations.
+func newEphemeralGPGSigningMechanism(blobs [][]byte, ctx context.Context) (signingMechanismWithPassphrase, []string, error) {
 	dir, err := os.MkdirTemp("", "containers-ephemeral-gpg-")
 	if err != nil {
 		return nil, nil, err
@@ -47,17 +51,18 @@ func newEphemeralGPGSigningMechanism(blobs [][]byte) (signingMechanismWithPassph
 			os.RemoveAll(dir)
 		}
 	}()
-	ctx, err := newGPGMEContext(dir)
+	gpgmeCtx, err := newGPGMEContext(dir)
 	if err != nil {
 		return nil, nil, err
 	}
 	mech := &gpgmeSigningMechanism{
-		ctx:          ctx,
+		ctx:          gpgmeCtx,
 		ephemeralDir: dir,
 	}
+
 	keyIdentities := []string{}
 	for _, blob := range blobs {
-		ki, err := mech.importKeysFromBytes(blob)
+		ki, err := mech.importKeysFromBytes(blob, ctx)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -95,12 +100,41 @@ func (m *gpgmeSigningMechanism) Close() error {
 	return nil
 }
 
+type cancelableReader struct {
+	ctx    context.Context
+	reader io.Reader
+}
+
+func (r *cancelableReader) Read(p []byte) (int, error) {
+	// Check if context is cancelled before each read
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
+	n, err := r.reader.Read(p)
+	// Check again after read in case cancellation happened during the read
+	if err == nil && r.ctx.Err() != nil {
+		return n, r.ctx.Err()
+	}
+	return n, err
+}
+
 // importKeysFromBytes imports public keys from the supplied blob and returns their identities.
 // The blob is assumed to have an appropriate format (the caller is expected to know which one).
 // NOTE: This may modify long-term state (e.g. key storage in a directory underlying the mechanism);
 // but we do not make this public, it can only be used through newEphemeralGPGSigningMechanism.
-func (m *gpgmeSigningMechanism) importKeysFromBytes(blob []byte) ([]string, error) {
-	inputData, err := gpgme.NewDataBytes(blob)
+// Uses a cancellable reader to prevent indefinite hanging and file descriptor leaks.
+// The cancellable reader will return an error when cancellation is detected, causing Import to fail.
+// The context is used for cancellation - when it times out or is cancelled, the reader will
+// interrupt the operation.
+func (m *gpgmeSigningMechanism) importKeysFromBytes(blob []byte, ctx context.Context) ([]string, error) {
+	// Create a cancellable reader that wraps the blob data
+
+	reader := &cancelableReader{
+		ctx:    ctx,
+		reader: bytes.NewReader(blob),
+	}
+
+	inputData, err := gpgme.NewDataReader(reader)
 	if err != nil {
 		return nil, err
 	}
