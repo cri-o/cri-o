@@ -107,8 +107,47 @@ func (c *ContainerServer) ContainerRestore(
 				}
 			}
 		} else {
-			if err := crutils.CRImportCheckpointWithoutConfig(ctr.Dir(), ctr.RestoreArchivePath()); err != nil {
-				return "", err
+			// Check if RestoreArchivePath is a directory (for pod checkpoint restore)
+			// or a tar archive (for standalone container restore)
+			var isDirectory bool
+
+			fileInfo, err := os.Stat(ctr.RestoreArchivePath())
+			if err == nil {
+				isDirectory = fileInfo.IsDir()
+			} else if !os.IsNotExist(err) {
+				return "", fmt.Errorf("unable to stat restore archive path %q: %w", ctr.RestoreArchivePath(), err)
+			}
+
+			if isDirectory {
+				// Directory-based checkpoint (from pod restore)
+				// Copy checkpoint files from directory to container directory
+				log.Debugf(ctx, "Restoring from checkpoint directory %s", ctr.RestoreArchivePath())
+
+				checkpoint := []string{
+					"artifacts",
+					metadata.CheckpointDirectory,
+					metadata.DevShmCheckpointTar,
+					metadata.RootFsDiffTar,
+					metadata.DeletedFilesFile,
+					metadata.PodOptionsFile,
+					metadata.PodDumpFile,
+					stats.StatsDump,
+					"bind.mounts",
+					annotations.LogPath,
+				}
+				for _, name := range checkpoint {
+					src := filepath.Join(ctr.RestoreArchivePath(), name)
+					dst := filepath.Join(ctr.Dir(), name)
+
+					if err := archive.NewDefaultArchiver().CopyWithTar(src, dst); err != nil {
+						logrus.Debugf("Can't import '%s' from checkpoint directory", name)
+					}
+				}
+			} else {
+				// Tar archive-based checkpoint
+				if err := crutils.CRImportCheckpointWithoutConfig(ctr.Dir(), ctr.RestoreArchivePath()); err != nil {
+					return "", err
+				}
 			}
 		}
 
@@ -359,3 +398,12 @@ func (c *ContainerServer) restoreFileSystemChanges(ctr *oci.Container, mountPoin
 
 	return nil
 }
+
+// NOTE: Pod restoration logic is implemented in server/sandbox_restore.go
+// Unlike container checkpoint (which can be fully contained in the library layer),
+// pod restore requires coordination between library and server layers because it needs to:
+// 1. Create pod sandbox (requires server's RunPodSandbox)
+// 2. Import containers (uses server's CRImportCheckpoint)
+// 3. Start containers (requires server's StartContainer)
+// Therefore, the complete implementation lives in the server layer to avoid
+// circular dependencies and maintain proper architectural separation.
