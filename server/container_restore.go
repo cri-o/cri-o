@@ -51,6 +51,73 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*
 	return &status.ID, nil
 }
 
+// PodCheckpointInfo contains metadata about a pod checkpoint OCI image.
+type PodCheckpointInfo struct {
+	ImageID      *storage.StorageImageID
+	PodName      string
+	PodNamespace string
+	OldPodID     string
+	PodUID       string
+}
+
+// checkIfPodCheckpointOCIImage checks if the input refers to a pod checkpoint image.
+// It returns a PodCheckpointInfo if it's a pod checkpoint, nil otherwise.
+func (s *Server) checkIfPodCheckpointOCIImage(ctx context.Context, input string) (*PodCheckpointInfo, error) {
+	if input == "" {
+		return nil, nil
+	}
+
+	if _, err := os.Stat(input); err == nil {
+		return nil, nil
+	}
+
+	status, err := s.storageImageStatus(ctx, &types.ImageSpec{Image: input})
+	if err != nil {
+		return nil, err
+	}
+
+	if status == nil || status.Annotations == nil {
+		return nil, nil
+	}
+
+	// Check for pod checkpoint annotation
+	podName, ok := status.Annotations[metadata.CheckpointAnnotationPod]
+	if !ok {
+		return nil, nil
+	}
+
+	// Read pod namespace from annotations
+	podNamespace := status.Annotations[metadata.CheckpointAnnotationNamespace]
+	if podNamespace == "" {
+		// Default to "default" namespace if not found
+		podNamespace = "default"
+
+		log.Warnf(ctx, "Pod namespace annotation not found in checkpoint image, using default")
+	}
+
+	// Read old pod ID from annotations
+	oldPodID := status.Annotations[metadata.CheckpointAnnotationPodID]
+	if oldPodID == "" {
+		log.Warnf(ctx, "Pod ID annotation not found in checkpoint image")
+	}
+
+	// Read pod UID from annotations
+	podUID := status.Annotations[metadata.CheckpointAnnotationPodUID]
+	if podUID == "" {
+		log.Warnf(ctx, "Pod UID annotation not found in checkpoint image")
+	}
+
+	log.Debugf(ctx, "Found checkpoint of pod %v (namespace: %s, old ID: %s, UID: %s) in %v", podName, podNamespace, oldPodID, podUID, input)
+
+	return &PodCheckpointInfo{
+		ImageID:      &status.ID,
+		PodName:      podName,
+		PodNamespace: podNamespace,
+		OldPodID:     oldPodID,
+		PodUID:       podUID,
+	}, nil
+}
+
 // taken from Podman.
 func (s *Server) CRImportCheckpoint(
 	ctx context.Context,
@@ -73,6 +140,11 @@ func (s *Server) CRImportCheckpoint(
 	createAnnotations := createConfig.GetAnnotations()
 	createLabels := createConfig.GetLabels()
 
+	// Check if inputImage is a directory (for pod checkpoint restore)
+	// If it's a directory, we can use it directly without mounting or extracting
+	fileInfo, statErr := os.Stat(inputImage)
+	isDirectory := statErr == nil && fileInfo.IsDir()
+
 	restoreStorageImageID, err := s.checkIfCheckpointOCIImage(ctx, inputImage)
 	if err != nil {
 		return "", err
@@ -80,7 +152,15 @@ func (s *Server) CRImportCheckpoint(
 
 	var restoreArchivePath string
 
-	if restoreStorageImageID != nil {
+	switch {
+	case isDirectory:
+		// Third method: Directory-based checkpoint (for pod restore)
+		// The checkpoint data is already available in a directory (from mounted pod checkpoint image)
+		log.Debugf(ctx, "Restoring from checkpoint directory %s", inputImage)
+		mountPoint = inputImage
+		restoreArchivePath = inputImage
+		// No cleanup needed since we don't own this directory
+	case restoreStorageImageID != nil:
 		systemCtx, err := s.contextForNamespace(sb.Metadata().GetNamespace())
 		if err != nil {
 			return "", fmt.Errorf("get context for namespace: %w", err)
@@ -107,7 +187,7 @@ func (s *Server) CRImportCheckpoint(
 				log.Errorf(ctx, "Could not unmount checkpoint image %s: %q", restoreStorageImageID, err)
 			}
 		}()
-	} else {
+	default:
 		// First get the container definition from the
 		// tarball to a temporary directory
 		archiveFile, err := os.Open(inputImage)
@@ -200,27 +280,20 @@ func (s *Server) CRImportCheckpoint(
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}
 
-	// Newer checkpoints archives have RootfsImageRef set
-	// and using it for the restore is more correct.
-	// For the Kubernetes use case the output of 'crictl ps'
-	// contains for the original container under 'IMAGE' something
-	// like 'registry/path/container@sha256:123444444...'.
-	// The restored container was, however, only displaying something
-	// like 'registry/path/container'.
-	// This had two problems, first, the output from the restored
-	// container was different, but the bigger problem was, that
-	// CRI-O might pull the wrong image from the registry.
-	// If the container in the registry was updated (new latest tag)
-	// all of a sudden the wrong base image would be downloaded.
+	// RootfsImageName contains the human-readable image reference including
+	// the digest (e.g. 'registry/path/container@sha256:123444444...').
+	// This is what 'crictl ps' displays under 'IMAGE' and matches the
+	// output for non-restored containers.
+	// For older checkpoint archives where RootfsImageName might be empty,
+	// fall back to the storage image ID from RootfsImageRef.
 	rootFSImage := config.RootfsImageName
 
-	if config.RootfsImageRef != "" {
+	if rootFSImage == "" && config.RootfsImageRef != "" {
 		id, err := storage.ParseStorageImageIDFromOutOfProcessData(config.RootfsImageRef)
 		if err != nil {
 			return "", fmt.Errorf("invalid RootfsImageRef %q: %w", config.RootfsImageRef, err)
 		}
-		// This is not quite out-of-process consumption, but types.ContainerConfig is at least
-		// a cross-process API, and this value is correct in that API.
+
 		rootFSImage = id.IDStringForOutOfProcessConsumptionOnly()
 	}
 

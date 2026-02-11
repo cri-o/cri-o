@@ -1,24 +1,33 @@
 package lib
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v8/stats"
+	"github.com/checkpoint-restore/go-criu/v8/utils"
+	"github.com/containers/buildah"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.podman.io/common/pkg/crutils"
+	istorage "go.podman.io/image/v5/storage"
 	"go.podman.io/storage/pkg/archive"
+	"golang.org/x/sys/unix"
 
 	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/version"
 )
 
 // ContainerCheckpointOptions is the relevant subset of libpod.ContainerCheckpointOptions.
@@ -461,4 +470,368 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 	}
 
 	return nil
+}
+
+// PodCheckpoint checkpoints a running pod sandbox.
+func (c *ContainerServer) PodCheckpoint(
+	ctx context.Context,
+	config *metadata.ContainerConfig,
+	opts *PodCheckpointOptions,
+) (string, error) {
+	sb := c.GetSandbox(config.ID)
+	if sb == nil {
+		return "", fmt.Errorf("failed to find sandbox %s", config.ID)
+	}
+
+	log.Infof(ctx, "Checkpointing pod sandbox: %s", config.ID)
+
+	containers := sb.Containers().List()
+	if len(containers) == 0 {
+		return "", fmt.Errorf("no containers to checkpoint in sandbox %s", config.ID)
+	}
+
+	// Determine if location is a local file path or OCI image.
+	// If the parent directory of TargetFile exists on disk, treat it as
+	// a local file path and create a tar archive. Otherwise, fall through
+	// to the existing OCI image path using buildah.
+	isLocalFile := false
+
+	if opts.TargetFile != "" {
+		dir := filepath.Dir(opts.TargetFile)
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			isLocalFile = true
+		}
+	}
+
+	// Set up working directory
+	var (
+		mountPoint string
+		builder    *buildah.Builder
+	)
+
+	if isLocalFile {
+		// Create a temporary directory as the working area for checkpoint data
+		tempDir, err := os.MkdirTemp("", "pod-checkpoint-")
+		if err != nil {
+			return "", fmt.Errorf("failed to create temp directory for pod checkpoint: %w", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		mountPoint = tempDir
+		log.Infof(ctx, "Using temp directory %s for pod checkpoint to local file %s", mountPoint, opts.TargetFile)
+	} else {
+		// Create OCI image builder and mount it early to avoid copying data
+		store := c.StorageImageServer().GetStore()
+
+		builderOpts := buildah.BuilderOptions{
+			FromImage: "scratch",
+		}
+
+		var err error
+
+		builder, err = buildah.NewBuilder(ctx, store, builderOpts)
+		if err != nil {
+			return "", fmt.Errorf("failed to create buildah builder: %w", err)
+		}
+
+		defer func() {
+			if err := builder.Delete(); err != nil {
+				log.Warnf(ctx, "Failed to delete buildah builder: %v", err)
+			}
+		}()
+
+		// Mount the builder to get a filesystem path where we can write directly
+		mountPoint, err = builder.Mount("")
+		if err != nil {
+			return "", fmt.Errorf("failed to mount builder: %w", err)
+		}
+
+		defer func() {
+			if err := builder.Unmount(); err != nil {
+				log.Warnf(ctx, "Failed to unmount builder: %v", err)
+			}
+		}()
+
+		log.Infof(ctx, "Mounted OCI image at %s for pod checkpoint", mountPoint)
+	}
+
+	// Pause/freeze all containers in a first pass before doing any
+	// checkpointing. This way every container is frozen before we start
+	// collecting checkpoint data and file-system changes.
+	//
+	// Parent cgroup level freezing has not been implemented because there
+	// is no way to tell CRIU that the freeze happens in a parent cgroup
+	// that CRIU does not know about. The freeze state of a parent cgroup
+	// is not visible in a child cgroup. When CRIU (invoked via runc/crun)
+	// tries to freeze the container cgroup itself it will hang because
+	// the parent is already frozen and CRIU's parasite code cannot run.
+	// Although freezing via the parent cgroup sounds more atomic, the
+	// kernel still freezes processes one after another. The current
+	// approach pauses each container individually in a tight loop so
+	// that all containers are frozen before the actual checkpointing
+	// begins.
+	pausedContainers := make(map[string]bool)
+
+	for _, ctr := range containers {
+		log.Infof(ctx, "Pausing container %s before pod checkpoint", ctr.ID())
+
+		if err := c.runtime.PauseContainer(ctx, ctr); err != nil {
+			// Best effort unpause any already paused containers
+			for pausedID := range pausedContainers {
+				if pausedCtr, err := c.LookupContainer(ctx, pausedID); err == nil {
+					if err := c.runtime.UnpauseContainer(ctx, pausedCtr); err != nil {
+						log.Errorf(ctx, "Failed to unpause container %s: %v", pausedID, err)
+					}
+				}
+			}
+
+			return "", fmt.Errorf("failed to pause container %s: %w", ctr.ID(), err)
+		}
+
+		pausedContainers[ctr.ID()] = true
+	}
+
+	// Defer unpausing all containers
+	defer func() {
+		for containerID := range pausedContainers {
+			ctr, err := c.LookupContainer(ctx, containerID)
+			if err != nil {
+				log.Errorf(ctx, "Failed to lookup container %s for unpausing: %v", containerID, err)
+
+				continue
+			}
+
+			if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
+				log.Errorf(ctx, "Failed to update container status for %s: %v", containerID, err)
+			}
+
+			if ctr.State().Status == oci.ContainerStatePaused {
+				if err := c.runtime.UnpauseContainer(ctx, ctr); err != nil {
+					log.Errorf(ctx, "Failed to unpause container %s: %v", containerID, err)
+				}
+			}
+		}
+	}()
+
+	// Track container names for pod metadata and IDs for rollback
+	containerNamesMap := make(map[string]string, len(containers))
+	succeededIDs := make([]string, 0, len(containers))
+
+	leaveRunning := opts.Options["leaveRunning"] == "true"
+
+	// Checkpoint all containers directly into the mounted OCI image
+	// All containers are already paused/frozen at this point
+
+	for _, ctr := range containers {
+		log.Infof(ctx, "Checkpointing container %s in pod %s", ctr.ID(), sb.ID())
+
+		containerConfig := &metadata.ContainerConfig{
+			ID: ctr.ID(),
+		}
+
+		// Create directory structure in the mounted image for this container
+		// Format: <containerID>-<containerName>
+		containerDirName := fmt.Sprintf("%s-%s", ctr.ID(), ctr.Name())
+
+		containerDir := filepath.Join(mountPoint, containerDirName)
+		if err := os.MkdirAll(containerDir, 0o700); err != nil {
+			return "", fmt.Errorf("failed to create container directory %s: %w", containerDir, err)
+		}
+
+		// Create checkpoint subdirectory for CRIU checkpoint data
+		checkpointDir := filepath.Join(containerDir, "checkpoint")
+		if err := os.MkdirAll(checkpointDir, 0o700); err != nil {
+			return "", fmt.Errorf("failed to create checkpoint directory %s: %w", checkpointDir, err)
+		}
+
+		// Create checkpoint options for this container
+		// Point WorkPath and CheckpointPath to directories in the mounted image
+		containerOpts := &ContainerCheckpointOptions{
+			Keep:        opts.Keep,
+			KeepRunning: leaveRunning,
+			// TargetFile is empty - we write directly to WorkPath, no tar needed
+			TargetFile: "",
+			// Don't pause again - containers are already paused/frozen
+			Pause:          false,
+			WorkPath:       containerDir,
+			CheckpointPath: checkpointDir,
+		}
+
+		_, err := c.ContainerCheckpoint(ctx, containerConfig, containerOpts)
+		if err != nil {
+			// Best-effort rollback: if !LeaveRunning, ContainerCheckpoint
+			// called StopContainer on succeeded containers which unmounted
+			// their storage. Re-mount storage so the pod is not left in a
+			// partially broken state. The deferred unpause above still
+			// handles the pause/freeze state for all containers.
+			if !leaveRunning {
+				for _, id := range succeededIDs {
+					if _, startErr := c.storageRuntimeServer.StartContainer(id); startErr != nil {
+						log.Errorf(ctx, "Rollback: failed to re-mount storage for container %s: %v", id, startErr)
+					} else {
+						log.Infof(ctx, "Rollback: re-mounted storage for container %s", id)
+					}
+				}
+			}
+
+			return "", fmt.Errorf("failed to checkpoint container %s in pod %s: %w", ctr.ID(), sb.ID(), err)
+		}
+
+		succeededIDs = append(succeededIDs, ctr.ID())
+		containerNamesMap[ctr.Metadata().GetName()] = containerDirName
+	}
+
+	// Collect all checkpoint annotations (pod-specific + system metadata).
+	// These are always written into pod.options so that tar archives
+	// carry the same metadata that OCI images store as image annotations.
+	cpAnnotations := getCheckpointAnnotations()
+	cpAnnotations[metadata.CheckpointAnnotationPod] = sb.Metadata().GetName()
+	cpAnnotations[metadata.CheckpointAnnotationPodID] = sb.ID()
+	cpAnnotations[metadata.CheckpointAnnotationNamespace] = sb.Metadata().GetNamespace()
+	cpAnnotations[metadata.CheckpointAnnotationPodUID] = sb.Metadata().GetUid()
+
+	// Write pod metadata to the mounted image
+	// This will be used during restore to recreate the pod
+	if err := c.writePodCheckpointMetadata(ctx, mountPoint, containerNamesMap, cpAnnotations); err != nil {
+		return "", fmt.Errorf("failed to write pod metadata: %w", err)
+	}
+
+	if isLocalFile {
+		// Create a tar archive from the temporary working directory
+		input, err := archive.TarWithOptions(mountPoint, &archive.TarOptions{
+			Compression:      archive.Uncompressed,
+			IncludeSourceDir: true,
+		})
+		if err != nil {
+			return "", fmt.Errorf("error reading checkpoint directory: %w", err)
+		}
+
+		outFile, err := os.OpenFile(opts.TargetFile, os.O_RDWR|os.O_CREATE, 0o600)
+		if err != nil {
+			return "", fmt.Errorf("error creating checkpoint export file %q: %w", opts.TargetFile, err)
+		}
+		defer outFile.Close()
+
+		if _, err = io.Copy(outFile, input); err != nil {
+			return "", fmt.Errorf("error writing checkpoint tar file: %w", err)
+		}
+
+		log.Infof(ctx, "Successfully created pod checkpoint tar %s", opts.TargetFile)
+	} else {
+		store := c.StorageImageServer().GetStore()
+
+		// Set all checkpoint annotations as OCI image annotations
+		for key, value := range cpAnnotations {
+			builder.SetAnnotation(key, value)
+		}
+
+		// Parse the target file as a storage reference
+		// This supports various formats: "name:tag", "name@digest", or just "name"
+		imageRef, err := istorage.Transport.ParseStoreReference(store, opts.TargetFile)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse storage reference for %q: %w", opts.TargetFile, err)
+		}
+
+		// Commit the image
+		commitOptions := buildah.CommitOptions{
+			Squash: true,
+		}
+
+		imageID, _, _, err := builder.Commit(ctx, imageRef, commitOptions)
+		if err != nil {
+			return "", fmt.Errorf("failed to commit checkpoint image: %w", err)
+		}
+
+		log.Infof(ctx, "Successfully created pod checkpoint image %s with ID %s", opts.TargetFile, imageID)
+	}
+
+	return sb.ID(), nil
+}
+
+// writePodCheckpointMetadata writes pod metadata files to the checkpoint image
+// This metadata is needed to restore the pod.
+func (c *ContainerServer) writePodCheckpointMetadata(ctx context.Context, mountPoint string, containers, cpAnnotations map[string]string) error {
+	checkpointedPodOptions := &metadata.CheckpointedPodOptions{
+		Version:     1,
+		Containers:  containers,
+		Annotations: cpAnnotations,
+	}
+
+	if _, err := metadata.WriteJSONFile(checkpointedPodOptions, mountPoint, metadata.PodOptionsFile); err != nil {
+		return fmt.Errorf("error writing pod options file: %w", err)
+	}
+
+	log.Infof(ctx, "Wrote pod options with %d containers to checkpoint image", len(containers))
+
+	return nil
+}
+
+// getCheckpointAnnotations gathers system and checkpoint metadata annotations.
+func getCheckpointAnnotations() map[string]string {
+	cpAnnotations := make(map[string]string)
+
+	// Engine name and version.
+	cpAnnotations[metadata.CheckpointAnnotationEngine] = "cri-o"
+	cpAnnotations[metadata.CheckpointAnnotationEngineVersion] = version.Version
+
+	// Host architecture.
+	cpAnnotations[metadata.CheckpointAnnotationHostArch] = runtime.GOARCH
+
+	// Get CRIU version
+	criuVersion, err := utils.GetCriuVersion()
+	if err == nil {
+		cpAnnotations[metadata.CheckpointAnnotationCriuVersion] = strconv.Itoa(criuVersion)
+	}
+
+	// Get kernel version using uname
+	var utsname unix.Utsname
+	if err := unix.Uname(&utsname); err == nil {
+		// Convert []int8 to string
+		release := make([]byte, 0, len(utsname.Release))
+		for _, b := range utsname.Release {
+			if b == 0 {
+				break
+			}
+
+			release = append(release, b)
+		}
+
+		cpAnnotations[metadata.CheckpointAnnotationHostKernel] = string(release)
+	}
+
+	// Detect cgroup version
+	// cgroupVersion := "v1"
+	// if cgroups.IsCgroup2UnifiedMode() {
+	// 	cgroupVersion = "v2"
+	// }
+
+	// cpAnnotations[metadata.CheckpointAnnotationCgroupVersion] = cgroupVersion
+	// This is currently disabled as reading cgroup requires this file to be linux only. Which it should be:
+	// TODO: make this Linux only
+	cpAnnotations[metadata.CheckpointAnnotationCgroupVersion] = "v?"
+
+	// Read distribution information from /etc/os-release
+	if file, err := os.Open("/etc/os-release"); err == nil {
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if after, ok := strings.CutPrefix(line, "NAME="); ok {
+				name := after
+				name = strings.Trim(name, `"`)
+				cpAnnotations[metadata.CheckpointAnnotationDistributionName] = name
+			} else if strings.HasPrefix(line, "VERSION=") || strings.HasPrefix(line, "VERSION_ID=") {
+				ver := strings.TrimPrefix(line, "VERSION=")
+				if after, ok := strings.CutPrefix(line, "VERSION_ID="); ok {
+					ver = after
+				}
+
+				ver = strings.Trim(ver, `"`)
+				cpAnnotations[metadata.CheckpointAnnotationDistributionVersion] = ver
+			}
+		}
+	}
+
+	return cpAnnotations
 }
