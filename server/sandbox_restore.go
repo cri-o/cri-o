@@ -47,6 +47,7 @@ func (s *Server) RestorePod(ctx context.Context, req *types.RestorePodRequest) (
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to mount checkpoint image: %v", err)
 	}
+
 	defer func() {
 		if _, err := store.UnmountImage(imageIDString, true); err != nil {
 			log.Errorf(ctx, "Failed to unmount checkpoint image: %v", err)
@@ -76,6 +77,7 @@ func (s *Server) RestorePod(ctx context.Context, req *types.RestorePodRequest) (
 	var podConfig *types.PodSandboxConfig
 	if req.GetConfig() != nil {
 		podConfig = req.GetConfig()
+
 		log.Infof(ctx, "Using provided PodSandboxConfig from request")
 	} else {
 		// Extract pod metadata from checkpoint annotations
@@ -148,7 +150,23 @@ func (s *Server) restorePodContainers(
 	// Now restore each container into the new sandbox
 	log.Infof(ctx, "Restoring %d containers into pod %s", len(checkpointedPodOptions.Containers), newPodID)
 
-	var restoredContainers []string
+	// Build a map of container name -> ContainerConfig from the request for quick lookup
+	containerConfigMap := make(map[string]*types.ContainerConfig)
+
+	if req.GetContainerConfigs() != nil {
+		log.Infof(ctx, "Processing %d container configs from RestorePodRequest", len(req.GetContainerConfigs()))
+
+		for _, cc := range req.GetContainerConfigs() {
+			if cc.GetMetadata() != nil && cc.GetMetadata().GetName() != "" {
+				containerConfigMap[cc.GetMetadata().GetName()] = cc
+				log.Debugf(ctx, "Mapped container config for container: %s", cc.GetMetadata().GetName())
+			}
+		}
+	} else {
+		log.Infof(ctx, "No container configs provided in RestorePodRequest")
+	}
+
+	restoredContainers := make([]string, 0, len(checkpointedPodOptions.Containers))
 
 	containerIndex := 0
 	for containerName, containerDirName := range checkpointedPodOptions.Containers {
@@ -162,6 +180,17 @@ func (s *Server) restorePodContainers(
 		}
 
 		log.Infof(ctx, "Restoring container %d/%d: %s (name: %s, short: %s)", containerIndex, len(checkpointedPodOptions.Containers), containerConfig.ID, containerConfig.Name, containerName)
+
+		// Look up the ContainerConfig provided by kubelet for this container.
+		// containerName is the short name (map key from CheckpointedPodOptions).
+		var providedConfig *types.ContainerConfig
+		if cc, found := containerConfigMap[containerName]; found {
+			providedConfig = cc
+
+			log.Debugf(ctx, "Found provided ContainerConfig for container %s (short name: %s)", containerConfig.Name, containerName)
+		} else {
+			log.Debugf(ctx, "No provided ContainerConfig found for container %s (short name: %s)", containerConfig.Name, containerName)
+		}
 
 		// Construct a ContainerConfig for CRImportCheckpoint
 		// The Image field will point to the containerDir, which contains the checkpoint data
@@ -180,6 +209,32 @@ func (s *Server) restorePodContainers(
 			},
 		}
 
+		// Apply labels, annotations, and other metadata from the provided ContainerConfig
+		// These are critical for Kubernetes to identify and track the containers
+		if providedConfig != nil {
+			if providedConfig.GetLabels() != nil {
+				createConfig.Labels = providedConfig.GetLabels()
+				log.Debugf(ctx, "Applying %d labels to container %s", len(providedConfig.GetLabels()), containerConfig.Name)
+			}
+
+			if providedConfig.GetAnnotations() != nil {
+				createConfig.Annotations = providedConfig.GetAnnotations()
+				log.Debugf(ctx, "Applying %d annotations to container %s", len(providedConfig.GetAnnotations()), containerConfig.Name)
+			}
+		}
+
+		// Apply mounts from the provided ContainerConfig if available
+		if providedConfig != nil && providedConfig.GetMounts() != nil {
+			createConfig.Mounts = providedConfig.GetMounts()
+			log.Infof(ctx, "Applying %d mounts to container %s", len(providedConfig.GetMounts()), containerConfig.Name)
+
+			for idx, mount := range providedConfig.GetMounts() {
+				log.Debugf(ctx, "  Mount %d: %s -> %s (readonly: %v)", idx, mount.GetHostPath(), mount.GetContainerPath(), mount.GetReadonly())
+			}
+		} else {
+			log.Debugf(ctx, "No mounts to apply for container %s", containerConfig.Name)
+		}
+
 		// Call CRImportCheckpoint which will:
 		// 1. Detect that containerDir is a directory (new feature)
 		// 2. Use it directly without mounting or extracting
@@ -193,9 +248,10 @@ func (s *Server) restorePodContainers(
 		// Debug: List checkpoint directory contents
 		if entries, err := os.ReadDir(containerDir); err == nil {
 			log.Debugf(ctx, "Checkpoint directory %s contents:", containerDir)
+
 			for _, entry := range entries {
-				info, _ := entry.Info()
-				if info != nil {
+				info, err := entry.Info()
+				if err == nil && info != nil {
 					log.Debugf(ctx, "  - %s (size: %d bytes, dir: %v)", entry.Name(), info.Size(), entry.IsDir())
 				} else {
 					log.Debugf(ctx, "  - %s (dir: %v)", entry.Name(), entry.IsDir())
@@ -215,7 +271,8 @@ func (s *Server) restorePodContainers(
 	// Containers are marked for restore, so StartContainer will call ContainerRestore
 	log.Infof(ctx, "Starting CRIU restore for %d containers in pod %s", len(restoredContainers), newPodID)
 
-	var startedContainers []string
+	startedContainers := make([]string, 0, len(restoredContainers))
+
 	for i, containerID := range restoredContainers {
 		log.Infof(ctx, "Starting container %d/%d: %s", i+1, len(restoredContainers), containerID)
 
@@ -230,6 +287,7 @@ func (s *Server) restorePodContainers(
 			// Best-effort rollback: stop containers that were already started
 			for _, startedID := range startedContainers {
 				log.Infof(ctx, "Rollback: stopping container %s in pod %s", startedID, newPodID)
+
 				stopReq := &types.StopContainerRequest{
 					ContainerId: startedID,
 					Timeout:     0,
@@ -241,6 +299,7 @@ func (s *Server) restorePodContainers(
 
 			// Best-effort rollback: stop and remove the sandbox
 			log.Infof(ctx, "Rollback: stopping pod sandbox %s", newPodID)
+
 			stopPodReq := &types.StopPodSandboxRequest{
 				PodSandboxId: newPodID,
 			}
@@ -249,6 +308,7 @@ func (s *Server) restorePodContainers(
 			}
 
 			log.Infof(ctx, "Rollback: removing pod sandbox %s", newPodID)
+
 			removePodReq := &types.RemovePodSandboxRequest{
 				PodSandboxId: newPodID,
 			}
