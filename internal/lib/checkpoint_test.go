@@ -48,7 +48,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -79,7 +79,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -106,7 +106,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			_, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -157,6 +157,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			}
 			opts := &lib.ContainerCheckpointOptions{
 				TargetFile: "cp.tar",
+				Pause:      true,
 			}
 			defer os.RemoveAll("cp.tar")
 
@@ -203,7 +204,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			_, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -227,7 +228,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -248,7 +249,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then

@@ -30,6 +30,10 @@ type ContainerCheckpointOptions struct {
 	// TargetFile tells the API to read (or write) the checkpoint image
 	// from (or to) the filename set in TargetFile
 	TargetFile string
+	// Pause tells the API to pause the container before checkpointing.
+	// When checkpointing containers as part of a pod checkpoint, this should
+	// be false since all containers are already paused by the caller.
+	Pause bool
 }
 
 // ContainerCheckpoint checkpoints a running container.
@@ -65,8 +69,12 @@ func (c *ContainerServer) ContainerCheckpoint(
 	// to freeze the processes. CRIU will also use the cgroup freezer to freeze
 	// the processes if possible. If the cgroup is already frozen by runc/crun
 	// CRIU will not change the freezer status.
-	if err = c.runtime.PauseContainer(ctx, ctr); err != nil {
-		return "", fmt.Errorf("failed to pause container %q before checkpointing: %w", ctr.ID(), err)
+	// When checkpointing as part of a pod checkpoint, all containers are
+	// already paused by the caller, so individual container pausing is skipped.
+	if opts.Pause {
+		if err = c.runtime.PauseContainer(ctx, ctr); err != nil {
+			return "", fmt.Errorf("failed to pause container %q before checkpointing: %w", ctr.ID(), err)
+		}
 	}
 
 	defer func() {
@@ -74,7 +82,7 @@ func (c *ContainerServer) ContainerCheckpoint(
 			log.Errorf(ctx, "Failed to update container status: %q: %v", ctr.ID(), err)
 		}
 
-		if ctr.State().Status == oci.ContainerStatePaused {
+		if opts.Pause && ctr.State().Status == oci.ContainerStatePaused {
 			err := c.runtime.UnpauseContainer(ctx, ctr)
 			if err != nil {
 				log.Errorf(ctx, "Failed to unpause container: %q: %v", ctr.ID(), err)
