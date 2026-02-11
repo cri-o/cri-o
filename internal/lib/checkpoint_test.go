@@ -48,7 +48,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -80,7 +80,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -108,7 +108,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			_, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -155,6 +155,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			}
 			opts := &lib.ContainerCheckpointOptions{
 				TargetFile: "cp.tar",
+				Pause:      true,
 			}
 
 			defer os.RemoveAll("cp.tar")
@@ -203,11 +204,113 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			_, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
 			Expect(err.Error()).To(Equal(`failed to unmount container containerID: error`))
+		})
+	})
+	t.Describe("ContainerCheckpoint", func() {
+		It("should succeed without Pause (skip pause/unpause)", func() {
+			// Given
+			addContainerAndSandbox()
+
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
+
+			myContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
+				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
+			)
+
+			// When
+			res, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&lib.ContainerCheckpointOptions{Pause: false},
+			)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(Equal(config.ID))
+		})
+	})
+	t.Describe("ContainerCheckpoint", func() {
+		It("should succeed with custom WorkPath and CheckpointPath", func() {
+			// Given
+			addContainerAndSandbox()
+
+			workDir := t.MustTempDir("checkpoint-workpath-")
+			checkpointDir := t.MustTempDir("checkpoint-path-")
+
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
+
+			myContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
+				// exportCheckpoint calls: getDiff -> store.Changes, store.Mount, crutils, store.Unmount
+				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{}, nil),
+				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
+				// StopContainer calls store.Unmount
+				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
+				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
+			)
+
+			opts := &lib.ContainerCheckpointOptions{
+				Pause:          false,
+				WorkPath:       workDir,
+				CheckpointPath: checkpointDir,
+			}
+
+			// When
+			res, err := sut.ContainerCheckpoint(context.Background(), config, opts)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(Equal(config.ID))
+		})
+	})
+	t.Describe("ContainerCheckpoint", func() {
+		It("should succeed with KeepRunning", func() {
+			// Given
+			addContainerAndSandbox()
+
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
+
+			myContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+			// When
+			res, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&lib.ContainerCheckpointOptions{
+					Pause:       false,
+					KeepRunning: true,
+				},
+			)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(Equal(config.ID))
 		})
 	})
 })
@@ -227,7 +330,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
@@ -249,7 +352,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&lib.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{Pause: true},
 			)
 
 			// Then
