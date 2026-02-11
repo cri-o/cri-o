@@ -16,6 +16,7 @@ import (
 	"go.podman.io/storage/pkg/archive"
 
 	"github.com/cri-o/cri-o/internal/annotations"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 )
@@ -34,6 +35,25 @@ type ContainerCheckpointOptions struct {
 	// When checkpointing containers as part of a pod checkpoint, this should
 	// be false since all containers are already paused by the caller.
 	Pause bool
+	// WorkPath is an optional custom directory where checkpoint metadata files
+	// should be written. If empty, ctr.Dir() is used.
+	WorkPath string
+	// CheckpointPath is an optional custom directory where the CRIU checkpoint
+	// should be written. If empty, the default checkpoint location is used.
+	CheckpointPath string
+}
+
+// PodCheckpointOptions contains options for checkpointing a pod sandbox.
+type PodCheckpointOptions struct {
+	// Keep tells the API to not delete checkpoint artifacts
+	Keep bool
+	// TargetFile tells the API to read (or write) the checkpoint image
+	// from (or to) the filename set in TargetFile
+	TargetFile string
+	// Options contains additional checkpoint options passed from the CRI request.
+	// Known keys:
+	//   "leaveRunning" - if "true", keep the pod running after checkpointing
+	Options map[string]string
 }
 
 // ContainerCheckpoint checkpoints a running container.
@@ -94,32 +114,60 @@ func (c *ContainerServer) ContainerCheckpoint(
 		}
 	}()
 
-	if opts.TargetFile != "" {
-		if err := c.prepareCheckpointExport(ctr); err != nil {
+	// imagePath is used by CRIU to store the actual checkpoint files
+	imagePath := ctr.CheckpointPath()
+	if opts.CheckpointPath != "" {
+		imagePath = opts.CheckpointPath
+	}
+
+	finalWorkPath := ctr.Dir()
+	if opts.WorkPath != "" {
+		finalWorkPath = opts.WorkPath
+	}
+
+	if opts.TargetFile != "" || opts.WorkPath != "" {
+		// Always prepare checkpoint export using the final work path
+		if err := c.prepareCheckpointExport(ctr, finalWorkPath); err != nil {
 			return "", fmt.Errorf("failed to write config dumps for container %s: %w", ctr.ID(), err)
 		}
 	}
 
-	if err := c.runtime.CheckpointContainer(ctx, ctr, specgen.Config, opts.KeepRunning, ctr.Dir(), ctr.CheckpointPath()); err != nil {
-		// in the case of an error, clean up any leftover CRIU images
-		if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
-			log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
-		}
-
+	// Always use default ctr.Dir() for CRIU workPath (for SELinux labeling)
+	if err := c.runtime.CheckpointContainer(ctx, ctr, specgen.Config, opts.KeepRunning, ctr.Dir(), imagePath); err != nil {
 		return "", fmt.Errorf("failed to checkpoint container %s: %w", ctr.ID(), err)
 	}
 
-	if opts.TargetFile != "" {
-		if err := c.exportCheckpoint(ctx, ctr, specgen.Config, opts.TargetFile); err != nil {
+	// If using custom WorkPath (pod checkpointing), copy CRIU-generated files from default location to custom location
+	if opts.WorkPath != "" {
+		// Copy dump.log and stats-dump from ctr.Dir() to finalWorkPath
+		filesToCopy := []string{
+			metadata.DumpLogFile,
+			stats.StatsDump,
+		}
+		for _, file := range filesToCopy {
+			srcPath := filepath.Join(ctr.Dir(), file)
+
+			dstPath := filepath.Join(finalWorkPath, file)
+			if err := sandbox.CopyFile(srcPath, dstPath); err != nil {
+				log.Warnf(ctx, "Failed to copy %s to checkpoint directory: %v", file, err)
+			}
+		}
+	}
+
+	if opts.TargetFile != "" || opts.WorkPath != "" {
+		if err := c.exportCheckpoint(ctx, ctr, specgen.Config, opts.TargetFile, finalWorkPath); err != nil {
 			return "", fmt.Errorf("failed to write file system changes of container %s: %w", ctr.ID(), err)
 		}
 
-		defer func() {
-			// clean up checkpoint directory
-			if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
-				log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
-			}
-		}()
+		// Only clean up checkpoint directory if using default path (not custom path for pod checkpoint)
+		if opts.CheckpointPath == "" {
+			defer func() {
+				// clean up checkpoint directory
+				if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
+					log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
+				}
+			}()
+		}
 	}
 
 	if !opts.KeepRunning {
@@ -128,7 +176,8 @@ func (c *ContainerServer) ContainerCheckpoint(
 		}
 	}
 
-	if !opts.Keep {
+	// Only clean up temporary files if we're not using a custom work path
+	if !opts.Keep && opts.WorkPath == "" {
 		cleanup := []string{
 			metadata.DumpLogFile,
 			stats.StatsDump,
@@ -209,7 +258,12 @@ type ExternalBindMount struct {
 // prepareCheckpointExport writes the config and spec to
 // JSON files for later export
 // Podman: libpod/container_internal.go.
-func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
+func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container, workPath string) error {
+	// Use custom work path if provided, otherwise use container's directory
+	if workPath == "" {
+		workPath = ctr.Dir()
+	}
+
 	// save spec
 	jsonPath := filepath.Join(ctr.BundlePath(), "config.json")
 
@@ -218,7 +272,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
 	}
 
-	if _, err := metadata.WriteJSONFile(g.Config, ctr.Dir(), metadata.SpecDumpFile); err != nil {
+	if _, err := metadata.WriteJSONFile(g.Config, workPath, metadata.SpecDumpFile); err != nil {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
 	}
 
@@ -251,7 +305,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 		Restored:       ctr.Restore(),
 	}
 
-	if _, err := metadata.WriteJSONFile(config, ctr.Dir(), metadata.ConfigDumpFile); err != nil {
+	if _, err := metadata.WriteJSONFile(config, workPath, metadata.ConfigDumpFile); err != nil {
 		return err
 	}
 
@@ -298,7 +352,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	}
 
 	if len(externalBindMounts) > 0 {
-		if _, err := metadata.WriteJSONFile(externalBindMounts, ctr.Dir(), "bind.mounts"); err != nil {
+		if _, err := metadata.WriteJSONFile(externalBindMounts, workPath, "bind.mounts"); err != nil {
 			return fmt.Errorf("error writing 'bind.mounts' for %q: %w", ctr.ID(), err)
 		}
 	}
@@ -306,10 +360,16 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	return nil
 }
 
-func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Container, specgen *rspec.Spec, export string) error {
+func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Container, specgen *rspec.Spec, export, workPath string) error {
 	id := ctr.ID()
-	dest := ctr.Dir()
-	log.Debugf(ctx, "Exporting checkpoint image of container %q to %q", id, dest)
+	// Use custom work path if provided for pod checkpoints, otherwise use container's directory
+	sourcePath := ctr.Dir()
+	if workPath != "" {
+		sourcePath = workPath
+	}
+
+	dest := sourcePath
+	log.Debugf(ctx, "Exporting checkpoint image of container %q from %q to %q", id, sourcePath, export)
 
 	// To correctly track deleted files, let's go through the output of 'podman diff'
 	rootFsChanges, err := c.getDiff(ctx, id, specgen)
@@ -354,6 +414,13 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		addToTarFiles = append(addToTarFiles, annotations.LogPath)
 	}
 
+	// For pod checkpoints with workPath set, files are already in the right place
+	// and we don't need to create a tar archive
+	if export == "" {
+		// No tar export needed - checkpoint is written directly to workPath
+		return nil
+	}
+
 	baseFiles := []string{
 		stats.StatsDump,
 		metadata.DumpLogFile,
@@ -366,7 +433,7 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 	includeFiles = append(includeFiles, baseFiles...)
 	includeFiles = append(includeFiles, addToTarFiles...)
 
-	input, err := archive.TarWithOptions(ctr.Dir(), &archive.TarOptions{
+	input, err := archive.TarWithOptions(sourcePath, &archive.TarOptions{
 		// This should be configurable via api.proti
 		Compression:      archive.Uncompressed,
 		IncludeSourceDir: true,

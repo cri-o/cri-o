@@ -147,7 +147,7 @@ func ParseDNSOptions(servers, searches, options []string, path string) (retErr e
 	nOptions := len(options)
 
 	if nServers == 0 && nSearches == 0 && nOptions == 0 {
-		return copyFile("/etc/resolv.conf", path)
+		return CopyFile("/etc/resolv.conf", path)
 	}
 
 	f, err := os.Create(path)
@@ -180,7 +180,7 @@ func ParseDNSOptions(servers, searches, options []string, path string) (retErr e
 	return nil
 }
 
-func copyFile(src, dest string) error {
+func CopyFile(src, dest string) error {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
