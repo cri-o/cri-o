@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sort"
 	"strconv"
 	"syscall"
 
@@ -13,16 +12,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// extraFilesStartFd is the first fd number assigned to cmd.ExtraFiles by os/exec.
-// As documented in os/exec: "entry i becomes file descriptor 3+i"
-const extraFilesStartFd = 3
-
 // Criu struct
 type Criu struct {
-	swrkCmd    *exec.Cmd
-	swrkSk     *os.File
-	swrkPath   string
-	inheritFds map[string]*os.File
+	swrkCmd  *exec.Cmd
+	swrkSk   *os.File
+	swrkPath string
 }
 
 // MakeCriu returns the Criu object required for most operations
@@ -38,52 +32,8 @@ func (c *Criu) SetCriuPath(path string) {
 	c.swrkPath = path
 }
 
-// AddInheritFd registers a file descriptor to be passed to CRIU.
-// If opts.InheritFd is not set for an operation, it will be populated
-// from these registrations using the same key order.
-func (c *Criu) AddInheritFd(key string, file *os.File) {
-	if c.inheritFds == nil {
-		c.inheritFds = make(map[string]*os.File)
-	}
-	c.inheritFds[key] = file
-}
-
-func (c *Criu) inheritFdKeys() []string {
-	if len(c.inheritFds) == 0 {
-		return nil
-	}
-	keys := make([]string, 0, len(c.inheritFds))
-	for k := range c.inheritFds {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func (c *Criu) ensureInheritFd(opts *rpc.CriuOpts) {
-	if opts == nil || len(opts.GetInheritFd()) > 0 || len(c.inheritFds) == 0 {
-		return
-	}
-	keys := c.inheritFdKeys()
-	if len(keys) == 0 {
-		return
-	}
-	opts.InheritFd = make([]*rpc.InheritFd, 0, len(keys))
-	for i, key := range keys {
-		fd := int32(extraFilesStartFd + i)
-		opts.InheritFd = append(opts.InheritFd, &rpc.InheritFd{
-			Key: proto.String(key),
-			Fd:  proto.Int32(fd),
-		})
-	}
-}
-
 // Prepare sets up everything for the RPC communication to CRIU
 func (c *Criu) Prepare() error {
-	return c.doPrepare(nil)
-}
-
-func (c *Criu) doPrepare(opts *rpc.CriuOpts) error {
 	fds, err := syscall.Socketpair(syscall.AF_LOCAL, syscall.SOCK_SEQPACKET, 0)
 	if err != nil {
 		return err
@@ -92,28 +42,15 @@ func (c *Criu) doPrepare(opts *rpc.CriuOpts) error {
 	cln := os.NewFile(uintptr(fds[0]), "criu-xprt-cln")
 	syscall.CloseOnExec(fds[0])
 	srv := os.NewFile(uintptr(fds[1]), "criu-xprt-srv")
-	defer func() { _ = srv.Close() }()
+	defer srv.Close()
 
 	args := []string{"swrk", strconv.Itoa(fds[1])}
 	// #nosec G204
 	cmd := exec.Command(c.swrkPath, args...)
 
-	// Collect file descriptors to pass to child
-	inheritKeys := c.inheritFdKeys()
-	extraFiles := make([]*os.File, 0, len(inheritKeys))
-
-	// Add fds from AddInheritFd (sorted for stable ordering)
-	for _, k := range inheritKeys {
-		extraFiles = append(extraFiles, c.inheritFds[k])
-	}
-
-	c.ensureInheritFd(opts)
-
-	cmd.ExtraFiles = extraFiles
-
 	err = cmd.Start()
 	if err != nil {
-		_ = cln.Close()
+		cln.Close()
 		return err
 	}
 
@@ -169,8 +106,6 @@ func (c *Criu) doSwrk(reqType rpc.CriuReqType, opts *rpc.CriuOpts, nfy Notify) e
 }
 
 func (c *Criu) doSwrkWithResp(reqType rpc.CriuReqType, opts *rpc.CriuOpts, nfy Notify, features *rpc.CriuFeatures) (resp *rpc.CriuResp, retErr error) {
-	c.ensureInheritFd(opts)
-
 	req := rpc.CriuReq{
 		Type: &reqType,
 		Opts: opts,
@@ -185,7 +120,7 @@ func (c *Criu) doSwrkWithResp(reqType rpc.CriuReqType, opts *rpc.CriuOpts, nfy N
 	}
 
 	if c.swrkCmd == nil {
-		err := c.doPrepare(opts)
+		err := c.Prepare()
 		if err != nil {
 			return nil, err
 		}
