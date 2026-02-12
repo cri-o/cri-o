@@ -46,7 +46,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	}
 
 	// Network metrics are collected at pod level only.
-	if slices.Contains(ss.Config().IncludedPodMetrics, config.NetworkMetrics) {
+	if slices.Contains(ss.Config().EnabledPodMetrics(), config.NetworkMetrics) {
 		podMetrics := ss.GenerateNetworkMetrics(sb)
 		sandboxMetrics.metric.Metrics = podMetrics
 	}
@@ -208,7 +208,7 @@ func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetr
 		sm = NewSandboxMetrics(sb)
 	}
 	// Network metrics are collected at the pod level.
-	if slices.Contains(ss.Config().IncludedPodMetrics, config.NetworkMetrics) {
+	if slices.Contains(ss.Config().EnabledPodMetrics(), config.NetworkMetrics) {
 		podMetrics := ss.GenerateNetworkMetrics(sb)
 		sm.metric.Metrics = podMetrics
 	}
@@ -264,7 +264,7 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 		},
 	}}, "")
 
-	for _, m := range ss.Config().IncludedPodMetrics {
+	for _, m := range ss.Config().EnabledPodMetrics() {
 		switch m {
 		case config.CPUMetrics:
 			if cpuMetrics := generateContainerCPUMetrics(c, &cgroupStats.CpuStats); cpuMetrics != nil {
