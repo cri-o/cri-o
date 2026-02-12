@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	criu "github.com/checkpoint-restore/go-criu/v8/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -549,6 +550,107 @@ var _ = t.Describe("ContainerRestore", func() {
 			})
 		}
 	})
+	t.Describe("ContainerRestore from directory", func() {
+		It("should fail because directory has broken spec.dump", func() {
+			// Given
+			addContainerAndSandbox()
+
+			tempDir := t.MustTempDir("checkpoint-dir")
+			Expect(os.WriteFile(tempDir+"/spec.dump", []byte("not json"), 0o644)).To(Succeed())
+			Expect(os.WriteFile(tempDir+"/config.dump", []byte("{}"), 0o644)).To(Succeed())
+
+			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
+				Image:    &types.ImageSpec{Image: tempDir},
+			}
+			// When
+			_, err := sut.CRImportCheckpoint(
+				context.Background(),
+				containerConfig,
+				testSandbox,
+				"",
+			)
+			// Then
+			Expect(err.Error()).To(ContainSubstring(`failed to read "spec.dump": failed to unmarshal`))
+		})
+
+		It("should fail because directory has broken config.dump", func() {
+			// Given
+			addContainerAndSandbox()
+
+			tempDir := t.MustTempDir("checkpoint-dir")
+			Expect(os.WriteFile(tempDir+"/spec.dump", []byte("{}"), 0o644)).To(Succeed())
+			Expect(os.WriteFile(tempDir+"/config.dump", []byte("not json"), 0o644)).To(Succeed())
+
+			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
+				Image:    &types.ImageSpec{Image: tempDir},
+			}
+			// When
+			_, err := sut.CRImportCheckpoint(
+				context.Background(),
+				containerConfig,
+				testSandbox,
+				"",
+			)
+			// Then
+			Expect(err.Error()).To(ContainSubstring(`failed to read "config.dump": failed to unmarshal`))
+		})
+
+		It("should fail because directory has empty spec.dump and config.dump", func() {
+			// Given
+			addContainerAndSandbox()
+
+			tempDir := t.MustTempDir("checkpoint-dir")
+			Expect(os.WriteFile(tempDir+"/spec.dump", []byte("{}"), 0o644)).To(Succeed())
+			Expect(os.WriteFile(tempDir+"/config.dump", []byte("{}"), 0o644)).To(Succeed())
+
+			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
+				Image:    &types.ImageSpec{Image: tempDir},
+			}
+			// When
+			_, err := sut.CRImportCheckpoint(
+				context.Background(),
+				containerConfig,
+				testSandbox,
+				"",
+			)
+			// Then
+			Expect(err.Error()).To(ContainSubstring(`failed to read "io.kubernetes.cri-o.Annotations": unexpected end of JSON input`))
+		})
+
+		It("should read metadata from directory checkpoint", func() {
+			// Given
+			addContainerAndSandbox()
+
+			// Create a directory checkpoint with valid spec.dump but empty annotations
+			// to verify the directory code path is entered correctly
+			tempDir := t.MustTempDir("checkpoint-dir")
+			Expect(os.WriteFile(
+				tempDir+"/spec.dump",
+				[]byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`),
+				0o644,
+			)).To(Succeed())
+			Expect(os.WriteFile(tempDir+"/config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)).To(Succeed())
+
+			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
+				Image:    &types.ImageSpec{Image: tempDir},
+			}
+			// When
+			_, err := sut.CRImportCheckpoint(
+				context.Background(),
+				containerConfig,
+				testSandbox,
+				"",
+			)
+			// Then
+			// The directory path is correctly entered (no archive extraction)
+			// but fails at annotation parsing since they are empty
+			Expect(err.Error()).To(ContainSubstring(`failed to read "io.kubernetes.cri-o.Annotations": unexpected end of JSON input`))
+		})
+	})
 	t.Describe("ContainerRestore from OCI archive", func() {
 		It("should fail because archive does not exist", func() {
 			// Given
@@ -599,5 +701,163 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Then
 			Expect(err.Error()).To(ContainSubstring(`failed to read "spec.dump": open spec.dump: no such file or directory`))
 		})
+	})
+})
+
+var _ = t.Describe("checkIfPodCheckpointOCIImage", func() {
+	BeforeEach(func() {
+		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+			Skip("Check CRIU: " + err.Error())
+		}
+
+		beforeEach()
+		createDummyConfig()
+		mockRuntimeInLibConfig()
+		serverConfig.SetCheckpointRestore(true)
+		setupSUT()
+	})
+
+	AfterEach(afterEach)
+
+	It("should return nil for empty input", func() {
+		result, err := sut.CheckIfPodCheckpointOCIImage(context.Background(), "")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(BeNil())
+	})
+
+	It("should return nil for path that exists on disk", func() {
+		tempDir := t.MustTempDir("existing-path")
+		result, err := sut.CheckIfPodCheckpointOCIImage(context.Background(), tempDir)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(BeNil())
+	})
+
+	It("should return nil when image has no pod annotation", func() {
+		size := uint64(100)
+		checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/not-a-pod-checkpoint:latest")
+		Expect(err).ToNot(HaveOccurred())
+		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+		Expect(err).ToNot(HaveOccurred())
+
+		gomock.InOrder(
+			imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("not-a-pod-checkpoint").
+				Return(nil),
+			imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+				gomock.Any(), "not-a-pod-checkpoint").
+				Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+			imageServerMock.EXPECT().ImageStatusByName(
+				gomock.Any(), checkpointImageName).
+				Return(&storage.ImageResult{
+					ID:   imageID,
+					User: "10", Size: &size,
+					Annotations: map[string]string{
+						crioann.CheckpointAnnotationName: "foo",
+					},
+				}, nil),
+		)
+
+		result, err := sut.CheckIfPodCheckpointOCIImage(context.Background(), "not-a-pod-checkpoint")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(BeNil())
+	})
+
+	It("should return PodCheckpointInfo with all annotations present", func() {
+		size := uint64(100)
+		checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/pod-checkpoint:latest")
+		Expect(err).ToNot(HaveOccurred())
+		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+		Expect(err).ToNot(HaveOccurred())
+
+		gomock.InOrder(
+			imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("pod-checkpoint").
+				Return(nil),
+			imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+				gomock.Any(), "pod-checkpoint").
+				Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+			imageServerMock.EXPECT().ImageStatusByName(
+				gomock.Any(), checkpointImageName).
+				Return(&storage.ImageResult{
+					ID:   imageID,
+					User: "10", Size: &size,
+					Annotations: map[string]string{
+						metadata.CheckpointAnnotationPod:       "my-pod",
+						metadata.CheckpointAnnotationPodID:     "old-pod-id",
+						metadata.CheckpointAnnotationNamespace: "my-namespace",
+						metadata.CheckpointAnnotationPodUID:    "my-uid",
+					},
+				}, nil),
+		)
+
+		result, err := sut.CheckIfPodCheckpointOCIImage(context.Background(), "pod-checkpoint")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+		Expect(result.PodName).To(Equal("my-pod"))
+		Expect(result.PodNamespace).To(Equal("my-namespace"))
+		Expect(result.OldPodID).To(Equal("old-pod-id"))
+		Expect(result.PodUID).To(Equal("my-uid"))
+	})
+
+	It("should default namespace to default when missing", func() {
+		size := uint64(100)
+		checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/pod-no-ns:latest")
+		Expect(err).ToNot(HaveOccurred())
+		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+		Expect(err).ToNot(HaveOccurred())
+
+		gomock.InOrder(
+			imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("pod-no-ns").
+				Return(nil),
+			imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+				gomock.Any(), "pod-no-ns").
+				Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+			imageServerMock.EXPECT().ImageStatusByName(
+				gomock.Any(), checkpointImageName).
+				Return(&storage.ImageResult{
+					ID:   imageID,
+					User: "10", Size: &size,
+					Annotations: map[string]string{
+						metadata.CheckpointAnnotationPod: "my-pod",
+					},
+				}, nil),
+		)
+
+		result, err := sut.CheckIfPodCheckpointOCIImage(context.Background(), "pod-no-ns")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+		Expect(result.PodName).To(Equal("my-pod"))
+		Expect(result.PodNamespace).To(Equal("default"))
+	})
+
+	It("should handle missing UID and PodID gracefully", func() {
+		size := uint64(100)
+		checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/pod-minimal:latest")
+		Expect(err).ToNot(HaveOccurred())
+		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+		Expect(err).ToNot(HaveOccurred())
+
+		gomock.InOrder(
+			imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("pod-minimal").
+				Return(nil),
+			imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+				gomock.Any(), "pod-minimal").
+				Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+			imageServerMock.EXPECT().ImageStatusByName(
+				gomock.Any(), checkpointImageName).
+				Return(&storage.ImageResult{
+					ID:   imageID,
+					User: "10", Size: &size,
+					Annotations: map[string]string{
+						metadata.CheckpointAnnotationPod:       "my-pod",
+						metadata.CheckpointAnnotationNamespace: "test-ns",
+					},
+				}, nil),
+		)
+
+		result, err := sut.CheckIfPodCheckpointOCIImage(context.Background(), "pod-minimal")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+		Expect(result.PodName).To(Equal("my-pod"))
+		Expect(result.OldPodID).To(BeEmpty())
+		Expect(result.PodUID).To(BeEmpty())
 	})
 })
