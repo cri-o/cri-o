@@ -66,6 +66,18 @@ const (
 
 	// ContainersStoppedMonitorCount is the key for the containers whose monitor is stopped per container name.
 	ContainersStoppedMonitorCount Collector = crioPrefix + "containers_stopped_monitor_count"
+
+	// ImageContentCacheGCTotal is the key for the total number of blob cache GC operations.
+	ImageContentCacheGCTotal Collector = crioPrefix + "image_content_cache_gc_total"
+
+	// ImageContentCacheGCDurationSeconds is the key for the blob cache GC duration.
+	ImageContentCacheGCDurationSeconds Collector = crioPrefix + "image_content_cache_gc_duration_seconds"
+
+	// ImageContentCacheGCBlobsRemovedTotal is the key for the total number of blobs removed by GC.
+	ImageContentCacheGCBlobsRemovedTotal Collector = crioPrefix + "image_content_cache_gc_blobs_removed_total"
+
+	// ImageContentCacheGCBytesFreedTotal is the key for the total bytes freed by GC.
+	ImageContentCacheGCBytesFreedTotal Collector = crioPrefix + "image_content_cache_gc_bytes_freed_total"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -107,6 +119,10 @@ func All() Collectors {
 		ContainersSeccompNotifierCountTotal.Stripped(),
 		ResourcesStalledAtStage.Stripped(),
 		ContainersStoppedMonitorCount.Stripped(),
+		ImageContentCacheGCTotal.Stripped(),
+		ImageContentCacheGCDurationSeconds.Stripped(),
+		ImageContentCacheGCBlobsRemovedTotal.Stripped(),
+		ImageContentCacheGCBytesFreedTotal.Stripped(),
 	}
 }
 
