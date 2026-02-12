@@ -21,7 +21,7 @@ type SeccompOCIArtifact struct {
 
 // New creates a new seccomp OCI artifact handler.
 func New(root string, systemContext *types.SystemContext) (*SeccompOCIArtifact, error) {
-	impl, err := ociartifact.NewStore(root, systemContext)
+	impl, err := ociartifact.NewStore(root, nil, systemContext)
 	if err != nil {
 		return nil, err
 	}
@@ -89,4 +89,10 @@ func (s *SeccompOCIArtifact) TryPull(
 	log.Infof(ctx, "Retrieved OCI artifact seccomp profile of len: %d", len(profileData))
 
 	return profileData, nil
+}
+
+// SetImpl sets the implementation.
+// Used for testing only.
+func (s *SeccompOCIArtifact) SetImpl(impl Impl) {
+	s.impl = impl
 }
