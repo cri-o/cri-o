@@ -118,9 +118,8 @@ type pullOperation struct {
 	// wg allows for Goroutines trying to pull the same image to wait until the
 	// currently running pull operation has finished.
 	wg sync.WaitGroup
-	// imageRef is the reference of the actually pulled image; it is always
-	// in a full repo@digest format, resolving short names and tags
-	imageRef storage.RegistryImageReference
+	// imageID is the storage-provided ID of the pulled image (nil for OCI artifacts)
+	imageID *storage.StorageImageID
 	// err is the error indicating if the pull operation has succeeded or not.
 	err error
 }
