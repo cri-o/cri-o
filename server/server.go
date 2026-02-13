@@ -533,7 +533,7 @@ func New(
 	if config.StreamEnableTLS {
 		log.Debugf(ctx, "TLS enabled for streaming server")
 
-		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh, config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA)
+		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh, config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA, config.GetTLSMinVersion(), config.GetTLSCipherSuites())
 		if err != nil {
 			return nil, err
 		}
@@ -545,10 +545,12 @@ func New(
 			return nil, fmt.Errorf("load stream server x509 key pair: %w", err)
 		}
 
+		// #nosec G402 -- GetTLSMinVersion returns the validated TLS version. Any version older than TLS 1.2 will be rejected in config validation.
 		streamServerConfig.TLSConfig = &tls.Config{
 			GetConfigForClient: certConf.GetConfigForClient,
 			Certificates:       []tls.Certificate{certificate},
-			MinVersion:         tls.VersionTLS12,
+			MinVersion:         config.GetTLSMinVersion(),
+			CipherSuites:       config.GetTLSCipherSuites(),
 		}
 
 		log.Debugf(ctx, "Applying stream server TLS configuration")
@@ -579,7 +581,7 @@ func New(
 	}
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
-		if err := metrics.New(&s.config.MetricsConfig).Start(ctx, s.monitorsChan); err != nil {
+		if err := metrics.New(&s.config.MetricsConfig, &s.config.APIConfig).Start(ctx, s.monitorsChan); err != nil {
 			return nil, err
 		}
 	} else {
