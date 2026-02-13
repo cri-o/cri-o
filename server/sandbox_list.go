@@ -15,7 +15,29 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	podList := s.filterSandboxList(ctx, req.GetFilter(), s.ListSandboxes())
+	return &types.ListPodSandboxResponse{
+		Items: s.listPodSandboxes(ctx, req.GetFilter()),
+	}, nil
+}
+
+// StreamPodSandboxes returns a stream of PodSandboxes.
+func (s *Server) StreamPodSandboxes(req *types.StreamPodSandboxesRequest, stream types.RuntimeService_StreamPodSandboxesServer) error {
+	ctx := stream.Context()
+
+	for _, pod := range s.listPodSandboxes(ctx, req.GetFilter()) {
+		if err := stream.Send(&types.StreamPodSandboxesResponse{
+			PodSandbox: pod,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// listPodSandboxes returns a filtered list of PodSandbox objects.
+func (s *Server) listPodSandboxes(ctx context.Context, filter *types.PodSandboxFilter) []*types.PodSandbox {
+	podList := s.filterSandboxList(ctx, filter, s.ListSandboxes())
 	respList := make([]*types.PodSandbox, 0, len(podList))
 
 	for _, sb := range podList {
@@ -26,14 +48,12 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 
 		pod := sb.CRISandbox()
 		// Filter by other criteria such as state and labels.
-		if filterSandbox(pod, req.GetFilter()) {
+		if filterSandbox(pod, filter) {
 			respList = append(respList, pod)
 		}
 	}
 
-	return &types.ListPodSandboxResponse{
-		Items: respList,
-	}, nil
+	return respList
 }
 
 // filterSandboxList applies a protobuf-defined filter to retrieve only intended pod sandboxes. Not matching
