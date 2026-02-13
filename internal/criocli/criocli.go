@@ -559,6 +559,14 @@ func mergeAPIConfig(config *libconfig.Config, ctx *cli.Context) {
 		config.StreamTLSKey = ctx.String("stream-tls-key")
 	}
 
+	if ctx.IsSet("tls-min-version") {
+		config.TLSMinVersion = ctx.String("tls-min-version")
+	}
+
+	if ctx.IsSet("tls-cipher-suites") {
+		config.TLSCipherSuites = ctx.StringSlice("tls-cipher-suites")
+	}
+
 	if ctx.IsSet("stream-idle-timeout") {
 		config.StreamIdleTimeout = ctx.String("stream-idle-timeout")
 	}
@@ -1381,6 +1389,17 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     "Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes.",
 			EnvVars:   []string{"CONTAINER_TLS_CA"},
 			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:    "tls-min-version",
+			Usage:   "Minimum TLS version for streaming and metrics servers (VersionTLS12 or VersionTLS13).",
+			EnvVars: []string{"CONTAINER_TLS_MIN_VERSION"},
+			Value:   defConf.TLSMinVersion,
+		},
+		&cli.StringSliceFlag{
+			Name:    "tls-cipher-suites",
+			Usage:   "Comma-separated list of cipher suites for TLS 1.2.",
+			EnvVars: []string{"CONTAINER_TLS_CIPHER_SUITES"},
 		},
 		&cli.StringFlag{
 			Name:      "stream-tls-cert",
