@@ -386,10 +386,24 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		return fmt.Errorf("error exporting root file-system diff for %q: %w", id, err)
 	}
 
-	mountPoint, err := c.StorageImageServer().GetStore().Mount(id, specgen.Linux.MountLabel)
+	store := c.StorageImageServer().GetStore()
+
+	mountPoint, err := store.Mount(id, specgen.Linux.MountLabel)
 	if err != nil {
 		return fmt.Errorf("not able to get mountpoint for container %q: %w", id, err)
 	}
+
+	// Mount increments the layer's reference count. Pair it with Unmount
+	// so the count stays balanced regardless of the code path taken
+	// (early return for pod checkpoints, errors, or KeepRunning mode).
+	// The actual kernel unmount only happens when the count drops to
+	// zero, so this is safe even though the container may still be
+	// running or StopContainer will unmount later.
+	defer func() {
+		if _, err := store.Unmount(id, false); err != nil {
+			log.Warnf(ctx, "Failed to unmount container %s after checkpoint export: %v", id, err)
+		}
+	}()
 
 	addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, mountPoint, dest)
 	if err != nil {

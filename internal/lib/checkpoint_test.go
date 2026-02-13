@@ -35,6 +35,29 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 		os.RemoveAll("dump.log")
 	})
 
+	// setupRunningContainerCheckpoint sets up a running container with
+	// storage mocks for a successful checkpoint operation.
+	// Returns the config used for the checkpoint call.
+	setupRunningContainerCheckpoint := func() *metadata.ContainerConfig {
+		addContainerAndSandbox()
+
+		config := &metadata.ContainerConfig{
+			ID: containerID,
+		}
+
+		myContainer.SetState(&oci.ContainerState{
+			State: specs.State{Status: oci.ContainerStateRunning},
+		})
+		myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+		gomock.InOrder(
+			storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
+			storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
+		)
+
+		return config
+	}
+
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail with container not running", func() {
 			// Given
@@ -60,21 +83,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should succeed", func() {
 			// Given
-			addContainerAndSandbox()
-
-			config := &metadata.ContainerConfig{
-				ID: containerID,
-			}
-
-			myContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
-
-			gomock.InOrder(
-				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
-				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
-			)
+			config := setupRunningContainerCheckpoint()
 
 			// When
 			res, err := sut.ContainerCheckpoint(
@@ -169,6 +178,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
 				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{{Kind: archive.ChangeDelete, Path: "deleted.file"}}, nil),
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
 				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
 				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
 			)
@@ -214,21 +224,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should succeed without Pause (skip pause/unpause)", func() {
 			// Given
-			addContainerAndSandbox()
-
-			config := &metadata.ContainerConfig{
-				ID: containerID,
-			}
-
-			myContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
-
-			gomock.InOrder(
-				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
-				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
-			)
+			config := setupRunningContainerCheckpoint()
 
 			// When
 			res, err := sut.ContainerCheckpoint(
