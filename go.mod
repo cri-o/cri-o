@@ -1,4 +1,4 @@
-go 1.25.0
+go 1.26.0
 
 module github.com/cri-o/cri-o
 
@@ -73,15 +73,15 @@ require (
 	golang.org/x/net v0.51.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.41.0
-	google.golang.org/grpc v1.79.1
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/grpc v1.79.3
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.35.2
 	k8s.io/apimachinery v0.35.2
 	k8s.io/client-go v0.35.2
 	k8s.io/component-base v0.35.2
-	k8s.io/cri-api v0.35.1
-	k8s.io/cri-client v0.35.1
-	k8s.io/klog/v2 v2.130.1
+	k8s.io/cri-api v0.36.0-alpha.2.0.20260319234209-556afdc5c437
+	k8s.io/cri-client v0.31.0-alpha.0.0.20260319234427-2a4fe8184ee0
+	k8s.io/klog/v2 v2.140.0
 	k8s.io/kubelet v0.35.1
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/knftables v0.0.20
