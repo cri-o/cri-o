@@ -170,6 +170,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
 				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{{Kind: archive.ChangeDelete, Path: "deleted.file"}}, nil),
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
 				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
 				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
 			)
