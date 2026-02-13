@@ -992,6 +992,15 @@ func (ImageVolumeSource) SwaggerDoc() map[string]string {
 	return map_ImageVolumeSource
 }
 
+var map_ImageVolumeStatus = map[string]string{
+	"":         "ImageVolumeStatus represents the image-based volume status.",
+	"imageRef": "ImageRef is the digest of the image used for this volume. It should have a value that's similar to the pod's status.containerStatuses[i].imageID. The ImageRef length should not exceed 256 characters.",
+}
+
+func (ImageVolumeStatus) SwaggerDoc() map[string]string {
+	return map_ImageVolumeStatus
+}
+
 var map_KeyToPath = map[string]string{
 	"":     "Maps a string key to a path within a volume.",
 	"key":  "key is the key to project.",
@@ -1565,7 +1574,7 @@ var map_PersistentVolumeSource = map[string]string{
 	"quobyte":              "quobyte represents a Quobyte mount on the host that shares a pod's lifetime. Deprecated: Quobyte is deprecated and the in-tree quobyte type is no longer supported.",
 	"azureDisk":            "azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod. Deprecated: AzureDisk is deprecated. All operations for the in-tree azureDisk type are redirected to the disk.csi.azure.com CSI driver.",
 	"photonPersistentDisk": "photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine. Deprecated: PhotonPersistentDisk is deprecated and the in-tree photonPersistentDisk type is no longer supported.",
-	"portworxVolume":       "portworxVolume represents a portworx volume attached and mounted on kubelets host machine. Deprecated: PortworxVolume is deprecated. All operations for the in-tree portworxVolume type are redirected to the pxd.portworx.com CSI driver when the CSIMigrationPortworx feature-gate is on.",
+	"portworxVolume":       "portworxVolume represents a portworx volume attached and mounted on kubelets host machine. Deprecated: PortworxVolume is deprecated. All operations for the in-tree portworxVolume type are redirected to the pxd.portworx.com CSI driver.",
 	"scaleIO":              "scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes. Deprecated: ScaleIO is deprecated and the in-tree scaleIO type is no longer supported.",
 	"local":                "local represents directly-attached storage with node affinity",
 	"storageos":            "storageOS represents a StorageOS volume that is attached to the kubelet's host machine and mounted into the pod. Deprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported. More info: https://examples.k8s.io/volumes/storageos/README.md",
@@ -2782,6 +2791,7 @@ var map_VolumeMountStatus = map[string]string{
 	"mountPath":         "MountPath corresponds to the original VolumeMount.",
 	"readOnly":          "ReadOnly corresponds to the original VolumeMount.",
 	"recursiveReadOnly": "RecursiveReadOnly must be set to Disabled, Enabled, or unspecified (for non-readonly mounts). An IfPossible value in the original VolumeMount must be translated to Disabled or Enabled, depending on the mount result.",
+	"volumeStatus":      "volumeStatus represents volume-type-specific status about the mounted volume.",
 }
 
 func (VolumeMountStatus) SwaggerDoc() map[string]string {
@@ -2847,7 +2857,7 @@ var map_VolumeSource = map[string]string{
 	"azureDisk":             "azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod. Deprecated: AzureDisk is deprecated. All operations for the in-tree azureDisk type are redirected to the disk.csi.azure.com CSI driver.",
 	"photonPersistentDisk":  "photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine. Deprecated: PhotonPersistentDisk is deprecated and the in-tree photonPersistentDisk type is no longer supported.",
 	"projected":             "projected items for all in one resources secrets, configmaps, and downward API",
-	"portworxVolume":        "portworxVolume represents a portworx volume attached and mounted on kubelets host machine. Deprecated: PortworxVolume is deprecated. All operations for the in-tree portworxVolume type are redirected to the pxd.portworx.com CSI driver when the CSIMigrationPortworx feature-gate is on.",
+	"portworxVolume":        "portworxVolume represents a portworx volume attached and mounted on kubelets host machine. Deprecated: PortworxVolume is deprecated. All operations for the in-tree portworxVolume type are redirected to the pxd.portworx.com CSI driver.",
 	"scaleIO":               "scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes. Deprecated: ScaleIO is deprecated and the in-tree scaleIO type is no longer supported.",
 	"storageos":             "storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes. Deprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported.",
 	"csi":                   "csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers.",
@@ -2857,6 +2867,15 @@ var map_VolumeSource = map[string]string{
 
 func (VolumeSource) SwaggerDoc() map[string]string {
 	return map_VolumeSource
+}
+
+var map_VolumeStatus = map[string]string{
+	"":      "VolumeStatus represents the status of a mounted volume. At most one of its members must be specified.",
+	"image": "image represents an OCI object (a container image or artifact) pulled and mounted on the kubelet's host machine.",
+}
+
+func (VolumeStatus) SwaggerDoc() map[string]string {
+	return map_VolumeStatus
 }
 
 var map_VsphereVirtualDiskVolumeSource = map[string]string{

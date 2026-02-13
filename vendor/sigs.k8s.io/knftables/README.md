@@ -62,26 +62,31 @@ families, you have two options: you can either create separate
 will need to explicitly fill in the `Family` and `Table` fields of
 every `Chain`, `Rule`, etc, object you create.)
 
-You can use the `List`, `ListRules`, and `ListElements` methods on the
-`Interface` to check if objects exist. `List` returns the names of
-`"chains"`, `"sets"`, or `"maps"` in the table, while `ListElements`
-returns `Element` objects and `ListRules` returns *partial* `Rule`
-objects.
+You can use the various `List*` methods on the `Interface` to check if
+objects exist. `ListAll` returns a map of the names of top-level
+objects in the table, sorted by object type, while `List` returns just
+the names of objects of a single type. `ListElements`, `ListRules`,
+and `ListCounters` returned parsed objects of the given types. Note
+that `ListRules` returns *partial* `Rule` objects; it does not fill in
+the `Rule` field.
 
 ```golang
-chains, err := nft.List(ctx, "chains")
+allChains, err := nft.List(ctx, "chains")
 if err != nil {
         return fmt.Errorf("could not list chains: %v", err)
 }
+for chain := range sets.New(allChains...).Difference(expectedChains) {
+        tx.Delete(&knftables.Chain{Name: chain})
+}
 
-FIXME
+// ...
 
 elements, err := nft.ListElements(ctx, "map", "mymap")
 if err != nil {
         return fmt.Errorf("could not list map elements: %v", err)
 }
 
-FIXME
+...
 ```
 
 To make changes, create a `Transaction`, add the appropriate
