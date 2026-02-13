@@ -13,12 +13,44 @@ import (
 
 // ListImages lists existing images.
 func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (*types.ListImagesResponse, error) {
-	_, span := log.StartSpan(ctx)
+	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	if reqFilter := req.GetFilter(); reqFilter != nil {
-		if filterImage := reqFilter.GetImage(); filterImage != nil && filterImage.GetImage() != "" {
-			// Historically CRI-O has interpreted the “filter” as a single image to look up.
+	images, err := s.listImages(ctx, req.GetFilter())
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.ListImagesResponse{
+		Images: images,
+	}, nil
+}
+
+// StreamImages returns a stream of images.
+func (s *Server) StreamImages(req *types.StreamImagesRequest, stream types.ImageService_StreamImagesServer) error {
+	ctx := stream.Context()
+
+	images, err := s.listImages(ctx, req.GetFilter())
+	if err != nil {
+		return err
+	}
+
+	for _, image := range images {
+		if err := stream.Send(&types.StreamImagesResponse{
+			Image: image,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// listImages returns a filtered list of images.
+func (s *Server) listImages(ctx context.Context, filter *types.ImageFilter) ([]*types.Image, error) {
+	if filter != nil {
+		if filterImage := filter.GetImage(); filterImage != nil && filterImage.GetImage() != "" {
+			// Historically CRI-O has interpreted the "filter" as a single image to look up.
 			// Also, the type of the value is types.ImageSpec, the value used to refer to a single image.
 			// And, ultimately, Kubelet never uses the filter.
 			// So, fall back to existing code instead of having an extra code path doing some kind of filtering.
@@ -27,19 +59,19 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 				return nil, err
 			}
 
-			resp := &types.ListImagesResponse{}
+			var images []*types.Image
 
 			if status != nil {
-				return &types.ListImagesResponse{Images: []*types.Image{ConvertImage(status)}}, nil
+				images = append(images, ConvertImage(status))
 			}
 
 			if artifact, err := s.ArtifactStore().Status(ctx, filterImage.GetImage()); err == nil {
-				resp.Images = append(resp.Images, artifact.CRIImage())
+				images = append(images, artifact.CRIImage())
 			} else if !errors.Is(err, ociartifact.ErrNotFound) {
 				log.Errorf(ctx, "Unable to get filtered artifact: %v", err)
 			}
 
-			return resp, nil
+			return images, nil
 		}
 	}
 
@@ -48,11 +80,11 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 		return nil, err
 	}
 
-	resp := &types.ListImagesResponse{}
+	var images []*types.Image
 
 	for i := range results {
 		image := ConvertImage(&results[i])
-		resp.Images = append(resp.Images, image)
+		images = append(images, image)
 	}
 
 	artifacts, err := s.ArtifactStore().List(ctx)
@@ -61,10 +93,10 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 	}
 
 	for _, a := range artifacts {
-		resp.Images = append(resp.Images, a.CRIImage())
+		images = append(images, a.CRIImage())
 	}
 
-	return resp, nil
+	return images, nil
 }
 
 // ConvertImage takes an containers/storage ImageResult and converts it into a

@@ -10,6 +10,38 @@ import (
 
 // ListContainerStats returns stats of all running containers.
 func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContainerStatsRequest) (*types.ListContainerStatsResponse, error) {
+	stats, err := s.listContainerStats(ctx, req.GetFilter())
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.ListContainerStatsResponse{
+		Stats: stats,
+	}, nil
+}
+
+// StreamContainerStats returns a stream of container stats.
+func (s *Server) StreamContainerStats(req *types.StreamContainerStatsRequest, stream types.RuntimeService_StreamContainerStatsServer) error {
+	ctx := stream.Context()
+
+	stats, err := s.listContainerStats(ctx, req.GetFilter())
+	if err != nil {
+		return err
+	}
+
+	for _, stat := range stats {
+		if err := stream.Send(&types.StreamContainerStatsResponse{
+			ContainerStats: stat,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// listContainerStats returns stats for containers matching the filter.
+func (s *Server) listContainerStats(ctx context.Context, filter *types.ContainerStatsFilter) ([]*types.ContainerStats, error) {
 	ctrList, err := s.ContainerServer.ListContainers(
 		func(container *oci.Container) bool {
 			return container.StateNoLock().Status != oci.ContainerStateStopped
@@ -19,11 +51,11 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 		return nil, err
 	}
 
-	if req.GetFilter() != nil {
+	if filter != nil {
 		cFilter := &types.ContainerFilter{
-			Id:            req.GetFilter().GetId(),
-			PodSandboxId:  req.GetFilter().GetPodSandboxId(),
-			LabelSelector: req.GetFilter().GetLabelSelector(),
+			Id:            filter.GetId(),
+			PodSandboxId:  filter.GetPodSandboxId(),
+			LabelSelector: filter.GetLabelSelector(),
 		}
 		ctrList = s.filterContainerList(ctx, cFilter, ctrList)
 
@@ -38,7 +70,5 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 		ctrList = filteredCtrList
 	}
 
-	return &types.ListContainerStatsResponse{
-		Stats: s.StatsForContainers(ctrList),
-	}, nil
+	return s.StatsForContainers(ctrList), nil
 }
