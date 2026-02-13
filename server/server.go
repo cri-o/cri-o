@@ -50,6 +50,7 @@ const (
 	irqBalanceConfigRestoreDisable = "disable"
 	debounceDuration               = 200 * time.Millisecond
 	defaultRegistriesConfDDir      = "/etc/containers/registries.conf.d"
+	streamChunkSize                = 2000
 )
 
 var errSandboxNotCreated = errors.New("sandbox not created")

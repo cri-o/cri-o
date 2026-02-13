@@ -1,4 +1,4 @@
-go 1.25.0
+go 1.26.0
 
 module github.com/cri-o/cri-o
 
@@ -74,7 +74,7 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.41.0
 	google.golang.org/grpc v1.79.1
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.35.2
 	k8s.io/apimachinery v0.35.2
 	k8s.io/client-go v0.35.2
@@ -263,3 +263,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+replace k8s.io/cri-api => github.com/bitoku/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20260311153604-3ba7af3bb754
