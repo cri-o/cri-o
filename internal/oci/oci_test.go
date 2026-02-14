@@ -215,7 +215,7 @@ var _ = t.Describe("Oci", func() {
 				},
 			}
 			// When
-			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, false)
+			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, false, myContainer.Dir(), myContainer.CheckpointPath())
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -241,7 +241,7 @@ var _ = t.Describe("Oci", func() {
 				},
 			}
 			// When
-			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, true)
+			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, true, myContainer.Dir(), myContainer.CheckpointPath())
 
 			// Then
 			Expect(err).To(HaveOccurred())
