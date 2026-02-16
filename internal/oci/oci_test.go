@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	criu "github.com/checkpoint-restore/go-criu/v7/utils"
+	criu "github.com/checkpoint-restore/go-criu/v8/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
