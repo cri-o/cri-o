@@ -3,8 +3,8 @@ package tablewriter
 import (
 	"reflect"
 
-	"github.com/mattn/go-runewidth"
 	"github.com/olekukonko/ll"
+	"github.com/olekukonko/tablewriter/pkg/twcache"
 	"github.com/olekukonko/tablewriter/pkg/twwidth"
 	"github.com/olekukonko/tablewriter/tw"
 )
@@ -122,13 +122,14 @@ func WithFooterAlignmentConfig(alignment tw.CellAlignment) Option {
 	}
 }
 
-// WithFooterMergeMode sets the merge mode for footer cells.
-// Invalid merge modes are ignored, and the change is logged if debugging is enabled.
+// Deprecated: Use a ConfigBuilder with .Footer().CellMerging().WithMode(...) instead.
+// This option will be removed in a future version.
 func WithFooterMergeMode(mergeMode int) Option {
 	return func(target *Table) {
 		if mergeMode < tw.MergeNone || mergeMode > tw.MergeHierarchical {
 			return
 		}
+		target.config.Footer.Merging.Mode = mergeMode
 		target.config.Footer.Formatting.MergeMode = mergeMode
 		if target.logger != nil {
 			target.logger.Debugf("Option: WithFooterMergeMode applied to Table: %v", mergeMode)
@@ -232,13 +233,14 @@ func WithHeaderAutoWrap(wrap int) Option {
 	}
 }
 
-// WithHeaderMergeMode sets the merge mode for header cells.
-// Invalid merge modes are ignored, and the change is logged if debugging is enabled.
+// Deprecated: Use a ConfigBuilder with .Header().CellMerging().WithMode(...) instead.
+// This option will be removed in a future version.
 func WithHeaderMergeMode(mergeMode int) Option {
 	return func(target *Table) {
 		if mergeMode < tw.MergeNone || mergeMode > tw.MergeHierarchical {
 			return
 		}
+		target.config.Header.Merging.Mode = mergeMode
 		target.config.Header.Formatting.MergeMode = mergeMode
 		if target.logger != nil {
 			target.logger.Debugf("Option: WithHeaderMergeMode applied to Table: %v", mergeMode)
@@ -321,13 +323,14 @@ func WithRowAutoWrap(wrap int) Option {
 	}
 }
 
-// WithRowMergeMode sets the merge mode for row cells.
-// Invalid merge modes are ignored, and the change is logged if debugging is enabled.
+// Deprecated: Use a ConfigBuilder with .Row().CellMerging().WithMode(...) instead.
+// This option will be removed in a future version.
 func WithRowMergeMode(mergeMode int) Option {
 	return func(target *Table) {
 		if mergeMode < tw.MergeNone || mergeMode > tw.MergeHierarchical {
 			return
 		}
+		target.config.Row.Merging.Mode = mergeMode
 		target.config.Row.Formatting.MergeMode = mergeMode
 		if target.logger != nil {
 			target.logger.Debugf("Option: WithRowMergeMode applied to Table: %v", mergeMode)
@@ -468,22 +471,48 @@ func WithStreaming(c tw.StreamConfig) Option {
 func WithStringer(stringer interface{}) Option {
 	return func(t *Table) {
 		t.stringer = stringer
-		t.stringerCacheMu.Lock()
-		t.stringerCache = make(map[reflect.Type]reflect.Value)
-		t.stringerCacheMu.Unlock()
+		t.stringerCache = twcache.NewLRU[reflect.Type, reflect.Value](tw.DefaultCacheStringCapacity)
 		if t.logger != nil {
 			t.logger.Debug("Stringer updated, cache cleared")
 		}
 	}
 }
 
-// WithStringerCache enables caching for the stringer function.
-// Logs the change if debugging is enabled.
+// WithStringerCache enables the default LRU caching for the stringer function.
+// It initializes the cache with a default capacity if one does not already exist.
 func WithStringerCache() Option {
 	return func(t *Table) {
-		t.stringerCacheEnabled = true
+		// Initialize default cache if strictly necessary (nil),
+		// or if you want to ensure the default implementation is used.
+		if t.stringerCache == nil {
+			// NewLRU returns (Instance, error). We ignore the error here assuming capacity > 0.
+			cache := twcache.NewLRU[reflect.Type, reflect.Value](tw.DefaultCacheStringCapacity)
+			t.stringerCache = cache
+		}
+
 		if t.logger != nil {
-			t.logger.Debug("Option: WithStringerCache enabled")
+			t.logger.Debug("Option: WithStringerCache enabled (Default LRU)")
+		}
+	}
+}
+
+// WithStringerCacheCustom enables caching for the stringer function using a specific implementation.
+// Passing nil disables caching entirely.
+func WithStringerCacheCustom(cache twcache.Cache[reflect.Type, reflect.Value]) Option {
+	return func(t *Table) {
+		if cache == nil {
+			t.stringerCache = nil
+			if t.logger != nil {
+				t.logger.Debug("Option: WithStringerCacheCustom called with nil (Caching Disabled)")
+			}
+			return
+		}
+
+		// Set the custom cache and enable the flag
+		t.stringerCache = cache
+
+		if t.logger != nil {
+			t.logger.Debug("Option: WithStringerCacheCustom enabled")
 		}
 	}
 }
@@ -626,27 +655,20 @@ func WithRendition(rendition tw.Rendition) Option {
 }
 
 // WithEastAsian configures the global East Asian width calculation setting.
-//   - enable=true: Enables East Asian width calculations. CJK and ambiguous characters
+//   - state=tw.On: Enables East Asian width calculations. CJK and ambiguous characters
 //     are typically measured as double width.
-//   - enable=false: Disables East Asian width calculations. Characters are generally
+//   - state=tw.Off: Disables East Asian width calculations. Characters are generally
 //     measured as single width, subject to Unicode standards.
 //
 // This setting affects all subsequent display width calculations using the twdw package.
-func WithEastAsian(enable bool) Option {
+func WithEastAsian(state tw.State) Option {
 	return func(target *Table) {
-		twwidth.SetEastAsian(enable)
-	}
-}
-
-// WithCondition provides a way to set a custom global runewidth.Condition
-// that will be used for all subsequent display width calculations by the twwidth (twdw) package.
-//
-// The runewidth.Condition object allows for more fine-grained control over how rune widths
-// are determined, beyond just toggling EastAsianWidth. This could include settings for
-// ambiguous width characters or other future properties of runewidth.Condition.
-func WithCondition(condition *runewidth.Condition) Option {
-	return func(target *Table) {
-		twwidth.SetCondition(condition)
+		if state.Enabled() {
+			twwidth.SetEastAsian(true)
+		}
+		if state.Disabled() {
+			twwidth.SetEastAsian(false)
+		}
 	}
 }
 
@@ -706,6 +728,9 @@ func defaultConfig() Config {
 				AutoFormat: tw.On,
 				MergeMode:  tw.MergeNone,
 			},
+			Merging: tw.CellMerging{
+				Mode: tw.MergeNone,
+			},
 			Padding: tw.CellPadding{
 				Global: tw.PaddingDefault,
 			},
@@ -720,6 +745,9 @@ func defaultConfig() Config {
 				AutoFormat: tw.Off,
 				MergeMode:  tw.MergeNone,
 			},
+			Merging: tw.CellMerging{
+				Mode: tw.MergeNone,
+			},
 			Padding: tw.CellPadding{
 				Global: tw.PaddingDefault,
 			},
@@ -733,6 +761,9 @@ func defaultConfig() Config {
 				AutoWrap:   tw.WrapNormal,
 				AutoFormat: tw.Off,
 				MergeMode:  tw.MergeNone,
+			},
+			Merging: tw.CellMerging{
+				Mode: tw.MergeNone,
 			},
 			Padding: tw.CellPadding{
 				Global: tw.PaddingDefault,
@@ -772,8 +803,18 @@ func mergeCellConfig(dst, src tw.CellConfig) tw.CellConfig {
 	if src.ColMaxWidths.Global != 0 {
 		dst.ColMaxWidths.Global = src.ColMaxWidths.Global
 	}
-	if src.Formatting.MergeMode != 0 {
+
+	// Handle merging of the new CellMerging struct and the deprecated MergeMode
+	if src.Merging.Mode != 0 {
+		dst.Merging.Mode = src.Merging.Mode
+		dst.Formatting.MergeMode = src.Merging.Mode
+	} else if src.Formatting.MergeMode != 0 {
+		dst.Merging.Mode = src.Formatting.MergeMode
 		dst.Formatting.MergeMode = src.Formatting.MergeMode
+	}
+
+	if src.Merging.ByColumnIndex != nil {
+		dst.Merging.ByColumnIndex = src.Merging.ByColumnIndex.Clone()
 	}
 
 	dst.Formatting.AutoFormat = src.Formatting.AutoFormat
