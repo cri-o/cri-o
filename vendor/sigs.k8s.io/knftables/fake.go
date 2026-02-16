@@ -126,6 +126,35 @@ func NewFake(family Family, table string) *Fake {
 
 var _ Interface = &Fake{}
 
+// ListAll is part of Interface.
+func (fake *Fake) ListAll(_ context.Context) (map[string][]string, error) {
+	fake.RLock()
+	defer fake.RUnlock()
+	if fake.Table == nil {
+		return nil, notFoundError("no such table %q", fake.table)
+	}
+
+	result := make(map[string][]string)
+
+	for name := range fake.Table.Flowtables {
+		result["flowtable"] = append(result["flowtable"], name)
+	}
+	for name := range fake.Table.Chains {
+		result["chain"] = append(result["chain"], name)
+	}
+	for name := range fake.Table.Sets {
+		result["set"] = append(result["set"], name)
+	}
+	for name := range fake.Table.Maps {
+		result["map"] = append(result["map"], name)
+	}
+	for name := range fake.Table.Counters {
+		result["counter"] = append(result["counter"], name)
+	}
+
+	return result, nil
+}
+
 // List is part of Interface.
 func (fake *Fake) List(_ context.Context, objectType string) ([]string, error) {
 	fake.RLock()

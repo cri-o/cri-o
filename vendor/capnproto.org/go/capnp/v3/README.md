@@ -15,7 +15,7 @@ This package provides:
 - Runtime support for the Go language
 - Level 1 support for the [Cap'n Proto RPC](https://capnproto.org/rpc.html) protocol
 
-Support for Level 3 RPC is [planned](https://github.com/capnproto/go-capnproto2/issues/160).
+Support for Level 3 RPC is a [work in progress](https://github.com/capnproto/go-capnp/issues/597).
 
 ## Getting Started
 

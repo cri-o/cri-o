@@ -274,7 +274,7 @@ func Version(binaryPath string) (res *ServerVersion, err error) {
 
 	const arg = "--version-json"
 
-	data, err := exec.Command(binaryPath, arg).CombinedOutput()
+	data, err := exec.CommandContext(context.Background(), binaryPath, arg).CombinedOutput()
 	if err != nil {
 		if bytes.Contains(data, []byte("error: unexpected argument")) {
 			return nil, ErrUnsupported
@@ -337,7 +337,7 @@ func (c *ConmonClient) startServer(config *ConmonServerConfig) error {
 		return fmt.Errorf("convert config to args: %w", err)
 	}
 
-	cmd := exec.Command(entrypoint, args...)
+	cmd := exec.CommandContext(context.Background(), entrypoint, args...)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
@@ -1691,7 +1691,7 @@ func (c *ConmonClient) attachHeaptrack(config *ConmonServerConfig, pid uint32) {
 
 	c.logger.Debugf("Running heaptrack via: %s %s", entrypoint, strings.Join(args, " "))
 
-	cmd := exec.Command(entrypoint, args...)
+	cmd := exec.CommandContext(context.Background(), entrypoint, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

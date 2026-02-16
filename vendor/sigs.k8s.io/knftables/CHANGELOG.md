@@ -1,5 +1,21 @@
 # ChangeLog
 
+## v0.0.20
+
+- `List()` has been changed to use `nft list table` rather than, e.g.,
+  `nft list sets`, to ensure that it doesn't try to parse objects in
+  other tables (which may have been created by newer versions of `nft`
+  and might trigger crashes in older versions of `nft`; see
+  https://issues.k8s.io/136786). (`@danwinship` based on a previous PR
+  from `@kairosci`).
+
+- A new `ListAll()` method has been added to help work around the fact
+  that `List()` is now much less efficient with large tables.
+  (`@danwinship`).
+
+- `ListElements()` now correctly handles maps/sets with concatenated
+  keys/values including CIDR values. (`@danwinship`)
+
 ## v0.0.19
 
 - Added the ability to use a single `knftables.Interface` (and a

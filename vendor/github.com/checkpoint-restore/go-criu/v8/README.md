@@ -62,7 +62,7 @@ The following table shows the relation between go-criu and criu versions:
 
 | Major version  | Latest release | CRIU version |
 | -------------- | -------------- | ------------ |
-| v8             | 8.0.0          | 4.2          |
+| v8             | 8.2.0          | 4.2          |
 | v7             | 7.2.0          | 3.19         |
 | v7             | 7.0.0          | 3.18         |
 | v6             | 6.3.0          | 3.17         |
@@ -72,36 +72,8 @@ The following table shows the relation between go-criu and criu versions:
 
 ## How to contribute
 
-While bug fixes can first be identified via an "issue", that is not required.
-It's ok to just open up a PR with the fix, but make sure you include the same
-information you would have included in an issue - like how to reproduce it.
-
-PRs for new features should include some background on what use cases the
-new code is trying to address. When possible and when it makes sense, try to
-break-up larger PRs into smaller ones - it's easier to review smaller
-code changes. But only if those smaller ones make sense as stand-alone PRs.
-
-Regardless of the type of PR, all PRs should include:
-
-* well documented code changes
-* additional testcases. Ideally, they should fail w/o your code change applied
-* documentation changes
-
-Squash your commits into logical pieces of work that might want to be reviewed
-separate from the rest of the PRs. Ideally, each commit should implement a
-single idea, and the PR branch should pass the tests at every commit. GitHub
-makes it easy to review the cumulative effect of many commits; so, when in
-doubt, use smaller commits.
-
-PRs that fix issues should include a reference like `Closes #XXXX` in the
-commit message so that github will automatically close the referenced issue
-when the PR is merged.
-
-Contributors must assert that they are in compliance with the [Developer
-Certificate of Origin 1.1](http://developercertificate.org/). This is achieved
-by adding a "Signed-off-by" line containing the contributor's name and e-mail
-to every commit message. Your signature certifies that you wrote the patch or
-otherwise have the right to pass it on as an open-source patch.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this
+project.
 
 ## License and copyright
 
