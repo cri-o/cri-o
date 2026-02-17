@@ -95,6 +95,9 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v1.5.0
 ## explicit; go 1.24.6
 github.com/checkpoint-restore/checkpointctl/lib
+# github.com/checkpoint-restore/go-criu/v7 v7.2.0
+## explicit; go 1.20
+github.com/checkpoint-restore/go-criu/v7/stats
 # github.com/checkpoint-restore/go-criu/v8 v8.2.0
 ## explicit; go 1.24.0
 github.com/checkpoint-restore/go-criu/v8
@@ -681,9 +684,9 @@ github.com/mattn/go-sqlite3
 # github.com/miekg/pkcs11 v1.1.1
 ## explicit; go 1.12
 github.com/miekg/pkcs11
-# github.com/mistifyio/go-zfs/v4 v4.0.0
+# github.com/mistifyio/go-zfs/v3 v3.1.0
 ## explicit; go 1.14
-github.com/mistifyio/go-zfs/v4
+github.com/mistifyio/go-zfs/v3
 # github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
@@ -1077,8 +1080,8 @@ go.opentelemetry.io/proto/otlp/collector/trace/v1
 go.opentelemetry.io/proto/otlp/common/v1
 go.opentelemetry.io/proto/otlp/resource/v1
 go.opentelemetry.io/proto/otlp/trace/v1
-# go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39
-## explicit; go 1.24.6
+# go.podman.io/common v0.67.0
+## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
 go.podman.io/common/libimage
@@ -1091,6 +1094,7 @@ go.podman.io/common/pkg/apparmor
 go.podman.io/common/pkg/apparmor/internal/supported
 go.podman.io/common/pkg/capabilities
 go.podman.io/common/pkg/cgroups
+go.podman.io/common/pkg/cgroupv2
 go.podman.io/common/pkg/config
 go.podman.io/common/pkg/crutils
 go.podman.io/common/pkg/detach
@@ -1113,7 +1117,7 @@ go.podman.io/common/pkg/timetype
 go.podman.io/common/pkg/timezone
 go.podman.io/common/pkg/umask
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.38.0
+# go.podman.io/image/v5 v5.39.1
 ## explicit; go 1.24.0
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -1180,7 +1184,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.61.1-0.20251212224252-b0f86df5a665
+# go.podman.io/storage v1.62.0
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
