@@ -10,7 +10,7 @@ on:
       - nixpkgs
   pull_request:
 env:
-  NIX_VERSION: "2.31.2"
+  NIX_VERSION: "2.33.3"
 permissions:
   contents: read
 concurrency:

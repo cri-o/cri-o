@@ -9,11 +9,6 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
-// Helper function for pointer reference.
-func pointer[A any](m A) *A {
-	return &m
-}
-
 // The actual test suite.
 var _ = t.Describe("Workloads config", func() {
 	BeforeEach(beforeEach)
@@ -145,9 +140,9 @@ var _ = t.Describe("Workloads config", func() {
 					CPUPeriod: 50000,
 				},
 				expectedCPUSet:    "0-1",
-				expectedCPUQuota:  pointer(int64(20)),
-				expectedCPUShare:  pointer(uint64(15)),
-				expectedCPUPeriod: pointer(uint64(50000)),
+				expectedCPUQuota:  new(int64(20)),
+				expectedCPUShare:  new(uint64(15)),
+				expectedCPUPeriod: new(uint64(50000)),
 			},
 		}
 
@@ -194,8 +189,8 @@ var _ = t.Describe("Workloads config", func() {
 					resourceContainerAnnotation: "{\"cpushares\":15,\"cpulimit\":35}",
 					workloadTargetAnnotation:    "{\"effect\":\"PreferredDuringScheduling\"}",
 				},
-				expectedCPUQuota: pointer(int64(3500)),
-				expectedCPUShare: pointer(uint64(15)),
+				expectedCPUQuota: new(int64(3500)),
+				expectedCPUShare: new(uint64(15)),
 			},
 			{
 				description: "when cpulimit is present it should override cpuquota",
@@ -203,8 +198,8 @@ var _ = t.Describe("Workloads config", func() {
 					resourceContainerAnnotation: "{\"cpushares\":35,\"cpulimit\":105,\"cpuquota\":35}",
 					workloadTargetAnnotation:    "{\"effect\":\"PreferredDuringScheduling\"}",
 				},
-				expectedCPUQuota: pointer(int64(10500)),
-				expectedCPUShare: pointer(uint64(35)),
+				expectedCPUQuota: new(int64(10500)),
+				expectedCPUShare: new(uint64(35)),
 			},
 			{
 				description: "when cpuquota is present",
@@ -212,8 +207,8 @@ var _ = t.Describe("Workloads config", func() {
 					resourceContainerAnnotation: "{\"cpushares\":25,\"cpuquota\":35}",
 					workloadTargetAnnotation:    "{\"effect\":\"PreferredDuringScheduling\"}",
 				},
-				expectedCPUQuota: pointer(int64(35)),
-				expectedCPUShare: pointer(uint64(25)),
+				expectedCPUQuota: new(int64(35)),
+				expectedCPUShare: new(uint64(25)),
 			},
 			{
 				description: "when only cpuperiod is present",
@@ -221,8 +216,8 @@ var _ = t.Describe("Workloads config", func() {
 					resourceContainerAnnotation: "{\"cpushares\":65,\"cpuperiod\":50000}",
 					workloadTargetAnnotation:    "{\"effect\":\"PreferredDuringScheduling\"}",
 				},
-				expectedCPUPeriod: pointer(uint64(50000)),
-				expectedCPUShare:  pointer(uint64(65)),
+				expectedCPUPeriod: new(uint64(50000)),
+				expectedCPUShare:  new(uint64(65)),
 			},
 			{
 				description: "when only cpushares is present",
@@ -230,7 +225,7 @@ var _ = t.Describe("Workloads config", func() {
 					resourceContainerAnnotation: "{\"cpushares\":45}",
 					workloadTargetAnnotation:    "{\"effect\":\"PreferredDuringScheduling\"}",
 				},
-				expectedCPUShare: pointer(uint64(45)),
+				expectedCPUShare: new(uint64(45)),
 			},
 		}
 
