@@ -5,7 +5,7 @@ GO_ARCH=$(shell $(GO) env GOARCH)
 GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_TEST ?= $(GO) test $(TRIMPATH)
 GO_RUN ?= $(GO) run
-NIX_IMAGE ?= nixos/nix:2.31.2
+NIX_IMAGE ?= nixos/nix:2.33.3
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
@@ -53,7 +53,7 @@ GOLANGCI_LINT_VERSION := v2.10.1
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
 GOSEC := ${BUILD_BIN_PATH}/gosec
-GOSEC_VERSION := 2.22.8
+GOSEC_VERSION := 2.23.0
 MDTOC := ${BUILD_BIN_PATH}/mdtoc
 MDTOC_VERSION := v1.4.0
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
@@ -380,6 +380,8 @@ verify-dependencies: ${ZEITGEIST} ## Verify the local dependencies.
 	${BUILD_BIN_PATH}/zeitgeist validate --local-only --base-path . --config dependencies.yaml
 
 .PHONY: verify-gosec
+# TODO: bump GOSEC_VERSION once a release supports go1.26:
+# https://github.com/securego/gosec/pull/1508
 verify-gosec: ${GOSEC} ## Run gosec on the project.
 	${BUILD_BIN_PATH}/gosec -exclude-dir=test -exclude-dir=_output -severity high -confidence high -exclude G304,G108 ./...
 

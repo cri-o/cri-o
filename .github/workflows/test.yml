@@ -10,7 +10,7 @@ on:
       - nixpkgs
   pull_request:
 env:
-  NIX_VERSION: "2.31.2"
+  NIX_VERSION: "2.33.3"
 permissions:
   contents: read
 concurrency:
@@ -318,6 +318,8 @@ jobs:
           name: vex
           path: build/cri-o.openvex.json
           if-no-files-found: ignore
+      # TODO: remove once a gosec release supports go1.26:
+      # https://github.com/securego/gosec/pull/1508
       - name: Run gosec
         run: make verify-gosec
 

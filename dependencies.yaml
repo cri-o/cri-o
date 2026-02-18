@@ -1,9 +1,9 @@
 dependencies:
   - name: go
-    version: 1.25
+    version: 1.26
     refPaths:
       - path: nix/derivation.nix
-        match: buildGo125Module
+        match: buildGo126Module
       - path: go.mod
         match: go
 
@@ -85,7 +85,7 @@ dependencies:
         match: ZEITGEIST_VERSION
 
   - name: nix
-    version: 2.31.2
+    version: 2.33.3
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
@@ -119,7 +119,7 @@ dependencies:
         match: GOVULNCHECK_VERSION
 
   - name: gosec
-    version: 2.22.8
+    version: 2.23.0
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
