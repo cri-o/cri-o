@@ -45,7 +45,7 @@ func commonPodSandboxToNRI(pod PodSandbox) *nri.PodSandbox {
 }
 
 func podSandboxesToNRI(podList []PodSandbox) []*nri.PodSandbox {
-	pods := []*nri.PodSandbox{}
+	pods := make([]*nri.PodSandbox, 0, len(podList))
 	for _, pod := range podList {
 		pods = append(pods, podSandboxToNRI(pod))
 	}

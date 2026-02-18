@@ -81,7 +81,7 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 		{
 			desc: containerMemoryFailuresTotal,
 			valueFunc: func() metricValues {
-				metrics := make([]metricValue, 0)
+				metrics := make([]metricValue, 0, 4)
 				pgfaultMetrics := metricValues{
 					{
 						value:      pageFaults,

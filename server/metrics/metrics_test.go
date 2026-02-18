@@ -17,7 +17,7 @@ func TestMetrics(t *testing.T) {
 	RunSpecs(t, "Metrics")
 }
 
-//nolint:gochecknoglobals
+//nolint:gochecknoglobals // test framework requires global state
 var t *TestFramework
 
 var _ = BeforeSuite(func() {

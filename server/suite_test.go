@@ -137,10 +137,12 @@ var beforeEach = func() {
 
 	// Prepare the server config
 	var err error
+
 	testPath, err = filepath.Abs("test")
 	Expect(err).ToNot(HaveOccurred())
 	serverConfig, err = config.DefaultConfig()
 	Expect(err).ToNot(HaveOccurred())
+
 	serverConfig.ContainerAttachSocketDir = testPath
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
 	serverConfig.LogDir = path.Join(testPath, "log")
@@ -214,7 +216,9 @@ var afterEach = func() {
 
 var setupSUT = func() {
 	var err error
+
 	mockNewServer()
+
 	sut, err = server.New(context.Background(), libMock)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sut).NotTo(BeNil())

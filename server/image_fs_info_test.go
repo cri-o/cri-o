@@ -27,7 +27,9 @@ var _ = t.Describe("ImageFsInfo", func() {
 				storeMock.EXPECT().ImageStore().Return(""),
 				storeMock.EXPECT().GraphDriverName().Return("test"),
 			)
+
 			testImageDir := "test-images"
+
 			Expect(os.MkdirAll(testImageDir, 0o755)).To(Succeed())
 			defer os.RemoveAll(testImageDir)
 

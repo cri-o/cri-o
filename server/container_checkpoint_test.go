@@ -19,9 +19,11 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 		beforeEach()
 		createDummyConfig()
 		mockRuntimeInLibConfig()
+
 		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 			Skip("Check CRIU: " + err.Error())
 		}
+
 		serverConfig.SetCheckpointRestore(true)
 		setupSUT()
 	})

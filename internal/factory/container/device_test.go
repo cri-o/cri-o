@@ -21,6 +21,7 @@ var _ = t.Describe("Container", func() {
 			privilegedWithoutHostDevices bool
 			expectHostDevices            bool
 		}
+
 		hostDevices, err := devices.HostDevices()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -96,6 +97,7 @@ var _ = t.Describe("Container", func() {
 			expectedDeviceUID                  uint32
 			expectedDeviceGID                  uint32
 		}
+
 		hostDevices, err := devices.HostDevices()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -195,6 +197,7 @@ var _ = t.Describe("Container", func() {
 			dir := t.MustTempDir("cdi")
 			for idx, data := range content {
 				file := filepath.Join(dir, fmt.Sprintf("spec-%d.yaml", idx))
+
 				err := os.WriteFile(file, []byte(data), 0o644)
 				if err != nil {
 					return err
@@ -424,7 +427,12 @@ containerEdits:
 				err := sut.SpecInjectCDIDevices()
 
 				// Then
-				Expect(err != nil).To(Equal(test.expectError))
+				if test.expectError {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+
 				if err == nil {
 					Expect(sut.Spec().Config.Process.Env).Should(ContainElements(test.expectEnv))
 					Expect(sut.Spec().Config.Linux.Devices).Should(ContainElements(test.expectDevices))

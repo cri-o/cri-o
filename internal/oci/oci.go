@@ -218,7 +218,7 @@ func (r *Runtime) GetContainerMinMemory(runtimeHandler string) (int64, error) {
 	}
 	// We can skip error checking since the value was checked
 	// at the time of initializing the runtime handlers features.
-	value, _ := units.RAMInBytes(rh.ContainerMinMemory) //nolint: errcheck
+	value, _ := units.RAMInBytes(rh.ContainerMinMemory) //nolint:errcheck // value was validated at initialization
 
 	return value, nil
 }

@@ -123,7 +123,9 @@ var _ = t.Describe("UpdateContainerResources", func() {
 		// Prepare the sut
 		BeforeEach(func() {
 			beforeEach()
+
 			serverConfig.NRI.Enabled = true
+
 			mockRuntimeInLibConfig()
 			setupSUT()
 		})

@@ -214,7 +214,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		"args": args,
 	}).Debugf("running conmon: %s", r.handler.MonitorPath)
 
-	cmd := cmdrunner.Command(r.handler.MonitorPath, args...) //nolint: gosec
+	cmd := cmdrunner.Command(r.handler.MonitorPath, args...)
 	cmd.Dir = c.bundlePath
 	cmd.SysProcAttr = sysProcAttrPlatform()
 	cmd.Stdin = os.Stdin
@@ -248,6 +248,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 				// Failing to do so will cause us to leak a zombie.
 				killErr := cmd.Process.Kill()
 				waitErr := cmd.Wait()
+
 				if killErr != nil {
 					retErr = fmt.Errorf("failed to kill %w after failing with: %w", killErr, retErr)
 				}
@@ -500,7 +501,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
 		// When execCgroupPath is used, we don't prepend the taskset command even if InfraCtrCPUSet is set.
 		// Otherwise, the taskset command may fail.
-		execCmd = exec.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
+		execCmd = exec.CommandContext(ctx, c.RuntimePathForPlatform(r), args...)
 
 		execCgroupFD, err := os.Open(execCgroupPath)
 		if err != nil {
@@ -510,7 +511,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 
 		setSysProcAttr(execCmd, execCgroupFD.Fd())
 	} else {
-		execCmd = cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
+		execCmd = cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...)
 	}
 
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
@@ -687,7 +688,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	if execCgroupPath := c.ExecCgroupPath(); execCgroupPath != "" {
 		// When execCgroupPath is used, we don't prepend the taskset command even if InfraCtrCPUSet is set.
 		// Otherwise, the taskset command may fail.
-		cmd = exec.Command(r.handler.MonitorPath, args...) //nolint: gosec
+		cmd = exec.Command(r.handler.MonitorPath, args...)
 
 		execCgroupFD, err := os.Open(execCgroupPath)
 		if err != nil {
@@ -699,10 +700,10 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		defer execCgroupFD.Close()
 
 		setSysProcAttr(cmd, execCgroupFD.Fd())
-	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { //nolint: gocritic
-		cmd = cmdrunner.Command(r.handler.MonitorPath, args...) //nolint: gosec
+	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { //nolint:gocritic // if-else chain is clearer here than a switch
+		cmd = cmdrunner.Command(r.handler.MonitorPath, args...)
 	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer {
-		cmd = exec.Command(r.handler.MonitorPath, args...) //nolint: gosec
+		cmd = exec.Command(r.handler.MonitorPath, args...)
 	} else {
 		msg := "Unsupported monitor_exec_cgroup value: " + r.handler.MonitorExecCgroup
 
@@ -745,6 +746,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				// Failing to do so will cause us to leak a zombie.
 				killErr := cmd.Process.Kill()
 				waitErr := cmd.Wait()
+
 				if killErr != nil {
 					retErr = fmt.Errorf("failed to kill %w after failing with: %w", killErr, retErr)
 				}
@@ -775,6 +777,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 		// Unblock children
 		someData := []byte{0}
+
 		_, err = parentStartPipe.Write(someData)
 		if err != nil {
 			return err
@@ -905,7 +908,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 		return nil
 	}
 
-	cmd := cmdrunner.Command(c.RuntimePathForPlatform(r), rootFlag, r.root, "update", "--resources", "-", c.ID()) //nolint: gosec
+	cmd := cmdrunner.Command(c.RuntimePathForPlatform(r), rootFlag, r.root, "update", "--resources", "-", c.ID())
 
 	var stdout bytes.Buffer
 
@@ -1608,10 +1611,10 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 		switch {
 		// crun, for most of the commands.
 		case strings.Contains(stdErrStr, "no such process"):
-			fallthrough //nolint:gocritic
+			fallthrough //nolint:gocritic // fallthrough in switch-like case chain is intentional
 		// runc, for most of the commands.
 		case strings.Contains(stdErrStr, "container not running"):
-			fallthrough //nolint:gocritic
+			fallthrough //nolint:gocritic // fallthrough in switch-like case chain is intentional
 		// runc, on a rare occasion.
 		case strings.Contains(stdErrStr, "invalid process"):
 			err = ErrNotFound

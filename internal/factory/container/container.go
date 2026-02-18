@@ -648,12 +648,12 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		caps = &types.Capability{}
 	}
 
-	toCAPPrefixed := func(cap string) string {
-		if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
-			return "CAP_" + strings.ToUpper(cap)
+	toCAPPrefixed := func(capability string) string {
+		if !strings.HasPrefix(strings.ToLower(capability), "cap_") {
+			return "CAP_" + strings.ToUpper(capability)
 		}
 
-		return cap
+		return capability
 	}
 
 	addAll := inStringSlice(caps.GetAddCapabilities(), "ALL")

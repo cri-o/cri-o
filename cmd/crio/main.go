@@ -84,7 +84,7 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			}
 
 			gserver.GracefulStop()
-			hserver.Shutdown(ctx) //nolint: errcheck
+			hserver.Shutdown(ctx) //nolint:errcheck // best-effort shutdown during graceful stop
 
 			if err := streamingServer.StopStreamServer(); err != nil {
 				log.Warnf(ctx, "Error shutting down streaming server: %v", err)

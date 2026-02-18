@@ -305,6 +305,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).To(ContainSubstring("/proc"))
 			}
+
 			Expect(nsPaths).To(HaveLen(numNamespaces))
 			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})
@@ -332,6 +333,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).NotTo(ContainSubstring("/proc"))
 			}
+
 			Expect(nsPaths).To(HaveLen(numNamespaces))
 
 			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))

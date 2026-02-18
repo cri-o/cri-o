@@ -59,6 +59,7 @@ var _ = t.Describe("Image", func() {
 
 		// Setup the SUT
 		var err error
+
 		ctx = &types.SystemContext{
 			SystemRegistriesConfPath: t.MustTempFile("registries"),
 		}
@@ -165,7 +166,7 @@ var _ = t.Describe("Image", func() {
 
 	t.Describe("CandidatesForPotentiallyShortImageName", func() {
 		refsToNames := func(refs []storage.RegistryImageReference) []string {
-			names := []string{}
+			names := make([]string, 0, len(refs))
 			for _, ref := range refs {
 				names = append(names, ref.StringForOutOfProcessConsumptionOnly())
 			}
@@ -217,6 +218,7 @@ var _ = t.Describe("Image", func() {
 		It("should succeed to resolve with full qualified image name", func() {
 			// Given
 			const imageName = "docker.io/library/busybox:latest"
+
 			gomock.InOrder()
 
 			// When
@@ -278,6 +280,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail to resolve without configured registries", func() {
 			// Given
 			gomock.InOrder()
+
 			config := &config.Config{
 				SystemContext: ctx,
 				ImageConfig: config.ImageConfig{
@@ -300,6 +303,7 @@ var _ = t.Describe("Image", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+
 			errString := fmt.Sprintf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", testImageName, "/dev/null")
 			Expect(err.Error()).To(Equal(errString))
 			Expect(refs).To(BeNil())
@@ -317,6 +321,7 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().DeleteImage(testSHA256, true).
 					Return(nil, nil),
 			)
+
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -333,6 +338,7 @@ var _ = t.Describe("Image", func() {
 				mockResolveReference(storeMock, storageTransportMock,
 					testNormalizedImageName, "", ""),
 			)
+
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -347,6 +353,7 @@ var _ = t.Describe("Image", func() {
 			// Given
 			namedRef, err := reference.ParseNormalizedNamed(testImageName)
 			Expect(err).ToNot(HaveOccurred())
+
 			namedRef = reference.TagNameOnly(namedRef)
 			expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, "")
 			Expect(err).ToNot(HaveOccurred())
@@ -364,6 +371,7 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest"}).
 					Return(t.TestError),
 			)
+
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -379,6 +387,7 @@ var _ = t.Describe("Image", func() {
 		It("should succeed to get the image status with digest", func() {
 			namedRef, err := reference.ParseNormalizedNamed(testImageName)
 			Expect(err).ToNot(HaveOccurred())
+
 			namedRef = reference.TagNameOnly(namedRef)
 			expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, "")
 			Expect(err).ToNot(HaveOccurred())
@@ -416,6 +425,7 @@ var _ = t.Describe("Image", func() {
 					Return(digest.Digest("a:"+testSHA256), nil),
 				storeMock.EXPECT().Layer(gomock.Any()).Return(&cs.Layer{}, nil),
 			)
+
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -433,6 +443,7 @@ var _ = t.Describe("Image", func() {
 				mockResolveReference(storeMock, storageTransportMock,
 					testNormalizedImageName, "", ""),
 			)
+
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -454,6 +465,7 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
 					Return(nil, t.TestError),
 			)
+
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -570,6 +582,7 @@ var _ = t.Describe("Image", func() {
 
 	t.Describe("PullImage", func() {
 		var graphRoot string
+
 		BeforeEach(func() {
 			graphRoot = t.MustTempDir("ociartifact")
 		})
@@ -594,6 +607,7 @@ var _ = t.Describe("Image", func() {
 			mockutils.InOrder(
 				storeMock.EXPECT().GraphRoot().Return(graphRoot),
 			)
+
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -612,6 +626,7 @@ var _ = t.Describe("Image", func() {
 			mockutils.InOrder(
 				storeMock.EXPECT().GraphRoot().Return(graphRoot),
 			)
+
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox@sha256:" + testSHA256)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -630,12 +645,14 @@ var _ = t.Describe("Image", func() {
 			mockutils.InOrder(
 				storeMock.EXPECT().GraphRoot().Return(graphRoot),
 			)
+
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
+
 			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
@@ -651,12 +668,14 @@ var _ = t.Describe("Image", func() {
 			mockutils.InOrder(
 				storeMock.EXPECT().GraphRoot().Return(graphRoot),
 			)
+
 			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			ctx, cancel := context.WithTimeout(context.Background(), 0)
 			defer cancel()
+
 			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
@@ -696,6 +715,7 @@ var _ = t.Describe("Image", func() {
 
 		It("should panic for invalid pattern", func() {
 			patterns := []string{"*"}
+
 			Expect(func() { storage.CompileRegexpsForPinnedImages(patterns) }).To(Panic())
 		})
 	})

@@ -33,6 +33,7 @@ var _ = t.Describe("DataStore", func() {
 			implMock = datastoremock.NewMockImpl(mockCtrl)
 
 			var err error
+
 			testRef, err = reference.ParseNormalizedNamed("quay.io/crio/nginx-seccomp:v2")
 			Expect(err).NotTo(HaveOccurred())
 		})

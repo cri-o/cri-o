@@ -21,6 +21,7 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 			namespace = "namespace"
 			uid       = "uid"
 		)
+
 		metadata := &types.PodSandboxMetadata{
 			Name: name, Uid: uid, Namespace: namespace,
 		}
@@ -44,6 +45,7 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 			namespace = "namespace"
 			uid       = "uid"
 		)
+
 		metadata := &types.PodSandboxMetadata{
 			Name: name, Uid: uid, Namespace: namespace,
 		}

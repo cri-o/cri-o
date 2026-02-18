@@ -23,7 +23,7 @@ func (c *Container) SetStateAndSpoofPid(state *ContainerState) {
 	// but rely on calling Pid()
 	if state.Pid == 0 {
 		state.Pid = 1
-		state.SetInitPid(state.Pid) //nolint:errcheck
+		state.SetInitPid(state.Pid) //nolint:errcheck // error not relevant in test setup
 	}
 
 	c.state = state

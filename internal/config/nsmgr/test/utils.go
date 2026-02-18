@@ -78,8 +78,7 @@ func ContainerWithPid(pid int) (*oci.Container, error) {
 	cstate.State = specs.State{
 		Pid: pid,
 	}
-	// eat error here because callers may send invalid pids to test against
-	_ = cstate.SetInitPid(pid) //nolint:errcheck
+	_ = cstate.SetInitPid(pid) //nolint:errcheck // callers may send invalid pids to test against
 	testContainer.SetState(cstate)
 
 	return testContainer, nil

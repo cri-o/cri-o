@@ -66,6 +66,7 @@ linters:
     - nosprintfhostport
     - perfsprint
     - prealloc
+    - predeclared
     - promlinter
     - protogetter
     - reassign
@@ -86,6 +87,7 @@ linters:
     - usetesting
     - wastedassign
     - wsl_v5
+    - zerologlint
     # - containedctx
     # - contextcheck
     # - cyclop
@@ -101,7 +103,7 @@ linters:
     # - gocognit
     # - godoclint
     # - godox
-    # - gosecm
+    # - gosec
     # - inamedparam
     # - interfacebloat
     # - ireturn
@@ -115,7 +117,6 @@ linters:
     # - noinlineerr
     # - nonamedreturns
     # - paralleltest
-    # - predeclared
     # - sloglint
     # - sqlclosecheck
     # - tagliatelle
@@ -124,7 +125,6 @@ linters:
     # - varnamelen
     # - whitespace
     # - wrapcheck
-    # - zerologlint
   settings:
     errcheck:
       check-type-assertions: true
@@ -133,9 +133,6 @@ linters:
       min-occurrences: 6
     gocritic:
       enable-all: true
-      disabled-checks:
-        - filepathJoin
-        - whyNoLint
     gocyclo:
       min-complexity: 60
     nakedret:

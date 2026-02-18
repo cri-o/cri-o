@@ -17,10 +17,12 @@ var _ = Describe("Utils", func() {
 			mask string
 			set  bool
 		}
+
 		type Expected struct {
 			mask    string
 			invMask string
 		}
+
 		type TestData struct {
 			input    Input
 			expected Expected
@@ -63,6 +65,7 @@ var _ = Describe("Utils", func() {
 			It("Should not let the file grow unbounded", func() {
 				fakeFile, err := writeTempFile(confTemplate)
 				Expect(err).ToNot(HaveOccurred())
+
 				defer os.Remove(fakeFile)
 
 				fakeData := "000000000,0000000fa" // doesn't need to be valid
@@ -113,15 +116,21 @@ func writeTempFile(content string) (string, error) {
 		return "", err
 	}
 
+	name := f.Name()
 	if _, err := f.WriteString(content); err != nil {
+		f.Close()
+		os.Remove(name)
+
 		return "", err
 	}
 
 	if err := f.Close(); err != nil {
+		os.Remove(name)
+
 		return "", err
 	}
 
-	return f.Name(), nil
+	return name, nil
 }
 
 func cpuSetOrDie(cpus string) cpuset.CPUSet {

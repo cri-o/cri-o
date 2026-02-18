@@ -71,11 +71,13 @@ func (w *Watchdog) Start(ctx context.Context) error {
 		if err := wait.ExponentialBackoff(w.backoff, func() (bool, error) {
 			gotAck, err := w.systemd.Notify(daemon.SdNotifyWatchdog)
 			w.notifications.Add(1)
+
 			if err != nil {
 				log.Warnf(ctx, "Failed to notify systemd watchdog, retrying: %v", err)
 
 				return false, nil
 			}
+
 			if !gotAck {
 				return false, errors.New("notification not supported (NOTIFY_SOCKET is unset)")
 			}

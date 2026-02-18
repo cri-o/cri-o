@@ -172,6 +172,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with nothing set i.e user=root", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "root")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -196,6 +197,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with existing username", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "daemon")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -220,6 +222,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with existing uid", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "25")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -244,6 +247,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with uid that doesn't exist in /etc/passwd", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "300")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -273,6 +277,7 @@ var _ = t.Describe("Utils", func() {
 		It("should fail with username that desn't exist in /etc/passwd", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			_, _, _, err := utils.GetUserInfo(dir, "blah")
 			Expect(err).To(HaveOccurred())
 		})
@@ -280,6 +285,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with existing user and group", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "daemon:mail")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -299,6 +305,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with existing uid and gid", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "2:22")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -323,6 +330,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with existing user and non-existing numeric gid", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "daemon:250")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -347,6 +355,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with non-existing uid and non-existing gid", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "300:250")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -371,6 +380,7 @@ var _ = t.Describe("Utils", func() {
 		It("should succeed with non-existing uid and existing group", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
+
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "300:mail")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -490,7 +500,6 @@ func createEtcFiles() string {
 	// Create an /etc/passwd and /etc/group file that match
 	// those of the alpine image
 	// This will be created in a temp directory like /tmp/uid-test*
-	//nolint: gosec
 	alpinePasswdFile := `root:x:0:0:root:/root:/bin/ash
 bin:x:1:1:bin:/bin:/sbin/nologin
 daemon:x:2:2:daemon:/sbin:/sbin/nologin

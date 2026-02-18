@@ -29,9 +29,13 @@ import (
 )
 
 var _ = t.Describe("Container", func() {
-	var config *types.ContainerConfig
-	var sboxConfig *types.PodSandboxConfig
+	var (
+		config     *types.ContainerConfig
+		sboxConfig *types.PodSandboxConfig
+	)
+
 	const defaultMounts = 6
+
 	BeforeEach(func() {
 		config = &types.ContainerConfig{
 			Metadata: &types.ContainerMetadata{Name: "name"},
@@ -88,12 +92,14 @@ var _ = t.Describe("Container", func() {
 			}
 			err := sut.SetConfig(containerConfig, sandboxConfig)
 			Expect(err).ToNot(HaveOccurred())
+
 			currentTime := time.Now()
 			volumes := []oci.ContainerVolume{}
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
 			Expect(err).ToNot(HaveOccurred())
 			someNameOfThisImage, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/repo/image:tag")
 			Expect(err).ToNot(HaveOccurred())
+
 			imageResult := storage.ImageResult{
 				ID:                  imageID,
 				SomeNameOfThisImage: &someNameOfThisImage,
@@ -583,8 +589,10 @@ var _ = t.Describe("Container", func() {
 			Expect(caps.Inheritable).To(BeEmpty())
 			Expect(caps.Ambient).To(BeEmpty())
 		}
+
 		It("Empty capabilities should use server capabilities", func() {
 			var caps *types.Capability
+
 			serverCaps := capabilities.Default()
 
 			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(Succeed())

@@ -31,6 +31,7 @@ var _ = t.Describe("StorageImageID", func() {
 
 	It("Should reject use of uninitialized/empty values", func() {
 		id := storage.StorageImageID{}
+
 		Expect(func() { _ = id.IDStringForOutOfProcessConsumptionOnly() }).To(Panic())
 	})
 

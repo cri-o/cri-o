@@ -68,6 +68,7 @@ Dependencies:
     "dep2"
   ]
 }`
+
 	t.Describe("test setting version", func() {
 		It("should succeed to parse version", func() {
 			_, err := parseVersionConstant("1.1.1", "")
@@ -82,6 +83,7 @@ Dependencies:
 			v, err := parseVersionConstant(tempVersion, gitCommit)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(v.Build).To(HaveLen(1))
+
 			trimmed := strings.Trim(gitCommit, "\"")
 			Expect(v.Build[0]).To(Equal(trimmed))
 		})
@@ -107,6 +109,7 @@ Dependencies:
 
 			err := writeVersionFile(tempFileName, gitCommit, version)
 			defer os.Remove(tempFileName)
+
 			Expect(err).ToNot(HaveOccurred())
 
 			versionBytes, err := os.ReadFile(tempFileName)
@@ -159,6 +162,7 @@ Dependencies:
 
 			err := writeVersionFile(tempFileName, "", oldVersion)
 			defer os.Remove(tempFileName)
+
 			Expect(err).ToNot(HaveOccurred())
 
 			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
@@ -174,6 +178,7 @@ Dependencies:
 
 			err := writeVersionFile(tempFileName, "", oldVersion)
 			defer os.Remove(tempFileName)
+
 			Expect(err).ToNot(HaveOccurred())
 
 			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
@@ -189,6 +194,7 @@ Dependencies:
 
 			err := writeVersionFile(tempFileName, "", oldVersion)
 			defer os.Remove(tempFileName)
+
 			Expect(err).ToNot(HaveOccurred())
 
 			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
@@ -204,6 +210,7 @@ Dependencies:
 
 			err := writeVersionFile(tempFileName, "", oldVersion)
 			defer os.Remove(tempFileName)
+
 			Expect(err).ToNot(HaveOccurred())
 
 			upgrade, err := shouldCrioWipe(tempFileName, newVersion)

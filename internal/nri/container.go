@@ -76,7 +76,7 @@ func containerToNRI(ctr Container) *nri.Container {
 }
 
 func containersToNRI(ctrList []Container) []*nri.Container {
-	ctrs := []*nri.Container{}
+	ctrs := make([]*nri.Container, 0, len(ctrList))
 	for _, ctr := range ctrList {
 		ctrs = append(ctrs, containerToNRI(ctr))
 	}

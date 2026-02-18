@@ -16,7 +16,7 @@ func TestCollectors(t *testing.T) {
 	RunSpecs(t, "Collectors")
 }
 
-//nolint:gochecknoglobals
+//nolint:gochecknoglobals // test framework requires global state
 var t *TestFramework
 
 var _ = BeforeSuite(func() {

@@ -183,7 +183,7 @@ func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 	var dir string
 	for controller, path := range cgmap {
 		// For cgroups V2, controller will be an empty string
-		dir = filepath.Join("/sys/fs/cgroup", controller, path)
+		dir = filepath.Join(CgroupMemoryPathV2, controller, path)
 
 		if cgroups.PathExists(dir) {
 			if err := cgroups.WriteCgroupProc(dir, commandPid); err != nil {

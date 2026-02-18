@@ -49,10 +49,11 @@ var _ = Describe("Sandbox", func() {
 		for _, c := range testCases {
 			err := libsandbox.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)
 			defer os.Remove(c.Path)
+
 			Expect(err).ToNot(HaveOccurred())
 
-			expect, _ := os.ReadFile(c.Want) //nolint: errcheck
-			result, _ := os.ReadFile(c.Path) //nolint: errcheck
+			expect, _ := os.ReadFile(c.Want) //nolint:errcheck // test assertion handles nil
+			result, _ := os.ReadFile(c.Path) //nolint:errcheck // test assertion handles nil
 			Expect(result).To(Equal(expect))
 		}
 	})
@@ -63,6 +64,7 @@ var _ = Describe("Sandbox", func() {
 		BeforeEach(func() {
 			// Given
 			var err error
+
 			cfg, err = config.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
 		})
