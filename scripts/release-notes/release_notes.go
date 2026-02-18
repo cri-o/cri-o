@@ -147,6 +147,10 @@ Download one of our static release bundles via our Google Cloud Bucket:
   - [cri-o.s390x.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx)
   - [cri-o.s390x.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.bundle)
 
+The [OpenVEX](https://openvex.dev) report for this release is available at:
+
+- [cri-o.%s.openvex.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.openvex.json)
+
 To verify the artifact signatures via [cosign](https://github.com/sigstore/cosign), run:
 
 `+"```"+`console
@@ -164,6 +168,17 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 `+"```"+`console
 > tar xfz cri-o.amd64.%s.tar.gz
 > bom validate -e cri-o.amd64.%s.tar.gz.spdx -d cri-o
+`+"```"+`
+
+To verify the [OpenVEX](https://openvex.dev) vulnerability report, run:
+
+`+"```"+`console
+> cosign verify-blob cri-o.%s.openvex.json \
+    --certificate-identity https://github.com/cri-o/packaging/.github/workflows/obs.yml@refs/heads/main \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    --certificate-github-workflow-repository cri-o/packaging \
+    --certificate-github-workflow-ref refs/heads/main \
+    --bundle cri-o.%s.openvex.json.bundle
 `+"```"+`
 
 ## Changelog since %s
@@ -186,6 +201,8 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		startTag, shortHead,
 		startTag, endRev,
 		time.Now().Format(time.RFC1123),
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,

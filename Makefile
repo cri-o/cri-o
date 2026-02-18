@@ -387,6 +387,10 @@ verify-gosec: ${GOSEC} ## Run gosec on the project.
 verify-govulncheck: ## Check common vulnerabilities.
 	./hack/govulncheck.sh
 
+.PHONY: vex
+vex: ## Generate an OpenVEX report.
+	VEX_ONLY=true ./hack/govulncheck.sh
+
 .PHONY: verify-mdtoc
 verify-mdtoc: ${MDTOC} ## Verify the table of contents for the docs.
 	git grep --name-only '<!-- toc -->' | grep -v Makefile | xargs ${MDTOC} -i -m=5

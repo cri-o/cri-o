@@ -20,10 +20,20 @@ export PATH="${PATH}:${GOPATH_BIN}"
 # Install govulncheck.
 go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
 
-# Generate the report.
+# Generate the OpenVEX report.
+mkdir -p build
+"$GOPATH_BIN"/govulncheck -format openvex -tags=test ./... >build/cri-o.openvex.json
+echo "VEX report written to build/cri-o.openvex.json"
+
+# If VEX_ONLY is set, skip the vulnerability check.
+if [[ "${VEX_ONLY:-}" == "true" ]]; then
+    exit 0
+fi
+
+# Generate the JSON report for vulnerability checking.
 report=$(mktemp)
 trap 'rm "$report"' EXIT
-"$GOPATH_BIN"/govulncheck -json -tags=test ./... >"$report"
+"$GOPATH_BIN"/govulncheck -format json -tags=test ./... >"$report"
 
 # Parse vulnerabilities from the report.
 modvulns=$(jq -Sr '.vulnerability.modules[]? | select(.path != "stdlib") | [.path, "affected package(s): \(.packages[].path)", "found version: \(.found_version)", "fixed version: \(.fixed_version)"]' <"$report")
