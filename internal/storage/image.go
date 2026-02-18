@@ -35,7 +35,6 @@ import (
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/reexec"
 	crierrors "k8s.io/cri-api/pkg/errors"
-	"k8s.io/utils/ptr"
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/ociartifact"
@@ -881,7 +880,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 			// Disable retries to avoid blocking pod operations for
 			// (timeout * MaxRetries) on network failures. Rely on
 			// Kubelet retries instead.
-			MaxRetries:       ptr.To(uint(0)),
+			MaxRetries:       new(uint(0)),
 			RemoveSignatures: true, // signature is not supported for OCI layout dest
 		})
 		if artifactErr != nil {

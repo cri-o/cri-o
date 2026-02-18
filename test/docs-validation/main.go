@@ -257,8 +257,8 @@ func recursiveEntries(
 	entries *[]entry,
 	seen map[any]bool,
 ) {
-	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
-		if v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
+		if v.Kind() == reflect.Pointer {
 			// Skip private or recursive data
 			if !v.CanInterface() || seen[v.Interface()] {
 				return
@@ -291,7 +291,7 @@ func recursiveEntries(
 					// We need a checked type assertion to make golangci-lint happy...
 					if str, ok := vv.MethodByName("String").Interface().(func() string); ok {
 						// if the field is a pointer and nil, skip validation
-						if vv.Kind() == reflect.Ptr && vv.IsNil() {
+						if vv.Kind() == reflect.Pointer && vv.IsNil() {
 							break
 						}
 

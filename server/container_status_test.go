@@ -12,7 +12,6 @@ import (
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/utils"
 )
 
 // The actual test suite.
@@ -73,11 +72,11 @@ var _ = t.Describe("ContainerStatus", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			}, types.ContainerState_CONTAINER_RUNNING, true),
 			Entry("Stopped: ExitCode 0", &oci.ContainerState{
-				ExitCode: utils.Int32Ptr(0),
+				ExitCode: new(int32(0)),
 				State:    specs.State{Status: oci.ContainerStateStopped},
 			}, types.ContainerState_CONTAINER_EXITED, false),
 			Entry("Stopped: ExitCode -1", &oci.ContainerState{
-				ExitCode: utils.Int32Ptr(-1),
+				ExitCode: new(int32(-1)),
 				State:    specs.State{Status: oci.ContainerStateStopped},
 			}, types.ContainerState_CONTAINER_EXITED, false),
 			Entry("Stopped: OOMKilled", &oci.ContainerState{
