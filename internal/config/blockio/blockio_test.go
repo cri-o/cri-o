@@ -54,6 +54,7 @@ var _ = t.Describe("Load", func() {
 			// Given
 			sut := blockio.New()
 			Expect(sut).NotTo(BeNil())
+
 			f := tempFileWithData(`classes:
 - Weight: 10
 `)
@@ -72,6 +73,7 @@ var _ = t.Describe("Load", func() {
 			sut := blockio.New()
 			Expect(sut).NotTo(BeNil())
 			Expect(sut.Enabled()).NotTo(BeTrue())
+
 			f := tempFileWithData(`classes:
   lowprio:
   - Weight: 20

@@ -15,6 +15,7 @@ var _ = t.Describe("MemoryStore", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
+
 		sut = memorystore.New[*sandbox.Sandbox]()
 		Expect(sut).NotTo(BeNil())
 	})
@@ -102,6 +103,7 @@ var _ = t.Describe("MemoryStore", func() {
 
 			// When
 			called := 0
+
 			sut.ApplyAll(func(*sandbox.Sandbox) {
 				called++
 			})

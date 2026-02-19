@@ -30,6 +30,7 @@ var _ = t.Describe("ContainerRestore", func() {
 		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 			Skip("Check CRIU: " + err.Error())
 		}
+
 		beforeEach()
 		createDummyConfig()
 		mockRuntimeInLibConfig()
@@ -39,6 +40,7 @@ var _ = t.Describe("ContainerRestore", func() {
 
 	AfterEach(func() {
 		afterEach()
+		os.RemoveAll("archive.tar")
 		os.RemoveAll("config.dump")
 		os.RemoveAll("cp.tar")
 		os.RemoveAll("dump.log")
@@ -92,7 +94,9 @@ var _ = t.Describe("ContainerRestore", func() {
 			archive, err := os.OpenFile("empty.tar", os.O_RDONLY|os.O_CREATE, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			archive.Close()
+
 			defer os.RemoveAll("empty.tar")
+
 			containerConfig := &types.ContainerConfig{
 				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
@@ -115,7 +119,9 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Given
 			err := os.WriteFile("no.tar", []byte("notar"), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("no.tar")
+
 			containerConfig := &types.ContainerConfig{
 				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
@@ -138,19 +144,24 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Given
 			err := os.WriteFile("spec.dump", []byte("not json"), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("spec.dump")
+
 			outFile, err := os.Create("archive.tar")
 			Expect(err).ToNot(HaveOccurred())
+
+			defer os.RemoveAll("archive.tar")
 			defer outFile.Close()
+
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump"},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).ToNot(HaveOccurred())
+
 			containerConfig := &types.ContainerConfig{
 				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
@@ -173,22 +184,29 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Given
 			err := os.WriteFile("spec.dump", []byte("{}"), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("spec.dump")
+
 			err = os.WriteFile("config.dump", []byte("{}"), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("config.dump")
+
 			outFile, err := os.Create("archive.tar")
 			Expect(err).ToNot(HaveOccurred())
+
+			defer os.RemoveAll("archive.tar")
 			defer outFile.Close()
+
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).ToNot(HaveOccurred())
+
 			containerConfig := &types.ContainerConfig{
 				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
@@ -212,22 +230,29 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Given
 			outFile, err := os.Create("archive.tar")
 			Expect(err).ToNot(HaveOccurred())
+
+			defer os.RemoveAll("archive.tar")
 			defer outFile.Close()
+
 			err = os.WriteFile("config.dump", []byte("not json"), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("config.dump")
+
 			err = os.WriteFile("spec.dump", []byte("{}"), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("spec.dump")
+
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).ToNot(HaveOccurred())
+
 			containerConfig := &types.ContainerConfig{
 				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
@@ -258,22 +283,29 @@ var _ = t.Describe("ContainerRestore", func() {
 				0o644,
 			)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("spec.dump")
+
 			err = os.WriteFile("config.dump", []byte("{}"), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("config.dump")
+
 			outFile, err := os.Create("archive.tar")
 			Expect(err).ToNot(HaveOccurred())
+
+			defer os.RemoveAll("archive.tar")
 			defer outFile.Close()
+
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).ToNot(HaveOccurred())
+
 			containerConfig := &types.ContainerConfig{
 				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
@@ -307,22 +339,29 @@ var _ = t.Describe("ContainerRestore", func() {
 				0o644,
 			)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("spec.dump")
+
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("config.dump")
+
 			outFile, err := os.Create("archive.tar")
 			Expect(err).ToNot(HaveOccurred())
+
+			defer os.RemoveAll("archive.tar")
 			defer outFile.Close()
+
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).ToNot(HaveOccurred())
+
 			containerConfig := &types.ContainerConfig{
 				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
@@ -350,10 +389,13 @@ var _ = t.Describe("ContainerRestore", func() {
 			{`{"rootfsImageName": "image"}`, false},
 			{`{"rootfsImageRef": "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"}`, true},
 		}
+
 		var graphRoot string
+
 		BeforeEach(func() {
 			graphRoot = t.MustTempDir("ociartifact")
 		})
+
 		for _, image := range images {
 			It(fmt.Sprintf("should succeed (%s)", image.config), func() {
 				if unshare.IsRootless() {
@@ -383,22 +425,29 @@ var _ = t.Describe("ContainerRestore", func() {
 					0o644,
 				)
 				Expect(err).ToNot(HaveOccurred())
+
 				defer os.RemoveAll("spec.dump")
+
 				err = os.WriteFile("config.dump", []byte(image.config), 0o644)
 				Expect(err).ToNot(HaveOccurred())
+
 				defer os.RemoveAll("config.dump")
+
 				outFile, err := os.Create("archive.tar")
 				Expect(err).ToNot(HaveOccurred())
+
+				defer os.RemoveAll("archive.tar")
 				defer outFile.Close()
+
 				input, err := archive.TarWithOptions(".", &archive.TarOptions{
 					Compression:      archive.Uncompressed,
 					IncludeSourceDir: true,
 					IncludeFiles:     []string{"spec.dump", "config.dump"},
 				})
 				Expect(err).ToNot(HaveOccurred())
-				defer os.RemoveAll("archive.tar")
 				_, err = io.Copy(outFile, input)
 				Expect(err).ToNot(HaveOccurred())
+
 				containerConfig := &types.ContainerConfig{
 					Image: &types.ImageSpec{
 						Image: "archive.tar",
@@ -426,6 +475,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				size := uint64(100)
 				imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
 				Expect(err).ToNot(HaveOccurred())
+
 				var imageLookup mockutils.MockSequence
 				if image.byID {
 					imageLookup = mockutils.InOrder(
@@ -445,6 +495,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				} else {
 					checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
 					Expect(err).ToNot(HaveOccurred())
+
 					imageLookup = mockutils.InOrder(
 						imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
 							Return(nil),
@@ -462,6 +513,7 @@ var _ = t.Describe("ContainerRestore", func() {
 							}, nil),
 					)
 				}
+
 				mockutils.InOrder(
 					imageLookup,
 
@@ -501,6 +553,7 @@ var _ = t.Describe("ContainerRestore", func() {
 		It("should fail because archive does not exist", func() {
 			// Given
 			addContainerAndSandbox()
+
 			size := uint64(100)
 			checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/checkpoint-image:tag1")
 			Expect(err).ToNot(HaveOccurred())
@@ -528,6 +581,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				storeMock.EXPECT().UnmountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), true).
 					Return(false, nil),
 			)
+
 			containerConfig := &types.ContainerConfig{
 				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{

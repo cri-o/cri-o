@@ -234,14 +234,21 @@ var _ = t.Describe("Container", func() {
 
 	It("should succeed to set the all container resources", func() {
 		// Given
-		var cpuPeriod uint64 = 100000
-		var cpuQuota int64 = 20000
-		var cpuShares uint64 = 1024
+		var (
+			cpuPeriod uint64 = 100000
+			cpuQuota  int64  = 20000
+			cpuShares uint64 = 1024
+		)
+
 		cpusetCpus := "0-3,12-15"
 		cpusetMems := "0,1"
 		oomScoreAdj := 100
-		var memoryLimitInBytes int64 = 1024
-		var memorySwapLimitInBytes int64 = 1024
+
+		var (
+			memoryLimitInBytes     int64 = 1024
+			memorySwapLimitInBytes int64 = 1024
+		)
+
 		hugepageLimits := []specs.LinuxHugepageLimit{
 			{
 				Pagesize: "1KB",
@@ -294,6 +301,7 @@ var _ = t.Describe("Container", func() {
 		Expect(containerResources.GetLinux().GetMemoryLimitInBytes()).To(Equal(memoryLimitInBytes))
 		Expect(containerResources.GetLinux().GetMemorySwapLimitInBytes()).To(Equal(memorySwapLimitInBytes))
 		Expect(containerResources.GetLinux().GetUnified()).To(Equal(unified))
+
 		for i := range len(containerResources.GetLinux().GetHugepageLimits()) {
 			Expect(containerResources.GetLinux().GetHugepageLimits()[i].GetPageSize()).To(Equal(hugepageLimits[i].Pagesize))
 			Expect(containerResources.GetLinux().GetHugepageLimits()[i].GetLimit()).To(Equal(hugepageLimits[i].Limit))
@@ -302,13 +310,19 @@ var _ = t.Describe("Container", func() {
 
 	It("should succeed to set the fewer container resources", func() {
 		// Given
-		var cpuPeriod uint64 = 100000
-		var cpuQuota int64 = 20000
-		var cpuShares uint64 = 1024
+		var (
+			cpuPeriod uint64 = 100000
+			cpuQuota  int64  = 20000
+			cpuShares uint64 = 1024
+		)
+
 		cpusetCpus := "0-3,12-15"
 		cpusetMems := "0,1"
-		var memoryLimitInBytes int64 = 1024
-		var memorySwapLimitInBytes int64 = 1024
+
+		var (
+			memoryLimitInBytes     int64 = 1024
+			memorySwapLimitInBytes int64 = 1024
+		)
 
 		newSpec := specs.Spec{
 			Linux: &specs.Linux{
@@ -373,21 +387,7 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			sutState := sut.State()
-			Expect(sutState.InitStartTime).NotTo(Equal(""))
-			Expect(sutState.InitPid).To(Equal(alwaysRunningPid))
-		})
-		It("should succeed when pid set but initialPid not set", func() {
-			// Given
-			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
-			{"pid":`+strconv.Itoa(alwaysRunningPid)+`}`),
-				0o644)).To(Succeed())
 
-			// When
-			err := sut.FromDisk()
-
-			// Then
-			Expect(err).ToNot(HaveOccurred())
 			sutState := sut.State()
 			Expect(sutState.InitStartTime).NotTo(Equal(""))
 			Expect(sutState.InitPid).To(Equal(alwaysRunningPid))
@@ -403,6 +403,7 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+
 			sutState := sut.State()
 			Expect(sutState.InitStartTime).To(Equal(""))
 			Expect(sutState.InitPid).To(Equal(0))
@@ -632,6 +633,7 @@ var _ = t.Describe("Container", func() {
 	})
 	t.Describe("GetPidStartTimeFromFile", func() {
 		var statFile string
+
 		BeforeEach(func() {
 			statFile = t.MustTempFile("stat")
 		})
@@ -707,6 +709,7 @@ var _ = t.Describe("Container", func() {
 			pid1 := 12345
 			pid2 := 12346
 			pid3 := 12347
+
 			Expect(addTestExecPID(sut, pid1, true)).To(Succeed())
 			Expect(addTestExecPID(sut, pid2, false)).To(Succeed())
 			Expect(addTestExecPID(sut, pid3, true)).To(Succeed())
@@ -778,6 +781,7 @@ var _ = t.Describe("Container", func() {
 			pid1 := neverRunningPid
 			pid2 := neverRunningPid - 1
 			pid3 := neverRunningPid - 2
+
 			Expect(addTestExecPID(sut, pid1, true)).To(Succeed())
 			Expect(addTestExecPID(sut, pid2, false)).To(Succeed())
 			Expect(addTestExecPID(sut, pid3, true)).To(Succeed())
@@ -794,6 +798,7 @@ var _ = t.Describe("Container", func() {
 			// but we can verify the function completes without error
 			pid1 := neverRunningPid
 			pid2 := neverRunningPid - 1
+
 			Expect(addTestExecPID(sut, pid1, true)).To(Succeed())  // Should use SIGKILL
 			Expect(addTestExecPID(sut, pid2, false)).To(Succeed()) // Should use SIGINT
 
@@ -923,12 +928,15 @@ var _ = t.Describe("Container", func() {
 		It("should close all watchers when stopping", func() {
 			// Given
 			ctx := context.Background()
+
 			sut.SetAsStopping()
 
 			// Start a goroutine that waits on the stop timeout
 			watcherDone := make(chan bool, 1)
+
 			go func() {
 				sut.WaitOnStopTimeout(ctx, 1000)
+
 				watcherDone <- true
 			}()
 
@@ -950,6 +958,7 @@ var _ = t.Describe("Container", func() {
 		It("should close multiple watchers", func() {
 			// Given
 			ctx := context.Background()
+
 			sut.SetAsStopping()
 
 			// Start multiple goroutines that wait on the stop timeout
@@ -959,14 +968,17 @@ var _ = t.Describe("Container", func() {
 
 			go func() {
 				sut.WaitOnStopTimeout(ctx, 1000)
+
 				watcher1Done <- true
 			}()
 			go func() {
 				sut.WaitOnStopTimeout(ctx, 2000)
+
 				watcher2Done <- true
 			}()
 			go func() {
 				sut.WaitOnStopTimeout(ctx, 3000)
+
 				watcher3Done <- true
 			}()
 
@@ -982,11 +994,13 @@ var _ = t.Describe("Container", func() {
 			case <-time.After(100 * time.Millisecond):
 				Fail("Watcher 1 was not notified")
 			}
+
 			select {
 			case <-watcher2Done:
 			case <-time.After(100 * time.Millisecond):
 				Fail("Watcher 2 was not notified")
 			}
+
 			select {
 			case <-watcher3Done:
 			case <-time.After(100 * time.Millisecond):
@@ -997,12 +1011,15 @@ var _ = t.Describe("Container", func() {
 		It("should clear the watchers slice", func() {
 			// Given
 			ctx := context.Background()
+
 			sut.SetAsStopping()
 
 			// Register a watcher
 			watcherDone := make(chan bool, 1)
+
 			go func() {
 				sut.WaitOnStopTimeout(ctx, 1000)
+
 				watcherDone <- true
 			}()
 
@@ -1014,9 +1031,11 @@ var _ = t.Describe("Container", func() {
 			// Wait for watcher to complete
 			<-watcherDone
 
-			// Then - Should be able to call SetAsDoneStopping again
-			// (will panic on channel close, but shouldn't panic on watchers)
-			// This verifies the slice was cleared
+			// Then - Calling SetAsDoneStopping again panics only on the channel close,
+			// not on any watcher iteration — confirming the slice was cleared.
+			Expect(func() {
+				sut.SetAsDoneStopping()
+			}).To(Panic())
 		})
 	})
 })

@@ -13,6 +13,7 @@ import (
 // The actual test suite.
 var _ = t.Describe("Artifacts", func() {
 	const artifact = "my-artifact"
+
 	var (
 		ctx   = context.Background()
 		paths = []libartTypes.BlobMountPath{

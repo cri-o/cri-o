@@ -28,6 +28,7 @@ var _ = t.Describe("Status", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.GetStatus().GetConditions())).To(BeEquivalentTo(2))
+
 			for _, condition := range response.GetStatus().GetConditions() {
 				Expect(condition.GetStatus()).To(BeTrue())
 			}
@@ -42,6 +43,7 @@ var _ = t.Describe("Status", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.GetStatus().GetConditions())).To(BeEquivalentTo(2))
+
 			for _, condition := range response.GetStatus().GetConditions() {
 				Expect(condition.GetStatus()).To(BeTrue())
 			}

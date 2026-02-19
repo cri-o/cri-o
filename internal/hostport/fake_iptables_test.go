@@ -34,6 +34,7 @@ var _ = t.Describe("RestoreFlushRules", func() {
 		}
 		natRules := bytes.NewBuffer(nil)
 		writeLine(natRules, "*nat")
+
 		for _, rule := range rules {
 			_, err := iptables.EnsureChain(utiliptables.TableNAT, utiliptables.Chain(rule[1]))
 			Expect(err).NotTo(HaveOccurred())
@@ -42,9 +43,11 @@ var _ = t.Describe("RestoreFlushRules", func() {
 
 			writeLine(natRules, utiliptables.MakeChainLine(utiliptables.Chain(rule[1])))
 		}
+
 		writeLine(natRules, "COMMIT")
 		err := iptables.Restore(utiliptables.TableNAT, natRules.Bytes(), utiliptables.NoFlushTables, utiliptables.RestoreCounters)
 		Expect(err).NotTo(HaveOccurred())
+
 		natTable, ok := iptables.tables[string(utiliptables.TableNAT)]
 		Expect(ok).To(BeTrue())
 		// check KUBE-HOSTPORTS chain, should have been cleaned up

@@ -54,6 +54,7 @@ var _ = t.Describe("Server", func() {
 		It("should succeed with valid GID/UID mappings", func() {
 			// Given
 			mockNewServer()
+
 			serverConfig.UIDMappings = "1:1:1"
 			serverConfig.GIDMappings = "1:1:1"
 
@@ -68,6 +69,7 @@ var _ = t.Describe("Server", func() {
 		It("should succeed with enabled TLS", func() {
 			// Given
 			mockNewServer()
+
 			serverConfig.StreamEnableTLS = true
 			serverConfig.StreamTLSKey = "../test/testdata/key.pem"
 			serverConfig.StreamTLSCert = "../test/testdata/cert.pem"
@@ -195,6 +197,7 @@ var _ = t.Describe("Server", func() {
 		It("should fail with invalid stream address and port", func() {
 			// Given
 			mockNewServer()
+
 			serverConfig.StreamAddress = invalid
 			serverConfig.StreamPort = invalid
 
@@ -209,6 +212,7 @@ var _ = t.Describe("Server", func() {
 		It("should fail with invalid TLS certificates", func() {
 			// Given
 			mockNewServer()
+
 			serverConfig.StreamEnableTLS = true
 			serverConfig.StreamTLSCert = invalid
 			serverConfig.StreamTLSKey = invalid
@@ -222,6 +226,7 @@ var _ = t.Describe("Server", func() {
 		})
 		It("should fail with invalid timeout duration", func() {
 			mockNewServer()
+
 			serverConfig.StreamIdleTimeout = "invalid duration"
 
 			server, err := server.New(context.Background(), libMock)
@@ -230,6 +235,7 @@ var _ = t.Describe("Server", func() {
 		})
 		It("should succeed to set a valid timeout duration", func() {
 			mockNewServer()
+
 			serverConfig.StreamIdleTimeout = "200ms"
 
 			server, err := server.New(context.Background(), libMock)
@@ -238,6 +244,7 @@ var _ = t.Describe("Server", func() {
 		})
 		It("should succeed with hostport mapping disabled", func() {
 			mockNewServer()
+
 			serverConfig.DisableHostPortMapping = true
 
 			server, err := server.New(context.Background(), libMock)
@@ -253,6 +260,7 @@ var _ = t.Describe("Server", func() {
 		It("should succeed", func() {
 			// Given
 			go sut.StartExitMonitor(context.Background())
+
 			closeChan := sut.MonitorsCloseChan()
 			Expect(closeChan).NotTo(BeNil())
 

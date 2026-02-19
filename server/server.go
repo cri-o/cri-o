@@ -321,7 +321,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	}
 
 	// Return a slice of images to remove, if internal_wipe is set.
-	imagesOfDeletedContainers := []storage.StorageImageID{}
+	imagesOfDeletedContainers := make([]storage.StorageImageID, 0, len(containersAndTheirImages))
 	for _, image := range containersAndTheirImages {
 		imagesOfDeletedContainers = append(imagesOfDeletedContainers, image)
 	}

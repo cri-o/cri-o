@@ -32,6 +32,7 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+
 			if info.IsDir() {
 				return nil
 			}

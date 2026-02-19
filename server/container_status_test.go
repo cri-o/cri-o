@@ -34,6 +34,7 @@ var _ = t.Describe("ContainerStatus", func() {
 			if checkpointingEnabled {
 				serverConfig.SetCheckpointRestore(true)
 			}
+
 			setupSUT()
 			addContainerAndSandbox()
 			testContainer.AddVolume(oci.ContainerVolume{})
@@ -57,8 +58,9 @@ var _ = t.Describe("ContainerStatus", func() {
 			Expect(len(response.GetStatus().GetMounts())).To(BeEquivalentTo(1))
 			Expect(response.GetStatus().GetState()).To(Equal(expectedState))
 			Expect(response.GetInfo()["info"]).To(ContainSubstring(`"ociVersion":"1.0.0"`))
+
 			if checkpointingEnabled {
-				Expect(response).To(ContainSubstring(`checkpointedAt`))
+				Expect(response.GetInfo()["info"]).To(ContainSubstring(`checkpointedAt`))
 			}
 		},
 			Entry("Created", &oci.ContainerState{

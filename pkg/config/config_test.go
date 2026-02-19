@@ -541,7 +541,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// Given
-			cgm, _ := cgmgr.SetCgroupManager("cgroupfs") //nolint:errcheck
+			cgm, _ := cgmgr.SetCgroupManager("cgroupfs") //nolint:errcheck // error not relevant in test setup
 			runtimeConfig := *config.DefaultRuntimeConfig(cgm)
 
 			// When
@@ -619,6 +619,7 @@ var _ = t.Describe("Config", func() {
 
 			// Given
 			cmdrunner.ResetPrependedCmd()
+
 			sut.InfraCtrCPUSet = "0"
 
 			// When
@@ -632,6 +633,7 @@ var _ = t.Describe("Config", func() {
 		It("should not configure a taskset prefix for cmdrunner for an empty InfraCtrCPUSet", func() {
 			// Given
 			cmdrunner.ResetPrependedCmd()
+
 			sut.InfraCtrCPUSet = ""
 
 			// When
@@ -944,6 +946,7 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
+
 			for _, dir := range []string{signaturePolicyDir, namespacedAuthDir} {
 				_, err := os.Stat(dir)
 				Expect(err).NotTo(HaveOccurred())
@@ -1079,7 +1082,9 @@ var _ = t.Describe("Config", func() {
 			file, err := os.Create(tmpfile)
 			Expect(err).ToNot(HaveOccurred())
 			file.Close()
+
 			defer os.Remove(tmpfile)
+
 			sut.NetworkDir = tmpfile
 			sut.PluginDirs = []string{}
 
@@ -1300,6 +1305,7 @@ var _ = t.Describe("Config", func() {
 					]`,
 				), 0),
 			).To(Succeed())
+
 			for _, tc := range []struct {
 				opts   []string
 				expect []string

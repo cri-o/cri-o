@@ -30,11 +30,14 @@ var _ = t.Describe("ContainerServer", func() {
 			// Create temp lockfile
 			tmpfile, err := os.CreateTemp("", "lockfile")
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.Remove(tmpfile.Name())
 
+			Expect(tmpfile.Close()).To(Succeed())
 			// Setup config
 			config, err := libconfig.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
+
 			config.HooksDir = []string{}
 			// so we have permission to make a directory within it
 			config.ContainerAttachSocketDir = t.MustTempDir("crio")
@@ -179,6 +182,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed with invalid network namespace", func() {
 			// Given
 			createDummyState()
+
 			manifest := bytes.Replace(testManifest,
 				[]byte(`{"type": "network", "path": "default"}`),
 				[]byte(`{"type": "", "path": ""},{"type": "network", "path": ""}`), 1,
@@ -196,6 +200,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed with missing network namespace", func() {
 			// Given
 			createDummyState()
+
 			manifest := bytes.Replace(testManifest,
 				[]byte(`{"type": "network", "path": "default"}`),
 				[]byte(`{}`), 1,

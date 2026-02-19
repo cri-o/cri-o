@@ -19,10 +19,14 @@ var _ = t.Describe("Hook", func() {
 		// Setup the hooks
 		BeforeEach(func() {
 			logger = logrus.New()
-			filterHook, err := log.NewFilterHook("")
+
+			var err error
+
+			filterHook, err = log.NewFilterHook("")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(filterHook).NotTo(BeNil())
-			fileNameHook := log.NewFilenameHook()
+
+			fileNameHook = log.NewFilenameHook()
 			Expect(fileNameHook).NotTo(BeNil())
 		})
 

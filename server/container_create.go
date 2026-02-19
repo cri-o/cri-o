@@ -994,7 +994,7 @@ func (s *Server) setupContainerMounts(ctr container.Container, sb *sandbox.Sandb
 		}
 	}
 
-	mounts := []rspec.Mount{}
+	mounts := make([]rspec.Mount, 0, len(ociMounts)+len(volumeMounts)+len(secretMounts))
 	mounts = append(mounts, ociMounts...)
 	mounts = append(mounts, volumeMounts...)
 	mounts = append(mounts, secretMounts...)
@@ -1504,7 +1504,7 @@ func (s *Server) setupContainerUmask(sb *sandbox.Sandbox, specgen *generate.Gene
 }
 
 func (s *Server) setupContainerEtcDirectory(ctx context.Context, ctr container.Container, ociContainer *oci.Container, mountPoint, mountLabel string, containerIDMappings *idtools.IDMappings) error {
-	etcPath := filepath.Join(mountPoint, "/etc")
+	etcPath := filepath.Join(mountPoint, "etc")
 
 	// Warn users if the container /etc directory path points to a location
 	// that is not a regular directory. This could indicate that something

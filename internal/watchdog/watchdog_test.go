@@ -29,6 +29,7 @@ var _ = t.Describe("Watchdog", func() {
 			if sut.Notifications() >= x {
 				return
 			}
+
 			time.Sleep(time.Millisecond)
 		}
 	}
@@ -62,6 +63,7 @@ var _ = t.Describe("Watchdog", func() {
 
 		// When
 		err := sut.Start(ctx)
+
 		waitForNotifications(1)
 
 		// Then
@@ -80,6 +82,7 @@ var _ = t.Describe("Watchdog", func() {
 
 		// When
 		err := sut.Start(ctx)
+
 		waitForNotifications(2)
 
 		// Then
@@ -95,6 +98,7 @@ var _ = t.Describe("Watchdog", func() {
 
 		// When
 		err := sut.Start(ctx)
+
 		waitForNotifications(1)
 
 		// Then

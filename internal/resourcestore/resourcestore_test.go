@@ -36,6 +36,7 @@ var _ = t.Describe("ResourceStore", func() {
 		cleaner *resourcestore.ResourceCleaner
 		e       *entry
 	)
+
 	Context("no timeout", func() {
 		BeforeEach(func() {
 			sut = resourcestore.New()
@@ -107,6 +108,7 @@ var _ = t.Describe("ResourceStore", func() {
 	})
 	Context("with timeout", func() {
 		BeforeEach(func() {
+			sut = resourcestore.New()
 			cleaner = resourcestore.NewResourceCleaner()
 			e = &entry{
 				id: testID,
@@ -120,14 +122,17 @@ var _ = t.Describe("ResourceStore", func() {
 			timeout := 2 * time.Second
 			sut = resourcestore.NewWithTimeout(timeout)
 
-			timedOutChan := make(chan bool)
+			timedOutChan := make(chan bool, 1)
+
 			cleaner.Add(context.Background(), "test", func() error {
 				timedOutChan <- true
 
 				return nil
 			})
+
 			go func() {
 				time.Sleep(timeout * 3)
+
 				timedOutChan <- false
 			}()
 
@@ -154,6 +159,7 @@ var _ = t.Describe("ResourceStore", func() {
 			go func() {
 				time.Sleep(timeout * 6)
 				Expect(sut.Put(testName, e, cleaner)).To(Succeed())
+
 				timedOutChan <- true
 			}()
 
@@ -163,8 +169,10 @@ var _ = t.Describe("ResourceStore", func() {
 		})
 	})
 	Context("Stages", func() {
-		ctx := context.Background()
+		var ctx context.Context
+
 		BeforeEach(func() {
+			ctx = context.Background()
 			sut = resourcestore.New()
 			cleaner = resourcestore.NewResourceCleaner()
 			e = &entry{
@@ -196,6 +204,7 @@ var _ = t.Describe("ResourceStore", func() {
 			// Given
 			stage1 := "test stage"
 			stage2 := "test stage2"
+
 			sut.SetStageForResource(ctx, testName, stage1)
 			_, stage := sut.WatcherForResource(testName)
 			Expect(stage).To(Equal(stage1))

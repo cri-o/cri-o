@@ -30,6 +30,7 @@ var _ = t.Describe("ContainerRestore", func() {
 		beforeEach()
 		createDummyConfig()
 		mockRuntimeInLibConfigCheckpoint()
+
 		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 			Skip("Check CRIU: " + err.Error())
 		}
@@ -112,9 +113,11 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Given
 			createDummyConfig()
 			addContainerAndSandbox()
+
 			config := &metadata.ContainerConfig{
 				ID: containerID,
 			}
+
 			myContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
 			})
@@ -131,13 +134,19 @@ var _ = t.Describe("ContainerRestore", func() {
 			err := os.Mkdir("bundle", 0o700)
 			Expect(err).ToNot(HaveOccurred())
 			setupInfraContainerWithPid(42, "bundle")
+
 			defer os.RemoveAll("bundle")
+
 			err = os.Mkdir("checkpoint", 0o700)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("checkpoint")
+
 			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
+
+			defer os.RemoveAll("restore.log")
 			// When
 			res, err := sut.ContainerRestore(
 				context.Background(),
@@ -145,7 +154,6 @@ var _ = t.Describe("ContainerRestore", func() {
 				&lib.ContainerCheckpointOptions{},
 			)
 
-			defer os.RemoveAll("restore.log")
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
@@ -178,44 +186,56 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			err := os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("spec.dump")
+
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("config.dump")
 
 			err = os.Mkdir("checkpoint", 0o700)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("checkpoint")
+
 			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
 			rootfs, err := os.OpenFile("rootfs-diff.tar", os.O_RDONLY|os.O_CREATE, 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("rootfs-diff.tar")
+
 			rootfs.Close()
 
 			err = os.WriteFile("deleted.files", []byte(`[]`), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("deleted.files")
 
 			outFile, err := os.Create("archive.tar")
 			Expect(err).ToNot(HaveOccurred())
+
+			defer os.RemoveAll("archive.tar")
 			defer outFile.Close()
+
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump", "checkpoint", "deleted.files"},
 			})
 			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
 			Expect(err).ToNot(HaveOccurred())
 
 			myContainer.SetRestoreArchivePath("archive.tar")
+
 			err = os.Mkdir("bundle", 0o700)
 			Expect(err).ToNot(HaveOccurred())
 			setupInfraContainerWithPid(42, "bundle")
+
 			defer os.RemoveAll("bundle")
 
 			// When
@@ -266,25 +286,33 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			err = os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("spec.dump")
+
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("config.dump")
 
 			err = os.Mkdir("checkpoint", 0o700)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("checkpoint")
+
 			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
 			rootfs, err := os.OpenFile("rootfs-diff.tar", os.O_RDONLY|os.O_CREATE, 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("rootfs-diff.tar")
+
 			rootfs.Close()
 
 			err = os.WriteFile("deleted.files", []byte(`[]`), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("deleted.files")
 
 			tmpFile, err := os.CreateTemp("", "restore-test-file")
@@ -294,14 +322,15 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Remove it now and later as during restore it should be recreated
 			os.RemoveAll(tmpFile.Name())
 			defer os.RemoveAll(tmpFile.Name())
+
 			os.RemoveAll(tmpDir)
 			defer os.RemoveAll(tmpDir)
 
-			bindMounts := fmt.Sprintf( //nolint:gocritic
+			bindMounts := fmt.Sprintf( //nolint:gocritic // initial JSON fragment declaration
 				`[{"source": "%s","destination": "/data","file_type": "directory","permissions": 493},`,
 				tmpDir,
 			)
-			bindMounts = fmt.Sprintf( //nolint:gocritic
+			bindMounts = fmt.Sprintf( //nolint:gocritic // appendAssign style is clearer for incremental JSON building
 				`%s{"source": "%s","destination": "/file","file_type": "file","permissions": 384}]`,
 				bindMounts,
 				tmpFile.Name(),
@@ -309,11 +338,13 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			err = os.WriteFile("bind.mounts", []byte(bindMounts), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("bind.mounts")
 
 			err = os.Mkdir("bundle", 0o700)
 			Expect(err).ToNot(HaveOccurred())
 			setupInfraContainerWithPid(42, "bundle")
+
 			defer os.RemoveAll("bundle")
 
 			// When
@@ -349,8 +380,7 @@ func setupInfraContainerWithPid(pid int, bundle string) {
 	cstate.State = specs.State{
 		Pid: pid,
 	}
-	// eat error here because callers may send invalid pids to test against
-	_ = cstate.SetInitPid(pid) //nolint:errcheck
+	_ = cstate.SetInitPid(pid) //nolint:errcheck // callers may send invalid pids to test against
 	testContainer.SetState(cstate)
 	testContainer.SetSpec(&specs.Spec{
 		Version:     "1.0.0",

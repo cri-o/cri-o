@@ -20,7 +20,7 @@ type safeMountInfo struct {
 
 // Close releases the resources allocated with the safe mount info.
 func (s *safeMountInfo) Close() {
-	_ = unix.Unmount(s.mountPoint, unix.MNT_DETACH) //nolint: errcheck
+	_ = unix.Unmount(s.mountPoint, unix.MNT_DETACH) //nolint:errcheck // best-effort cleanup on close
 	_ = s.file.Close()
 }
 

@@ -44,7 +44,7 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 }
 
 func (c *CNIManager) pollUntilReady() {
-	//nolint:errcheck,staticcheck
+	//nolint:errcheck,staticcheck // PollInfinite is deprecated but still used, error is intentionally ignored
 	_ = wait.PollInfinite(500*time.Millisecond, c.pollFunc)
 }
 

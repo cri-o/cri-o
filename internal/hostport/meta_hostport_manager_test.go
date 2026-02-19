@@ -14,7 +14,8 @@ var _ = t.Describe("MetaHostportManager", func() {
 	if len(testCasesV4) < len(testCasesV6) {
 		panic("internal error; expected more IPv4 than IPv6 test cases")
 	}
-	var metaTestCases []testCase
+
+	metaTestCases := make([]testCase, 0, len(testCasesV4)+len(testCasesV6))
 	for i := range testCasesV4 {
 		metaTestCases = append(metaTestCases, testCasesV4[i])
 		if i < len(testCasesV6) {
@@ -219,6 +220,7 @@ var _ = t.Describe("MetaHostportManager", func() {
 			err := manager.Remove(tc.id, tc.portMappings)
 			Expect(err).NotTo(HaveOccurred())
 		}
+
 		for _, tc := range metaTestCases {
 			err := manager.Remove(tc.id, tc.portMappings)
 			Expect(err).NotTo(HaveOccurred())

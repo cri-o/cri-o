@@ -967,6 +967,7 @@ func (c *Config) UpdateFromPath(ctx context.Context, path string) error {
 			if err != nil {
 				return err
 			}
+
 			if info.IsDir() {
 				return nil
 			}

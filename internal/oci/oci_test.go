@@ -45,6 +45,7 @@ var _ = t.Describe("Oci", func() {
 			performanceRuntime = "high-performance"
 			vmRuntime          = "kata"
 		)
+
 		runtimes := libconfig.Runtimes{
 			defaultRuntime: &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/sh",
@@ -80,8 +81,10 @@ var _ = t.Describe("Oci", func() {
 
 		BeforeEach(func() {
 			var err error
+
 			config, err = libconfig.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
+
 			config.DefaultRuntime = defaultRuntime
 			config.Runtimes = runtimes
 			// so we have permission to make a directory within it
@@ -200,7 +203,9 @@ var _ = t.Describe("Oci", func() {
 			}
 			// Given
 			beforeEach()
+
 			defer os.RemoveAll("dump.log")
+
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/true",
 			}
@@ -226,7 +231,9 @@ var _ = t.Describe("Oci", func() {
 			}
 			// Given
 			defer os.RemoveAll("dump.log")
+
 			beforeEach()
+
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/false",
 			}
@@ -253,6 +260,7 @@ var _ = t.Describe("Oci", func() {
 			}
 			// Given
 			beforeEach()
+
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/true",
 				MonitorPath: "/bin/true",
@@ -260,7 +268,9 @@ var _ = t.Describe("Oci", func() {
 
 			err := os.Mkdir("checkpoint", 0o700)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("checkpoint")
+
 			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
@@ -290,6 +300,7 @@ var _ = t.Describe("Oci", func() {
 			}
 			// Given
 			beforeEach()
+
 			config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/true",
 				MonitorPath: "/bin/true",
@@ -309,7 +320,9 @@ var _ = t.Describe("Oci", func() {
 
 			err := os.Mkdir("checkpoint", 0o700)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("checkpoint")
+
 			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
@@ -324,13 +337,14 @@ var _ = t.Describe("Oci", func() {
 				0o644,
 			)
 			Expect(err).ToNot(HaveOccurred())
+
 			defer os.RemoveAll("config.json")
 
 			config.Conmon = "/bin/true"
 
+			defer os.RemoveAll("restore.log")
 			// When
 			err = sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
-			defer os.RemoveAll("restore.log")
 
 			// Then
 			Expect(err).To(HaveOccurred())

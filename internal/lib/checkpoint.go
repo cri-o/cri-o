@@ -256,7 +256,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	// CRI-O is now tracking all bind mount types in the checkpoint archive. This
 	// way it is possible to know if a missing bind mount needs to be a file or a
 	// directory.
-	var externalBindMounts []ExternalBindMount //nolint:prealloc
+	var externalBindMounts []ExternalBindMount
 
 	for _, m := range g.Config.Mounts {
 		if containerMounts[m.Destination] {
@@ -303,15 +303,6 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 	dest := ctr.Dir()
 	log.Debugf(ctx, "Exporting checkpoint image of container %q to %q", id, dest)
 
-	includeFiles := []string{
-		stats.StatsDump,
-		metadata.DumpLogFile,
-		metadata.CheckpointDirectory,
-		metadata.ConfigDumpFile,
-		metadata.SpecDumpFile,
-		"bind.mounts",
-	}
-
 	// To correctly track deleted files, let's go through the output of 'podman diff'
 	rootFsChanges, err := c.getDiff(ctx, id, specgen)
 	if err != nil {
@@ -355,6 +346,16 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		addToTarFiles = append(addToTarFiles, annotations.LogPath)
 	}
 
+	baseFiles := []string{
+		stats.StatsDump,
+		metadata.DumpLogFile,
+		metadata.CheckpointDirectory,
+		metadata.ConfigDumpFile,
+		metadata.SpecDumpFile,
+		"bind.mounts",
+	}
+	includeFiles := make([]string, 0, len(baseFiles)+len(addToTarFiles))
+	includeFiles = append(includeFiles, baseFiles...)
 	includeFiles = append(includeFiles, addToTarFiles...)
 
 	input, err := archive.TarWithOptions(ctr.Dir(), &archive.TarOptions{

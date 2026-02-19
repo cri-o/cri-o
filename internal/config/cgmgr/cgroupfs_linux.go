@@ -55,7 +55,7 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 		parent = sbParent
 	}
 
-	return filepath.Join("/", parent, containerCgroupPath(containerID))
+	return filepath.Join("/", parent, containerCgroupPath(containerID)) //nolint:gocritic // root-join pattern is intentional
 }
 
 // ContainerCgroupAbsolutePath just calls ContainerCgroupPath,
@@ -248,7 +248,7 @@ func (m *CgroupfsManager) CreateSandboxCgroup(sbParent, containerID string) erro
 	// prepend "/" to sbParent so the fs driver interprets it as an absolute path
 	// and the cgroup isn't created as a relative path to the cgroups of the CRI-O process.
 	// https://github.com/opencontainers/runc/blob/fd5debf3aa/libcontainer/cgroups/fs/paths.go#L156
-	return createSandboxCgroup(filepath.Join("/", sbParent), containerCgroupPath(containerID))
+	return createSandboxCgroup("/"+sbParent, containerCgroupPath(containerID))
 }
 
 // RemoveSandboxCgroup calls the helper function removeSandboxCgroup for this manager.
@@ -256,7 +256,7 @@ func (m *CgroupfsManager) RemoveSandboxCgroup(sbParent, containerID string) erro
 	// prepend "/" to sbParent so the fs driver interprets it as an absolute path
 	// and the cgroup isn't created as a relative path to the cgroups of the CRI-O process.
 	// https://github.com/opencontainers/runc/blob/fd5debf3aa/libcontainer/cgroups/fs/paths.go#L156
-	return removeSandboxCgroup(filepath.Join("/", sbParent), containerCgroupPath(containerID))
+	return removeSandboxCgroup("/"+sbParent, containerCgroupPath(containerID))
 }
 
 // PodAndContainerCgroupManagers returns the libcontainer cgroup managers for both the pod and container cgroups.
