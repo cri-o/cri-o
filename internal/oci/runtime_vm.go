@@ -638,6 +638,44 @@ func (r *runtimeVM) UpdateContainer(ctx context.Context, c *Container, res *rspe
 	return nil
 }
 
+// connectTask establishes a gRPC connection to the shim if r.task is nil.
+// This is needed after CRI-O restarts, where the runtimeVM is reconstructed
+// without a live task connection. Returns nil if already connected or if the
+// container is stopped (in which case no connection is needed).
+func (r *runtimeVM) connectTask(ctx context.Context, c *Container) error {
+	if r.task != nil {
+		return nil
+	}
+
+	addressPath := filepath.Join(c.BundlePath(), "address")
+
+	data, err := os.ReadFile(addressPath)
+	if err != nil {
+		// If the container is stopped, no connection is needed.
+		if c.state.Status == ContainerStateStopped {
+			log.Debugf(ctx, "Skipping task connection for stopped container: %s", c.ID())
+
+			return nil
+		}
+
+		return fmt.Errorf("read shim address for container %s: %w", c.ID(), err)
+	}
+
+	address := strings.TrimSpace(string(data))
+
+	conn, err := client.Connect(address, client.AnonDialer)
+	if err != nil {
+		return fmt.Errorf("connect to shim for container %s: %w", c.ID(), err)
+	}
+
+	options := ttrpc.WithOnClose(func() { conn.Close() })
+	cl := ttrpc.NewClient(conn, options)
+	r.client = cl
+	r.task = task.NewTaskClient(cl)
+
+	return nil
+}
+
 // StopContainer stops a container. Timeout is given in seconds.
 func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int64) error {
 	log.Debugf(ctx, "RuntimeVM.StopContainer() start")
@@ -649,6 +687,19 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 		}
 
 		return err
+	}
+
+	// Ensure the task connection is established. This may be nil after CRI-O
+	// restarts before the container state has been updated via ContainerStatus.
+	// Without this, r.task.Kill panics with a nil pointer dereference.
+	if err := r.connectTask(ctx, c); err != nil {
+		return fmt.Errorf("StopContainer: %w", err)
+	}
+
+	if r.task == nil {
+		// The shim is unreachable and the container is already marked stopped
+		// (connectTask only returns nil with a nil task for stopped containers).
+		return nil
 	}
 
 	// Lock the container
@@ -814,34 +865,19 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	// This can happen on restore. We need to read shim address from the bundle path.
 	// And then connect to the existing gRPC server with this address.
 	if r.task == nil {
-		addressPath := filepath.Join(c.BundlePath(), "address")
-
-		data, err := os.ReadFile(addressPath)
-		if err != nil {
-			// If the container is actually removed, this error is expected and should be ignored.
-			// In this case, the container's status should be "Stopped".
-			if c.state.Status == ContainerStateStopped {
-				log.Debugf(ctx, "Skipping status update for: %+v", c.state)
-
-				return nil
-			}
-
+		if err := r.connectTask(ctx, c); err != nil {
 			log.Warnf(ctx, "Failed to read shim address: %v", err)
 
 			return errors.New("runtime not correctly setup")
 		}
 
-		address := strings.TrimSpace(string(data))
+		if r.task == nil {
+			// connectTask returns nil with a nil task only when the container is
+			// already stopped and has no address file — nothing to update.
+			log.Debugf(ctx, "Skipping status update for: %+v", c.state)
 
-		conn, err := client.Connect(address, client.AnonDialer)
-		if err != nil {
-			return err
+			return nil
 		}
-
-		options := ttrpc.WithOnClose(func() { conn.Close() })
-		cl := ttrpc.NewClient(conn, options)
-		r.client = cl
-		r.task = task.NewTaskClient(cl)
 	}
 
 	response, err := r.task.State(r.ctx, &task.StateRequest{
@@ -1146,6 +1182,10 @@ func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
 }
 
 func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
+	if r.task == nil {
+		return errdefs.ErrNotFound
+	}
+
 	if _, err := r.task.Kill(r.ctx, &task.KillRequest{
 		ID:     ctrID,
 		ExecID: execID,
