@@ -92,8 +92,9 @@ const (
 	PressureMetrics = "pressure"
 )
 
+// AvailableMetrics is a list of all available metrics that can be included in stats.
+// It excludes the "all" metric, which is a special value that includes all other metrics.
 var AvailableMetrics = []string{
-	AllMetrics,
 	CPUMetrics,
 	DiskMetrics,
 	DiskIOMetrics,
@@ -804,7 +805,14 @@ type StatsConfig struct {
 
 	// IncludedPodMetrics specifies the list of metrics to include when collecting pod metrics.
 	// If "all" is specified, all metrics are included. In that case, "all" should be the only element.
+	//
+	// Deprecated: Use this field only when the user input config is needed because it's not formalized.
+	// Use EnabledPodMetrics() instead.
 	IncludedPodMetrics []string `toml:"included_pod_metrics"`
+
+	// includedPodMetrics is an internal representation of IncludedPodMetrics.
+	// It doesn't contain "all".
+	includedPodMetrics []string
 }
 
 // tomlConfig is another way of looking at a Config, which is
@@ -2261,8 +2269,14 @@ func (c *Config) SetSingleConfigPath(singleConfigPath string) {
 }
 
 func (c *StatsConfig) Validate() error {
+	if len(c.IncludedPodMetrics) == 1 && c.IncludedPodMetrics[0] == AllMetrics {
+		c.includedPodMetrics = AvailableMetrics
+
+		return nil
+	}
+
 	for _, metrics := range c.IncludedPodMetrics {
-		if metrics == AllMetrics && len(c.IncludedPodMetrics) != 1 {
+		if metrics == AllMetrics {
 			return errors.New("'all' should be only one element in included_pod_metrics")
 		}
 
@@ -2271,7 +2285,13 @@ func (c *StatsConfig) Validate() error {
 		}
 	}
 
+	c.includedPodMetrics = c.IncludedPodMetrics
+
 	return nil
+}
+
+func (c *StatsConfig) EnabledPodMetrics() []string {
+	return c.includedPodMetrics
 }
 
 // DefaultTLSMinVersion is the default minimum TLS version.

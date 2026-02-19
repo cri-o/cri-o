@@ -128,11 +128,6 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 
 // PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
 func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
-	// It's guaranteed in config validation that if all is specified, it's the only one element in the slice.
-	if len(includedKeys) == 1 && includedKeys[0] == config.AllMetrics {
-		return availableMetricDescriptors
-	}
-
 	descriptorsMap := map[string][]*types.MetricDescriptor{
 		"": alwaysOnMetrics,
 	}
