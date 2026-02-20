@@ -1110,6 +1110,13 @@ func (s *Server) setupSeccomp(ctx context.Context, ctr container.Container, sb *
 		}
 
 		seccompRef = ref
+	} else {
+		// Privileged container without a custom seccomp profile: clear the default
+		// seccomp filter that the OCI spec generator populates automatically.
+		// Privileged containers must run unconfined per the CRI specification.
+		if specgen.Config.Linux != nil {
+			specgen.Config.Linux.Seccomp = nil
+		}
 	}
 
 	return seccompRef, nil
