@@ -5,7 +5,7 @@ GO_ARCH=$(shell $(GO) env GOARCH)
 GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_TEST ?= $(GO) test $(TRIMPATH)
 GO_RUN ?= $(GO) run
-NIX_IMAGE ?= nixos/nix:2.31.2
+NIX_IMAGE ?= nixos/nix:2.33.3
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
