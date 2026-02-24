@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"regexp"
 	"sort"
@@ -34,6 +35,7 @@ import (
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/reexec"
 	crierrors "k8s.io/cri-api/pkg/errors"
+	"k8s.io/utils/ptr"
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/ociartifact"
@@ -865,7 +867,9 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		ProgressInterval: options.ProgressInterval,
 		Progress:         options.Progress,
 	})
-	if err != nil {
+	if shouldTryArtifact(err) {
+		log.Infof(ctx, "Falling back to pull %s as an OCI artifact: %v", imageName, err)
+
 		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext)
 		if artifactErr != nil {
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: create store err: %w", artifactErr)
@@ -874,6 +878,10 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		artifactManifestDigest, artifactErr := artifactStore.Pull(ctx, srcRef, &libimage.CopyOptions{
 			OciDecryptConfig: options.OciDecryptConfig,
 			Progress:         options.Progress,
+			// Disable retries to avoid blocking pod operations for
+			// (timeout * MaxRetries) on network failures. Rely on
+			// Kubelet retries instead.
+			MaxRetries:       ptr.To(uint(0)),
 			RemoveSignatures: true, // signature is not supported for OCI layout dest
 		})
 		if artifactErr != nil {
@@ -888,6 +896,10 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		return references.RegistryImageReferenceFromRaw(canonicalRef), nil
 	}
 
+	if err != nil {
+		return RegistryImageReference{}, fmt.Errorf("unable to pull image: %w", err)
+	}
+
 	manifestDigest, err := manifest.Digest(manifestBytes)
 	if err != nil {
 		return RegistryImageReference{}, fmt.Errorf("digesting image: %w", err)
@@ -899,6 +911,25 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 	}
 
 	return references.RegistryImageReferenceFromRaw(canonicalRef), nil
+}
+
+// shouldTryArtifact determines whether a failed image pull should fall back to
+// an OCI artifact pull. It optimistically falls back for non-transient errors,
+// since the image reference may actually be an artifact.
+func shouldTryArtifact(err error) bool {
+	var netError net.Error
+	switch {
+	case err == nil:
+		return false
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		// Caller-initiated cancellation or timeout; no point retrying as artifact.
+		return false
+	case errors.As(err, &netError):
+		// Network errors are transient; retry as image pull instead of falling back.
+		return false
+	}
+
+	return true
 }
 
 func (svc *imageService) UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error {
