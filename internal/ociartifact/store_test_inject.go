@@ -10,7 +10,7 @@ import (
 )
 
 func (s *Store) SetFakeStore(l LibartifactStore) {
-	s.libartifactStore = l
+	s.LibartifactStore = l
 }
 
 type FakeLibartifactStore struct {
