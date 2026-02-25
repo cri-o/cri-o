@@ -55,6 +55,16 @@ func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, erro
 	}, nil
 }
 
+type unknownRef struct{}
+
+func (unknownRef) String() string {
+	return "unknown"
+}
+
+func (u unknownRef) Name() string {
+	return u.String()
+}
+
 // PullOptions can be used to customize the pull behavior.
 type PullOptions struct {
 	// EnforceConfigMediaType can be set to enforce a specific manifest config
@@ -128,7 +138,12 @@ func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
 	}
 
 	for _, art := range arts {
-		res = append(res, NewArtifact(art))
+		artifact, err := s.buildArtifact(ctx, art)
+		if err != nil {
+			return nil, fmt.Errorf("build artifact: %w", err)
+		}
+
+		res = append(res, artifact)
 	}
 
 	return res, nil
@@ -147,7 +162,7 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 		return nil, fmt.Errorf("inspect artifact: %w", err)
 	}
 
-	return NewArtifact(artifact), nil
+	return s.buildArtifact(ctx, artifact)
 }
 
 // Remove deletes a name or digest from the artifact store.
@@ -177,6 +192,27 @@ func sanitizeOptions(opts *PullOptions) *PullOptions {
 	}
 
 	return opts
+}
+
+func (s *Store) buildArtifact(ctx context.Context, art *libart.Artifact) (*Artifact, error) {
+	artifact := &Artifact{
+		Artifact: art,
+		namedRef: unknownRef{},
+		digest:   art.Digest,
+	}
+
+	if art.Name != "" {
+		namedRef, err := reference.ParseNormalizedNamed(art.Name)
+		if err != nil {
+			log.Warnf(ctx, "Failed to parse artifact name %s with the error %s", art.Name, err)
+
+			namedRef = unknownRef{}
+		}
+
+		artifact.namedRef = namedRef
+	}
+
+	return artifact, nil
 }
 
 func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifactSize uint64) (res []ArtifactData, err error) {
@@ -296,7 +332,7 @@ func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact
 	}
 
 	// if strRef is a just digest or short digest
-	if idx := slices.IndexFunc(artifacts, func(a *Artifact) bool { return strings.HasPrefix(a.Digest().Encoded(), strRef) }); len(strRef) >= 3 && idx != -1 {
+	if idx := slices.IndexFunc(artifacts, func(a *Artifact) bool { return strings.HasPrefix(a.digest.Encoded(), strRef) }); len(strRef) >= 3 && idx != -1 {
 		return artifacts[idx], true, nil
 	}
 
