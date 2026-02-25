@@ -9,7 +9,7 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	criu "github.com/checkpoint-restore/go-criu/v8/utils"
+	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"

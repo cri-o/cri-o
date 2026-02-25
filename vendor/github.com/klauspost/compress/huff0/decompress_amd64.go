@@ -58,7 +58,7 @@ func (d *Decoder) Decompress4X(dst, src []byte) ([]byte, error) {
 	var br [4]bitReaderShifted
 	// Decode "jump table"
 	start := 6
-	for i := range 3 {
+	for i := 0; i < 3; i++ {
 		length := int(src[i*2]) | (int(src[i*2+1]) << 8)
 		if start+length >= len(src) {
 			return nil, errors.New("truncated input (or invalid offset)")
@@ -109,7 +109,10 @@ func (d *Decoder) Decompress4X(dst, src []byte) ([]byte, error) {
 	remainBytes := dstEvery - (decoded / 4)
 	for i := range br {
 		offset := dstEvery * i
-		endsAt := min(offset+remainBytes, len(out))
+		endsAt := offset + remainBytes
+		if endsAt > len(out) {
+			endsAt = len(out)
+		}
 		br := &br[i]
 		bitsLeft := br.remaining()
 		for bitsLeft > 0 {

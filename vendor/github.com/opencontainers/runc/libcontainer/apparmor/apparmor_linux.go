@@ -6,9 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"golang.org/x/sys/unix"
-
-	"github.com/opencontainers/runc/internal/pathrs"
+	"github.com/opencontainers/runc/libcontainer/utils"
 )
 
 var (
@@ -28,7 +26,7 @@ func isEnabled() bool {
 }
 
 func setProcAttr(attr, value string) error {
-	attr = pathrs.LexicallyCleanPath(attr)
+	attr = utils.CleanPath(attr)
 	attrSubPath := "attr/apparmor/" + attr
 	if _, err := os.Stat("/proc/self/" + attrSubPath); errors.Is(err, os.ErrNotExist) {
 		// fall back to the old convention
@@ -38,18 +36,24 @@ func setProcAttr(attr, value string) error {
 	// Under AppArmor you can only change your own attr, so there's no reason
 	// to not use /proc/thread-self/ (instead of /proc/<tid>/, like libapparmor
 	// does).
-	f, closer, err := pathrs.ProcThreadSelfOpen(attrSubPath, unix.O_WRONLY|unix.O_CLOEXEC)
+	attrPath, closer := utils.ProcThreadSelf(attrSubPath)
+	defer closer()
+
+	f, err := os.OpenFile(attrPath, os.O_WRONLY, 0)
 	if err != nil {
 		return err
 	}
-	defer closer()
 	defer f.Close()
+
+	if err := utils.EnsureProcHandle(f); err != nil {
+		return err
+	}
 
 	_, err = f.WriteString(value)
 	return err
 }
 
-// changeOnExec reimplements aa_change_onexec from libapparmor in Go.
+// changeOnExec reimplements aa_change_onexec from libapparmor in Go
 func changeOnExec(name string) error {
 	if err := setProcAttr("exec", "exec "+name); err != nil {
 		return fmt.Errorf("apparmor failed to apply profile: %w", err)
@@ -57,8 +61,9 @@ func changeOnExec(name string) error {
 	return nil
 }
 
-// applyProfile will apply the profile with the specified name to the process
-// after the next exec.
+// applyProfile will apply the profile with the specified name to the process after
+// the next exec. It is only supported on Linux and produces an error on other
+// platforms.
 func applyProfile(name string) error {
 	if name == "" {
 		return nil

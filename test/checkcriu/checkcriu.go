@@ -1,7 +1,7 @@
 package main
 
 import (
-	criu "github.com/checkpoint-restore/go-criu/v8/utils"
+	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 )
 
 func main() {

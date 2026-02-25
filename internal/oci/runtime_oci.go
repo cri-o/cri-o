@@ -17,7 +17,7 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	criu "github.com/checkpoint-restore/go-criu/v8/utils"
+	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/fsnotify/fsnotify"
 	json "github.com/goccy/go-json"

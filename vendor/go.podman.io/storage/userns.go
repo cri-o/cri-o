@@ -8,7 +8,7 @@ import (
 	"os/user"
 	"strconv"
 
-	pathrs "github.com/cyphar/filepath-securejoin/pathrs-lite"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	libcontainerUser "github.com/moby/sys/user"
 	"github.com/sirupsen/logrus"
 	drivers "go.podman.io/storage/drivers"
@@ -197,7 +197,7 @@ outer:
 
 	// We need to create a temporary layer so we can mount it and lookup the
 	// maximum IDs used.
-	clayer, _, err := rlstore.create("", topLayer, nil, "", nil, layerOptions, false, nil)
+	clayer, _, err := rlstore.create("", topLayer, nil, "", nil, layerOptions, false, nil, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -331,11 +331,11 @@ func getAutoUserNSIDMappings(
 
 // Securely open (read-only) a file in a container mount.
 func secureOpen(containerMount, file string) (*os.File, error) {
-	tmpFile, err := pathrs.OpenInRoot(containerMount, file)
+	tmpFile, err := securejoin.OpenInRoot(containerMount, file)
 	if err != nil {
 		return nil, err
 	}
 	defer tmpFile.Close()
 
-	return pathrs.Reopen(tmpFile, unix.O_RDONLY)
+	return securejoin.Reopen(tmpFile, unix.O_RDONLY)
 }

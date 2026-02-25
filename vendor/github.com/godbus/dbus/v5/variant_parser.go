@@ -292,12 +292,12 @@ func (n stringNode) Value(sig Signature) (any, error) {
 	if n.val != nil {
 		return n.val, nil
 	}
-	switch sig.str {
-	case "g":
+	switch {
+	case sig.str == "g":
 		return Signature{n.str}, nil
-	case "o":
+	case sig.str == "o":
 		return ObjectPath(n.str), nil
-	case "s":
+	case sig.str == "s":
 		return n.str, nil
 	default:
 		return nil, varTypeError{n.str, sig}

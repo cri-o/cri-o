@@ -144,16 +144,7 @@ func (e Error) Code() ErrorCode {
 }
 
 func (e Error) Error() string {
-	// gpgme_error_t, aka gpg_error_t, is a single 32-bit integer, so it does not include
-	// strings of arbitrary length
-	// (compare https://git.gnupg.org/cgi-bin/gitweb.cgi?p=libgpg-error.git;a=blob;f=src/err-codes.h.in;hb=HEAD ).
-	//
-	// So, a medium-size hard-coded buffer is sufficient.
-	var buf [1024]C.char
-	_ = C.gpgme_strerror_r(e.err, &buf[0], C.size_t(len(buf)))
-	buf[len(buf)-1] = 0 // If gpgme_strerror_r returns ERANGE, the buffer is not guaranteed to be null-terminated
-
-	return C.GoString(&buf[0])
+	return C.GoString(C.gpgme_strerror(e.err))
 }
 
 func handleError(err C.gpgme_error_t) error {
@@ -386,19 +377,20 @@ func (c *Context) PinEntryMode() PinEntryMode {
 }
 
 func (c *Context) SetCallback(callback Callback) error {
+	var err error
 	c.callback = callback
 	if c.cbc > 0 {
 		c.cbc.Delete()
 	}
 	if callback != nil {
 		c.cbc = cgo.NewHandle(c)
-		C.gpgme_set_passphrase_cb(c.ctx, C.gpgme_passphrase_cb_t(C.gogpgme_passfunc), unsafe.Pointer(&c.cbc))
+		_, err = C.gpgme_set_passphrase_cb(c.ctx, C.gpgme_passphrase_cb_t(C.gogpgme_passfunc), unsafe.Pointer(&c.cbc))
 	} else {
 		c.cbc = 0
-		C.gpgme_set_passphrase_cb(c.ctx, nil, nil)
+		_, err = C.gpgme_set_passphrase_cb(c.ctx, nil, nil)
 	}
 	runtime.KeepAlive(c)
-	return nil
+	return err
 }
 
 func (c *Context) EngineInfo() *EngineInfo {

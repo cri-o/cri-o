@@ -57,7 +57,7 @@ func (conn *Conn) Auth(methods []Auth) error {
 		methods = getDefaultAuthMethods(uid)
 	}
 	in := bufio.NewReader(conn.transport)
-	err := conn.SendNullByte()
+	err := conn.transport.SendNullByte()
 	if err != nil {
 		return err
 	}

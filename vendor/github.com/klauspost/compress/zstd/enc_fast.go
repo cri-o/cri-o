@@ -143,7 +143,10 @@ encodeLoop:
 				// and have to do special offset treatment.
 				startLimit := nextEmit + 1
 
-				sMin := max(s-e.maxMatchOff, 0)
+				sMin := s - e.maxMatchOff
+				if sMin < 0 {
+					sMin = 0
+				}
 				for repIndex > sMin && start > startLimit && src[repIndex-1] == src[start-1] && seq.matchLen < maxMatchLength-zstdMinMatch {
 					repIndex--
 					start--
@@ -220,7 +223,10 @@ encodeLoop:
 		l := e.matchlen(s+4, t+4, src) + 4
 
 		// Extend backwards
-		tMin := max(s-e.maxMatchOff, 0)
+		tMin := s - e.maxMatchOff
+		if tMin < 0 {
+			tMin = 0
+		}
 		for t > tMin && s > nextEmit && src[t-1] == src[s-1] && l < maxMatchLength {
 			s--
 			t--
@@ -381,7 +387,10 @@ encodeLoop:
 				// and have to do special offset treatment.
 				startLimit := nextEmit + 1
 
-				sMin := max(s-e.maxMatchOff, 0)
+				sMin := s - e.maxMatchOff
+				if sMin < 0 {
+					sMin = 0
+				}
 				for repIndex > sMin && start > startLimit && src[repIndex-1] == src[start-1] {
 					repIndex--
 					start--
@@ -460,7 +469,10 @@ encodeLoop:
 		l := e.matchlen(s+4, t+4, src) + 4
 
 		// Extend backwards
-		tMin := max(s-e.maxMatchOff, 0)
+		tMin := s - e.maxMatchOff
+		if tMin < 0 {
+			tMin = 0
+		}
 		for t > tMin && s > nextEmit && src[t-1] == src[s-1] {
 			s--
 			t--
@@ -643,7 +655,10 @@ encodeLoop:
 				// and have to do special offset treatment.
 				startLimit := nextEmit + 1
 
-				sMin := max(s-e.maxMatchOff, 0)
+				sMin := s - e.maxMatchOff
+				if sMin < 0 {
+					sMin = 0
+				}
 				for repIndex > sMin && start > startLimit && src[repIndex-1] == src[start-1] && seq.matchLen < maxMatchLength-zstdMinMatch {
 					repIndex--
 					start--
@@ -720,7 +735,10 @@ encodeLoop:
 		l := e.matchlen(s+4, t+4, src) + 4
 
 		// Extend backwards
-		tMin := max(s-e.maxMatchOff, 0)
+		tMin := s - e.maxMatchOff
+		if tMin < 0 {
+			tMin = 0
+		}
 		for t > tMin && s > nextEmit && src[t-1] == src[s-1] && l < maxMatchLength {
 			s--
 			t--

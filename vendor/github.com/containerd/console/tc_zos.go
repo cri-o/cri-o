@@ -17,6 +17,7 @@
 package console
 
 import (
+	"os"
 	"strings"
 
 	"golang.org/x/sys/unix"
@@ -28,11 +29,11 @@ const (
 )
 
 // unlockpt is a no-op on zos.
-func unlockpt(File) error {
+func unlockpt(_ *os.File) error {
 	return nil
 }
 
 // ptsname retrieves the name of the first available pts for the given master.
-func ptsname(f File) (string, error) {
+func ptsname(f *os.File) (string, error) {
 	return "/dev/ttyp" + strings.TrimPrefix(f.Name(), "/dev/ptyp"), nil
 }

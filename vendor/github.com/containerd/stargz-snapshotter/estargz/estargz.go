@@ -237,7 +237,7 @@ func (r *Reader) initFields() error {
 			if ent.Gname != "" {
 				gname[ent.GID] = ent.Gname
 			} else {
-				ent.Gname = gname[ent.GID]
+				ent.Gname = uname[ent.GID]
 			}
 
 			ent.modTime, _ = time.Parse(time.RFC3339, ent.ModTime3339)
@@ -304,15 +304,6 @@ func (r *Reader) initFields() error {
 		}
 		if e.Offset != 0 && e.InnerOffset == 0 {
 			lastOffset = e.Offset
-		}
-	}
-
-	if len(r.m) == 0 {
-		r.m[""] = &TOCEntry{
-			Name:    "",
-			Type:    "dir",
-			Mode:    0755,
-			NumLink: 1,
 		}
 	}
 

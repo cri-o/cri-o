@@ -373,9 +373,11 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 		if cap(dst) == 0 && !d.o.limitToCap {
 			// Allocate len(input) * 2 by default if nothing is provided
 			// and we didn't get frame content size.
-			size := min(
-				// Cap to 1 MB.
-				len(input)*2, 1<<20)
+			size := len(input) * 2
+			// Cap to 1 MB.
+			if size > 1<<20 {
+				size = 1 << 20
+			}
 			if uint64(size) > d.o.maxDecodedSize {
 				size = int(d.o.maxDecodedSize)
 			}

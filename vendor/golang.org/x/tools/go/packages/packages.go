@@ -1027,15 +1027,11 @@ func (ld *loader) refine(response *DriverResponse) ([]*Package, error) {
 // Precondition: ld.Mode&(NeedSyntax|NeedTypes|NeedTypesInfo) != 0.
 func (ld *loader) loadPackage(lpkg *loaderPackage) {
 	if lpkg.PkgPath == "unsafe" {
-		// To avoid surprises, fill in the blanks consistent
-		// with other packages. (For example, some analyzers
-		// assert that each needed types.Info map is non-nil
-		// even when there is no syntax that would cause them
-		// to consult the map.)
+		// Fill in the blanks to avoid surprises.
 		lpkg.Types = types.Unsafe
 		lpkg.Fset = ld.Fset
 		lpkg.Syntax = []*ast.File{}
-		lpkg.TypesInfo = ld.newTypesInfo()
+		lpkg.TypesInfo = new(types.Info)
 		lpkg.TypesSizes = ld.sizes
 		return
 	}
@@ -1184,7 +1180,20 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 		return
 	}
 
-	lpkg.TypesInfo = ld.newTypesInfo()
+	// Populate TypesInfo only if needed, as it
+	// causes the type checker to work much harder.
+	if ld.Config.Mode&NeedTypesInfo != 0 {
+		lpkg.TypesInfo = &types.Info{
+			Types:        make(map[ast.Expr]types.TypeAndValue),
+			Defs:         make(map[*ast.Ident]types.Object),
+			Uses:         make(map[*ast.Ident]types.Object),
+			Implicits:    make(map[ast.Node]types.Object),
+			Instances:    make(map[*ast.Ident]types.Instance),
+			Scopes:       make(map[ast.Node]*types.Scope),
+			Selections:   make(map[*ast.SelectorExpr]*types.Selection),
+			FileVersions: make(map[*ast.File]string),
+		}
+	}
 	lpkg.TypesSizes = ld.sizes
 
 	importer := importerFunc(func(path string) (*types.Package, error) {
@@ -1296,24 +1305,6 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 		}
 	}
 	lpkg.IllTyped = illTyped
-}
-
-func (ld *loader) newTypesInfo() *types.Info {
-	// Populate TypesInfo only if needed, as it
-	// causes the type checker to work much harder.
-	if ld.Config.Mode&NeedTypesInfo == 0 {
-		return nil
-	}
-	return &types.Info{
-		Types:        make(map[ast.Expr]types.TypeAndValue),
-		Defs:         make(map[*ast.Ident]types.Object),
-		Uses:         make(map[*ast.Ident]types.Object),
-		Implicits:    make(map[ast.Node]types.Object),
-		Instances:    make(map[*ast.Ident]types.Instance),
-		Scopes:       make(map[ast.Node]*types.Scope),
-		Selections:   make(map[*ast.SelectorExpr]*types.Selection),
-		FileVersions: make(map[*ast.File]string),
-	}
 }
 
 // An importFunc is an implementation of the single-method
