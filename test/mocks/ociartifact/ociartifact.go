@@ -91,6 +91,34 @@ func (mr *MockImplMockRecorder) DockerNewReference(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DockerNewReference", reflect.TypeOf((*MockImpl)(nil).DockerNewReference), arg0)
 }
 
+// DockerReferenceName mocks base method.
+func (m *MockImpl) DockerReferenceName(arg0 types.ImageReference) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DockerReferenceName", arg0)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// DockerReferenceName indicates an expected call of DockerReferenceName.
+func (mr *MockImplMockRecorder) DockerReferenceName(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DockerReferenceName", reflect.TypeOf((*MockImpl)(nil).DockerReferenceName), arg0)
+}
+
+// DockerReferenceString mocks base method.
+func (m *MockImpl) DockerReferenceString(arg0 types.ImageReference) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DockerReferenceString", arg0)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// DockerReferenceString indicates an expected call of DockerReferenceString.
+func (mr *MockImplMockRecorder) DockerReferenceString(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DockerReferenceString", reflect.TypeOf((*MockImpl)(nil).DockerReferenceString), arg0)
+}
+
 // GetBlob mocks base method.
 func (m *MockImpl) GetBlob(arg0 context.Context, arg1 types.ImageSource, arg2 types.BlobInfo, arg3 types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()

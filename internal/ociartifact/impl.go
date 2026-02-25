@@ -1,4 +1,4 @@
-package datastore
+package ociartifact
 
 import (
 	"context"
@@ -13,10 +13,11 @@ import (
 	"go.podman.io/image/v5/types"
 )
 
-// Impl is the interface for the implementation.
 type Impl interface {
 	ParseNormalizedNamed(string) (reference.Named, error)
 	DockerNewReference(reference.Named) (types.ImageReference, error)
+	DockerReferenceString(types.ImageReference) string
+	DockerReferenceName(types.ImageReference) string
 	LayoutNewReference(string, string) (types.ImageReference, error)
 	NewImageSource(context.Context, types.ImageReference, *types.SystemContext) (types.ImageSource, error)
 	CloseImageSource(types.ImageSource) error
@@ -35,6 +36,14 @@ func (*defaultImpl) ParseNormalizedNamed(s string) (reference.Named, error) {
 
 func (*defaultImpl) DockerNewReference(ref reference.Named) (types.ImageReference, error) {
 	return docker.NewReference(ref)
+}
+
+func (*defaultImpl) DockerReferenceString(ref types.ImageReference) string {
+	return ref.DockerReference().String()
+}
+
+func (*defaultImpl) DockerReferenceName(ref types.ImageReference) string {
+	return ref.DockerReference().Name()
 }
 
 func (*defaultImpl) CloseImageSource(src types.ImageSource) error {

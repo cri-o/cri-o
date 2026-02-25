@@ -11,7 +11,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"
-	"github.com/cri-o/cri-o/internal/ociartifact/datastore"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	seccompociartifactmock "github.com/cri-o/cri-o/test/mocks/seccompociartifact"
 )
@@ -23,7 +23,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 
 		var (
 			sut           *seccompociartifact.SeccompOCIArtifact
-			testArtifacts []datastore.ArtifactData
+			testArtifacts []ociartifact.ArtifactData
 			implMock      *seccompociartifactmock.MockImpl
 			mockCtrl      *gomock.Controller
 			errTest       = errors.New("test")
@@ -44,9 +44,9 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			implMock = seccompociartifactmock.NewMockImpl(mockCtrl)
 			sut.SetImpl(implMock)
 
-			testArtifact := datastore.ArtifactData{}
+			testArtifact := ociartifact.ArtifactData{}
 			testArtifact.SetData([]byte(testProfileContent))
-			testArtifacts = []datastore.ArtifactData{testArtifact}
+			testArtifacts = []ociartifact.ArtifactData{testArtifact}
 		})
 
 		AfterEach(func() {
