@@ -447,6 +447,7 @@ mockgen: \
 	mock-image-types \
 	mock-ocicni-types \
 	mock-seccompociartifact-types \
+	mock-ociartifact-types \
 	mock-ociartifact-datastore-types \
 	mock-systemd \
 	mock-cgmgr
@@ -520,6 +521,13 @@ mock-seccompociartifact-types: ${MOCKGEN}
 		-package seccompociartifactmock \
 		-destination ${MOCK_PATH}/seccompociartifact/seccompociartifact.go \
 		github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact Impl
+
+.PHONY: mock-ociartifact-types
+mock-ociartifact-types: ${MOCKGEN}
+	${BUILD_BIN_PATH}/mockgen \
+		-package ociartifactmock \
+		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
+		github.com/cri-o/cri-o/internal/ociartifact Impl,LibartifactStore
 
 .PHONY: mock-ociartifact-datastore-types
 mock-ociartifact-datastore-types: ${MOCKGEN}
