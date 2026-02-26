@@ -114,7 +114,7 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 		},
 	}
 
-	return computeContainerMetrics(ctr, memoryMetrics, "memory")
+	return computeContainerMetrics(ctr, memoryMetrics)
 }
 
 // computeMemoryMetricValues computes derived memory statistics for metrics.
@@ -181,5 +181,5 @@ func GenerateContainerOOMMetrics(ctr *oci.Container, oomCount uint64) []*types.M
 		},
 	}
 
-	return computeContainerMetrics(ctr, oomMetrics, "oom")
+	return computeContainerMetrics(ctr, oomMetrics)
 }

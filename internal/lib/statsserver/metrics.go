@@ -140,8 +140,8 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 }
 
 // ComputeSandboxMetrics computes the metrics for both pod and container sandbox.
-func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric, metricName string) []*types.Metric {
-	return computeMetrics(sandboxBaseLabelValues(sb), metrics, metricName)
+func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric) []*types.Metric {
+	return computeMetrics(sandboxBaseLabelValues(sb), metrics)
 }
 
 func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
@@ -150,8 +150,8 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 }
 
 // computeContainerMetrics computes the metrics for container.
-func computeContainerMetrics(ctr *oci.Container, metrics []*containerMetric, metricName string) []*types.Metric {
-	return computeMetrics(containerBaseLabelValues(ctr), metrics, metricName)
+func computeContainerMetrics(ctr *oci.Container, metrics []*containerMetric) []*types.Metric {
+	return computeMetrics(containerBaseLabelValues(ctr), metrics)
 }
 
 func containerBaseLabelValues(ctr *oci.Container) []string {
@@ -163,11 +163,7 @@ func containerBaseLabelValues(ctr *oci.Container) []string {
 	return []string{ctr.ID(), ctr.Name(), image}
 }
 
-func computeMetrics(baseLabels []string, metrics []*containerMetric, metricName string) []*types.Metric {
-	if metricName != "" {
-		baseLabels = append(baseLabels, metricName)
-	}
-
+func computeMetrics(baseLabels []string, metrics []*containerMetric) []*types.Metric {
 	calculatedMetrics := make([]*types.Metric, 0, len(metrics))
 
 	for _, m := range metrics {

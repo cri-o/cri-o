@@ -262,7 +262,7 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 				metricType: types.MetricType_GAUGE,
 			}}
 		},
-	}}, "")
+	}})
 
 	for _, m := range ss.Config().EnabledPodMetrics() {
 		switch m {

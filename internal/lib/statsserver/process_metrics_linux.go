@@ -64,11 +64,12 @@ func generateContainerProcessMetrics(ctr *oci.Container, pids *cgroups.PidsStats
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      process.UlimitsSoft,
+					labels:     []string{"max_open_files"},
 					metricType: types.MetricType_GAUGE,
 				}}
 			},
 		},
 	}
 
-	return computeContainerMetrics(ctr, processMetrics, "process")
+	return computeContainerMetrics(ctr, processMetrics)
 }
