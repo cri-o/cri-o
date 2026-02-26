@@ -74,7 +74,7 @@ func generateContainerSpecMetrics(ctr *oci.Container) []*types.Metric {
 		})
 	}
 
-	return computeContainerMetrics(ctr, specMetrics, "spec")
+	return computeContainerMetrics(ctr, specMetrics)
 }
 
 func specMemoryValue(limit int64) uint64 {

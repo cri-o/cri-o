@@ -88,5 +88,5 @@ func generateContainerPressureMetrics(ctr *oci.Container, cpu *cgroups.CpuStats,
 		)
 	}
 
-	return computeContainerMetrics(ctr, metrics, "cpu")
+	return computeContainerMetrics(ctr, metrics)
 }
