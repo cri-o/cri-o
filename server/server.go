@@ -457,7 +457,7 @@ func New(
 		os.Unsetenv("DBUS_SESSION_BUS_ADDRESS")
 	}
 
-	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.SystemContext)
+	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.ReadOnlyArtifactStores, config.SystemContext)
 	if err != nil {
 		return nil, err
 	}

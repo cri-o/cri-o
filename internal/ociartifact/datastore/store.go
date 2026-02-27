@@ -43,7 +43,7 @@ type Store struct {
 
 // New creates a new OCI artifact data store.
 func New(rootPath string, systemContext *types.SystemContext) (*Store, error) {
-	ociStore, err := ociartifact.NewStore(rootPath, systemContext)
+	ociStore, err := ociartifact.NewStore(rootPath, nil, systemContext)
 	if err != nil {
 		return nil, fmt.Errorf("create OCI artifact store: %w", err)
 	}

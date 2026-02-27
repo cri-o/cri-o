@@ -425,6 +425,10 @@ type RuntimeConfig struct {
 	// DecryptionKeysPath is the path where keys for image decryption are stored.
 	DecryptionKeysPath string `toml:"decryption_keys_path"`
 
+	// ReadOnlyArtifactStores is a list of additional read-only artifact stores.
+	// Each path behaves like the main artifact store but is read-only.
+	ReadOnlyArtifactStores []string `toml:"read_only_artifact_stores,omitempty"`
+
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	// This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorConfig.Path.
 	Conmon string `toml:"conmon"`
