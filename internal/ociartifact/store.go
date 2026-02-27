@@ -2,8 +2,10 @@ package ociartifact
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 
 	modelSpec "github.com/modelpack/model-spec/specs-go/v1"
 	"github.com/opencontainers/go-digest"
@@ -11,6 +13,7 @@ import (
 	"go.podman.io/common/libimage"
 	libart "go.podman.io/common/pkg/libartifact"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
+	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
 	"go.podman.io/image/v5/types"
 
@@ -20,11 +23,33 @@ import (
 // ErrNotFound is indicating that the artifact could not be found in the storage.
 var ErrNotFound = libartTypes.ErrArtifactNotExist
 
+// ErrIsAnImage is returned when the reference is a container image, not an OCI artifact.
+var ErrIsAnImage = errors.New("reference is a container image, not an OCI artifact")
+
+// imageMimeTypes lists manifest MIME types that correspond to standard
+// container image formats (OCI and Docker v2 schema variants).
+var imageMimeTypes = []string{
+	specs.MediaTypeImageManifest,
+	manifest.DockerV2Schema2MediaType,
+	manifest.DockerV2Schema1MediaType,
+	manifest.DockerV2Schema1SignedMediaType,
+}
+
+// configMediaTypes lists config MIME types that indicate a standard
+// container image configuration. An empty string is included because
+// some images omit the config media type entirely.
+var configMediaTypes = []string{
+	"", // empty, treated as a container image config by convention
+	specs.MediaTypeImageConfig,
+	manifest.DockerV2Schema2ConfigMediaType,
+}
+
 // Store is the main structure to build an artifact storage.
 type Store struct {
 	libartifactStore LibartifactStore
+	impl             Impl
 
-	// It's required for BlobMountPaths.
+	// rootPath is required for BlobMountPaths.
 	rootPath string
 }
 
@@ -38,8 +63,9 @@ func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, erro
 	}
 
 	return &Store{
-		libartifactStore: store,
+		libartifactStore: &artifactStore{store},
 		rootPath:         storePath,
+		impl:             &defaultImpl{},
 	}, nil
 }
 
@@ -52,7 +78,15 @@ func (s *Store) Pull(
 	ref types.ImageReference,
 	opts *libimage.CopyOptions,
 ) (manifestDigest *digest.Digest, err error) {
+	// Reject regular container images early. If a container image was
+	// pulled into the artifact store, it would not be usable as an image.
+	if err := s.EnsureNotContainerImage(ctx, ref); err != nil {
+		return nil, fmt.Errorf("image reference: %w", err)
+	}
+
 	strRef := ref.DockerReference().String()
+
+	log.Infof(ctx, "Pulling OCI artifact %s", strRef)
 
 	artRef, err := libart.NewArtifactReference(strRef)
 	if err != nil {
@@ -65,6 +99,74 @@ func (s *Store) Pull(
 	}
 
 	return &dgst, nil
+}
+
+// EnsureNotContainerImage inspects the manifest at ref and returns
+// ErrIsAnImage when the reference points to a regular container image
+// rather than an OCI artifact. Multi-architecture manifest lists are
+// resolved to the current platform before inspection.
+func (s *Store) EnsureNotContainerImage(ctx context.Context, ref types.ImageReference) error {
+	// Fetch the top-level manifest (or manifest list) for the given reference.
+	// Passing nil as the instance digest retrieves the root manifest.
+	manifestBytes, mimeType, err := s.impl.GetManifestFromRef(ctx, ref, s.libartifactStore.SystemContext(), nil)
+	if err != nil {
+		return fmt.Errorf("get manifest from ref: %w", err)
+	}
+
+	// If it's a manifest list/index, resolve the correct instance for the
+	// current platform. This is necessary because multi-arch images contain
+	// multiple platform-specific manifests, and we need the one matching
+	// the host OS and architecture to inspect its config.
+	if manifest.MIMETypeIsMultiImage(mimeType) {
+		list, err := manifest.ListFromBlob(manifestBytes, mimeType)
+		if err != nil {
+			return fmt.Errorf("parse manifest list: %w", err)
+		}
+
+		instanceDigest, err := s.impl.ChooseInstance(list, s.libartifactStore.SystemContext())
+		if err != nil {
+			return fmt.Errorf("choose manifest instance: %w", err)
+		}
+
+		manifestBytes, mimeType, err = s.impl.GetManifestFromRef(ctx, ref, s.libartifactStore.SystemContext(), &instanceDigest)
+		if err != nil {
+			return fmt.Errorf("get instance manifest: %w", err)
+		}
+	}
+
+	// Extract the config descriptor's media type, which indicates what kind
+	// of content this manifest describes (e.g., a container image config vs.
+	// an arbitrary artifact config).
+	m, err := manifest.FromBlob(manifestBytes, mimeType)
+	if err != nil {
+		return fmt.Errorf("parse manifest: %w", err)
+	}
+
+	mediaType := m.ConfigInfo().MediaType
+
+	// If both the manifest and config media types match known container image
+	// types, perform additional checks to see if the manifest declares an
+	// OCI artifact type. If it does, this is an artifact rather than an image.
+	if slices.Contains(imageMimeTypes, mimeType) && slices.Contains(configMediaTypes, mediaType) {
+		ociManifest, err := manifest.OCI1FromManifest(manifestBytes)
+		// Non-OCI manifests (e.g. Docker v2 schema 2) are expected to fail
+		// parsing here, which means they are regular container images.
+		if err != nil {
+			log.Debugf(ctx, "Failed to parse OCI 1 manifest: %v", err)
+
+			return ErrIsAnImage
+		}
+
+		// No artifact type set, assume an image. Per the OCI image spec,
+		// the artifactType field distinguishes artifacts from regular images.
+		if ociManifest.ArtifactType == "" {
+			return ErrIsAnImage
+		}
+
+		log.Debugf(ctx, "Found artifact type: %s", ociManifest.ArtifactType)
+	}
+
+	return nil
 }
 
 // List creates a slice of all available artifacts.
