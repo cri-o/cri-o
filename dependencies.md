@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 27 Feb 2026 10:31:11 UTC for commit [34f5b85][0]._
+_Generated on Fri, 27 Feb 2026 17:12:11 UTC for commit [1e31373][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/34f5b852c54c6c99e5686b9dfa99578d79502790
+[0]: https://github.com/cri-o/cri-o/commit/1e31373faa1dfae02725a06fedc7c0f53ecf4589
 
 ## Outdated Dependencies
 
 |                         MODULE                         |                VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|---------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/conmon                           | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260227092438-d9d886b41920 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260227130358-2695007ef8ac | true   | true             |
 | go.podman.io/common                                    | v0.66.2-0.20260126213724-1e46b0756b39 | v0.67.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.38.0                               | v5.39.1                            | true   | true             |
 | go.podman.io/storage                                   | v1.61.1-0.20251212224252-b0f86df5a665 | v1.62.0                            | true   | true             |
@@ -336,7 +336,7 @@ _Generated on Fri, 27 Feb 2026 10:31:11 UTC for commit [34f5b85][0]._
 | github.com/fxamacker/cbor/v2                                                | v2.9.0                                |                                    | false  | true             |
 | github.com/gkampitakis/ciinfo                                               | v0.3.2                                | v0.3.3                             | false  | true             |
 | github.com/gkampitakis/go-diff                                              | v1.3.2                                |                                    | false  | true             |
-| github.com/gkampitakis/go-snaps                                             | v0.5.15                               | v0.5.19                            | false  | true             |
+| github.com/gkampitakis/go-snaps                                             | v0.5.15                               | v0.5.20                            | false  | true             |
 | github.com/gliderlabs/ssh                                                   | v0.3.8                                |                                    | false  | true             |
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                |                                    | true   | true             |
 | github.com/go-git/gcfg                                                      | v1.5.1-0.20230307220236-3a3c6141e376  |                                    | false  | true             |
@@ -446,7 +446,7 @@ _Generated on Fri, 27 Feb 2026 10:31:11 UTC for commit [34f5b85][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260227092438-d9d886b41920 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260227130358-2695007ef8ac | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.10.0                            | false  | true             |
@@ -656,7 +656,7 @@ _Generated on Fri, 27 Feb 2026 10:31:11 UTC for commit [34f5b85][0]._
 | github.com/ysmood/leakless                                                  | v0.9.0                                |                                    | false  | true             |
 | github.com/yuin/goldmark                                                    | v1.4.13                               | v1.7.16                            | false  | true             |
 | github.com/zeebo/errs                                                       | v1.4.0                                |                                    | false  | true             |
-| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.44.0                            | false  | true             |
+| gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.45.0                            | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1 | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.3                                |                                    | false  | true             |
 | go.etcd.io/etcd/api/v3                                                      | v3.6.5                                | v3.6.8                             | false  | true             |
