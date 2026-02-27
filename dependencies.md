@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 27 Feb 2026 17:12:11 UTC for commit [1e31373][0]._
+_Generated on Fri, 27 Feb 2026 21:48:11 UTC for commit [52e0cfa][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/1e31373faa1dfae02725a06fedc7c0f53ecf4589
+[0]: https://github.com/cri-o/cri-o/commit/52e0cfad4400d1b951eee3bbee67a1d5b6fa1bef
 
 ## Outdated Dependencies
 
 |                         MODULE                         |                VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|---------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/conmon                           | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260227130358-2695007ef8ac | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260227172030-330bfff4be89 | true   | true             |
 | go.podman.io/common                                    | v0.66.2-0.20260126213724-1e46b0756b39 | v0.67.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.38.0                               | v5.39.1                            | true   | true             |
 | go.podman.io/storage                                   | v1.61.1-0.20251212224252-b0f86df5a665 | v1.62.0                            | true   | true             |
@@ -229,7 +229,7 @@ _Generated on Fri, 27 Feb 2026 17:12:11 UTC for commit [1e31373][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                | v1.35.7                               | v1.35.15                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                    | v1.40.2                               | v1.41.7                            | false  | true             |
 | github.com/aws/smithy-go                                                    | v1.23.2                               | v1.24.1                            | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                   | v0.9.1                                | v0.11.0                            | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                   | v0.9.1                                | v0.12.0                            | false  | true             |
 | github.com/beorn7/perks                                                     | v1.0.1                                |                                    | false  | true             |
 | github.com/blang/semver                                                     | v3.5.1+incompatible                   |                                    | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                |                                    | true   | true             |
@@ -446,7 +446,7 @@ _Generated on Fri, 27 Feb 2026 17:12:11 UTC for commit [1e31373][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260227130358-2695007ef8ac | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260227172030-330bfff4be89 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.10.0                            | false  | true             |
