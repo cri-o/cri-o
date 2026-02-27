@@ -13,6 +13,10 @@ func (s *Store) SetFakeStore(l LibartifactStore) {
 	s.libartifactStore = l
 }
 
+func (s *Store) SetFakeImpl(impl Impl) {
+	s.impl = impl
+}
+
 type FakeLibartifactStore struct {
 	*ociartifactmock.MockLibartifactStore
 }
