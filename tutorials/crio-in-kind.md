@@ -119,7 +119,7 @@ echo "Building final image $TARGET ..."
 # Run the intermediate image in the background
 docker run --privileged --rm -d --name crio-builder --entrypoint sleep $INTERMEDIATE infinity
 
-func cleanup {
+function cleanup {
   docker kill crio-builder
 }
 # Remove the crio-builder container on exit
