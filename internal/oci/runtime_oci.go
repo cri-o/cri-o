@@ -1158,7 +1158,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 		return fmt.Errorf("status code conversion failed: %w", err)
 	}
 
-	c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
+	c.state.ExitCode = new(int32(statusCode))
 
 	return nil
 }
@@ -1195,7 +1195,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			if err := updateContainerStatusFromExitFile(c); err != nil {
 				log.Errorf(ctx, "Failed to update container status from exit file for %s: %v", c.ID(), err)
 				c.state.Finished = time.Now()
-				c.state.ExitCode = utils.Int32Ptr(255)
+				c.state.ExitCode = new(int32(255))
 			}
 
 			return nil, true, nil
@@ -1715,7 +1715,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 
 	if !leaveRunning {
 		c.state.Status = ContainerStateStopped
-		c.state.ExitCode = utils.Int32Ptr(0)
+		c.state.ExitCode = new(int32(0))
 		c.state.Finished = c.CheckpointedAt()
 	}
 

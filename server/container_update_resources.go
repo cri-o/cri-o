@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"google.golang.org/protobuf/proto"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/utils/cpuset"
 
@@ -76,23 +75,23 @@ func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
 		Memory: &rspec.LinuxMemory{},
 	}
 	if r.GetCpuShares() != 0 {
-		update.CPU.Shares = proto.Uint64(uint64(r.GetCpuShares()))
+		update.CPU.Shares = new(uint64(r.GetCpuShares()))
 	}
 
 	if r.GetCpuPeriod() != 0 {
-		update.CPU.Period = proto.Uint64(uint64(r.GetCpuPeriod()))
+		update.CPU.Period = new(uint64(r.GetCpuPeriod()))
 	}
 
 	if r.GetCpuQuota() != 0 {
-		update.CPU.Quota = proto.Int64(r.GetCpuQuota())
+		update.CPU.Quota = new(r.GetCpuQuota())
 	}
 
 	memory := r.GetMemoryLimitInBytes()
 	if memory != 0 {
-		update.Memory.Limit = proto.Int64(memory)
+		update.Memory.Limit = new(memory)
 
 		if node.CgroupHasMemorySwap() {
-			update.Memory.Swap = proto.Int64(memory)
+			update.Memory.Swap = new(memory)
 		}
 	}
 
