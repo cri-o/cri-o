@@ -47,7 +47,7 @@ func generateContainerDiskMetrics(ctr *oci.Container, diskStats *stats.Filesyste
 		},
 	}
 
-	return computeContainerMetrics(ctr, diskMetrics, "disk")
+	return computeContainerMetrics(ctr, diskMetrics)
 }
 
 // generateContainerDiskIOMetrics computes filesystem disk metrics from DiskStats for a container sandbox.
@@ -111,5 +111,5 @@ func generateContainerDiskIOMetrics(ctr *oci.Container, ioStats *cgroups.BlkioSt
 		}
 	}
 
-	return computeContainerMetrics(ctr, diskMetrics, "diskIO")
+	return computeContainerMetrics(ctr, diskMetrics)
 }
