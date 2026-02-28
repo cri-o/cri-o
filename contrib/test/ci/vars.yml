@@ -49,7 +49,8 @@ kata_skip_files:
   - "cdi.bats"
   - "checkpoint.bats"
   - "conmonrs.bats" # no use of conmon in runtimeVM implementation
-  - "cpu_load_balancing.bats"
+  - "cpu_load_balancing_v1.bats"
+  - "cpu_load_balancing_v2.bats"
   - "critest.bats"
   - "ctr_pause_unpause.bats"
   - "ctr_seccomp.bats" # see https://github.com/kata-containers/tests/issues/4587
