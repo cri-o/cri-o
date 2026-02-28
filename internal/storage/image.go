@@ -92,11 +92,25 @@ type imageLookupService struct {
 }
 
 type imageService struct {
-	lookup               *imageLookupService
-	store                storage.Store
-	storageTransport     StorageTransport
-	imageCache           imageCache
-	imageCacheLock       sync.Mutex
+	lookup           *imageLookupService
+	store            storage.Store
+	storageTransport StorageTransport
+	imageCache       imageCache
+	imageCacheLock   sync.Mutex
+	// removedReferences tracks recently removed image references.
+	// This is necessary because:
+	// 1. containers/storage supports read-only additional image stores that are never
+	//    updated when images are deleted from the read-write store
+	// 2. When an image has multiple names and one is removed, ResolveReference can
+	//    still find the image by digest even though that specific name was removed
+	// Without tracking, ImageStatus can find a deleted/untagged image even after
+	// RemoveImage completes successfully.
+	// Protected by imageCacheLock.
+	// Entries are cleaned up when ListImages discovers the reference exists again
+	// (e.g., after re-pulling). In long-running instances with many unique ephemeral
+	// images, this map may grow over time. Future enhancement: add TTL-based cleanup.
+	// See: https://github.com/cri-o/cri-o/issues/9717
+	removedReferences    map[string]struct{}
 	ctx                  context.Context
 	config               *config.Config
 	regexForPinnedImages []*regexp.Regexp
@@ -401,21 +415,21 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 	}
 
 	results := make([]ImageResult, 0, len(images))
-	newImageCache := make(imageCache, len(images))
 
+	newImageCache := make(imageCache, len(images))
 	for i := range images {
 		image := &images[i]
+
+		svc.imageCacheLock.Lock()
+		cacheItem, cached := svc.imageCache[image.ID]
+		svc.imageCacheLock.Unlock()
 
 		ref, err := istorage.Transport.NewStoreReference(svc.store, nil, image.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		svc.imageCacheLock.Lock()
-		cacheItem, ok := svc.imageCache[image.ID]
-		svc.imageCacheLock.Unlock()
-
-		if !ok {
+		if !cached {
 			cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
 			if err != nil {
 				if os.IsNotExist(err) && imageIsBeingPulled(image) { // skip reporting errors if the images haven't finished pulling
@@ -437,8 +451,38 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 	}
 	// replace image cache with cache we just built
 	// this invalidates all stale entries in cache
+	// Build a map of all current image names for cleanup
+	// Must convert to transport format to match what's stored in removedReferences
+	existingReferences := make(map[string]struct{})
+
+	for i := range images {
+		for _, name := range images[i].Names {
+			// Convert name to the same format used in removedReferences (with transport prefix)
+			// Parse the name string into a reference.Named
+			namedRef, err := reference.ParseNamed(name)
+			if err != nil {
+				continue // Skip invalid references
+			}
+
+			ref, err := istorage.Transport.NewStoreReference(svc.store, namedRef, "")
+			if err != nil {
+				continue // Skip invalid references
+			}
+
+			refString := ref.StringWithinTransport()
+			existingReferences[refString] = struct{}{}
+		}
+	}
+
 	svc.imageCacheLock.Lock()
 	svc.imageCache = newImageCache
+	// Clean up removedReferences - remove entries for references that exist again
+	for ref := range svc.removedReferences {
+		if _, exists := existingReferences[ref]; exists {
+			delete(svc.removedReferences, ref)
+		}
+	}
+
 	svc.imageCacheLock.Unlock()
 
 	return results, nil
@@ -482,8 +526,17 @@ func (svc *imageService) imageStatus(systemContext *types.SystemContext, unstabl
 	// matches image, from now on.
 
 	svc.imageCacheLock.Lock()
+	// Check if this specific reference was removed. ResolveReference may still find
+	// the image even though it was deleted (e.g., in read-only additional stores) or
+	// a specific name was removed (e.g., digest reference while tag still exists).
+	refString := unstableRef.StringWithinTransport()
+	_, refWasRemoved := svc.removedReferences[refString]
 	cacheItem, ok := svc.imageCache[image.ID]
 	svc.imageCacheLock.Unlock()
+
+	if refWasRemoved {
+		return nil, istorage.ErrNoSuchImage
+	}
 
 	if !ok {
 		var err error
@@ -823,11 +876,37 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 }
 
 func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (RegistryImageReference, error) {
+	var (
+		canonicalRef RegistryImageReference
+		err          error
+	)
+
 	if options.CgroupPull.UseNewCgroup {
-		return svc.pullImageParent(ctx, imageName, options.CgroupPull.ParentCgroup, options)
+		canonicalRef, err = svc.pullImageParent(ctx, imageName, options.CgroupPull.ParentCgroup, options)
 	} else {
-		return pullImageImplementation(ctx, svc.lookup, svc.store, imageName, options)
+		canonicalRef, err = pullImageImplementation(ctx, svc.lookup, svc.store, imageName, options)
 	}
+
+	if err != nil {
+		return RegistryImageReference{}, err
+	}
+
+	// Clear both the requested and canonical references from removedReferences
+	// to prevent ImageStatus from incorrectly returning "not found" after a successful pull
+	svc.imageCacheLock.Lock()
+	defer svc.imageCacheLock.Unlock()
+
+	// Clear the requested image reference
+	if requestedRef, err := istorage.Transport.NewStoreReference(svc.store, imageName.Raw(), ""); err == nil {
+		delete(svc.removedReferences, requestedRef.StringWithinTransport())
+	}
+
+	// Clear the canonical reference (with digest)
+	if canonicalRefStore, err := istorage.Transport.NewStoreReference(svc.store, canonicalRef.Raw(), ""); err == nil {
+		delete(svc.removedReferences, canonicalRefStore.StringWithinTransport())
+	}
+
+	return canonicalRef, nil
 }
 
 // pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
@@ -954,12 +1033,35 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, name Reg
 		}
 	}
 
+	// Track this specific reference as removed so ImageStatus won't find it.
+	// This handles the case where ResolveReference can still find the image:
+	// 1. Image has multiple names and one is removed - ResolveReference can find by digest
+	// 2. Image exists in read-only additional stores after deletion from read-write store
+	// Use the same string format as imageStatus for checking
+	refString := unstableRef.StringWithinTransport()
+
+	svc.imageCacheLock.Lock()
+	svc.removedReferences[refString] = struct{}{}
+	svc.imageCacheLock.Unlock()
+
+	var removeErr error
 	if remainingNames > 0 {
-		return svc.store.RemoveNames(img.ID, []string{nameString})
+		removeErr = svc.store.RemoveNames(img.ID, []string{nameString})
+	} else {
+		// Note that the remainingNames check is unavoidably racy:
+		// the image can be tagged with another name at this point.
+		// Pass the image we already have to avoid duplicate ResolveReference call
+		removeErr = svc.deleteImageInternal(systemContext, newExactStorageImageID(img.ID), img)
 	}
-	// Note that the remainingNames check is unavoidably racy:
-	// the image can be tagged with another name at this point.
-	return svc.DeleteImage(systemContext, newExactStorageImageID(img.ID))
+
+	if removeErr != nil {
+		// Removal failed, unmark the reference so ImageStatus can still find it
+		svc.imageCacheLock.Lock()
+		delete(svc.removedReferences, refString)
+		svc.imageCacheLock.Unlock()
+	}
+
+	return removeErr
 }
 
 // DeleteImage deletes a storage image (impacting all its tags).
@@ -969,7 +1071,62 @@ func (svc *imageService) DeleteImage(systemContext *types.SystemContext, id Stor
 		return err
 	}
 
-	return ref.DeleteImage(svc.ctx, systemContext)
+	// Before deleting, get the image to track all its names as removed
+	_, img, err := svc.storageTransport.ResolveReference(ref)
+	if err != nil {
+		return err
+	}
+
+	return svc.deleteImageInternal(systemContext, id, img)
+}
+
+// deleteImageInternal is a helper that deletes an image when we already have the image struct.
+func (svc *imageService) deleteImageInternal(systemContext *types.SystemContext, id StorageImageID, img *storage.Image) error {
+	ref, err := id.imageRef(svc)
+	if err != nil {
+		return err
+	}
+
+	// Track all names of this image as removed before deletion
+	// This prevents ImageStatus from finding them in read-only stores after deletion
+	refStrings := make([]string, 0, len(img.Names))
+	for _, name := range img.Names {
+		namedRef, err := reference.ParseNamed(name)
+		if err != nil {
+			continue // Skip invalid references
+		}
+
+		unstableRef, err := istorage.Transport.NewStoreReference(svc.store, namedRef, "")
+		if err != nil {
+			continue // Skip invalid references
+		}
+
+		refStrings = append(refStrings, unstableRef.StringWithinTransport())
+	}
+
+	// Mark all references as removed
+	svc.imageCacheLock.Lock()
+
+	for _, refString := range refStrings {
+		svc.removedReferences[refString] = struct{}{}
+	}
+
+	svc.imageCacheLock.Unlock()
+
+	// Attempt deletion
+	deleteErr := ref.DeleteImage(svc.ctx, systemContext)
+	if deleteErr != nil {
+		// Deletion failed, unmark all references so ImageStatus can still find them
+		svc.imageCacheLock.Lock()
+
+		for _, refString := range refStrings {
+			delete(svc.removedReferences, refString)
+		}
+
+		svc.imageCacheLock.Unlock()
+	}
+
+	return deleteErr
 }
 
 func (svc *imageService) GetStore() storage.Store {
@@ -1066,6 +1223,7 @@ func GetImageService(ctx context.Context, store storage.Store, storageTransport 
 		store:                store,
 		storageTransport:     storageTransport,
 		imageCache:           make(map[string]imageCacheItem),
+		removedReferences:    make(map[string]struct{}),
 		ctx:                  ctx,
 		config:               serverConfig,
 		regexForPinnedImages: CompileRegexpsForPinnedImages(serverConfig.PinnedImages),
