@@ -70,15 +70,15 @@ require (
 	go.podman.io/image/v5 v5.38.0
 	go.podman.io/storage v1.61.1-0.20251212224252-b0f86df5a665
 	go.uber.org/mock v0.6.0
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.51.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.41.0
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
-	k8s.io/api v0.35.1
-	k8s.io/apimachinery v0.35.1
-	k8s.io/client-go v0.35.1
-	k8s.io/component-base v0.35.1
+	k8s.io/api v0.35.2
+	k8s.io/apimachinery v0.35.2
+	k8s.io/client-go v0.35.2
+	k8s.io/component-base v0.35.2
 	k8s.io/cri-api v0.35.1
 	k8s.io/cri-client v0.35.1
 	k8s.io/klog/v2 v2.130.1
