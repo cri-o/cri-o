@@ -413,3 +413,13 @@ EOF
 	# There should be many nginx images
 	crictl pull nginx
 }
+
+@test "image pull should not fall back to OCI artifact on network error" {
+	start_crio
+
+	# 192.0.2.1 is TEST-NET-1 (RFC 5737), guaranteed unreachable
+	run ! crictl pull 192.0.2.1/test/image:latest
+
+	# Network errors should not trigger the OCI artifact fallback
+	run ! grep -q "Falling back" "$CRIO_LOG"
+}
