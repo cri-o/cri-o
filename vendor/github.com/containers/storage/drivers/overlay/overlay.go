@@ -112,6 +112,7 @@ type overlayOptions struct {
 	ignoreChownErrors bool
 	forceMask         *os.FileMode
 	useComposefs      bool
+	syncMode          graphdriver.SyncMode
 }
 
 // Driver contains information about the home directory and the list of active mounts that are created using this driver.
@@ -592,6 +593,13 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			}
 			m := os.FileMode(mask)
 			o.forceMask = &m
+		case "sync":
+			logrus.Debugf("overlay: sync=%s", val)
+			mode, err := graphdriver.ParseSyncMode(val)
+			if err != nil {
+				return nil, fmt.Errorf("invalid sync mode for overlay driver: %w", err)
+			}
+			o.syncMode = mode
 		default:
 			return nil, fmt.Errorf("overlay: unknown option %s", key)
 		}
@@ -869,6 +877,11 @@ func (d *Driver) Cleanup() error {
 	return mount.Unmount(d.home)
 }
 
+// SyncMode returns the sync mode configured for the driver.
+func (d *Driver) SyncMode() graphdriver.SyncMode {
+	return graphdriver.SyncModeFilesystem // Enforce sync
+}
+
 // pruneStagingDirectories cleans up any staging directory that was leaked.
 // It returns whether any staging directory is still present.
 func (d *Driver) pruneStagingDirectories() bool {
@@ -1130,7 +1143,11 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, readOnl
 
 	// if no parent directory, create a dummy lower directory and skip writing a "lowers" file
 	if parent == "" {
-		return idtools.MkdirAs(path.Join(dir, "empty"), 0o700, forcedSt.IDs.UID, forcedSt.IDs.GID)
+		if err := idtools.MkdirAs(path.Join(dir, "empty"), 0o700, forcedSt.IDs.UID, forcedSt.IDs.GID); err != nil {
+			return err
+		}
+
+		return d.options.syncMode.Sync(dir)
 	}
 
 	lower, err := d.getLower(parent)
@@ -1143,7 +1160,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, readOnl
 		}
 	}
 
-	return nil
+	return d.options.syncMode.Sync(dir)
 }
 
 // Parse overlay storage options
@@ -1959,12 +1976,8 @@ func (d *Driver) Put(id string) error {
 		// If fusermount|fusermount3 failed to unmount the FUSE file system, make sure all
 		// pending changes are propagated to the file system
 		if !unmounted {
-			fd, err := unix.Open(mountpoint, unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
-			if err == nil {
-				if err := unix.Syncfs(fd); err != nil {
-					logrus.Debugf("Error Syncfs(%s) - %v", mountpoint, err)
-				}
-				unix.Close(fd)
+			if err := system.Syncfs(mountpoint); err != nil {
+				logrus.Debugf("Error Syncfs(%s) - %v", mountpoint, err)
 			}
 		}
 	}
@@ -2318,7 +2331,11 @@ func (d *Driver) ApplyDiffFromStagingDirectory(id, parent string, diffOutput *gr
 		return err
 	}
 
-	return os.Rename(stagingDirectory, diffPath)
+	if err := os.Rename(stagingDirectory, diffPath); err != nil {
+		return err
+	}
+
+	return d.options.syncMode.Sync(diffPath)
 }
 
 // DifferTarget gets the location where files are stored for the layer.
@@ -2358,6 +2375,10 @@ func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts)
 		WhiteoutFormat:    d.getWhiteoutFormat(),
 		InUserNS:          unshare.IsRootless(),
 	}); err != nil {
+		return 0, err
+	}
+
+	if err := d.options.syncMode.Sync(applyDir); err != nil {
 		return 0, err
 	}
 
@@ -2534,7 +2555,8 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 	if err := idtools.MkdirAs(diffDir, perms, rootUID, rootGID); err != nil {
 		return err
 	}
-	return nil
+
+	return d.options.syncMode.Sync(dir)
 }
 
 // supportsIDmappedMounts returns whether the kernel supports using idmapped mounts with

@@ -378,7 +378,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/storage v1.58.1-0.20251113163822-49977ac2f9e4
+# github.com/containers/storage v1.58.1-0.20251113163822-49977ac2f9e4 => github.com/bitoku/storage v0.0.0-20260204184651-56dc87d1c743
 ## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1782,3 +1782,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/storage => github.com/bitoku/storage v0.0.0-20260204184651-56dc87d1c743
