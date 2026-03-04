@@ -62,10 +62,14 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 		}
 	}
 
+	blk := s.nri.BlockPluginSync()
+
 	if err := s.nri.removeContainer(ctx, sb, c); err != nil {
 		log.Warnf(ctx, "NRI container removal failed for container %s of pod %s: %v",
 			c.ID(), sb.ID(), err)
 	}
+
+	blk.Unblock()
 
 	if err := s.ContainerServer.Runtime().DeleteContainer(ctx, c); err != nil {
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
