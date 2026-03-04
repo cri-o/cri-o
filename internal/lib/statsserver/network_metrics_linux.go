@@ -45,6 +45,7 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      attr.Statistics.RxBytes,
+					labels:     []string{attr.Name},
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -53,6 +54,7 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      attr.Statistics.RxPackets,
+					labels:     []string{attr.Name},
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -61,6 +63,7 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      attr.Statistics.RxDropped,
+					labels:     []string{attr.Name},
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -69,6 +72,7 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      attr.Statistics.RxErrors,
+					labels:     []string{attr.Name},
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -77,6 +81,7 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      attr.Statistics.TxBytes,
+					labels:     []string{attr.Name},
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -85,6 +90,7 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      attr.Statistics.TxPackets,
+					labels:     []string{attr.Name},
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -93,6 +99,7 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      attr.Statistics.TxDropped,
+					labels:     []string{attr.Name},
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -101,11 +108,12 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      attr.Statistics.TxErrors,
+					labels:     []string{attr.Name},
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
 		},
 	}
 
-	return computeSandboxMetrics(sb, networkMetrics, "network")
+	return computeSandboxMetrics(sb, networkMetrics)
 }

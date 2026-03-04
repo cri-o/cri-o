@@ -40,5 +40,5 @@ func generateContainerHugetlbMetrics(ctr *oci.Container, hugetlb map[string]cgro
 		},
 	}
 
-	return computeContainerMetrics(ctr, hugetlbMetrics, "hugetlb")
+	return computeContainerMetrics(ctr, hugetlbMetrics)
 }

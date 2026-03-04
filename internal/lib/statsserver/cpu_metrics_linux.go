@@ -83,5 +83,5 @@ func generateContainerCPUMetrics(ctr *oci.Container, cpu *cgroups.CpuStats) []*t
 		},
 	}
 
-	return computeContainerMetrics(ctr, cpuMetrics, "cpu")
+	return computeContainerMetrics(ctr, cpuMetrics)
 }
