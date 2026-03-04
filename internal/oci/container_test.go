@@ -1008,6 +1008,23 @@ var _ = t.Describe("Container", func() {
 			}
 		})
 
+		// Regression test for a race between concurrent StopContainer calls.
+		// When a second StopContainer arrives after the first has already
+		// completed (SetAsDoneStopping closed stopTimeoutChan),
+		// WaitOnStopTimeout used to panic on the closed channel.
+		// The stopDone guard ensures it returns early instead.
+		It("should not panic when WaitOnStopTimeout is called after SetAsDoneStopping", func() {
+			ctx := context.Background()
+
+			sut.SetAsStopping()
+
+			sut.SetAsDoneStopping()
+
+			Expect(func() {
+				sut.WaitOnStopTimeout(ctx, 1000)
+			}).ToNot(Panic())
+		})
+
 		It("should clear the watchers slice", func() {
 			// Given
 			ctx := context.Background()
