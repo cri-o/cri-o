@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 04 Mar 2026 08:31:29 UTC for commit [bcb999d][0]._
+_Generated on Wed, 04 Mar 2026 18:47:06 UTC for commit [65aec9a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bcb999d2f21f38e7475b5a77e67c07885e78c7e4
+[0]: https://github.com/cri-o/cri-o/commit/65aec9a16c12669b5c831ae7ac9bd0bf2b2ce71f
 
 ## Outdated Dependencies
 
 |                         MODULE                         |                VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|---------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/conmon                           | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260304033632-d821d4e572ea | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260304140109-a4a4683ec712 | true   | true             |
 | go.podman.io/common                                    | v0.66.2-0.20260126213724-1e46b0756b39 | v0.67.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.38.0                               | v5.39.1                            | true   | true             |
 | go.podman.io/storage                                   | v1.61.1-0.20251212224252-b0f86df5a665 | v1.62.0                            | true   | true             |
@@ -441,7 +441,7 @@ _Generated on Wed, 04 Mar 2026 08:31:29 UTC for commit [bcb999d][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260304033632-d821d4e572ea | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260304140109-a4a4683ec712 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.10.0                            | false  | true             |
@@ -701,7 +701,7 @@ _Generated on Wed, 04 Mar 2026 08:31:29 UTC for commit [bcb999d][0]._
 | golang.org/x/oauth2                                                         | v0.35.0                               |                                    | false  | true             |
 | golang.org/x/sync                                                           | v0.19.0                               |                                    | true   | true             |
 | golang.org/x/sys                                                            | v0.41.0                               |                                    | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20260109210033-bd525da824e2    | v0.0.0-20260213145524-e0ab670178e1 | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20260109210033-bd525da824e2    | v0.0.0-20260304144227-18da59047661 | false  | true             |
 | golang.org/x/term                                                           | v0.40.0                               |                                    | false  | true             |
 | golang.org/x/text                                                           | v0.34.0                               |                                    | false  | true             |
 | golang.org/x/time                                                           | v0.14.0                               |                                    | false  | true             |
