@@ -476,6 +476,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %s", sb.ID())
 	}
 
+	defer s.nri.BlockPluginSync().Unblock()
+
 	ctr, err := container.New()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container: %w", err)

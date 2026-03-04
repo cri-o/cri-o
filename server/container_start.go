@@ -67,6 +67,8 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		return nil, fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
 	}
 
+	blk := s.nri.BlockPluginSync()
+
 	sandbox := s.getSandbox(ctx, c.Sandbox())
 
 	hooks := s.hooksRetriever.Get(ctx, sandbox.RuntimeHandler(), sandbox.Annotations())
@@ -74,6 +76,8 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	if err := s.nri.startContainer(ctx, sandbox, c); err != nil {
 		log.Warnf(ctx, "NRI start failed for container %q: %v", c.ID(), err)
 	}
+
+	blk.Unblock()
 
 	defer func() {
 		// if the call to StartContainer fails below we still want to fill

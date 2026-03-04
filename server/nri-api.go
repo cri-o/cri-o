@@ -366,6 +366,16 @@ func (a *nriAPI) undoCreateContainer(ctx context.Context, specgen *generate.Gene
 	}
 }
 
+type PluginSyncBlock = nri.PluginSyncBlock
+
+func (a *nriAPI) BlockPluginSync() *PluginSyncBlock {
+	if !a.isEnabled() {
+		return nil
+	}
+
+	return a.nri.BlockPluginSync()
+}
+
 //
 // CRI 'upward' interface for NRI
 //
