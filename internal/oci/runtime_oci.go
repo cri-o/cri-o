@@ -882,7 +882,7 @@ func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, 
 	}
 
 	if info.Size() > size {
-		log.Errorf(ctx, "Exec sync output in file %s has size %d which is longer than expected size of %d", path, info.Size(), size)
+		log.Errorf(ctx, "Exec sync output in file %s has size %d which is longer than expected size of %d ", path, info.Size(), size)
 
 		if err := os.Truncate(path, size); err != nil {
 			return nil, err
