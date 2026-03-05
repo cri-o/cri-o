@@ -366,7 +366,7 @@ libc (for `s390x`)](https://www.musl-libc.org/). These binaries are integration 
 - selinux
 
 To build the binaries locally either [install the nix package
-manager](https://nixos.org/nix/download.html) or use the `make build-static`
+manager](https://nixos.org/download) or use the `make build-static`
 target which relies on the nixos/nix container image.
 
 The overall build process can take a tremendous amount of CPU time depending on
