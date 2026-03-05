@@ -83,12 +83,11 @@ const (
 )
 
 type local struct {
-	sync.Mutex
-
-	cfg *config.Config
-	nri *nri.Adaptation
-
-	state map[string]State
+	nriMu   sync.Mutex // protects nri field
+	cfg     *config.Config
+	nri     *nri.Adaptation
+	stateMu sync.Mutex // protects state map
+	state   map[string]State
 }
 
 var _ API = &local{}
@@ -149,8 +148,8 @@ func (l *local) Stop() {
 		return
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	defer l.nriMu.Unlock()
 
 	l.nri.Stop()
 	l.nri = nil
@@ -161,14 +160,15 @@ func (l *local) RunPodSandbox(ctx context.Context, pod PodSandbox) error {
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.RunPodSandboxRequest{
 		Pod: podSandboxToNRI(pod),
 	}
 
-	err := l.nri.RunPodSandbox(ctx, request)
+	err := nriInstance.RunPodSandbox(ctx, request)
 
 	return err
 }
@@ -178,8 +178,9 @@ func (l *local) UpdatePodSandbox(ctx context.Context, pod PodSandbox, overhead, 
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	podNri := podSandboxToNRI(pod)
 	request := &nri.UpdatePodSandboxRequest{
@@ -188,7 +189,7 @@ func (l *local) UpdatePodSandbox(ctx context.Context, pod PodSandbox, overhead, 
 		LinuxResources:         resources,
 	}
 
-	_, err := l.nri.UpdatePodSandbox(ctx, request)
+	_, err := nriInstance.UpdatePodSandbox(ctx, request)
 
 	return err
 }
@@ -198,14 +199,15 @@ func (l *local) StopPodSandbox(ctx context.Context, pod PodSandbox) error {
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.StopPodSandboxRequest{
 		Pod: podSandboxToNRI(pod),
 	}
 
-	err := l.nri.StopPodSandbox(ctx, request)
+	err := nriInstance.StopPodSandbox(ctx, request)
 
 	return err
 }
@@ -215,14 +217,15 @@ func (l *local) RemovePodSandbox(ctx context.Context, pod PodSandbox) error {
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.RemovePodSandboxRequest{
 		Pod: podSandboxToNRI(pod),
 	}
 
-	err := l.nri.RemovePodSandbox(ctx, request)
+	err := nriInstance.RemovePodSandbox(ctx, request)
 
 	return err
 }
@@ -232,16 +235,21 @@ func (l *local) CreateContainer(ctx context.Context, pod PodSandbox, ctr Contain
 		return nil, nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.CreateContainerRequest{
 		Pod:       podSandboxToNRI(pod),
 		Container: containerToNRI(ctr),
 	}
 
-	response, err := l.nri.CreateContainer(ctx, request)
-	l.setState(request.GetContainer().GetId(), Created)
+	response, err := nriInstance.CreateContainer(ctx, request)
+
+	l.stateMu.Lock()
+	defer l.stateMu.Unlock()
+
+	l.setStateNoLock(request.GetContainer().GetId(), Created)
 
 	if err != nil {
 		return nil, err
@@ -259,15 +267,16 @@ func (l *local) PostCreateContainer(ctx context.Context, pod PodSandbox, ctr Con
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.PostCreateContainerRequest{
 		Pod:       podSandboxToNRI(pod),
 		Container: containerToNRI(ctr),
 	}
 
-	err := l.nri.PostCreateContainer(ctx, request)
+	err := nriInstance.PostCreateContainer(ctx, request)
 
 	return err
 }
@@ -277,17 +286,21 @@ func (l *local) StartContainer(ctx context.Context, pod PodSandbox, ctr Containe
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.StartContainerRequest{
 		Pod:       podSandboxToNRI(pod),
 		Container: containerToNRI(ctr),
 	}
 
-	err := l.nri.StartContainer(ctx, request)
+	err := nriInstance.StartContainer(ctx, request)
 
-	l.setState(request.GetContainer().GetId(), Running)
+	// Serialize state update
+	l.stateMu.Lock()
+	l.setStateNoLock(request.GetContainer().GetId(), Running)
+	l.stateMu.Unlock()
 
 	return err
 }
@@ -297,15 +310,16 @@ func (l *local) PostStartContainer(ctx context.Context, pod PodSandbox, ctr Cont
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.PostStartContainerRequest{
 		Pod:       podSandboxToNRI(pod),
 		Container: containerToNRI(ctr),
 	}
 
-	err := l.nri.PostStartContainer(ctx, request)
+	err := nriInstance.PostStartContainer(ctx, request)
 
 	return err
 }
@@ -315,8 +329,9 @@ func (l *local) UpdateContainer(ctx context.Context, pod PodSandbox, ctr Contain
 		return nil, nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.UpdateContainerRequest{
 		Pod:            podSandboxToNRI(pod),
@@ -324,7 +339,7 @@ func (l *local) UpdateContainer(ctx context.Context, pod PodSandbox, ctr Contain
 		LinuxResources: req,
 	}
 
-	response, err := l.nri.UpdateContainer(ctx, request)
+	response, err := nriInstance.UpdateContainer(ctx, request)
 	if err != nil {
 		return nil, err
 	}
@@ -354,15 +369,16 @@ func (l *local) PostUpdateContainer(ctx context.Context, pod PodSandbox, ctr Con
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
 
 	request := &nri.PostUpdateContainerRequest{
 		Pod:       podSandboxToNRI(pod),
 		Container: containerToNRI(ctr),
 	}
 
-	err := l.nri.PostUpdateContainer(ctx, request)
+	err := nriInstance.PostUpdateContainer(ctx, request)
 
 	return err
 }
@@ -372,9 +388,6 @@ func (l *local) StopContainer(ctx context.Context, pod PodSandbox, ctr Container
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
-
 	return l.stopContainer(ctx, pod, ctr)
 }
 
@@ -383,13 +396,21 @@ func (l *local) stopContainer(ctx context.Context, pod PodSandbox, ctr Container
 		return nil
 	}
 
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
+
 	request := &nri.StopContainerRequest{
 		Pod:       podSandboxToNRI(pod),
 		Container: containerToNRI(ctr),
 	}
 
-	response, err := l.nri.StopContainer(ctx, request)
-	l.setState(request.GetContainer().GetId(), Stopped)
+	response, err := nriInstance.StopContainer(ctx, request)
+
+	l.stateMu.Lock()
+	defer l.stateMu.Unlock()
+
+	l.setStateNoLock(request.GetContainer().GetId(), Stopped)
 
 	if err != nil {
 		return err
@@ -405,9 +426,6 @@ func (l *local) RemoveContainer(ctx context.Context, pod PodSandbox, ctr Contain
 		return nil
 	}
 
-	l.Lock()
-	defer l.Unlock()
-
 	if !l.needsRemoval(ctr.GetID()) {
 		return nil
 	}
@@ -416,13 +434,20 @@ func (l *local) RemoveContainer(ctx context.Context, pod PodSandbox, ctr Contain
 		log.Warnf(ctx, "Container NRI stop request failed: %v", err)
 	}
 
+	l.nriMu.Lock()
+	nriInstance := l.nri
+	l.nriMu.Unlock()
+
 	request := &nri.RemoveContainerRequest{
 		Pod:       podSandboxToNRI(pod),
 		Container: containerToNRI(ctr),
 	}
 
-	err := l.nri.RemoveContainer(ctx, request)
-	l.setState(request.GetContainer().GetId(), Removed)
+	err := nriInstance.RemoveContainer(ctx, request)
+
+	l.stateMu.Lock()
+	l.setStateNoLock(request.GetContainer().GetId(), Removed)
+	l.stateMu.Unlock()
 
 	return err
 }
@@ -432,9 +457,6 @@ func (l *local) IsEnabled() bool {
 }
 
 func (l *local) syncPlugin(ctx context.Context, syncFn nri.SyncCB) error {
-	l.Lock()
-	defer l.Unlock()
-
 	log.Infof(ctx, "Synchronizing NRI (plugin) with current runtime state")
 
 	pods := podSandboxesToNRI(domains.listPodSandboxes(ctx))
@@ -467,9 +489,6 @@ func (l *local) syncPlugin(ctx context.Context, syncFn nri.SyncCB) error {
 }
 
 func (l *local) updateFromPlugin(ctx context.Context, req []*nri.ContainerUpdate) ([]*nri.ContainerUpdate, error) {
-	l.Lock()
-	defer l.Unlock()
-
 	log.Infof(ctx, "Unsolicited container update from NRI")
 
 	failed, err := l.applyUpdates(ctx, req)
@@ -490,6 +509,14 @@ func (l *local) evictContainers(ctx context.Context, evict []*nri.ContainerEvict
 }
 
 func (l *local) setState(id string, state State) {
+	l.stateMu.Lock()
+	defer l.stateMu.Unlock()
+
+	l.setStateNoLock(id, state)
+}
+
+// Caller must hold stateMu.
+func (l *local) setStateNoLock(id string, state State) {
 	if state != Removed {
 		l.state[id] = state
 
@@ -518,6 +545,9 @@ func (l *local) needsRemoval(id string) bool {
 }
 
 func (l *local) getState(id string) State {
+	l.stateMu.Lock()
+	defer l.stateMu.Unlock()
+
 	if state, ok := l.state[id]; ok {
 		return state
 	}
