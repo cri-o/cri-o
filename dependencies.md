@@ -1,15 +1,16 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 04 Mar 2026 18:47:06 UTC for commit [65aec9a][0]._
+_Generated on Thu, 05 Mar 2026 14:47:30 UTC for commit [075c4db][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/65aec9a16c12669b5c831ae7ac9bd0bf2b2ce71f
+[0]: https://github.com/cri-o/cri-o/commit/075c4db6f4d9d1fdfddaedd2f920e27cafe50671
 
 ## Outdated Dependencies
 
 |                         MODULE                         |                VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|---------------------------------------|------------------------------------|--------|------------------|
+| github.com/containerd/ttrpc                            | v1.2.7                                | v1.2.8                             | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260304140109-a4a4683ec712 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260305124541-079fac130903 | true   | true             |
 | go.podman.io/common                                    | v0.66.2-0.20260126213724-1e46b0756b39 | v0.67.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.38.0                               | v5.39.1                            | true   | true             |
 | go.podman.io/storage                                   | v1.61.1-0.20251212224252-b0f86df5a665 | v1.62.0                            | true   | true             |
@@ -277,7 +278,7 @@ _Generated on Wed, 04 Mar 2026 18:47:06 UTC for commit [65aec9a][0]._
 | github.com/containerd/otelttrpc                                             | v0.1.0                                |                                    | true   | true             |
 | github.com/containerd/platforms                                             | v0.2.1                                |                                    | false  | true             |
 | github.com/containerd/stargz-snapshotter/estargz                            | v0.18.2                               |                                    | false  | true             |
-| github.com/containerd/ttrpc                                                 | v1.2.7                                |                                    | true   | true             |
+| github.com/containerd/ttrpc                                                 | v1.2.7                                | v1.2.8                             | true   | true             |
 | github.com/containerd/typeurl                                               | v1.0.3-0.20220422153119-7f6e6d160d67  |                                    | true   | true             |
 | github.com/containerd/typeurl/v2                                            | v2.2.3                                |                                    | false  | true             |
 | github.com/containerd/zfs                                                   | v1.1.0                                | v1.2.0                             | false  | true             |
@@ -441,7 +442,7 @@ _Generated on Wed, 04 Mar 2026 18:47:06 UTC for commit [65aec9a][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260304140109-a4a4683ec712 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260305124541-079fac130903 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.10.0                            | false  | true             |
@@ -737,7 +738,7 @@ _Generated on Wed, 04 Mar 2026 18:47:06 UTC for commit [65aec9a][0]._
 | k8s.io/gengo/v2                                                             | v2.0.0-20250604051438-85fd79dbfd9f    | v2.0.0-20251215205346-5ee0d033ba5b | false  | true             |
 | k8s.io/klog/v2                                                              | v2.130.1                              |                                    | true   | true             |
 | k8s.io/kms                                                                  | v0.35.1                               | v0.35.2                            | false  | true             |
-| k8s.io/kube-openapi                                                         | v0.0.0-20250910181357-589584f1c912    | v0.0.0-20260127142750-a19766b6e2d4 | false  | true             |
+| k8s.io/kube-openapi                                                         | v0.0.0-20250910181357-589584f1c912    | v0.0.0-20260304202019-5b3e3fdb0acf | false  | true             |
 | k8s.io/kubelet                                                              | v0.35.1                               | v0.35.2                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20260210185600-b8788abfbbc2    |                                    | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                     | v0.31.2                               | v0.34.0                            | false  | true             |
