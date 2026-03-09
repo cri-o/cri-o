@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 09 Mar 2026 13:47:35 UTC for commit [47026e1][0]._
+_Generated on Mon, 09 Mar 2026 20:10:52 UTC for commit [2754216][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/47026e174f4090e6ee1184d39bac7b39e4341dea
+[0]: https://github.com/cri-o/cri-o/commit/27542161d5ad2fe623e407dd37b1571ea87a24dc
 
 ## Outdated Dependencies
 
@@ -691,7 +691,7 @@ _Generated on Mon, 09 Mar 2026 13:47:35 UTC for commit [47026e1][0]._
 | go.opentelemetry.io/otel/sdk                                                | v1.41.0                               | v1.42.0                            | true   | true             |
 | go.opentelemetry.io/otel/sdk/metric                                         | v1.41.0                               | v1.42.0                            | false  | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.41.0                               | v1.42.0                            | true   | true             |
-| go.opentelemetry.io/proto/otlp                                              | v1.9.0                                |                                    | false  | true             |
+| go.opentelemetry.io/proto/otlp                                              | v1.9.0                                | v1.10.0                            | false  | true             |
 | go.podman.io/common                                                         | v0.66.2-0.20260126213724-1e46b0756b39 | v0.67.0                            | true   | true             |
 | go.podman.io/image/v5                                                       | v5.38.0                               | v5.39.1                            | true   | true             |
 | go.podman.io/storage                                                        | v1.61.1-0.20251212224252-b0f86df5a665 | v1.62.0                            | true   | true             |
@@ -720,7 +720,7 @@ _Generated on Mon, 09 Mar 2026 13:47:35 UTC for commit [47026e1][0]._
 | golang.org/x/tools/go/packages/packagestest                                 | v0.1.1-deprecated                     |                                    | false  | true             |
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1    | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.16.0                               | v0.17.0                            | false  | true             |
-| google.golang.org/api                                                       | v0.256.0                              | v0.269.0                           | false  | true             |
+| google.golang.org/api                                                       | v0.256.0                              | v0.270.0                           | false  | true             |
 | google.golang.org/genproto                                                  | v0.0.0-20250603155806-513f23925822    | v0.0.0-20260226221140-a57be14db171 | false  | true             |
 | google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260209200024-4cfbd4190f57    | v0.0.0-20260226221140-a57be14db171 | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260209200024-4cfbd4190f57    | v0.0.0-20260226221140-a57be14db171 | false  | true             |
