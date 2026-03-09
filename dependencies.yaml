@@ -1,3 +1,5 @@
+# Dependency tracking configuration for zeitgeist.
+# It verifies that the versions specified here match across all referenced files.
 dependencies:
   - name: go
     version: 1.25
@@ -16,6 +18,8 @@ dependencies:
     version: 1.36.0
     refPaths:
       - path: internal/version/version.go
+        match: Version
+      - path: contrib/test/ci/cri-o.spec
         match: Version
 
   - name: supported versions
