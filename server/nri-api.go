@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/containerd/nri/pkg/api"
@@ -22,6 +23,10 @@ import (
 	"github.com/cri-o/cri-o/internal/nri"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
+)
+
+const (
+	nonRunningContainerError = "container not running"
 )
 
 type nriAPI struct {
@@ -467,6 +472,10 @@ func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) er
 
 	resources := u.GetLinux().GetResources().ToOCI()
 	if err = a.cri.ContainerServer.Runtime().UpdateContainer(ctx, ctr, resources); err != nil {
+		if strings.Contains(err.Error(), nonRunningContainerError) {
+			return nil
+		}
+
 		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.GetContainerId(), err)
 
 		if u.GetIgnoreFailure() {
