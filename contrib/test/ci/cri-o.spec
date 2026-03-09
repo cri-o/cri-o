@@ -21,13 +21,13 @@
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path %{provider_prefix}
 %global git0 https://%{import_path}
-#%%global commit0 ee2e7485ffe9c6d8932ec6acb0adcb7a0a55c253
+%global shortcommit0 %(git rev-parse --short HEAD)
 
 %global service_name crio
 
 Name: %{repo}
 Version: 1.36.0
-Release: 1.ci%{?dist}
+Release: 1.ci.git%{shortcommit0}%{?dist}
 Summary: Kubernetes Container Runtime Interface for OCI-based containers
 License: ASL 2.0
 URL: %{git0}
