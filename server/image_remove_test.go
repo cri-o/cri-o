@@ -140,5 +140,47 @@ var _ = t.Describe("ImageRemove", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		// https://github.com/cri-o/cri-o/issues/9796
+		It("should succeed if image was concurrently deleted (ErrNotAnImage)", func() {
+			// Given
+			parsedTestSHA256, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)
+			Expect(err).ToNot(HaveOccurred())
+			gomock.InOrder(
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix(testSHA256).
+					Return(&parsedTestSHA256),
+				imageServerMock.EXPECT().DeleteImage(
+					gomock.Any(), parsedTestSHA256).
+					Return(fmt.Errorf("delete image: %w", storagetypes.ErrNotAnImage)),
+			)
+
+			// When
+			_, err = sut.RemoveImage(context.Background(),
+				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: testSHA256}})
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should succeed if image was concurrently deleted during untag", func() {
+			// Given
+			gomock.InOrder(
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+					Return(nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{resolvedImageName}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(gomock.Any(), gomock.Any()).
+					Return(&storage.ImageResult{ID: storageID}, nil),
+				imageServerMock.EXPECT().UntagImage(gomock.Any(),
+					resolvedImageName).Return(fmt.Errorf("untag: %w", storagetypes.ErrNotAnImage)),
+			)
+			// When
+			_, err := sut.RemoveImage(context.Background(),
+				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: "image"}})
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 })
