@@ -921,15 +921,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 
-	if err := s.nri.createContainer(ctx, specgen, sb, ociContainer); err != nil {
-		return nil, err
-	}
-
 	defer func() {
 		if retErr != nil {
 			s.nri.undoCreateContainer(ctx, specgen, sb, ociContainer)
 		}
 	}()
+
+	if err := s.nri.createContainer(ctx, specgen, sb, ociContainer); err != nil {
+		return nil, err
+	}
 
 	if hooks != nil {
 		if err := hooks.PreCreate(ctx, specgen, sb, ociContainer); err != nil {
