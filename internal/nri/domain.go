@@ -3,7 +3,6 @@ package nri
 import (
 	"context"
 	"errors"
-	"sync"
 
 	nri "github.com/containerd/nri/pkg/adaptation"
 	"github.com/sirupsen/logrus"
@@ -44,28 +43,18 @@ func SetDomain(d Domain) {
 }
 
 type domainTable struct {
-	sync.Mutex
 	domain Domain
 }
 
 func (t *domainTable) set(d Domain) {
-	t.Lock()
-	defer t.Unlock()
-
 	t.domain = d
 }
 
 func (t *domainTable) listPodSandboxes(ctx context.Context) []PodSandbox {
-	t.Lock()
-	defer t.Unlock()
-
 	return t.domain.ListPodSandboxes(ctx)
 }
 
 func (t *domainTable) listContainers() []Container {
-	t.Lock()
-	defer t.Unlock()
-
 	return t.domain.ListContainers()
 }
 
