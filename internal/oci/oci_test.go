@@ -3,6 +3,7 @@ package oci_test
 import (
 	"context"
 	"os"
+	"time"
 
 	criu "github.com/checkpoint-restore/go-criu/v8/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -220,7 +221,7 @@ var _ = t.Describe("Oci", func() {
 				},
 			}
 			// When
-			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, false)
+			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, false, myContainer.Dir(), myContainer.CheckpointPath())
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -248,11 +249,29 @@ var _ = t.Describe("Oci", func() {
 				},
 			}
 			// When
-			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, true)
+			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, true, myContainer.Dir(), myContainer.CheckpointPath())
 
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("configured runtime does not support checkpoint/restore"))
+		})
+		It("CheckpointContainer should fail with invalid runtime handler", func() {
+			// Given — create a container with a runtime handler that
+			// doesn't exist in the configured runtimes, so RuntimeImpl
+			// returns an error before reaching the checkpoint logic.
+			ctr, err := oci.NewContainer("ctr-bad-handler", "", "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "", nil, nil, "",
+				nil, sandboxID, false,
+				false, false, "nonexistent-runtime", "", time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			err = sut.CheckpointContainer(context.Background(), ctr, &specs.Spec{}, false, "", "")
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to find runtime handler"))
 		})
 		It("RestoreContainer should fail with destination sandbox detection", func() {
 			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {

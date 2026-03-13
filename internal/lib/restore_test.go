@@ -251,6 +251,65 @@ var _ = t.Describe("ContainerRestore", func() {
 			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID`))
 		})
 	})
+	t.Describe("ContainerRestore from directory", func() {
+		It("should fail with failed to restore", func() {
+			// Given
+			config := &metadata.ContainerConfig{
+				ID: containerID,
+			}
+
+			Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{},"mounts":[{"type":"not-bind"},{"type":"bind","source":"/"}]}`), 0o644)).To(Succeed())
+			addContainerAndSandbox()
+
+			myContainer.SetStateAndSpoofPid(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateStopped},
+			})
+
+			myContainer.SetSpec(&specs.Spec{
+				Version: "1.0.0",
+				Process: &specs.Process{},
+				Linux:   &specs.Linux{},
+			})
+
+			gomock.InOrder(
+				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+			)
+
+			// Create a directory-based checkpoint source (exercises lines 121-144)
+			checkpointSrcDir := t.MustTempDir("checkpoint-dir-restore-")
+
+			// Populate with checkpoint files that will be copied
+			// to the container's Dir() (CWD) by the directory restore path
+			Expect(os.MkdirAll(filepath.Join(checkpointSrcDir, "checkpoint"), 0o700)).To(Succeed())
+			inventory, err := os.OpenFile(filepath.Join(checkpointSrcDir, "checkpoint", "inventory.img"), os.O_RDONLY|os.O_CREATE, 0o644)
+			Expect(err).ToNot(HaveOccurred())
+			inventory.Close()
+
+			Expect(os.WriteFile(filepath.Join(checkpointSrcDir, "deleted.files"), []byte(`[]`), 0o644)).To(Succeed())
+
+			myContainer.SetRestoreArchivePath(checkpointSrcDir)
+
+			infraBundle := t.MustTempDir("bundle-dir-restore-")
+			setupInfraContainerWithPid(100, infraBundle)
+
+			defer os.RemoveAll("restore.log")
+			// Clean up files that the directory copy may have placed in CWD
+			defer os.RemoveAll("checkpoint")
+			defer os.RemoveAll("deleted.files")
+
+			// When
+			res, err := sut.ContainerRestore(
+				context.Background(),
+				config,
+				&lib.ContainerCheckpointOptions{},
+			)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(res).To(Equal(""))
+			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID`))
+		})
+	})
 	t.Describe("ContainerRestore from OCI images", func() {
 		It("should fail with failed to restore", func() {
 			// Given
