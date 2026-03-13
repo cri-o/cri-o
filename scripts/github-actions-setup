@@ -124,13 +124,10 @@ install_crun() {
 }
 
 install_runc() {
-    git clone https://github.com/opencontainers/runc
-    pushd runc
-    git checkout "${VERSIONS["runc"]}"
-    make
+    curl_retry "https://github.com/opencontainers/runc/releases/latest/download/runc.$GOARCH" \
+        -o runc
     sudo install -D -m0755 runc /usr/sbin/runc
-    popd
-    rm -rf runc
+    rm -f runc
     runc --version
 }
 
