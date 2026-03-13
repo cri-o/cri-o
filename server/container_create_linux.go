@@ -534,6 +534,9 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 
 	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
+	// These options apply to the host-level storage mount, not the overlay
+	// mount inside the container. The container-facing overlay mount has its
+	// own options set separately below.
 	options := []string{"ro", "noexec", "nosuid", "nodev"}
 
 	mountPoint, err := s.ContainerServer.Store().MountImage(imageID, options, "")
