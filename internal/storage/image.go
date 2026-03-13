@@ -870,7 +870,10 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 	if shouldTryArtifact(err) {
 		log.Infof(ctx, "Falling back to pull %s as an OCI artifact: %v", imageName, err)
 
-		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext)
+		// Note: We pass nil for additionalPaths here. Since this fallback path
+		// is only hit when a regular container image pull fails, we do not currently
+		// thread the additional read-only artifact stores through the image service.
+		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), nil, &srcSystemContext)
 		if artifactErr != nil {
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: create store err: %w", artifactErr)
 		}
