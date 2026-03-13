@@ -94,6 +94,8 @@
       - glibc-static
       # required to test the crun-wasm workflow.
       - crun-wasm
+      # required for building runc with libpathrs support.
+      - libpathrs-devel
   when: ansible_distribution in ['Fedora']
 
 - name: Add python-boto for RHEL and CentOS
