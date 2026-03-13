@@ -115,9 +115,15 @@ func updateVersionAndCreatePR(
 		return fmt.Errorf("unable to update dependencies YAML file: %w", err)
 	}
 
+	logrus.Infof("Updating version in spec file %s", utils.SpecFile)
+
+	if err := updateSpecFile(oldVersion, newVersion); err != nil {
+		return fmt.Errorf("unable to update spec file: %w", err)
+	}
+
 	logrus.Info("Committing changes")
 
-	for _, file := range []string{utils.VersionFile, utils.DependenciesYAMLFile} {
+	for _, file := range []string{utils.VersionFile, utils.DependenciesYAMLFile, utils.SpecFile} {
 		if err := repo.Add(file); err != nil {
 			return fmt.Errorf("unable to add file %q to repo: %w", file, err)
 		}
@@ -172,6 +178,29 @@ func modifyVersionFile(filePath, oldVersion, newVersion string) error {
 	err = os.WriteFile(filePath, modifiedContent, 0o644)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func updateSpecFile(oldVersion, newVersion string) error {
+	content, err := os.ReadFile(utils.SpecFile)
+	if err != nil {
+		return fmt.Errorf("read file %s: %w", utils.SpecFile, err)
+	}
+
+	const specVersionPrefix = "Version: "
+
+	old := []byte(specVersionPrefix + oldVersion)
+	if !bytes.Contains(content, old) {
+		return fmt.Errorf("version string %q not found in %s", specVersionPrefix+oldVersion, utils.SpecFile)
+	}
+
+	modifiedContent := bytes.ReplaceAll(content, old, []byte(specVersionPrefix+newVersion))
+
+	err = os.WriteFile(utils.SpecFile, modifiedContent, 0o644)
+	if err != nil {
+		return fmt.Errorf("update file %s: %w", utils.SpecFile, err)
 	}
 
 	return nil
