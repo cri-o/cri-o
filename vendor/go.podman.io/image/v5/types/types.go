@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"net/url"
 	"time"
@@ -619,6 +620,11 @@ type SystemContext struct {
 	DockerArchiveAdditionalTags []reference.NamedTagged
 	// If not "", overrides the temporary directory to use for storing big files
 	BigFilesTemporaryDir string
+	// If not nil, may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.)
+	// The effect of setting any other options (cryptographic keys, InsecureSkipTLSVerify, callbacks, etc.) is UNDEFINED,
+	// may be inconsistent in various use cases, and may change over time.
+	// Consumers of this value are expected to .Clone() the config and then apply other options.
+	BaseTLSConfig *tls.Config
 
 	// === OCI.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
@@ -668,6 +674,10 @@ type SystemContext struct {
 	DockerRegistryPushPrecomputeDigests bool
 	// DockerProxyURL specifies proxy configuration schema (like socks5://username:password@ip:port)
 	DockerProxyURL *url.URL
+	// DockerProxy is a function that determines the proxy URL for a given request URL.
+	// If set, this takes precedence over DockerProxyURL. The function should return the proxy URL to use,
+	// or nil if no proxy should be used for the given request.
+	DockerProxy func(reqURL *url.URL) (*url.URL, error)
 
 	// === docker/daemon.Transport overrides ===
 	// A directory containing a CA certificate (ending with ".crt"),
