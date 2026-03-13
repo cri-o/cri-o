@@ -111,3 +111,11 @@ function teardown() {
   crictl runtimeversion
 }
 ```
+
+## CI Test Logs
+
+For the `ci/prow/ci-cgroupv2-integration` CI run, BATS test output can be found at:
+
+```text
+artifacts/cgroupv2-integration/cri-o-gather/artifacts/testout.txt
+```
