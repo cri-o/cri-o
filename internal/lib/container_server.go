@@ -972,7 +972,7 @@ func RemoveStorageDirectory(config *libconfig.Config, store cstorage.Store, forc
 		// with a storage wipe.
 		//
 		// The storage directory removal can also be forced, which will
-		// then delete everything irregardless of whether there are any
+		// then delete everything regardless of whether there are any
 		// containers running at the moment.
 		if !force && errors.Is(err, cstorage.ErrLayerUsedByContainer) {
 			return fmt.Errorf("failed to shutdown storage: %w", err)

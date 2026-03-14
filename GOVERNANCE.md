@@ -281,7 +281,7 @@ more than one organization.
 
 - CRI-O cuts releases in line with Kubernetes minor releases (1.x bump). The CRI-O
   community attempts to release a minor version of CRI-O
-  _within three days ofthe corresponding Kubernetes release_.
+  _within three days of the corresponding Kubernetes release_.
 - For Patch releases (1.1.z bump), releases are cut intermittently, when there
   are sufficient bug fixes backported to the branch. End-users can request
   releases be cut, and approvers can choose to accept that request at their discretion.
