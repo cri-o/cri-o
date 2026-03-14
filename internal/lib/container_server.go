@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -930,6 +931,14 @@ func (c *ContainerServer) UpdateContainerLinuxResources(ctr *oci.Container, reso
 
 	if resources.Memory.Swap != nil {
 		updatedSpec.Linux.Resources.Memory.Swap = resources.Memory.Swap
+	}
+
+	if len(resources.Unified) != 0 {
+		if updatedSpec.Linux.Resources.Unified == nil {
+			updatedSpec.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
+		}
+
+		maps.Copy(updatedSpec.Linux.Resources.Unified, resources.Unified)
 	}
 
 	ctr.SetSpec(&updatedSpec)
