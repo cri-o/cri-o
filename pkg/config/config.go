@@ -622,7 +622,7 @@ type ImageConfig struct {
 	// Note that image name provided to the credential provider does not
 	// contain any specific tag or digest, only the normalized repository
 	// as well as the image name, which can cause races if the same image
-	// prefix get's pulled on a single node.
+	// prefix gets pulled on a single node.
 	// This temporary auth file will be used instead of any configured GlobalAuthFile.
 	// If no pod namespace is being provided on image pull (via the sandbox
 	// config), or the concatenated path is non existent, then the system wide

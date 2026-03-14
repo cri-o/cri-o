@@ -274,7 +274,7 @@ var _ = t.Describe("Utils", func() {
 			Expect(groupPath).ToNot(BeEmpty())
 		})
 
-		It("should fail with username that desn't exist in /etc/passwd", func() {
+		It("should fail with username that doesn't exist in /etc/passwd", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 
