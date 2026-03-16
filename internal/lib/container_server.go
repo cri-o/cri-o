@@ -438,6 +438,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	sb.SetCreated()
+	scontainer.SignalStartedEventDone()
 
 	if scontainer.State().Status == oci.ContainerStateStopped {
 		sb.SetStopped(ctx, true)
@@ -600,6 +601,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	}
 
 	ctr.SetCreated()
+	ctr.SignalStartedEventDone()
 
 	ctr.SetRuntimePathForPlatform(platformRuntimePath)
 

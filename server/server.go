@@ -897,6 +897,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 
 	s.postStopCleanup(ctx, c, sb, s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations()))
 
+	c.WaitForStartedEvent(ctx)
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STOPPED_EVENT)
 
 	if err := os.Remove(event.Name); err != nil {

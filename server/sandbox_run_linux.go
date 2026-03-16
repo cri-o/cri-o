@@ -792,6 +792,7 @@ func (s *Server) finalizeSandboxCreation(ctx context.Context, sb *libsandbox.San
 
 	sb.SetCreated()
 	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_STARTED_EVENT)
+	sb.InfraContainer().SignalStartedEventDone()
 
 	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 

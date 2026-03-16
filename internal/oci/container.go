@@ -94,6 +94,11 @@ type Container struct {
 	// When set, the exec process will spawn on this cgroup.
 	// If this is used, InfraCtrCPUSet will be ignored for the exec operation.
 	execCgroupPath string
+	// startedEvtDone is closed after CONTAINER_STARTED_EVENT has been
+	// generated, preventing handleExit from emitting CONTAINER_STOPPED_EVENT
+	// before the STARTED event reaches the events channel.
+	startedEvtDone chan struct{}
+	startedEvtOnce sync.Once
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -202,6 +207,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		stopWatchers:       []chan struct{}{},
 		stopKillLoopBegun:  false,
 		execPIDs:           map[int]bool{},
+		startedEvtDone:     make(chan struct{}),
 	}
 
 	return c, nil
@@ -211,6 +217,10 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 	state := &ContainerState{}
 	state.Created = created
 	state.Started = created
+
+	startedEvtDone := make(chan struct{})
+	close(startedEvtDone)
+
 	c := &Container{
 		criContainer: &types.Container{
 			Id:           id,
@@ -223,11 +233,12 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 			},
 			Image: &types.ImageSpec{},
 		},
-		name:    name,
-		imageID: nil,
-		spoofed: true,
-		state:   state,
-		dir:     dir,
+		name:           name,
+		imageID:        nil,
+		spoofed:        true,
+		state:          state,
+		dir:            dir,
+		startedEvtDone: startedEvtDone,
 	}
 
 	return c
@@ -729,6 +740,19 @@ func (c *Container) SetAsDoneStopping() {
 	c.stopWatchers = make([]chan struct{}, 0)
 	close(c.stopTimeoutChan)
 	c.stopLock.Unlock()
+}
+
+func (c *Container) SignalStartedEventDone() {
+	c.startedEvtOnce.Do(func() {
+		close(c.startedEvtDone)
+	})
+}
+
+func (c *Container) WaitForStartedEvent(ctx context.Context) {
+	select {
+	case <-c.startedEvtDone:
+	case <-ctx.Done():
+	}
 }
 
 func (c *Container) AddManagedPIDNamespace(ns nsmgr.Namespace) {
