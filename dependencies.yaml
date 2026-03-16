@@ -73,6 +73,8 @@ dependencies:
   - name: libpathrs
     version: 0.2.4
     refPaths:
+      - path: scripts/versions
+        match: libpathrs
       - path: contrib/test/ci/build/libpathrs.yml
         match: build-libpathrs.sh
 

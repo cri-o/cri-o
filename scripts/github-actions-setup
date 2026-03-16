@@ -128,7 +128,7 @@ install_crun() {
 # Refer: https://github.com/opencontainers/runc/pull/5103
 install_libpathrs() {
     RUNC_COMMIT="496b68a3050547ff8365fb1231b81ff8153f4359"
-    LIBPATHRS_VERSION="0.2.4"
+    LIBPATHRS_VERSION="${VERSIONS["libpathrs"]}"
     BUILD_SCRIPT_SHA256="3685397177e21430ce17b0e063c7d127ee437b64078ef9e5ce0fb816b9ac1d85"
     LIB_SH_SHA256="ae80403a66c1b94e9d984cd790cf0226efe3df6e16c76244464d3ac215237124"
 
