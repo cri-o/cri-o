@@ -70,6 +70,14 @@ dependencies:
       - path: scripts/versions
         match: runc
 
+  - name: libpathrs
+    version: 0.2.4
+    refPaths:
+      - path: scripts/versions
+        match: libpathrs
+      - path: contrib/test/ci/build/libpathrs.yml
+        match: build-libpathrs.sh
+
   - name: bats
     version: v1.12.0
     refPaths:

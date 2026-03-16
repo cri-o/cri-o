@@ -16,6 +16,7 @@ main() {
     install_conmonrs
     install_critools
     install_crun
+    install_libpathrs
     install_runc
     install_ginkgo
     install_cni_plugins
@@ -121,6 +122,43 @@ install_crun() {
     popd
     sudo rm -rf crun
     crun --version
+}
+
+# Installs libpathrs as required by runc
+# Refer: https://github.com/opencontainers/runc/pull/5103
+install_libpathrs() {
+    RUNC_COMMIT="496b68a3050547ff8365fb1231b81ff8153f4359"
+    LIBPATHRS_VERSION="${VERSIONS["libpathrs"]}"
+    BUILD_SCRIPT_SHA256="3685397177e21430ce17b0e063c7d127ee437b64078ef9e5ce0fb816b9ac1d85"
+    LIB_SH_SHA256="ae80403a66c1b94e9d984cd790cf0226efe3df6e16c76244464d3ac215237124"
+
+    # Download build-libpathrs.sh script
+    curl_retry "https://raw.githubusercontent.com/opencontainers/runc/$RUNC_COMMIT/script/build-libpathrs.sh" \
+        -o /tmp/build-libpathrs.sh
+
+    # Verify checksum for build-libpathrs.sh
+    echo "$BUILD_SCRIPT_SHA256  /tmp/build-libpathrs.sh" | sha256sum --check --strict
+
+    # Download lib.sh helper script
+    curl_retry "https://raw.githubusercontent.com/opencontainers/runc/$RUNC_COMMIT/script/lib.sh" \
+        -o /tmp/lib.sh
+
+    # Verify checksum for lib.sh
+    echo "$LIB_SH_SHA256  /tmp/lib.sh" | sha256sum --check --strict
+
+    # Make build script executable
+    sudo chmod +x /tmp/build-libpathrs.sh
+
+    # Build and install libpathrs
+    pushd /tmp
+    sudo ./build-libpathrs.sh "$LIBPATHRS_VERSION" /usr
+    popd
+
+    # Clean up
+    sudo rm -f /tmp/libpathrs-"$LIBPATHRS_VERSION".tar.xz \
+        /tmp/libpathrs-"$LIBPATHRS_VERSION".tar.xz.asc \
+        /tmp/build-libpathrs.sh \
+        /tmp/lib.sh
 }
 
 install_runc() {
