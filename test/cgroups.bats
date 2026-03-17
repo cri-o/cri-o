@@ -200,6 +200,30 @@ EOF
 	[[ "$output" == *"210763776"* ]]
 }
 
+@test "cgroupv2 unified update support" {
+	if ! is_cgroup_v2; then
+		skip "node must be configured with cgroupv2 for this test"
+	fi
+	start_crio
+
+	jq '	  .linux.resources.unified = {"memory.min": "209715200", "memory.high": "210763776"}' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.min")
+	[[ "$output" == *"209715200"* ]]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.high")
+	[[ "$output" == *"210763776"* ]]
+
+	# update unified resources via CRI API
+	"$UPDATEUNIFIED_BINARY" "$CRIO_SOCKET" "$ctr_id" "memory.min=0" "memory.high=max"
+
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.min")
+	[[ "$output" == "0" ]]
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.high")
+	[[ "$output" == *"max"* ]]
+}
+
 @test "cpu-quota.crio.io can disable quota" {
 	if is_cgroup_v2; then
 		skip "node must be configured with cgroupv1 for this test"
