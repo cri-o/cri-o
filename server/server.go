@@ -501,6 +501,14 @@ func New(
 	deletedImages := s.restore(ctx)
 	s.wipeIfAppropriate(ctx, deletedImages)
 
+	if config.EnableStorageDedup {
+		go func() {
+			if err := RunDedup(ctx, s.Store()); err != nil {
+				log.Warnf(ctx, "%v", err)
+			}
+		}()
+	}
+
 	var bindAddressStr string
 
 	bindAddress := net.ParseIP(config.StreamAddress)

@@ -26,6 +26,7 @@ best if CRI-O and any currently running containers are stopped."
         'config:Outputs a commented version of the configuration file that could be used
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
+        'dedup:deduplicate image storage using reflinks'
         'man:Generate the man page documentation.'
         'markdown:Generate the markdown documentation.'
         'md:Generate the markdown documentation.'
@@ -81,6 +82,7 @@ it later with **--config**. Global options will modify the output.'
         '--enable-nri'
         '--enable-pod-events'
         '--enable-profile-unix-socket'
+        '--enable-storage-dedup'
         '--enable-tracing'
         '--gid-mappings'
         '--global-auth-file'

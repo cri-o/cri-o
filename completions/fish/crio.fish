@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i check complete completion help h config man markdown md status config c containers container cs s info i goroutines g heap hp version wipe help h
+        if contains -- $i check complete completion help h config dedup man markdown md status config c containers container cs s info i goroutines g heap hp version wipe help h
             return 1
         end
     end
@@ -59,6 +59,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-metrics -d 'Enable 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-nri -d 'Enable NRI (Node Resource Interface) support.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-pod-events -d 'If true, CRI-O starts sending the container events to the kubelet'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-profile-unix-socket -d 'Enable pprof profiler on crio unix domain socket.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-storage-dedup -d 'Enable background storage deduplication using reflinks on startup.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-tracing -d 'Enable OpenTelemetry trace data exporting.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l gid-mappings -r -d 'Specify the GID mappings to use for the user namespace. This option is deprecated, and will be replaced with Kubernetes user namespace (KEP-127) support in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -l global-auth-file -r -d 'Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.'
@@ -222,6 +223,8 @@ complete -r -c crio -n '__fish_crio_no_subcommand' -a 'config' -d 'Outputs a com
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
 complete -c crio -n '__fish_seen_subcommand_from config' -f -l default -d 'Output the default configuration (without taking into account any configuration options).'
+complete -c crio -n '__fish_seen_subcommand_from dedup' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_crio_no_subcommand' -a 'dedup' -d 'deduplicate image storage using reflinks'
 complete -c crio -n '__fish_seen_subcommand_from man' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'man' -d 'Generate the man page documentation.'
 complete -c crio -n '__fish_seen_subcommand_from markdown md' -f -l help -s h -d 'show help'
