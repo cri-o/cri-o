@@ -429,7 +429,7 @@ type RuntimeConfig struct {
 	// Note that CRI-O expects an "artifacts/" subdirectory within each configured
 	// path (mirroring the main store convention). For example, if configured with
 	// "/mnt/nfs", the artifacts should be placed in "/mnt/nfs/artifacts/".
-	AdditionalArtifactStores []string `toml:"additional_artifact_stores,omitempty"`
+	AdditionalArtifactStores []string `toml:"additional_artifact_stores"`
 
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	// This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorConfig.Path.
@@ -1339,12 +1339,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	for _, p := range c.AdditionalArtifactStores {
 		if !filepath.IsAbs(p) {
 			return fmt.Errorf("additional_artifact_stores entry must be absolute: %q", p)
-		}
-		if len(p) > 256 {
-			return fmt.Errorf("additional_artifact_stores entry cannot exceed 256 characters: %q", p)
-		}
-		if strings.Contains(p, "//") {
-			return fmt.Errorf("additional_artifact_stores entry cannot contain consecutive slashes: %q", p)
 		}
 	}
 
