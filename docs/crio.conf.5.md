@@ -131,6 +131,9 @@ If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 **decryption_keys_path**="/etc/crio/keys/"
 Path where the keys required for image decryption are located
 
+**additional_artifact_stores**=[]
+A list of additional read-only OCI artifact store paths (experimental, subject to change). CRI-O expects an "artifacts/" subdirectory within each configured path. All entries must be absolute paths. Artifacts in these stores take priority over the main store. Because these stores are read-only, CRI-O cannot remove artifacts from them. If a tag is re-pointed on the registry, the stale local copy in a read-only store will continue to be used; the artifact must be removed from the read-only store directly on the filesystem to pick up the new version.
+
 **conmon**=""
 Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty.
 This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorPath.
