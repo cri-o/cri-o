@@ -531,6 +531,13 @@ The valid values are "enforcing" and "disabled", and the default is "enforcing".
 If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 If "disabled", the first result will be chosen.
 
+**enable_storage_dedup**=false
+Enable background storage deduplication using reflinks on startup. Identical
+files across image layers are deduplicated at the filesystem level using
+copy-on-write clones, reducing disk usage without the drawbacks of hard links.
+Deduplication can also be triggered manually via `crio dedup`.
+Requires filesystem support (e.g., XFS with reflink=1 or Btrfs).
+
 ## CRIO.NETWORK TABLE
 
 The `crio.network` table containers settings pertaining to the management of CNI plugins.

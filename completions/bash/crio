@@ -6,6 +6,7 @@ _cli_bash_autocomplete() {
 complete
 completion
 config
+dedup
 man
 markdown
 md
@@ -56,6 +57,7 @@ h
 --enable-nri
 --enable-pod-events
 --enable-profile-unix-socket
+--enable-storage-dedup
 --enable-tracing
 --gid-mappings
 --global-auth-file

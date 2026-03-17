@@ -52,6 +52,7 @@ crio
 [--enable-nri]
 [--enable-pod-events]
 [--enable-profile-unix-socket]
+[--enable-storage-dedup]
 [--enable-tracing]
 [--gid-mappings]=[value]
 [--global-auth-file]=[value]
@@ -261,6 +262,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--enable-pod-events**: If true, CRI-O starts sending the container events to the kubelet
 
 **--enable-profile-unix-socket**: Enable pprof profiler on crio unix domain socket.
+
+**--enable-storage-dedup**: Enable background storage deduplication using reflinks on startup.
 
 **--enable-tracing**: Enable OpenTelemetry trace data exporting.
 
@@ -527,6 +530,10 @@ by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.
 
 **--default**: Output the default configuration (without taking into account any configuration options).
+
+## dedup
+
+deduplicate image storage using reflinks
 
 ## man
 
