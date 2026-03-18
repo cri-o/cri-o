@@ -424,6 +424,12 @@ type RuntimeConfig struct {
 	// DecryptionKeysPath is the path where keys for image decryption are stored.
 	DecryptionKeysPath string `toml:"decryption_keys_path"`
 
+	// AdditionalArtifactStores is a list of additional read-only artifact stores.
+	// Note that CRI-O expects an "artifacts/" subdirectory within each configured
+	// path (mirroring the main store convention). For example, if configured with
+	// "/mnt/nfs", the artifacts should be placed in "/mnt/nfs/artifacts/".
+	AdditionalArtifactStores []string `toml:"additional_artifact_stores"`
+
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	// This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorConfig.Path.
 	Conmon string `toml:"conmon"`
@@ -1330,6 +1336,12 @@ func (c *RootConfig) CleanShutdownSupportedFileName() string {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution bool) error {
+	for _, p := range c.AdditionalArtifactStores {
+		if !filepath.IsAbs(p) {
+			return fmt.Errorf("additional_artifact_stores entry must be absolute: %q", p)
+		}
+	}
+
 	if err := c.ulimitsConfig.LoadUlimits(c.DefaultUlimits); err != nil {
 		return err
 	}

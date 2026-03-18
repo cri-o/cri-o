@@ -315,6 +315,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.DecryptionKeysPath = ctx.String("decryption-keys-path")
 	}
 
+	if ctx.IsSet("additional-artifact-stores") {
+		config.AdditionalArtifactStores = StringSliceTrySplit(ctx, "additional-artifact-stores")
+	}
+
 	// Cgroup configuration
 	if ctx.IsSet("cgroup-manager") {
 		config.CgroupManagerName = ctx.String("cgroup-manager")
@@ -909,6 +913,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:  "decryption-keys-path",
 			Usage: "Path to load keys for image decryption.",
 			Value: defConf.DecryptionKeysPath,
+		},
+		&cli.StringSliceFlag{
+			Name:  "additional-artifact-stores",
+			Value: cli.NewStringSlice(defConf.AdditionalArtifactStores...),
+			Usage: "Additional read-only OCI artifact store paths.",
 		},
 		&cli.StringFlag{
 			Name:    "default-runtime",

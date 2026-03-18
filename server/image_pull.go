@@ -320,6 +320,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 			UseNewCgroup: s.config.SeparatePullCgroup != "",
 			ParentCgroup: cgroup,
 		},
+		AdditionalArtifactStores: s.config.AdditionalArtifactStores,
 	})
 	if err != nil {
 		log.Debugf(ctx, "Error pulling image %s: %v", remoteCandidateName, err)

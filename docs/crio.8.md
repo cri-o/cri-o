@@ -13,6 +13,7 @@ crio
 ```
 [--absent-mount-sources-to-reject]=[value]
 [--add-inheritable-capabilities]
+[--additional-artifact-stores]=[value]
 [--additional-devices]=[value]
 [--allowed-devices]=[value]
 [--apparmor-profile]=[value]
@@ -174,6 +175,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory).
 
 **--add-inheritable-capabilities**: Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.
+
+**--additional-artifact-stores**="": Additional read-only OCI artifact store paths.
 
 **--additional-devices**="": Devices to add to the containers.
 

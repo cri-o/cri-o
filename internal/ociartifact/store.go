@@ -44,17 +44,24 @@ var configMediaTypes = []string{
 	manifest.DockerV2Schema2ConfigMediaType,
 }
 
+// additionalStore pairs a read-only artifact store with its path.
+type additionalStore struct {
+	path  string
+	store LibartifactStore
+}
+
 // Store is the main structure to build an artifact storage.
 type Store struct {
 	libartifactStore LibartifactStore
 	impl             Impl
 
 	// rootPath is required for BlobMountPaths.
-	rootPath string
+	rootPath         string
+	additionalStores []additionalStore
 }
 
 // NewStore creates a new OCI artifact store.
-func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, error) {
+func NewStore(rootPath string, additionalPaths []string, systemContext *types.SystemContext) (*Store, error) {
 	storePath := filepath.Join(rootPath, "artifacts")
 
 	store, err := libart.NewArtifactStore(storePath, systemContext)
@@ -62,17 +69,35 @@ func NewStore(rootPath string, systemContext *types.SystemContext) (*Store, erro
 		return nil, err
 	}
 
+	// Configure additional stores (RO)
+	var additional []additionalStore
+
+	for _, path := range additionalPaths {
+		addPath := filepath.Join(path, "artifacts")
+
+		addStore, err := libart.NewArtifactStore(addPath, systemContext)
+		if err != nil {
+			log.Warnf(context.Background(), "Skipping additional artifact store %q: %v", addPath, err)
+
+			continue
+		}
+
+		additional = append(additional, additionalStore{
+			path:  addPath,
+			store: &artifactStore{addStore},
+		})
+	}
+
 	return &Store{
 		libartifactStore: &artifactStore{store},
-		rootPath:         storePath,
 		impl:             &defaultImpl{},
+		rootPath:         storePath,
+		additionalStores: additional,
 	}, nil
 }
 
 // Pull tries to pull the artifact and returns the manifest bytes if the
 // provided reference is a valid OCI artifact.
-//
-// copyOptions will be passed down to libimage.
 func (s *Store) Pull(
 	ctx context.Context,
 	ref types.ImageReference,
@@ -85,6 +110,24 @@ func (s *Store) Pull(
 	}
 
 	strRef := ref.DockerReference().String()
+
+	// Skip pulling if the artifact already exists in a read-only additional
+	// store. This avoids duplicating artifacts that are already available.
+	// We intentionally do NOT skip for artifacts in the main store, because
+	// the remote tag may have been re-pointed to a different digest.
+	if len(s.additionalStores) > 0 {
+		artRef, err := libart.NewArtifactStorageReference(strRef)
+		if err == nil {
+			for _, add := range s.additionalStores {
+				if art, err := add.store.Inspect(ctx, artRef); err == nil {
+					log.Infof(ctx, "Artifact %s already exists in additional store %s, skipping pull", strRef, add.path)
+					dgst := NewArtifact(art, add.path).Digest()
+
+					return &dgst, nil
+				}
+			}
+		}
+	}
 
 	log.Infof(ctx, "Pulling OCI artifact %s", strRef)
 
@@ -171,13 +214,49 @@ func (s *Store) EnsureNotContainerImage(ctx context.Context, ref types.ImageRefe
 
 // List creates a slice of all available artifacts.
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
-	arts, err := s.libartifactStore.List(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("list artifacts: %w", err)
+	var arts []*Artifact
+
+	// Get from additional stores first (Prioritized)
+	// We warn and continue on errors here because additional stores may
+	// reside on unreliable media (like NFS) and shouldn't block listing
+	// artifacts from the main store.
+	for _, add := range s.additionalStores {
+		addArts, err := add.store.List(ctx)
+		if err != nil {
+			log.Warnf(ctx, "Failed to list artifacts from additional store %q: %v", add.path, err)
+
+			continue
+		}
+
+		for _, art := range addArts {
+			arts = append(arts, NewArtifact(art, add.path))
+		}
 	}
 
-	for _, art := range arts {
-		res = append(res, NewArtifact(art))
+	// Get from main store
+	mainArts, err := s.libartifactStore.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list artifacts from main store: %w", err)
+	}
+
+	for _, art := range mainArts {
+		arts = append(arts, NewArtifact(art, s.rootPath))
+	}
+
+	// Deduplicate by reference, preserving priority (additional stores
+	// are listed first, so they win). This ensures that a tag which
+	// exists in both an additional and the main store only appears once.
+	seen := make(map[string]struct{})
+
+	for _, artifact := range arts {
+		key := artifact.Reference()
+		if _, ok := seen[key]; ok {
+			continue
+		}
+
+		seen[key] = struct{}{}
+
+		res = append(res, artifact)
 	}
 
 	return res, nil
@@ -191,12 +270,27 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 		return nil, fmt.Errorf("invalid nameOrDigest: %w", err)
 	}
 
-	artifact, err := s.libartifactStore.Inspect(ctx, artRef)
-	if err != nil {
-		return nil, fmt.Errorf("inspect artifact: %w", err)
+	// Check additional stores first (Prioritized)
+	for _, add := range s.additionalStores {
+		artifact, err := add.store.Inspect(ctx, artRef)
+		if err == nil {
+			return NewArtifact(artifact, add.path), nil
+		}
+
+		if errors.Is(err, ErrNotFound) {
+			log.Debugf(ctx, "Artifact not found in additional store %q", add.path)
+		} else {
+			log.Warnf(ctx, "Failed to inspect artifact in additional store %q: %v", add.path, err)
+		}
 	}
 
-	return NewArtifact(artifact), nil
+	// Check main store
+	artifact, err := s.libartifactStore.Inspect(ctx, artRef)
+	if err == nil {
+		return NewArtifact(artifact, s.rootPath), nil
+	}
+
+	return nil, fmt.Errorf("inspect artifact: %w", err)
 }
 
 // Remove deletes a name or digest from the artifact store.
@@ -207,15 +301,20 @@ func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
 		return fmt.Errorf("invalid nameOrDigest: %w", err)
 	}
 
-	_, err = s.libartifactStore.Remove(ctx, artRef)
+	// Only remove from the main writeable store
+	if _, err := s.libartifactStore.Remove(ctx, artRef); err != nil {
+		return fmt.Errorf("remove artifact: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 // BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
-// This should be replaced by BlobMountPaths in c/common, but it doesn't support modelpack, so we keep it here for now.
 func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]libartTypes.BlobMountPath, error) {
-	ref, err := layout.NewReference(s.rootPath, artifact.Reference())
+	// The rootPath is now inherently known by the artifact itself
+	rootPath := artifact.RootPath()
+
+	ref, err := layout.NewReference(rootPath, artifact.Reference())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
 	}

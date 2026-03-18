@@ -123,7 +123,7 @@ var _ = t.Describe("Store", func() {
 
 			var err error
 
-			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil)
+			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			store.SetFakeImpl(implMock)
 		})

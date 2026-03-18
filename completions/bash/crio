@@ -16,6 +16,7 @@ help
 h
 --absent-mount-sources-to-reject
 --add-inheritable-capabilities
+--additional-artifact-stores
 --additional-devices
 --address
 --allowed-devices
