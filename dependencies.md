@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 18 Mar 2026 16:12:33 UTC for commit [ad5f448][0]._
+_Generated on Wed, 18 Mar 2026 20:41:56 UTC for commit [4d23485][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ad5f4486937d6d1592b58ba3ffab2468b9ba2cee
+[0]: https://github.com/cri-o/cri-o/commit/4d2348506eeba2f84a54731fb8b4b366ad087fd3
 
 ## Outdated Dependencies
 
@@ -439,7 +439,7 @@ _Generated on Wed, 18 Mar 2026 16:12:33 UTC for commit [ad5f448][0]._
 | github.com/hashicorp/vault/api                                              | v1.22.0                               |                                    | false  | true             |
 | github.com/huandu/xstrings                                                  | v1.5.0                                |                                    | false  | true             |
 | github.com/ianlancetaylor/demangle                                          | v0.0.0-20250417193237-f615e6bd150b    | v0.0.0-20251118225945-96ee0021ea0f | false  | true             |
-| github.com/in-toto/attestation                                              | v1.1.1                                | v1.1.2                             | false  | true             |
+| github.com/in-toto/attestation                                              | v1.1.1                                | v1.2.0                             | false  | true             |
 | github.com/in-toto/in-toto-golang                                           | v0.9.0                                | v0.10.0                            | false  | true             |
 | github.com/inconshreveable/mousetrap                                        | v1.1.0                                |                                    | false  | true             |
 | github.com/insomniacslk/dhcp                                                | v0.0.0-20240829085014-a3a4c1f04475    | v0.0.0-20260220084031-5adc3eb26f91 | false  | true             |
