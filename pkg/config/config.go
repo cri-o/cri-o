@@ -30,7 +30,6 @@ import (
 	"go.podman.io/storage"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/utils/cpuset"
-	"k8s.io/utils/ptr"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
 	"github.com/cri-o/cri-o/internal/config/apparmor"
@@ -836,10 +835,10 @@ type tomlConfig struct {
 // SetSystemContext configures the SystemContext used by containers/image library.
 func (t *tomlConfig) SetSystemContext(c *Config) {
 	c.SystemContext.BigFilesTemporaryDir = c.BigFilesTemporaryDir
-	c.SystemContext.ShortNameMode = ptr.To(types.ShortNameModeEnforcing)
+	c.SystemContext.ShortNameMode = new(types.ShortNameModeEnforcing)
 
 	if c.ShortNameMode == "disabled" {
-		c.SystemContext.ShortNameMode = ptr.To(types.ShortNameModeDisabled)
+		c.SystemContext.ShortNameMode = new(types.ShortNameModeDisabled)
 	}
 }
 
@@ -2055,7 +2054,7 @@ func (r *RuntimeHandler) ValidateContainerMinMemory(name string) error {
 
 	memorySize, err := units.RAMInBytes(r.ContainerMinMemory)
 	if err != nil {
-		err = fmt.Errorf("unable to set runtime memory to %q: %w. Setting to %q instead", r.ContainerMinMemory, err, defaultContainerMinMemory)
+		err = fmt.Errorf("unable to set runtime memory to %q: %w. Setting to %d instead", r.ContainerMinMemory, err, defaultContainerMinMemory)
 		// Fallback to default value if something is wrong with the configured value.
 		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
 

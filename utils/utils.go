@@ -403,11 +403,6 @@ func GetUser(containerMount, userIDorName string) (*user.User, error) {
 	return nil, user.ErrNoPasswdEntries
 }
 
-// Int32Ptr is a utility function to assign to integer pointer variables.
-func Int32Ptr(i int32) *int32 {
-	return &i
-}
-
 // EnsureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes
 // logPath to be a broken symlink to some magical Docker path. Ideally we
 // wouldn't have to deal with this, but until that issue is fixed we have to
