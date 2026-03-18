@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"sync/atomic"
 
 	modelSpec "github.com/modelpack/model-spec/specs-go/v1"
 	"github.com/opencontainers/go-digest"
@@ -58,10 +60,15 @@ type Store struct {
 	// rootPath is required for BlobMountPaths.
 	rootPath         string
 	additionalStores []additionalStore
+
+	// pinnedImageRegexps holds compiled regexps from the pinned_images config.
+	// Access is via atomic.Pointer to allow concurrent reads during listing
+	// while the reload watcher updates the regexps.
+	pinnedImageRegexps atomic.Pointer[[]*regexp.Regexp]
 }
 
 // NewStore creates a new OCI artifact store.
-func NewStore(rootPath string, additionalPaths []string, systemContext *types.SystemContext) (*Store, error) {
+func NewStore(rootPath string, additionalPaths []string, systemContext *types.SystemContext, pinnedImageRegexps []*regexp.Regexp) (*Store, error) {
 	storePath := filepath.Join(rootPath, "artifacts")
 
 	store, err := libart.NewArtifactStore(storePath, systemContext)
@@ -88,12 +95,15 @@ func NewStore(rootPath string, additionalPaths []string, systemContext *types.Sy
 		})
 	}
 
-	return &Store{
+	s := &Store{
 		libartifactStore: &artifactStore{store},
-		impl:             &defaultImpl{},
 		rootPath:         storePath,
+		impl:             &defaultImpl{},
 		additionalStores: additional,
-	}, nil
+	}
+	s.SetPinnedImageRegexps(pinnedImageRegexps)
+
+	return s, nil
 }
 
 // Pull tries to pull the artifact and returns the manifest bytes if the
@@ -121,7 +131,8 @@ func (s *Store) Pull(
 			for _, add := range s.additionalStores {
 				if art, err := add.store.Inspect(ctx, artRef); err == nil {
 					log.Infof(ctx, "Artifact %s already exists in additional store %s, skipping pull", strRef, add.path)
-					dgst := NewArtifact(art, add.path).Digest()
+					// Force-pinned: additional stores are read-only and not subject to GC.
+					dgst := s.newArtifact(art, add.path, true).Digest()
 
 					return &dgst, nil
 				}
@@ -229,7 +240,8 @@ func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
 		}
 
 		for _, art := range addArts {
-			arts = append(arts, NewArtifact(art, add.path))
+			// Force-pinned: additional stores are read-only and not subject to GC.
+			arts = append(arts, s.newArtifact(art, add.path, true))
 		}
 	}
 
@@ -240,7 +252,7 @@ func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
 	}
 
 	for _, art := range mainArts {
-		arts = append(arts, NewArtifact(art, s.rootPath))
+		arts = append(arts, s.newArtifact(art, s.rootPath, false))
 	}
 
 	// Deduplicate by reference, preserving priority (additional stores
@@ -274,7 +286,8 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 	for _, add := range s.additionalStores {
 		artifact, err := add.store.Inspect(ctx, artRef)
 		if err == nil {
-			return NewArtifact(artifact, add.path), nil
+			// Force-pinned: additional stores are read-only and not subject to GC.
+			return s.newArtifact(artifact, add.path, true), nil
 		}
 
 		if errors.Is(err, ErrNotFound) {
@@ -287,7 +300,7 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 	// Check main store
 	artifact, err := s.libartifactStore.Inspect(ctx, artRef)
 	if err == nil {
-		return NewArtifact(artifact, s.rootPath), nil
+		return s.newArtifact(artifact, s.rootPath, false), nil
 	}
 
 	return nil, fmt.Errorf("inspect artifact: %w", err)
@@ -360,6 +373,34 @@ func artifactName(annotations map[string]string) string {
 	}
 
 	return ""
+}
+
+// SetPinnedImageRegexps updates the compiled regular expressions used to
+// determine whether an artifact should be pinned.
+func (s *Store) SetPinnedImageRegexps(regexps []*regexp.Regexp) {
+	if regexps == nil {
+		regexps = []*regexp.Regexp{}
+	}
+
+	s.pinnedImageRegexps.Store(&regexps)
+}
+
+// isArtifactPinned checks if the artifact's reference or canonical name
+// matches any of the configured pinned image patterns.
+// TODO: We should reuse storage.FilterPinnedImage, but we can't due to cyclic dependency.
+func (s *Store) isArtifactPinned(artifact *Artifact) bool {
+	regexps := s.pinnedImageRegexps.Load()
+	if regexps == nil {
+		return false
+	}
+
+	for _, re := range *regexps {
+		if re.MatchString(artifact.Reference()) || re.MatchString(artifact.CanonicalName()) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // RootPath returns the root path of the store.

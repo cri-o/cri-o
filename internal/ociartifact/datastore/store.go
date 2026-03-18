@@ -47,7 +47,7 @@ func New(rootPath string, systemContext *types.SystemContext) (*Store, error) {
 	// Additional read-only stores are not threaded through here (we pass
 	// nil for additionalPaths) since the datastore is used for in-memory
 	// artifact data managed by the main CRI-O lifecycle.
-	ociStore, err := ociartifact.NewStore(rootPath, nil, systemContext)
+	ociStore, err := ociartifact.NewStore(rootPath, nil, systemContext, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create OCI artifact store: %w", err)
 	}
