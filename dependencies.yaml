@@ -53,7 +53,7 @@ dependencies:
         match: conmon
 
   - name: cri-tools
-    version: master
+    version: v1.33.0
     refPaths:
       - path: contrib/test/ci/vars.yml
         match: cri_tools_git_version
@@ -63,6 +63,14 @@ dependencies:
     refPaths:
       - path: scripts/versions
         match: buildah
+
+  - name: libpathrs
+    version: 0.2.4
+    refPaths:
+      - path: scripts/versions
+        match: libpathrs
+      - path: contrib/test/ci/build/libpathrs.yml
+        match: build-libpathrs.sh
 
   - name: runc
     version: main
