@@ -51,6 +51,7 @@ jobs:
             test/checkcriu/checkcriu
             test/checkseccomp/checkseccomp
             test/copyimg/copyimg
+            test/updateunified/updateunified
             test/nri/nri.test
 
   integration:
@@ -220,6 +221,7 @@ jobs:
             test/checkcriu/checkcriu \
             test/checkseccomp/checkseccomp \
             test/copyimg/copyimg \
+            test/updateunified/updateunified \
             test/nri/nri.test
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup

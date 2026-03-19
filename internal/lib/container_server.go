@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -22,6 +23,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/annotations"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -930,6 +932,14 @@ func (c *ContainerServer) UpdateContainerLinuxResources(ctr *oci.Container, reso
 
 	if resources.Memory.Swap != nil {
 		updatedSpec.Linux.Resources.Memory.Swap = resources.Memory.Swap
+	}
+
+	if node.CgroupIsV2() && len(resources.Unified) != 0 {
+		if updatedSpec.Linux.Resources.Unified == nil {
+			updatedSpec.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
+		}
+
+		maps.Copy(updatedSpec.Linux.Resources.Unified, resources.Unified)
 	}
 
 	ctr.SetSpec(&updatedSpec)

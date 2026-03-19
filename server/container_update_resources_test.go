@@ -8,6 +8,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
@@ -80,6 +81,45 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			Expect(int(*c.Spec().Linux.Resources.CPU.Shares)).To(Equal(1024))
 			Expect(c.Spec().Linux.Resources.CPU.Cpus).To(Equal("0-3,12-15"))
 			Expect(c.Spec().Linux.Resources.CPU.Mems).To(Equal("0,1"))
+		})
+
+		It("should succeed with unified cgroup v2 resources", func() {
+			if !node.CgroupIsV2() {
+				Skip("requires cgroup v2")
+			}
+
+			// Given
+			testContainer.SetSpec(&specs.Spec{
+				Linux: &specs.Linux{
+					Resources: &specs.LinuxResources{},
+				},
+			})
+			testContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			addContainerAndSandbox()
+
+			// When
+			_, err := sut.UpdateContainerResources(context.Background(),
+				&types.UpdateContainerResourcesRequest{
+					ContainerId: testContainer.ID(),
+					Linux: &types.LinuxContainerResources{
+						Unified: map[string]string{
+							"memory.min":  "0",
+							"memory.high": "max",
+						},
+					},
+				},
+			)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			ctx := context.TODO()
+			c := sut.GetContainer(ctx, testContainer.ID())
+			Expect(c.Spec().Linux.Resources.Unified).To(HaveLen(2))
+			Expect(c.Spec().Linux.Resources.Unified["memory.min"]).To(Equal("0"))
+			Expect(c.Spec().Linux.Resources.Unified["memory.high"]).To(Equal("max"))
 		})
 
 		It("should fail when container is not in created/running state", func() {

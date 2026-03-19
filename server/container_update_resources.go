@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -93,6 +94,11 @@ func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
 		if node.CgroupHasMemorySwap() {
 			update.Memory.Swap = new(memory)
 		}
+	}
+
+	if node.CgroupIsV2() && len(r.GetUnified()) != 0 {
+		update.Unified = make(map[string]string, len(r.GetUnified()))
+		maps.Copy(update.Unified, r.GetUnified())
 	}
 
 	return &update
