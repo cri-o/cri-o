@@ -70,7 +70,7 @@ func NewStore(rootPath string, additionalPaths []string, systemContext *types.Sy
 	}
 
 	// Configure additional stores (RO)
-	var additional []additionalStore
+	additional := make([]additionalStore, 0, len(additionalPaths))
 
 	for _, path := range additionalPaths {
 		addPath := filepath.Join(path, "artifacts")
@@ -214,7 +214,7 @@ func (s *Store) EnsureNotContainerImage(ctx context.Context, ref types.ImageRefe
 
 // List creates a slice of all available artifacts.
 func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
-	var arts []*Artifact
+	arts := make([]*Artifact, 0, len(s.additionalStores))
 
 	// Get from additional stores first (Prioritized)
 	// We warn and continue on errors here because additional stores may
