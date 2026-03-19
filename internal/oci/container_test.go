@@ -1055,6 +1055,51 @@ var _ = t.Describe("Container", func() {
 			}).To(Panic())
 		})
 	})
+
+	t.Describe("StartedEventDone", func() {
+		// Regression test for out-of-order CRI container events.
+		// When a short-lived container exits before the STARTED event
+		// is sent, handleExit can emit STOPPED before STARTED.
+		// WaitForStartedEvent blocks until SignalStartedEventDone
+		// closes the barrier, ensuring correct ordering.
+		It("should block WaitForStartedEvent until SignalStartedEventDone is called", func() {
+			ctx := context.Background()
+			done := make(chan struct{})
+
+			go func() {
+				sut.WaitForStartedEvent(ctx)
+				close(done)
+			}()
+
+			Consistently(done, 100*time.Millisecond).ShouldNot(BeClosed())
+
+			sut.SignalStartedEventDone()
+
+			Eventually(done, 100*time.Millisecond).Should(BeClosed())
+		})
+
+		It("should not panic when SignalStartedEventDone is called multiple times", func() {
+			sut.SignalStartedEventDone()
+
+			Expect(func() {
+				sut.SignalStartedEventDone()
+			}).ToNot(Panic())
+		})
+
+		It("should not block WaitForStartedEvent after SignalStartedEventDone", func() {
+			ctx := context.Background()
+
+			sut.SignalStartedEventDone()
+			sut.WaitForStartedEvent(ctx)
+		})
+
+		It("should not block WaitForStartedEvent when context is cancelled", func() {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			sut.WaitForStartedEvent(ctx)
+		})
+	})
 })
 
 var _ = t.Describe("SpoofedContainer", func() {
