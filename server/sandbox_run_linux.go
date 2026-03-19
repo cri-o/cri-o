@@ -740,6 +740,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
+	defer s.nri.BlockPluginSync().Unblock()
+
 	if err := s.configureAndSaveInfraContainer(ctx, sb, container, g, mountPoint, sandboxIDMappings, &podContainer, sboxID); err != nil {
 		return nil, err
 	}
