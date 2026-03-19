@@ -1660,7 +1660,7 @@ func (r *runtimeOCI) defaultRuntimeArgs() []string {
 }
 
 // CheckpointContainer checkpoints a container.
-func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
+func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool, workPath, imagePath string) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -1674,17 +1674,12 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 	// file which is outside of the container. Giving the log file
 	// the label of the container enables logging for the parasite.
 	if err := crutils.CRCreateFileWithLabel(
-		c.Dir(),
+		workPath,
 		metadata.DumpLogFile,
 		specgen.Linux.MountLabel,
 	); err != nil {
 		return err
 	}
-
-	// workPath will be used to store dump.log and stats-dump
-	workPath := c.Dir()
-	// imagePath is used by CRIU to store the actual checkpoint files
-	imagePath := c.CheckpointPath()
 
 	log.Debugf(ctx, "Writing checkpoint to %s", imagePath)
 	log.Debugf(ctx, "Writing checkpoint logs to %s", workPath)
