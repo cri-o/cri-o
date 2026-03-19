@@ -16,6 +16,10 @@
   vars:
     force_clone: true
 
+- name: build and install libpathrs
+  include_tasks: "build/libpathrs.yml"
+  when: ansible_distribution in ['Fedora']
+
 - name: clone build and install runc
   include_tasks: "build/runc.yml"
 
