@@ -11,6 +11,7 @@ sudo apt update
 sudo apt install -y \
     autoconf \
     automake \
+    cargo \
     conmon \
     criu \
     libaio-dev \
@@ -29,6 +30,10 @@ sudo apt install -y \
     libtool \
     libudev-dev \
     libyajl-dev \
+    lld \
+    make \
+    rustc \
     sed \
     socat \
-    uuid-dev
+    uuid-dev \
+    wget
