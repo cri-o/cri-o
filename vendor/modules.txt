@@ -839,7 +839,6 @@ github.com/proglottis/gpgme
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil/header
 github.com/prometheus/client_golang/prometheus
-github.com/prometheus/client_golang/prometheus/collectors
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus/promhttp/internal
@@ -1367,7 +1366,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 ## explicit; go 1.24.0
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.79.1
+# google.golang.org/grpc v1.79.3
 ## explicit; go 1.24.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1432,7 +1431,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.11
+# google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 ## explicit; go 1.23
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
@@ -1753,27 +1752,18 @@ k8s.io/client-go/util/workqueue
 # k8s.io/component-base v0.35.2
 ## explicit; go 1.25.0
 k8s.io/component-base/cli/flag
-k8s.io/component-base/featuregate
 k8s.io/component-base/logs/logreduction
-k8s.io/component-base/metrics
-k8s.io/component-base/metrics/legacyregistry
-k8s.io/component-base/metrics/prometheus/feature
-k8s.io/component-base/metrics/prometheusextension
-k8s.io/component-base/tracing
-k8s.io/component-base/tracing/api/v1
-k8s.io/component-base/version
-# k8s.io/cri-api v0.35.1
-## explicit; go 1.25.0
+# k8s.io/cri-api v0.36.0-alpha.2.0.20260319234209-556afdc5c437
+## explicit; go 1.26.0
 k8s.io/cri-api/pkg/apis
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
-# k8s.io/cri-client v0.35.1
-## explicit; go 1.25.0
+# k8s.io/cri-client v0.31.0-alpha.0.0.20260319234427-2a4fe8184ee0
+## explicit; go 1.26.0
 k8s.io/cri-client/pkg
-k8s.io/cri-client/pkg/internal
 k8s.io/cri-client/pkg/util
-# k8s.io/klog/v2 v2.130.1
-## explicit; go 1.18
+# k8s.io/klog/v2 v2.140.0
+## explicit; go 1.21
 k8s.io/klog/v2
 k8s.io/klog/v2/internal/buffer
 k8s.io/klog/v2/internal/clock
