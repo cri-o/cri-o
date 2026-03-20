@@ -81,7 +81,7 @@ func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
 	}
 
 	// in every case that the minor and major version are out of sync,
-	// we want to preform a {down,up}grade. The common case here is newVersion > oldVersion,
+	// we want to perform a {down,up}grade. The common case here is newVersion > oldVersion,
 	// but even in the opposite case, images are out of date and could be wiped
 	return newVersion.Major != oldVersion.Major || newVersion.Minor != oldVersion.Minor, nil
 }

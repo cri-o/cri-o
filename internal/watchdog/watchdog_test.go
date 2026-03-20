@@ -89,7 +89,7 @@ var _ = t.Describe("Watchdog", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("should abort if systemd doest not acknowledge", func() {
+	It("should abort if systemd does not acknowledge", func() {
 		// Given
 		gomock.InOrder(
 			systemdMock.EXPECT().WatchdogEnabled().Return(validTimeout, nil),
