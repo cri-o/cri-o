@@ -231,7 +231,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		// Create the container
 		if resp, err := r.task.Create(taskCtx, request); err != nil {
 			createdCh <- errdefs.FromGRPC(err)
-		} else if err := c.state.SetInitPid(int(resp.GetPid())); err != nil {
+		} else if err := c.SetContainerInitPid(int(resp.GetPid())); err != nil {
 			createdCh <- err
 		}
 
@@ -339,7 +339,9 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 		return err
 	}
 
-	c.state.Started = time.Now()
+	c.ModifyState(func(s *ContainerState) {
+		s.Started = time.Now()
+	})
 
 	// Spawn a goroutine waiting for the container to terminate. Once it
 	// happens, the container status is retrieved to be updated.
@@ -685,7 +687,9 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 		err := r.waitCtrTerminate(sig, stopCh, timeoutDuration)
 		if err == nil {
-			c.state.Finished = time.Now()
+			c.ModifyState(func(s *ContainerState) {
+				s.Finished = time.Now()
+			})
 
 			return nil
 		}
@@ -705,7 +709,9 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 		return err
 	}
 
-	c.state.Finished = time.Now()
+	c.ModifyState(func(s *ContainerState) {
+		s.Finished = time.Now()
+	})
 
 	return nil
 }
@@ -872,16 +878,21 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 		status = ContainerStatePaused
 	}
 
-	c.state.Status = status
-	c.state.Finished = response.GetExitedAt().AsTime()
 	exitCode := int32(response.GetExitStatus())
-	c.state.ExitCode = &exitCode
-	c.state.Pid = int(response.GetPid())
+
+	c.ModifyState(func(s *ContainerState) {
+		s.Status = status
+		s.Finished = response.GetExitedAt().AsTime()
+		s.ExitCode = &exitCode
+		s.Pid = int(response.GetPid())
+	})
 
 	if exitCode != 0 {
 		oomFilePath := filepath.Join(c.bundlePath, "oom")
 		if _, err = os.Stat(oomFilePath); err == nil {
-			c.state.OOMKilled = true
+			c.ModifyState(func(s *ContainerState) {
+				s.OOMKilled = true
+			})
 
 			// Collect total metric
 			metrics.Instance().MetricContainersOOMTotalInc()

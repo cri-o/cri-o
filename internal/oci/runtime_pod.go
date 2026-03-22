@@ -176,14 +176,18 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		return fmt.Errorf("create container: %w", err)
 	}
 	// Now we know the container has started, save the pid to verify against future calls.
-	if err := c.state.SetInitPid(int(resp.PID)); err != nil {
+	if err := c.SetContainerInitPid(int(resp.PID)); err != nil {
 		return fmt.Errorf("set init PID: %w", err)
 	}
 
-	c.state.ContainerMonitorProcess, err = r.getConmonrsProcess()
+	conmonProcess, err := r.getConmonrsProcess()
 	if err != nil {
 		return err
 	}
+
+	c.ModifyState(func(s *ContainerState) {
+		s.ContainerMonitorProcess = conmonProcess
+	})
 
 	c.SetMonitorProcess(ctx)
 
