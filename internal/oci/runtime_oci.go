@@ -355,14 +355,18 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	}
 
 	// Now we know the container has started, save the pid to verify against future calls.
-	if err := c.state.SetInitPid(pid); err != nil {
+	if err := c.SetContainerInitPid(pid); err != nil {
 		return err
 	}
 
-	c.state.ContainerMonitorProcess, err = r.getConmonProcess(c)
+	conmonProcess, err := r.getConmonProcess(c)
 	if err != nil {
 		return err
 	}
+
+	c.ModifyState(func(s *ContainerState) {
+		s.ContainerMonitorProcess = conmonProcess
+	})
 
 	c.SetMonitorProcess(ctx)
 
@@ -403,7 +407,9 @@ func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 		return err
 	}
 
-	c.state.Started = time.Now()
+	c.ModifyState(func(s *ContainerState) {
+		s.Started = time.Now()
+	})
 
 	return nil
 }
@@ -938,15 +944,19 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	defer span.End()
 
 	if c.Spoofed() {
-		c.state.Status = ContainerStateStopped
-		c.state.Finished = time.Now()
+		c.ModifyState(func(s *ContainerState) {
+			s.Status = ContainerStateStopped
+			s.Finished = time.Now()
+		})
 
 		return nil
 	}
 
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.Living(); err != nil {
-		c.state.Finished = time.Now()
+		c.ModifyState(func(s *ContainerState) {
+			s.Finished = time.Now()
+		})
 
 		return nil
 	}
@@ -987,12 +997,14 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 		// Kill the exec PIDs after the main container to avoid pod lifecycle regressions:
 		// Ref: https://github.com/kubernetes/kubernetes/issues/124743
 		c.KillExecPIDs()
-		c.state.Finished = time.Now()
+		c.ModifyState(func(s *ContainerState) {
+			s.Finished = time.Now()
+		})
 		c.opLock.Unlock()
 		c.SetAsDoneStopping()
 	}()
 
-	if c.state.Status == ContainerStatePaused {
+	if c.GetStatus() == ContainerStatePaused {
 		if _, err := r.runtimeCmd("resume", c.ID()); err != nil {
 			log.Errorf(ctx, "Failed to unpause container %s: %v", c.Name(), err)
 		}
@@ -1003,7 +1015,9 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 		if err := c.Living(); err != nil {
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
-			c.state.Finished = time.Now()
+			c.ModifyState(func(s *ContainerState) {
+				s.Finished = time.Now()
+			})
 
 			return
 		}
@@ -1143,7 +1157,7 @@ func updateContainerStatusFromExitFile(c *Container) error {
 		return fmt.Errorf("failed to find container exit file for %s: %w", c.ID(), err)
 	}
 
-	c.state.Finished, err = getFinishedTime(fi)
+	finished, err := getFinishedTime(fi)
 	if err != nil {
 		return fmt.Errorf("failed to get finished time: %w", err)
 	}
@@ -1158,7 +1172,10 @@ func updateContainerStatusFromExitFile(c *Container) error {
 		return fmt.Errorf("status code conversion failed: %w", err)
 	}
 
-	c.state.ExitCode = new(int32(statusCode))
+	c.ModifyState(func(s *ContainerState) {
+		s.Finished = finished
+		s.ExitCode = new(int32(statusCode))
+	})
 
 	return nil
 }
@@ -1191,11 +1208,16 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			// went away we do not error out stopping kubernetes to recover.
 			// We always populate the fields below so kube can restart/reschedule
 			// containers failing.
-			c.state.Status = ContainerStateStopped
+			c.ModifyState(func(s *ContainerState) {
+				s.Status = ContainerStateStopped
+			})
+
 			if err := updateContainerStatusFromExitFile(c); err != nil {
 				log.Errorf(ctx, "Failed to update container status from exit file for %s: %v", c.ID(), err)
-				c.state.Finished = time.Now()
-				c.state.ExitCode = new(int32(255))
+				c.ModifyState(func(s *ContainerState) {
+					s.Finished = time.Now()
+					s.ExitCode = new(int32(255))
+				})
 			}
 
 			return nil, true, nil
@@ -1219,7 +1241,9 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	if state.Status != ContainerStateStopped {
-		*c.state = *state
+		c.ModifyState(func(s *ContainerState) {
+			*s = *state
+		})
 		c.SetMonitorProcess(ctx)
 
 		return nil
@@ -1254,7 +1278,10 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		return errors.New("state command returned nil")
 	}
 
-	*c.state = *state
+	c.ModifyState(func(s *ContainerState) {
+		*s = *state
+	})
+
 	if err != nil {
 		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.ID(), err)
 	} else {
@@ -1267,7 +1294,9 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 
 	oomFilePath := filepath.Join(c.bundlePath, "oom")
 	if _, err = os.Stat(oomFilePath); err == nil {
-		c.state.OOMKilled = true
+		c.ModifyState(func(s *ContainerState) {
+			s.OOMKilled = true
+		})
 
 		// Collect total metric
 		metrics.Instance().MetricContainersOOMTotalInc()
@@ -1714,9 +1743,11 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 	c.SetCheckpointedAt(time.Now())
 
 	if !leaveRunning {
-		c.state.Status = ContainerStateStopped
-		c.state.ExitCode = new(int32(0))
-		c.state.Finished = c.CheckpointedAt()
+		c.ModifyState(func(s *ContainerState) {
+			s.Status = ContainerStateStopped
+			s.ExitCode = new(int32(0))
+			s.Finished = c.CheckpointedAt()
+		})
 	}
 
 	return nil
@@ -1750,8 +1781,10 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupP
 		return fmt.Errorf("error removing container %s winsz file: %w", c.ID(), err)
 	}
 
-	c.state.InitPid = 0
-	c.state.InitStartTime = ""
+	c.ModifyState(func(s *ContainerState) {
+		s.InitPid = 0
+		s.InitStartTime = ""
+	})
 
 	// It is possible to tell runc to place the CRIU log files
 	// at a custom location '--work-path'. But for restoring a
@@ -1772,19 +1805,21 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupP
 	}
 
 	// Once the container is restored, update the metadata
-	// 1. Container is running again
-	c.state.Status = ContainerStateRunning
-	// 2. Update PID of the container (without that stopping will fail)
+	// Update PID of the container (without that stopping will fail)
 	pid, err := ReadConmonPidFile(c)
 	if err != nil {
 		return err
 	}
 
-	c.state.Pid = pid
-	// 3. Reset ExitCode (also needed for stopping)
-	c.state.ExitCode = nil
-	// 4. Set start time (also restore time)
-	c.state.Started = time.Now()
+	c.ModifyState(func(s *ContainerState) {
+		// Container is running again
+		s.Status = ContainerStateRunning
+		s.Pid = pid
+		// Reset ExitCode (also needed for stopping)
+		s.ExitCode = nil
+		// Set start time (also restore time)
+		s.Started = time.Now()
+	})
 
 	return nil
 }
