@@ -12,6 +12,7 @@ package criostoragemock
 import (
 	context "context"
 	reflect "reflect"
+	regexp "regexp"
 
 	storage "github.com/cri-o/cri-o/internal/storage"
 	types "go.podman.io/image/v5/types"
@@ -157,6 +158,20 @@ func (m *MockImageServer) ListImages(systemContext *types.SystemContext) ([]stor
 func (mr *MockImageServerMockRecorder) ListImages(systemContext any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImages", reflect.TypeOf((*MockImageServer)(nil).ListImages), systemContext)
+}
+
+// PinnedImageRegexps mocks base method.
+func (m *MockImageServer) PinnedImageRegexps() []*regexp.Regexp {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PinnedImageRegexps")
+	ret0, _ := ret[0].([]*regexp.Regexp)
+	return ret0
+}
+
+// PinnedImageRegexps indicates an expected call of PinnedImageRegexps.
+func (mr *MockImageServerMockRecorder) PinnedImageRegexps() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PinnedImageRegexps", reflect.TypeOf((*MockImageServer)(nil).PinnedImageRegexps))
 }
 
 // PullImage mocks base method.
