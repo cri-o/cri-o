@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 19 Mar 2026 20:36:47 UTC for commit [04404bb][0]._
+_Generated on Mon, 23 Mar 2026 12:43:21 UTC for commit [848f93a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/04404bbcde5e655668bcbc826d5543a3c942c04e
+[0]: https://github.com/cri-o/cri-o/commit/848f93a0d92411ce905755536a829de9a9219f61
 
 ## Outdated Dependencies
 
@@ -11,9 +11,10 @@ _Generated on Thu, 19 Mar 2026 20:36:47 UTC for commit [04404bb][0]._
 | github.com/containerd/ttrpc                                                 | v1.2.7                                | v1.2.8                             | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.9.0                                | v1.9.1                             | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.7.3                                | v0.8.0                             | true   | true             |
 | github.com/goccy/go-json                                                    | v0.10.5                               | v0.10.6                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.11.0                               | v0.12.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260319020218-de2ddf6ed99f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260323120851-fe817bb47b52 | true   | true             |
 | github.com/opencontainers/runc                                              | v1.4.0                                | v1.4.1                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.66.0                               | v0.67.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.41.0                               | v1.42.0                            | true   | true             |
@@ -251,7 +252,7 @@ _Generated on Thu, 19 Mar 2026 20:36:47 UTC for commit [04404bb][0]._
 | github.com/blang/semver                                                     | v3.5.1+incompatible                   |                                    | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                |                                    | true   | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                | v1.1.2                             | false  | true             |
-| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.120.1                           | false  | true             |
+| github.com/buildkite/agent/v3                                               | v3.95.1                               | v3.120.2                           | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.13.3                               | v0.16.0                            | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                |                                    | false  | true             |
 | github.com/buildkite/roko                                                   | v1.3.1                                | v1.4.0                             | false  | true             |
@@ -306,7 +307,7 @@ _Generated on Thu, 19 Mar 2026 20:36:47 UTC for commit [04404bb][0]._
 | github.com/containernetworking/cni                                          | v1.3.0                                |                                    | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.9.0                                | v1.9.1                             | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.7.3                                |                                    | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.7.3                                | v0.8.0                             | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                |                                    | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01    |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.2.1                                |                                    | true   | true             |
@@ -347,7 +348,7 @@ _Generated on Thu, 19 Mar 2026 20:36:47 UTC for commit [04404bb][0]._
 | github.com/envoyproxy/go-control-plane/envoy                                | v1.36.0                               | v1.37.0                            | false  | true             |
 | github.com/envoyproxy/go-control-plane/ratelimit                            | v0.1.0                                |                                    | false  | true             |
 | github.com/envoyproxy/protoc-gen-validate                                   | v1.3.0                                | v1.3.3                             | false  | true             |
-| github.com/fatih/color                                                      | v1.18.0                               |                                    | false  | true             |
+| github.com/fatih/color                                                      | v1.18.0                               | v1.19.0                            | false  | true             |
 | github.com/felixge/httpsnoop                                                | v1.0.4                                |                                    | false  | true             |
 | github.com/fsnotify/fsnotify                                                | v1.9.0                                |                                    | true   | true             |
 | github.com/fxamacker/cbor/v2                                                | v2.9.0                                |                                    | false  | true             |
@@ -463,12 +464,12 @@ _Generated on Thu, 19 Mar 2026 20:36:47 UTC for commit [04404bb][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260319020218-de2ddf6ed99f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260323120851-fe817bb47b52 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.10.0                            | false  | true             |
 | github.com/kisielk/gotool                                                   | v1.0.0                                |                                    | false  | true             |
-| github.com/klauspost/compress                                               | v1.18.3                               | v1.18.4                            | false  | true             |
+| github.com/klauspost/compress                                               | v1.18.3                               | v1.18.5                            | false  | true             |
 | github.com/klauspost/pgzip                                                  | v1.2.6                                |                                    | false  | true             |
 | github.com/knqyf263/go-plugin                                               | v0.9.0                                |                                    | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                          | v1.0.1                                | v1.0.3                             | false  | true             |
@@ -536,7 +537,7 @@ _Generated on Thu, 19 Mar 2026 20:36:47 UTC for commit [04404bb][0]._
 | github.com/oleiade/reflections                                              | v1.1.0                                |                                    | false  | true             |
 | github.com/olekukonko/cat                                                   | v0.0.0-20250911104152-50322a0618f6    |                                    | false  | true             |
 | github.com/olekukonko/errors                                                | v1.1.0                                | v1.2.0                             | false  | true             |
-| github.com/olekukonko/ll                                                    | v0.1.3                                | v0.1.7                             | false  | true             |
+| github.com/olekukonko/ll                                                    | v0.1.3                                | v0.1.8                             | false  | true             |
 | github.com/olekukonko/tablewriter                                           | v1.1.2                                | v1.1.4                             | false  | true             |
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0    |                                    | false  | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.1                               |                                    | true   | true             |
@@ -676,11 +677,11 @@ _Generated on Thu, 19 Mar 2026 20:36:47 UTC for commit [04404bb][0]._
 | gitlab.com/gitlab-org/api/client-go                                         | v0.127.0                              | v1.46.0                            | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1 | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.3                                |                                    | false  | true             |
-| go.etcd.io/etcd/api/v3                                                      | v3.6.5                                | v3.6.8                             | false  | true             |
-| go.etcd.io/etcd/client/pkg/v3                                               | v3.6.5                                | v3.6.8                             | false  | true             |
-| go.etcd.io/etcd/client/v3                                                   | v3.6.5                                | v3.6.8                             | false  | true             |
-| go.etcd.io/etcd/pkg/v3                                                      | v3.6.5                                | v3.6.8                             | false  | true             |
-| go.etcd.io/etcd/server/v3                                                   | v3.6.5                                | v3.6.8                             | false  | true             |
+| go.etcd.io/etcd/api/v3                                                      | v3.6.5                                | v3.6.9                             | false  | true             |
+| go.etcd.io/etcd/client/pkg/v3                                               | v3.6.5                                | v3.6.9                             | false  | true             |
+| go.etcd.io/etcd/client/v3                                                   | v3.6.5                                | v3.6.9                             | false  | true             |
+| go.etcd.io/etcd/pkg/v3                                                      | v3.6.5                                | v3.6.9                             | false  | true             |
+| go.etcd.io/etcd/server/v3                                                   | v3.6.5                                | v3.6.9                             | false  | true             |
 | go.etcd.io/raft/v3                                                          | v3.6.0                                |                                    | false  | true             |
 | go.mongodb.org/mongo-driver                                                 | v1.17.3                               | v1.17.9                            | false  | true             |
 | go.mozilla.org/pkcs7                                                        | v0.0.0-20200128120323-432b2356ecb1    | v0.9.0                             | false  | true             |
