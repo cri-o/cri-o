@@ -25,7 +25,6 @@ import (
 	"math"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -182,7 +181,7 @@ func GetKubernetesRepoURL(org string, useSSH bool) string {
 // - https://github.com/<org>/<repo>
 // - git@github.com:<org>/<repo>.
 func GetRepoURL(org, repo string, useSSH bool) (repoURL string) {
-	slug := filepath.Join(org, repo)
+	slug := fmt.Sprintf("%s/%s", org, repo)
 
 	if useSSH {
 		repoURL = fmt.Sprintf("%s%s", defaultGithubAuthRoot, slug)
@@ -805,6 +804,7 @@ func (r *Repo) HasBranch(branch string) (branchExists bool, err error) {
 	if err := branches.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Name().Short() == branch {
 			logrus.Infof("Branch %s found in the repository", branch)
+
 			branchExists = true
 		}
 

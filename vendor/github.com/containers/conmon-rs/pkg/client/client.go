@@ -1027,15 +1027,13 @@ func (c *ConmonClient) initLogDrivers(req *proto.Conmon_CreateContainerRequest, 
 
 	for i, logDriver := range logDrivers {
 		n := newLogDrivers.At(i)
-		if logDriver.Type == LogDriverTypeContainerRuntimeInterface {
+
+		switch logDriver.Type {
+		case LogDriverTypeContainerRuntimeInterface:
 			n.SetType(proto.Conmon_LogDriver_Type_containerRuntimeInterface)
-		}
-
-		if logDriver.Type == LogDriverTypeJSONLogger {
+		case LogDriverTypeJSONLogger:
 			n.SetType(proto.Conmon_LogDriver_Type_json)
-		}
-
-		if logDriver.Type == LogDriverTypeJournald {
+		case LogDriverTypeJournald:
 			n.SetType(proto.Conmon_LogDriver_Type_journald)
 		}
 
@@ -1185,12 +1183,15 @@ func (c *ConmonClient) setMetadata(ctx context.Context, req RequestWithMetadata)
 	}
 
 	span := trace.SpanFromContext(ctx)
+
+	if !span.SpanContext().HasSpanID() {
+		return stringStringMapToMapEntryList(nil, req.NewMetadata)
+	}
+
 	m := make(map[string]string)
 
-	if span.SpanContext().HasSpanID() {
-		c.logger.Tracef("Injecting tracing span ID %v", span.SpanContext().SpanID())
-		otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(m))
-	}
+	c.logger.Tracef("Injecting tracing span ID %v", span.SpanContext().SpanID())
+	otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(m))
 
 	if err := stringStringMapToMapEntryList(m, req.NewMetadata); err != nil {
 		return fmt.Errorf("set metadata2: %w", err)
@@ -1367,7 +1368,7 @@ func (c *ConmonClient) CreateNamespaces(
 		return nil, fmt.Errorf("set path: %w", err)
 	}
 
-	namespacesResponse := []*NamespacesResponse{}
+	namespacesResponse := make([]*NamespacesResponse, 0, namespaces.Len())
 
 	for i := range namespaces.Len() {
 		namespace := namespaces.At(i)
@@ -1409,7 +1410,8 @@ func (c *ConmonClient) CreateNamespaces(
 	}, nil
 }
 
-func mappingsToSlice(mappings []idtools.IDMap) (res []string) {
+func mappingsToSlice(mappings []idtools.IDMap) []string {
+	res := make([]string, 0, len(mappings))
 	for _, m := range mappings {
 		res = append(res, fmt.Sprintf("%d %d %d", m.ContainerID, m.HostID, m.Size))
 	}
