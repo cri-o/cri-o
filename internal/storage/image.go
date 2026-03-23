@@ -172,6 +172,9 @@ type ImageServer interface {
 	// UpdatePinnedImagesList updates pinned and pause images list in imageService.
 	UpdatePinnedImagesList(imageList []string)
 
+	// PinnedImageRegexps returns the compiled regular expressions for pinned images.
+	PinnedImageRegexps() []*regexp.Regexp
+
 	// IsRunningImageAllowed verifies if running of the container image is allowed.
 	//
 	// Arguments:
@@ -873,7 +876,11 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 	if shouldTryArtifact(err) {
 		log.Infof(ctx, "Falling back to pull %s as an OCI artifact: %v", imageName, err)
 
-		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), options.AdditionalArtifactStores, &srcSystemContext)
+		// TODO: pinnedImageRegexps is nil here because the image lookup service
+		//   does not have access to the compiled regexps. The pull result is not
+		//   used for image GC, but the store should ideally be configured at a
+		//   higher level where the regexps are available.
+		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), options.AdditionalArtifactStores, &srcSystemContext, nil)
 		if artifactErr != nil {
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: create store err: %w", artifactErr)
 		}
@@ -1096,6 +1103,10 @@ func (st nativeStorageTransport) ResolveReference(ref types.ImageReference) (typ
 // UpdatePinnedImagesList updates pinned images list in imageService.
 func (svc *imageService) UpdatePinnedImagesList(pinnedImages []string) {
 	svc.regexForPinnedImages = CompileRegexpsForPinnedImages(pinnedImages)
+}
+
+func (svc *imageService) PinnedImageRegexps() []*regexp.Regexp {
+	return svc.regexForPinnedImages
 }
 
 // FilterPinnedImage checks if the given image needs to be pinned

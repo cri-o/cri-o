@@ -34,7 +34,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 	crictl inspecti $ARTIFACT_IMAGE |
 		jq -e '
-		(.status.pinned == true) and
+		(.status.pinned == false) and
 		(.status.repoDigests | length == 1) and
 		(.status.repoTags | length == 1) and
 		(.status.size != "0")'
@@ -240,6 +240,86 @@ EOF
 	run ! crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json"
 
 	[[ "$output" == *"ImageVolumeMountFailed"*"does not exist in OCI artifact volume"* ]]
+}
+
+@test "artifact should be pinned when matching pinned_images" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-pinned-artifact.conf"
+[crio.image]
+pinned_images = [ "$ARTIFACT_IMAGE" ]
+EOF
+
+	start_crio
+	crictl pull "$ARTIFACT_IMAGE"
+
+	crictl inspecti "$ARTIFACT_IMAGE" |
+		jq -e '.status.pinned == true'
+}
+
+@test "artifact should be pinned when matching pinned_images glob pattern" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-pinned-artifact.conf"
+[crio.image]
+pinned_images = [ "quay.io/crio/artifact*" ]
+EOF
+
+	start_crio
+	crictl pull "$ARTIFACT_IMAGE"
+
+	crictl inspecti "$ARTIFACT_IMAGE" |
+		jq -e '.status.pinned == true'
+}
+
+@test "artifact should not be pinned when pinned_images does not match" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-pinned-artifact.conf"
+[crio.image]
+pinned_images = [ "quay.io/crio/nonexistent:latest" ]
+EOF
+
+	start_crio
+	crictl pull "$ARTIFACT_IMAGE"
+
+	crictl inspecti "$ARTIFACT_IMAGE" |
+		jq -e '.status.pinned == false'
+}
+
+@test "artifact pinned status should update after config reload" {
+	start_crio
+	crictl pull "$ARTIFACT_IMAGE"
+
+	# Initially not pinned
+	crictl inspecti "$ARTIFACT_IMAGE" |
+		jq -e '.status.pinned == false'
+
+	# Add pinned_images config and reload
+	printf '[crio.image]\npinned_images = ["%s"]\n' "$ARTIFACT_IMAGE" > "$CRIO_CONFIG_DIR"/01-pin-artifact
+	reload_crio
+	wait_for_log "Configuration reload completed"
+
+	# Now should be pinned
+	crictl inspecti "$ARTIFACT_IMAGE" |
+		jq -e '.status.pinned == true'
+}
+
+@test "artifact pinned status should be removed after config reload" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-pinned-artifact.conf"
+[crio.image]
+pinned_images = [ "$ARTIFACT_IMAGE" ]
+EOF
+
+	start_crio
+	crictl pull "$ARTIFACT_IMAGE"
+
+	# Initially pinned
+	crictl inspecti "$ARTIFACT_IMAGE" |
+		jq -e '.status.pinned == true'
+
+	# Remove pinned_images config and reload
+	printf '[crio.image]\npinned_images = []\n' > "$CRIO_CONFIG_DIR"/99-pinned-artifact.conf
+	reload_crio
+	wait_for_log "Configuration reload completed"
+
+	# Now should not be pinned
+	crictl inspecti "$ARTIFACT_IMAGE" |
+		jq -e '.status.pinned == false'
 }
 
 @test "should pull multi-architecture image" {

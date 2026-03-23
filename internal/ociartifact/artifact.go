@@ -28,10 +28,14 @@ type Artifact struct {
 
 	rootPath string
 	namedRef reference.Named
+
+	// pinned indicates whether this artifact should be excluded from
+	// garbage collection, based on the pinned_images configuration.
+	pinned bool
 }
 
-// NewArtifact creates a new Artifact from a libartifact.Artifact.
-func NewArtifact(art *libartifact.Artifact, rootPath string) *Artifact {
+// newArtifact creates a new Artifact from a libartifact.Artifact.
+func (s *Store) newArtifact(art *libartifact.Artifact, rootPath string, pinned bool) *Artifact {
 	artifact := &Artifact{
 		Artifact: art,
 		rootPath: rootPath,
@@ -48,6 +52,8 @@ func NewArtifact(art *libartifact.Artifact, rootPath string) *Artifact {
 
 		artifact.namedRef = namedRef
 	}
+
+	artifact.pinned = pinned || s.isArtifactPinned(artifact)
 
 	return artifact
 }
@@ -83,6 +89,6 @@ func (a *Artifact) CRIImage() *critypes.Image {
 		Size:        uint64(a.TotalSizeBytes()),
 		RepoTags:    repoTags,
 		RepoDigests: []string{a.CanonicalName()},
-		Pinned:      true,
+		Pinned:      a.pinned,
 	}
 }
