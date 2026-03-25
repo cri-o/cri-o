@@ -125,7 +125,7 @@ jobs:
           name: cri-o-static
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
           pushFilter: cri-o
-      - run: nix-build nix/default-${{ matrix.run.go-arch }}.nix
+      - run: nix build .#crio-${{ matrix.run.go-arch }}
       - run: file result/bin/crio | grep ${{ matrix.run.os-arch }}
       - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:

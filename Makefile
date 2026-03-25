@@ -6,6 +6,7 @@ GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_TEST ?= $(GO) test $(TRIMPATH)
 GO_RUN ?= $(GO) run
 NIX_IMAGE ?= nixos/nix:2.33.3
+NIX_FLAKE_FLAGS ?= --extra-experimental-features 'nix-command flakes'
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
@@ -213,7 +214,7 @@ build-static: ## Build the static binaries.
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /:/mnt \
 		$(NIX_IMAGE) cp -rfT /nix /mnt/nix
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} \
-		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/ --extra-experimental-features nix-command
+		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build $(NIX_FLAKE_FLAGS)
 	mkdir -p bin
 	cp -r result/bin bin/static
 
@@ -425,8 +426,7 @@ clean: ## Clean the repository.
 
 .PHONY: nixpkgs
 nixpkgs: ## Update the NIX package dependencies.
-	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -- \
-		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
+	nix $(NIX_FLAKE_FLAGS) flake update
 
 .PHONY: vendor
 vendor: export GOSUMDB :=
