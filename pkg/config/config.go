@@ -398,6 +398,14 @@ type RuntimeConfig struct {
 	// container image spec or in the container runtime configuration.
 	DefaultEnv []string `toml:"default_env"`
 
+	// InjectGOMAXPROCS sets the GOMAXPROCS environment variable in
+	// burstable and best-effort pod containers to the specified value.
+	// Guaranteed pods are skipped (they get exclusive CPUs via CPU Manager).
+	// The value is only injected if the container does not already have
+	// GOMAXPROCS set via the image or pod spec. Set to 0 to disable.
+	// Defaults to 0 (disabled).
+	InjectGOMAXPROCS int64 `toml:"inject_gomaxprocs"`
+
 	// Sysctls to add to all containers.
 	DefaultSysctls []string `toml:"default_sysctls"`
 

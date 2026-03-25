@@ -268,6 +268,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: slices.Equal(dc.DefaultEnv, c.DefaultEnv),
 		},
 		{
+			templateString: templateStringCrioRuntimeInjectGOMAXPROCS,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.InjectGOMAXPROCS, c.InjectGOMAXPROCS),
+		},
+		{
 			templateString: templateStringCrioRuntimeSelinux,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.SELinux, c.SELinux),
@@ -988,6 +993,15 @@ const templateStringCrioRuntimeDefaultEnv = `# Additional environment variables 
 # container image spec or in the container runtime configuration.
 {{ $.Comment }}default_env = [
 {{ range $env := .DefaultEnv }}{{ $.Comment }}{{ printf "\t%q,\n" $env }}{{ end }}{{ $.Comment }}]
+
+`
+
+const templateStringCrioRuntimeInjectGOMAXPROCS = `# Sets the GOMAXPROCS environment variable in burstable and best-effort pod
+# containers to the specified value. Guaranteed pods are skipped. This helps
+# Go workloads on high-core-count machines avoid excessive thread scheduling
+# overhead. The value is only injected if the container does not already have
+# GOMAXPROCS set via the image or pod spec. Set to 0 to disable (default).
+{{ $.Comment }}inject_gomaxprocs = {{ .InjectGOMAXPROCS }}
 
 `
 

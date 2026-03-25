@@ -849,7 +849,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		return nil, err
 	}
 
-	volumeMounts, err := s.setupContainerEnvironmentAndWorkdir(ctx, specgen, containerConfig, containerImageConfig, containerInfo, mountPoint, mountLabel, linux, securityContext)
+	volumeMounts, err := s.setupContainerEnvironmentAndWorkdir(ctx, sb, specgen, containerConfig, containerImageConfig, containerInfo, mountPoint, mountLabel, linux, securityContext)
 	if err != nil {
 		return nil, err
 	}
@@ -1016,7 +1016,7 @@ func (s *Server) setupContainerMounts(ctr container.Container, sb *sandbox.Sandb
 	return nil
 }
 
-func (s *Server) setupContainerEnvironmentAndWorkdir(ctx context.Context, specgen *generate.Generator, containerConfig *types.ContainerConfig, containerImageConfig *v1.Image, containerInfo *storage.ContainerInfo, mountPoint, mountLabel string, linux *types.LinuxContainerConfig, securityContext *types.LinuxContainerSecurityContext) ([]rspec.Mount, error) {
+func (s *Server) setupContainerEnvironmentAndWorkdir(ctx context.Context, sb *sandbox.Sandbox, specgen *generate.Generator, containerConfig *types.ContainerConfig, containerImageConfig *v1.Image, containerInfo *storage.ContainerInfo, mountPoint, mountLabel string, linux *types.LinuxContainerConfig, securityContext *types.LinuxContainerSecurityContext) ([]rspec.Mount, error) {
 	// First add any configured environment variables from crio config.
 	// They will get overridden if specified in the image or container config.
 	specgen.AddMultipleProcessEnv(s.ContainerServer.Config().DefaultEnv)
@@ -1026,6 +1026,16 @@ func (s *Server) setupContainerEnvironmentAndWorkdir(ctx context.Context, specge
 	for _, e := range envs {
 		parts := strings.SplitN(e, "=", 2)
 		specgen.AddProcessEnv(parts[0], parts[1])
+	}
+
+	// Inject GOMAXPROCS for burstable/best-effort pods if configured and not already set.
+	// Guaranteed pods get exclusive CPUs via CPU Manager, so GOMAXPROCS is not needed.
+	maxProcs := s.ContainerServer.Config().InjectGOMAXPROCS
+	if maxProcs > 0 {
+		cgroupParent := sb.CgroupParent()
+		if strings.Contains(cgroupParent, "burstable") || strings.Contains(cgroupParent, "besteffort") {
+			injectGOMAXPROCS(ctx, specgen, envs, s.ContainerServer.Config().DefaultEnv, maxProcs)
+		}
 	}
 
 	// Setup user and groups
@@ -1062,6 +1072,25 @@ func (s *Server) setupContainerEnvironmentAndWorkdir(ctx context.Context, specge
 	}
 
 	return volumeMounts, nil
+}
+
+// injectGOMAXPROCS sets the GOMAXPROCS environment variable to the given value.
+// Injection is skipped if GOMAXPROCS is already set in defaultEnv, image, or pod spec.
+func injectGOMAXPROCS(ctx context.Context, specgen *generate.Generator, envs, defaultEnv []string, maxProcs int64) {
+	for _, env := range defaultEnv {
+		if strings.HasPrefix(env, "GOMAXPROCS=") {
+			return
+		}
+	}
+
+	for _, env := range envs {
+		if strings.HasPrefix(env, "GOMAXPROCS=") {
+			return
+		}
+	}
+
+	log.Infof(ctx, "Injecting GOMAXPROCS=%d", maxProcs)
+	specgen.AddProcessEnv("GOMAXPROCS", strconv.FormatInt(maxProcs, 10))
 }
 
 func (s *Server) setupSeccomp(ctx context.Context, ctr container.Container, sb *sandbox.Sandbox, containerID string, imgResult *storage.ImageResult, securityContext *types.LinuxContainerSecurityContext, specgen *generate.Generator) (string, error) {
