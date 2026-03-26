@@ -40,6 +40,9 @@ func assembleTemplateString(displayAllConfig bool, c *Config) string {
 	// [crio.image] configuration
 	templateString += crioTemplateString(crioImageConfig, templateStringCrioImage, displayAllConfig, crioTemplateConfig)
 
+	// [crio.image.supply_chain] configuration
+	templateString += crioTemplateString(crioSupplyChainConfig, templateStringCrioImageSupplyChain, displayAllConfig, crioTemplateConfig)
+
 	// [crio.network] configuration
 	templateString += crioTemplateString(crioNetworkConfig, templateStringCrioNetwork, displayAllConfig, crioTemplateConfig)
 
@@ -97,6 +100,7 @@ const (
 	crioTracingConfig
 	crioStatsConfig
 	crioNRIConfig
+	crioSupplyChainConfig
 )
 
 type templateConfigValue struct {
@@ -586,6 +590,31 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringOCIArtifactMountSupport,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.OCIArtifactMountSupport, c.OCIArtifactMountSupport),
+		},
+		{
+			templateString: templateStringCrioSupplyChainVerification,
+			group:          crioSupplyChainConfig,
+			isDefaultValue: simpleEqual(dc.SupplyChain.Verification, c.SupplyChain.Verification),
+		},
+		{
+			templateString: templateStringCrioSupplyChainFetchTimeout,
+			group:          crioSupplyChainConfig,
+			isDefaultValue: simpleEqual(dc.SupplyChain.FetchTimeout, c.SupplyChain.FetchTimeout),
+		},
+		{
+			templateString: templateStringCrioSupplyChainFetchFailurePolicy,
+			group:          crioSupplyChainConfig,
+			isDefaultValue: simpleEqual(dc.SupplyChain.FetchFailurePolicy, c.SupplyChain.FetchFailurePolicy),
+		},
+		{
+			templateString: templateStringCrioSupplyChainCacheTTL,
+			group:          crioSupplyChainConfig,
+			isDefaultValue: simpleEqual(dc.SupplyChain.CacheTTL, c.SupplyChain.CacheTTL),
+		},
+		{
+			templateString: templateStringCrioSupplyChainPolicyDir,
+			group:          crioSupplyChainConfig,
+			isDefaultValue: simpleEqual(dc.SupplyChain.PolicyDir, c.SupplyChain.PolicyDir),
 		},
 		{
 			templateString: templateStringCrioNetworkCniDefaultNetwork,
@@ -1618,6 +1647,47 @@ const templateStringCrioImageShortNameMode = `# The mode of short name resolutio
 # If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 # If "disabled", the first result will be chosen.
 {{ $.Comment }}short_name_mode = "{{ .ShortNameMode }}"
+
+`
+
+const templateStringCrioImageSupplyChain = `# The crio.image.supply_chain table contains settings for supply chain
+# attestation verification of container images. When enabled, CRI-O can verify
+# SLSA provenance, VEX, and VSA attestations before allowing containers to run.
+# This option supports live configuration reload.
+[crio.image.supply_chain]
+
+`
+
+const templateStringCrioSupplyChainVerification = `# Master toggle for supply chain verification.
+# Valid values: "disabled" (default), "warn" (log-only), "enforce" (reject on failure).
+{{ $.Comment }}verification = "{{ .SupplyChain.Verification }}"
+
+`
+
+const templateStringCrioSupplyChainFetchTimeout = `# Per-fetch timeout for retrieving attestations from OCI registries.
+{{ $.Comment }}fetch_timeout = "{{ .SupplyChain.FetchTimeout }}"
+
+`
+
+const templateStringCrioSupplyChainFetchFailurePolicy = `# Behavior when attestation fetch fails due to network errors.
+# Valid values: "allow", "warn" (default), "deny".
+{{ $.Comment }}fetch_failure_policy = "{{ .SupplyChain.FetchFailurePolicy }}"
+
+`
+
+const templateStringCrioSupplyChainCacheTTL = `# How long verification results are cached per image digest and namespace.
+# Set to 0 to disable caching.
+{{ $.Comment }}cache_ttl = "{{ .SupplyChain.CacheTTL }}"
+
+`
+
+const templateStringCrioSupplyChainPolicyDir = `# Path to the directory containing JSON policy files for per-namespace
+# verification settings. <dir>/default.json is the base policy,
+# <dir>/<namespace>.json overrides it for that namespace.
+# Policy files configure: trust (builders, verifiers, issuers, sources,
+# build_types), exclude, provenance, vex, vsa, and signatures
+# settings. Must be absolute.
+{{ $.Comment }}policy_dir = "{{ .SupplyChain.PolicyDir }}"
 
 `
 

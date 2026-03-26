@@ -68,6 +68,7 @@ kata_skip_files:
   - "seccomp_notifier.bats"
   - "selinux.bats" # SELinux disabled with kata for now (see https://github.com/kata-containers/tests/issues/4248)
   - "shm_size.bats"
+  - "supply_chain.bats"
   - "timeout.bats"
   - "umask_annotation.bats"
   - "userns_annotation.bats"
