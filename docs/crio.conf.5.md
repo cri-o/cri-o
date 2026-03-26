@@ -537,6 +537,25 @@ The valid values are "enforcing" and "disabled", and the default is "enforcing".
 If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 If "disabled", the first result will be chosen.
 
+### CRIO.IMAGE.SUPPLY_CHAIN TABLE
+
+The `crio.image.supply_chain` table contains settings for supply chain attestation verification of container images. When enabled, CRI-O can verify SLSA provenance, VEX, and VSA attestations before allowing containers to run. Actual attestation verification requires cosign/sigstore integration (see implementation phases in the tracking issue). This option supports live configuration reload.
+
+**verification**="disabled"
+Master toggle for supply chain verification. Valid values: "disabled" (default), "warn" (log-only), "enforce" (reject on failure). In "warn" mode, verification failures are logged but containers are allowed. In "enforce" mode, containers are rejected on verification failure.
+
+**fetch_timeout**="30s"
+Per-fetch timeout for retrieving attestations from OCI registries.
+
+**fetch_failure_policy**="warn"
+Behavior when attestation fetch fails due to network errors. Valid values: "allow", "warn" (default), "deny".
+
+**cache_ttl**="24h0m0s"
+How long verification results are cached per image digest and namespace. Set to 0 to disable caching.
+
+**policy_dir**="/etc/crio/supply-chain-policies"
+Path to the directory containing JSON policy files for per-namespace verification settings. `<dir>/default.json` is the base policy, `<dir>/<namespace>.json` overrides it for that namespace. Must be an absolute path. Namespace policies are full overrides, not merged with `default.json`. The Kubernetes `"default"` namespace uses `default.json` (same as namespaces without a dedicated policy file). Policy files support the following fields: `trust` (`{"builders", "verifiers", "issuers", "sources", "build_types"}`), `exclude` (list of glob patterns for images that skip verification; uses `path.Match` semantics where `*` matches a single path segment, not crossing `/`), `provenance` (`{"missing_policy", "reject_unknown_parameters"}`), `vex` (`{"severity_threshold", "missing_policy", "under_investigation_policy"}`), `vsa` (`{"minimum_level", "max_age", "policy"}`), `signatures` (`{"require_transparency_log"}`).
+
 ## CRIO.NETWORK TABLE
 
 The `crio.network` table containers settings pertaining to the management of CNI plugins.

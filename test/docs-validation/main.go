@@ -35,6 +35,7 @@ var (
 		"manage_network_ns_lifecycle", // deprecated
 		"default_validator",           // printed as a separate table
 		"namespaced_auth_dir",         // hidden
+		"supply_chain",                // printed as separate table
 	}
 
 	// Tags where it should not validate the values.
@@ -50,6 +51,16 @@ var (
 		"workloads", // too complex an option for a CLI flag
 		"default_validator",
 		"namespaced_auth_dir", // hidden
+		// Supply chain config is file-only, no CLI flags.
+		// These are bare TOML tag names from supplychain.Config.
+		// If a future config section adds fields with the same tag names,
+		// the exclusion list must be refactored to use qualified paths.
+		"supply_chain",
+		"verification",
+		"fetch_timeout",
+		"fetch_failure_policy",
+		"cache_ttl",
+		"policy_dir",
 	}
 
 	// Mapping for inconsistencies between tags and CLI arguments.
