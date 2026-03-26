@@ -87,6 +87,10 @@ const (
 	// DisableFIPSAnnotation is used to disable FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
 	DisableFIPSAnnotation = "io.kubernetes.cri-o.DisableFIPS"
 
+	// SkipGoMaxProcsAnnotation is used to skip GOMAXPROCS injection for a specific pod,
+	// even when inject_gomaxprocs is enabled globally.
+	SkipGoMaxProcsAnnotation = "skip-gomaxprocs.crio.io"
+
 	// StopSignalAnnotation represents the stop signal used for the image
 	// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 	StopSignalAnnotation = "org.opencontainers.image.stopSignal"
@@ -114,6 +118,7 @@ var AllAllowedAnnotations = []string{
 	CPUSharedAnnotation,
 	SeccompProfileAnnotation,
 	DisableFIPSAnnotation,
+	SkipGoMaxProcsAnnotation,
 	// Keep in sync with
 	// https://github.com/opencontainers/runc/blob/3db0871f1cf25c7025861ba0d51d25794cb21623/features.go#L67
 	// Once runc 1.2 is released, we can use the `runc features` command to get this programmatically,

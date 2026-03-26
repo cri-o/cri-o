@@ -1100,6 +1100,41 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		specgen.AddProcessEnv(parts[0], parts[1])
 	}
 
+	// Inject GOMAXPROCS for burstable/best-effort pods if configured and not already set.
+	// Guaranteed pods get exclusive CPUs via CPU Manager, so GOMAXPROCS is not needed.
+	// Workload-partitioned pods are skipped — their cpuset already constrains NumCPU().
+	// Pods annotated with skip-gomaxprocs.crio.io=true are skipped.
+	fallbackMaxProcs := s.ContainerServer.Config().InjectGOMAXPROCS
+	if fallbackMaxProcs > 0 {
+		annotations := sb.Annotations()
+		skipAnnotation := annotations[crioann.SkipGoMaxProcsAnnotation]
+
+		if skipAnnotation == "true" {
+			log.Debugf(ctx, "Skipping GOMAXPROCS injection: %s annotation is set", crioann.SkipGoMaxProcsAnnotation)
+		} else if s.config.Workloads.IsWorkloadPartitioned(annotations) {
+			log.Debugf(ctx, "Skipping GOMAXPROCS injection: pod is workload-partitioned")
+		} else if cgroupParent := sb.CgroupParent(); strings.Contains(cgroupParent, "burstable") || strings.Contains(cgroupParent, "besteffort") {
+			var shares, cpuQuota int64
+
+			if linux != nil {
+				if resources := linux.GetResources(); resources != nil {
+					shares = resources.GetCpuShares()
+					cpuQuota = resources.GetCpuQuota()
+				}
+			}
+
+			// Skip if the container has a CPU limit (quota > 0). Go 1.25+ auto-detects
+			// GOMAXPROCS from the cgroup quota, so injecting would override that.
+			if cpuQuota <= 0 {
+				maxProcs := calculateGOMAXPROCS(shares, fallbackMaxProcs)
+
+				injectGOMAXPROCS(specgen, envs, s.ContainerServer.Config().DefaultEnv, maxProcs)
+			} else {
+				log.Debugf(ctx, "Skipping GOMAXPROCS injection: container has CPU limit (quota=%d)", cpuQuota)
+			}
+		}
+	}
+
 	// Setup user and groups
 	if linux != nil {
 		if err := setupContainerUser(ctx, specgen, mountPoint, mountLabel, containerInfo.RunDir, securityContext, containerImageConfig); err != nil {
@@ -1372,6 +1407,41 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	}
 
 	return ociContainer, nil
+}
+
+// calculateGOMAXPROCS determines the GOMAXPROCS value from CPU shares and a configured floor.
+// For burstable pods, kubelet sets shares = cpu_request_in_millicores * 1024 / 1000.
+// Best-effort pods have shares=2 (kernel minimum), so they use the fallback floor.
+// The calculated value is only used if it exceeds the floor.
+func calculateGOMAXPROCS(shares, fallbackMaxProcs int64) int64 {
+	if shares > 2 {
+		// ceil(shares / 1024) gives the number of CPUs from the request.
+		cpus := max((shares+1023)/1024, 1)
+
+		if cpus > fallbackMaxProcs {
+			return cpus
+		}
+	}
+
+	return fallbackMaxProcs
+}
+
+// injectGOMAXPROCS sets the GOMAXPROCS environment variable to the given value.
+// Injection is skipped if GOMAXPROCS is already set in defaultEnv, image, or pod spec.
+func injectGOMAXPROCS(specgen *generate.Generator, envs, defaultEnv []string, maxProcs int64) {
+	for _, env := range defaultEnv {
+		if strings.HasPrefix(env, "GOMAXPROCS=") {
+			return
+		}
+	}
+
+	for _, env := range envs {
+		if strings.HasPrefix(env, "GOMAXPROCS=") {
+			return
+		}
+	}
+
+	specgen.AddProcessEnv("GOMAXPROCS", strconv.FormatInt(maxProcs, 10))
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
