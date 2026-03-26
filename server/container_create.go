@@ -546,3 +546,38 @@ func isInCRIMounts(dst string, mounts []*types.Mount) bool {
 	}
 	return false
 }
+
+// calculateGOMAXPROCS determines the GOMAXPROCS value from CPU shares and a configured floor.
+// For burstable pods, kubelet sets shares = cpu_request_in_millicores * 1024 / 1000.
+// Best-effort pods have shares=2 (kernel minimum), so they use the fallback floor.
+// The calculated value is only used if it exceeds the floor.
+func calculateGOMAXPROCS(shares, fallbackMaxProcs int64) int64 {
+	if shares > 2 {
+		// ceil(shares / 1024) gives the number of CPUs from the request.
+		cpus := max((shares+1023)/1024, 1)
+
+		if cpus > fallbackMaxProcs {
+			return cpus
+		}
+	}
+
+	return fallbackMaxProcs
+}
+
+// injectGOMAXPROCS sets the GOMAXPROCS environment variable to the given value.
+// Injection is skipped if GOMAXPROCS is already set in defaultEnv, image, or pod spec.
+func injectGOMAXPROCS(specgen *generate.Generator, envs, defaultEnv []string, maxProcs int64) {
+	for _, env := range defaultEnv {
+		if strings.HasPrefix(env, "GOMAXPROCS=") {
+			return
+		}
+	}
+
+	for _, env := range envs {
+		if strings.HasPrefix(env, "GOMAXPROCS=") {
+			return
+		}
+	}
+
+	specgen.AddProcessEnv("GOMAXPROCS", strconv.FormatInt(maxProcs, 10))
+}
