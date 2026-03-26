@@ -67,6 +67,7 @@ h
 --imagestore
 --included-pod-metrics
 --infra-ctr-cpuset
+--inject-gomaxprocs
 --insecure-registry
 --internal-repair
 --internal-wipe
