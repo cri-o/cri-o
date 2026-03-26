@@ -18,6 +18,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/process"
 	"github.com/cri-o/cri-o/internal/storage/references"
+	"github.com/cri-o/cri-o/internal/supplychain"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics/collectors"
 )
@@ -455,23 +456,27 @@ func (m *Metrics) MetricContainersStoppedMonitorCountInc(name string) {
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	for collector, metric := range map[collectors.Collector]prometheus.Collector{
-		collectors.ContainersEventsDropped:             m.metricContainersEventsDropped,
-		collectors.ContainersOOMCountTotal:             m.metricContainersOOMCountTotal,
-		collectors.ContainersOOMTotal:                  m.metricContainersOOMTotal,
-		collectors.ContainersSeccompNotifierCountTotal: m.metricContainersSeccompNotifierCountTotal,
-		collectors.ImageLayerReuseTotal:                m.metricImageLayerReuseTotal,
-		collectors.ImagePullsBytesTotal:                m.metricImagePullsBytesTotal,
-		collectors.ImagePullsFailureTotal:              m.metricImagePullsFailureTotal,
-		collectors.ImagePullsLayerSize:                 m.metricImagePullsLayerSize,
-		collectors.ImagePullsSkippedBytesTotal:         m.metricImagePullsSkippedBytesTotal,
-		collectors.ImagePullsSuccessTotal:              m.metricImagePullsSuccessTotal,
-		collectors.OperationsErrorsTotal:               m.metricOperationsErrorsTotal,
-		collectors.OperationsLatencySeconds:            m.metricOperationsLatencySeconds,
-		collectors.OperationsLatencySecondsTotal:       m.metricOperationsLatencySecondsTotal,
-		collectors.OperationsTotal:                     m.metricOperationsTotal,
-		collectors.ProcessesDefunct:                    m.metricProcessesDefunct,
-		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
-		collectors.ContainersStoppedMonitorCount:       m.metricContainersStoppedMonitorCount,
+		collectors.ContainersEventsDropped:                m.metricContainersEventsDropped,
+		collectors.ContainersOOMCountTotal:                m.metricContainersOOMCountTotal,
+		collectors.ContainersOOMTotal:                     m.metricContainersOOMTotal,
+		collectors.ContainersSeccompNotifierCountTotal:    m.metricContainersSeccompNotifierCountTotal,
+		collectors.ImageLayerReuseTotal:                   m.metricImageLayerReuseTotal,
+		collectors.ImagePullsBytesTotal:                   m.metricImagePullsBytesTotal,
+		collectors.ImagePullsFailureTotal:                 m.metricImagePullsFailureTotal,
+		collectors.ImagePullsLayerSize:                    m.metricImagePullsLayerSize,
+		collectors.ImagePullsSkippedBytesTotal:            m.metricImagePullsSkippedBytesTotal,
+		collectors.ImagePullsSuccessTotal:                 m.metricImagePullsSuccessTotal,
+		collectors.OperationsErrorsTotal:                  m.metricOperationsErrorsTotal,
+		collectors.OperationsLatencySeconds:               m.metricOperationsLatencySeconds,
+		collectors.OperationsLatencySecondsTotal:          m.metricOperationsLatencySecondsTotal,
+		collectors.OperationsTotal:                        m.metricOperationsTotal,
+		collectors.ProcessesDefunct:                       m.metricProcessesDefunct,
+		collectors.ResourcesStalledAtStage:                m.metricResourcesStalledAtStage,
+		collectors.ContainersStoppedMonitorCount:          m.metricContainersStoppedMonitorCount,
+		collectors.SupplyChainVerificationTotal:           supplychain.VerificationTotal,
+		collectors.SupplyChainVerificationDurationSeconds: supplychain.VerificationDuration,
+		collectors.SupplyChainCacheHitsTotal:              supplychain.CacheHitsTotal,
+		collectors.SupplyChainFetchErrorsTotal:            supplychain.FetchErrorsTotal,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())

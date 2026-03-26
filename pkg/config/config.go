@@ -47,6 +47,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/ulimits"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage/references"
+	"github.com/cri-o/cri-o/internal/supplychain"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	"github.com/cri-o/cri-o/server/metrics/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
@@ -689,6 +690,8 @@ type ImageConfig struct {
 	// If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 	// If "disabled", the first result will be chosen.
 	ShortNameMode string `toml:"short_name_mode"`
+	// SupplyChain configures supply chain attestation verification for pulled images.
+	SupplyChain supplychain.Config `toml:"supply_chain"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table.
@@ -1085,6 +1088,7 @@ func DefaultConfig() (*Config, error) {
 			OCIArtifactMountSupport: true,
 			ShortNameMode:           "enforcing",
 			NamespacedAuthDir:       cpConfig.AuthDir,
+			SupplyChain:             supplychain.DefaultConfig(),
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
@@ -1850,6 +1854,10 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 	case "enforcing", "disabled", "":
 	default:
 		return fmt.Errorf("invalid short name mode %q", c.ShortNameMode)
+	}
+
+	if err := c.SupplyChain.Validate(onExecution); err != nil {
+		return fmt.Errorf("validating supply chain config: %w", err)
 	}
 
 	return nil
