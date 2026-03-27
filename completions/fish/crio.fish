@@ -93,6 +93,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l image-volumes -r -d 'Image
 complete -c crio -n '__fish_crio_no_subcommand' -l imagestore -r -d 'Store newly pulled images in the specified path, rather than the path provided by --root.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l included-pod-metrics -r -d 'A list of pod metrics to include. Specify the names of the metrics to include in this list.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l infra-ctr-cpuset -r -d 'CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l inject-gomaxprocs -r -d 'Enable GOMAXPROCS injection. Burstable pods auto-calculate from CPU request, with this value as the minimum floor. Best-effort pods use this value directly. 0 to disable.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l insecure-registry -r -d 'Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
     1. List of insecure registries can contain an element with CIDR notation to
        specify a whole subnet.

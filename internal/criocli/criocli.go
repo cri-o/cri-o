@@ -213,6 +213,10 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.ApparmorProfile = ctx.String("apparmor-profile")
 	}
 
+	if ctx.IsSet("inject-gomaxprocs") {
+		config.InjectGOMAXPROCS = ctx.Int64("inject-gomaxprocs")
+	}
+
 	if ctx.IsSet("blockio-config-file") {
 		config.BlockIOConfigFile = ctx.String("blockio-config-file")
 	}
@@ -1146,6 +1150,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   cli.NewStringSlice(defConf.DefaultEnv...),
 			Usage:   "Additional environment variables to set for all containers.",
 			EnvVars: []string{"CONTAINER_DEFAULT_ENV"},
+		},
+		&cli.Int64Flag{
+			Name:    "inject-gomaxprocs",
+			Value:   defConf.InjectGOMAXPROCS,
+			Usage:   "Enable GOMAXPROCS injection. Burstable pods auto-calculate from CPU request, with this value as the minimum floor. Best-effort pods use this value directly. 0 to disable.",
+			EnvVars: []string{"CONTAINER_INJECT_GOMAXPROCS"},
 		},
 		&cli.StringFlag{
 			Name:      "container-attach-socket-dir",
