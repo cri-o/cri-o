@@ -710,6 +710,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		specgen.AddProcessEnv(parts[0], parts[1])
 	}
 
+	// Inject GOMAXPROCS for burstable/best-effort pods if configured.
+	s.maybeInjectGOMAXPROCS(ctx, sb, specgen, envs, linux)
+
 	// Setup user and groups
 	if linux != nil {
 		if err := setupContainerUser(ctx, specgen, mountPoint, mountLabel, containerInfo.RunDir, securityContext, containerImageConfig); err != nil {
@@ -1304,4 +1307,52 @@ func isSubDirectoryOf(base, target string) bool {
 		base += "/"
 	}
 	return strings.HasPrefix(base, target)
+}
+
+// maybeInjectGOMAXPROCS injects GOMAXPROCS env var for burstable/best-effort pods if configured.
+// Guaranteed pods get exclusive CPUs via CPU Manager, so GOMAXPROCS is not needed.
+// Workload-partitioned pods are skipped — their cpuset already constrains NumCPU().
+// Pods annotated with skip-gomaxprocs.crio.io=true are skipped.
+func (s *Server) maybeInjectGOMAXPROCS(ctx context.Context, sb *sandbox.Sandbox, specgen *generate.Generator, envs []string, linux *types.LinuxContainerConfig) {
+	fallbackMaxProcs := s.Config().InjectGOMAXPROCS
+	if fallbackMaxProcs <= 0 {
+		return
+	}
+
+	annotations := sb.Annotations()
+	skipAnnotation := annotations[crioann.SkipGoMaxProcsAnnotation]
+
+	if skipAnnotation == "true" {
+		log.Debugf(ctx, "Skipping GOMAXPROCS injection: %s annotation is set", crioann.SkipGoMaxProcsAnnotation)
+		return
+	}
+
+	if s.config.Workloads.IsWorkloadPartitioned(annotations) {
+		log.Debugf(ctx, "Skipping GOMAXPROCS injection: pod is workload-partitioned")
+		return
+	}
+
+	cgroupParent := sb.CgroupParent()
+	if !strings.Contains(cgroupParent, "burstable") && !strings.Contains(cgroupParent, "besteffort") {
+		return
+	}
+
+	var shares, cpuQuota int64
+
+	if linux != nil {
+		if resources := linux.Resources; resources != nil {
+			shares = resources.CpuShares
+			cpuQuota = resources.CpuQuota
+		}
+	}
+
+	// Skip if the container has a CPU limit (quota > 0). Go 1.25+ auto-detects
+	// GOMAXPROCS from the cgroup quota, so injecting would override that.
+	if cpuQuota > 0 {
+		log.Debugf(ctx, "Skipping GOMAXPROCS injection: container has CPU limit (quota=%d)", cpuQuota)
+		return
+	}
+
+	maxProcs := calculateGOMAXPROCS(shares, fallbackMaxProcs)
+	injectGOMAXPROCS(specgen, envs, s.Config().DefaultEnv, maxProcs)
 }

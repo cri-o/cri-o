@@ -63,6 +63,7 @@ h
 --image-volumes
 --imagestore
 --infra-ctr-cpuset
+--inject-gomaxprocs
 --insecure-registry
 --internal-repair
 --internal-wipe

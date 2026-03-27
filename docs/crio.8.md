@@ -61,6 +61,7 @@ crio
 [--image-volumes]=[value]
 [--imagestore]=[value]
 [--infra-ctr-cpuset]=[value]
+[--inject-gomaxprocs]=[value]
 [--insecure-registry]=[value]
 [--internal-repair]
 [--internal-wipe]
@@ -287,6 +288,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--imagestore**="": Store newly pulled images in the specified path, rather than the path provided by --root.
 
 **--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
+
+**--inject-gomaxprocs**="": Enable GOMAXPROCS injection. Burstable pods auto-calculate from CPU request, with this value as the minimum floor. Best-effort pods use this value directly. 0 to disable. (default: 0)
 
 **--insecure-registry**="": Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
     1. List of insecure registries can contain an element with CIDR notation to
