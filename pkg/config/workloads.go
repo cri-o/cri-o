@@ -166,6 +166,12 @@ func (w Workloads) workloadGivenActivationAnnotation(sboxAnnotations map[string]
 	return nil
 }
 
+// IsWorkloadPartitioned returns true if the pod has a workload partitioning
+// activation annotation, meaning its cpuset is managed by workload partitioning.
+func (w Workloads) IsWorkloadPartitioned(sboxAnnotations map[string]string) bool {
+	return w.workloadGivenActivationAnnotation(sboxAnnotations) != nil
+}
+
 func resourcesFromAnnotation(prefix, ctrName string, allAnnotations map[string]string, defaultResources *Resources) (*Resources, error) {
 	annotationKey := prefix + "/" + ctrName
 
