@@ -3,7 +3,6 @@
 }:
 with pkgs; buildGo126Module /* use go 1.26 */ {
   name = "cri-o";
-  # Use Pure to avoid exuding the .git directory
   src = nix-gitignore.gitignoreSourcePure [ ../.gitignore ] ./..;
   vendorHash = null;
   doCheck = false;

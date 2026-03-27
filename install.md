@@ -379,26 +379,26 @@ installed nix package manager, simply run the following command from the root
 directory of this repository:
 
 ```shell
-nix build -f nix
+nix build
 ```
 
 The resulting binaries should be now available in `result/bin`. To build the arm
 variant of the binaries, just run:
 
 ```shell
-nix build -f nix/default-arm64.nix
+nix build .#crio-arm64
 ```
 
 Similarly, the ppc64le variant of binaries can be built using:
 
 ```shell
-nix build -f nix/default-ppc64le.nix
+nix build .#crio-ppc64le
 ```
 
 In the same way, the s390x variant of binaries can be built using:
 
 ```shell
-nix build -f nix/default-s390x.nix
+nix build .#crio-s390x
 ```
 
 ### Download conmon
