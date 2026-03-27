@@ -60,18 +60,27 @@ type Container struct {
 	conmonCgroupfsPath string
 	crioAnnotations    fields.Set
 	state              *ContainerState
-	opLock             sync.RWMutex // For handling the container OCI runtime state transitions (i.e: anything that needs to call OCI runtime)
-	metaLock           sync.RWMutex // For handling the internal oci.Container metadata. Currently only used for Spec and Resources fields
-	spec               *specs.Spec
-	idMappings         *idtools.IDMappings
-	terminal           bool
-	stdin              bool
-	stdinOnce          bool
-	created            bool
-	spoofed            bool
-	stopping           bool
-	stopDone           bool
-	stopLock           sync.Mutex
+	// stateLock protects the state pointer for memory-safe reads and writes.
+	// Use opLock to prevent data inconsistency.
+	// Do not acquire opLock while stateLock is being acquired.
+	stateLock sync.RWMutex
+	// opLock serializes OCI runtime operations on this container (create, start, stop,
+	// delete, update, pause, unpause, checkpoint, status queries, and stats collection).
+	// It is held across external runtime calls (e.g. runc/crun invocations) to prevent
+	// concurrent runtime operations from racing against each other for the same container.
+	// Do not acquire opLock while stateLock is being acquired.
+	opLock     sync.RWMutex
+	metaLock   sync.RWMutex // For handling the internal oci.Container metadata. Currently only used for Spec and Resources fields
+	spec       *specs.Spec
+	idMappings *idtools.IDMappings
+	terminal   bool
+	stdin      bool
+	stdinOnce  bool
+	created    bool
+	spoofed    bool
+	stopping   bool
+	stopDone   bool
+	stopLock   sync.Mutex
 	// stopTimeoutChan is used to update the stop timeout.
 	// After the container goes into the kill loop, the channel must not be used
 	// because it is not controlled by the timeout anymore.
@@ -339,7 +348,9 @@ func (c *Container) FromDisk() error {
 		logrus.Infof("PID information for container %s updated to %d %s", c.ID(), tmpState.InitPid, tmpState.InitStartTime)
 	}
 
-	c.state = tmpState
+	c.ModifyState(func(s *ContainerState) {
+		*s = *tmpState
+	})
 
 	return nil
 }
@@ -364,6 +375,26 @@ func (cstate *ContainerState) SetInitPid(pid int) error {
 	return nil
 }
 
+// SetContainerInitPid initializes the InitPid and InitStartTime for the
+// container while holding the stateLock.
+func (c *Container) SetContainerInitPid(pid int) error {
+	startTime, err := getPidStartTime(pid)
+	if err != nil {
+		return err
+	}
+
+	return c.ModifyStateWithError(func(s *ContainerState) error {
+		if s.InitPid != 0 || s.InitStartTime != "" {
+			return fmt.Errorf("pid and start time already initialized: %d %s", s.InitPid, s.InitStartTime)
+		}
+
+		s.InitPid = pid
+		s.InitStartTime = startTime
+
+		return nil
+	})
+}
+
 // StatePath returns the containers state.json path.
 func (c *Container) StatePath() string {
 	return filepath.Join(c.dir, "state.json")
@@ -381,7 +412,9 @@ func (c *Container) CheckpointedAt() time.Time {
 
 // SetCheckpointedAt sets the time of checkpointing.
 func (c *Container) SetCheckpointedAt(checkpointedAt time.Time) {
-	c.state.CheckpointedAt = checkpointedAt
+	c.ModifyState(func(s *ContainerState) {
+		s.CheckpointedAt = checkpointedAt
+	})
 }
 
 // Name returns the name of the container.
@@ -481,6 +514,43 @@ func (c *Container) StateNoLock() *ContainerState {
 	return c.state
 }
 
+// GetState returns a shallow copy of the container's state, safe for reading outside of locks.
+// Callers must not mutate pointer fields (ExitCode, ContainerMonitorProcess, Annotations).
+func (c *Container) GetState() ContainerState {
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
+
+	return *c.state
+}
+
+// GetStatus returns the container's status, safe for reading outside of locks.
+func (c *Container) GetStatus() specs.ContainerState {
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
+
+	return c.state.Status
+}
+
+// ModifyState calls the provided function with the container's state
+// while holding the stateLock for writing, allowing safe mutation.
+// Must NOT run external/long-running (even if potentially) functions.
+func (c *Container) ModifyState(modify func(*ContainerState)) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+
+	modify(c.state)
+}
+
+// ModifyStateWithError calls the provided function with the container's state
+// while holding the stateLock for writing, allowing safe mutation.
+// Must NOT run external/long-running (even if potentially) functions.
+func (c *Container) ModifyStateWithError(modify func(*ContainerState) error) error {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+
+	return modify(c.state)
+}
+
 // AddVolume adds a volume to list of container volumes.
 func (c *Container) AddVolume(v ContainerVolume) {
 	c.volumes = append(c.volumes, v)
@@ -526,10 +596,12 @@ func (c *Container) SetStartFailed(err error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 	// adjust finished and started times
-	c.state.Finished, c.state.Started = c.state.Created, c.state.Created
-	if err != nil {
-		c.state.Error = err.Error()
-	}
+	c.ModifyState(func(s *ContainerState) {
+		s.Finished, s.Started = s.Created, s.Created
+		if err != nil {
+			s.Error = err.Error()
+		}
+	})
 }
 
 // Description returns a description for the container.
@@ -998,7 +1070,9 @@ func (c *Container) SetMonitorProcess(ctx context.Context) {
 		return nil
 	}()
 	if err != nil {
-		c.state.ContainerMonitorProcess = nil
+		c.ModifyState(func(s *ContainerState) {
+			s.ContainerMonitorProcess = nil
+		})
 		log.Errorf(ctx, "Failed to load conmon process for container %s: %q", c.ID(), err)
 	}
 }
