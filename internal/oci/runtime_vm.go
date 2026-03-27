@@ -1197,7 +1197,7 @@ func (r *runtimeVM) closeIO(ctrID, execID string) error {
 }
 
 // CheckpointContainer not implemented for runtimeVM.
-func (r *runtimeVM) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
+func (r *runtimeVM) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool, workPath, imagePath string) error {
 	log.Debugf(ctx, "RuntimeVM.CheckpointContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.CheckpointContainer() end")
 
