@@ -90,6 +90,27 @@ func (c *Config) Reload(ctx context.Context) error {
 		return err
 	}
 
+	if err := c.UpdateSupplyChainConfig(newConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateSupplyChainConfig updates the SupplyChain config with the provided
+// `newConfig`. The actual verifier reload (policy loading, cache clearing)
+// happens in server.go via Verifier.Reload.
+func (c *Config) UpdateSupplyChainConfig(newConfig *Config) error {
+	if err := newConfig.SupplyChain.Validate(true); err != nil {
+		return fmt.Errorf("unable to reload supply chain config: %w", err)
+	}
+
+	if c.SupplyChain.Verification != newConfig.SupplyChain.Verification {
+		logConfig("supply_chain.verification", newConfig.SupplyChain.Verification)
+	}
+
+	c.SupplyChain = newConfig.SupplyChain
+
 	return nil
 }
 

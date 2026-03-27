@@ -1322,6 +1322,11 @@ func (s *Server) resolveAndVerifyContainerImage(ctx context.Context, ctr contain
 		return nil, err
 	}
 
+	// Verify supply chain attestations for the image.
+	if _, err := s.supplyChainVerifier.Verify(ctx, ctr.Config().GetImage().GetUserSpecifiedImage(), imgResult.Digest.String(), sb.Metadata().GetNamespace()); err != nil {
+		return nil, err
+	}
+
 	return &containerImageResult{
 		userRequestedImage: userRequestedImage,
 		imgResult:          imgResult,

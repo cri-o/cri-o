@@ -66,6 +66,18 @@ const (
 
 	// ContainersStoppedMonitorCount is the key for the containers whose monitor is stopped per container name.
 	ContainersStoppedMonitorCount Collector = crioPrefix + "containers_stopped_monitor_count"
+
+	// SupplyChainVerificationTotal is the key for supply chain verification attempts.
+	SupplyChainVerificationTotal Collector = crioPrefix + "supply_chain_verification_total"
+
+	// SupplyChainVerificationDurationSeconds is the key for supply chain verification latency.
+	SupplyChainVerificationDurationSeconds Collector = crioPrefix + "supply_chain_verification_duration_seconds"
+
+	// SupplyChainCacheHitsTotal is the key for supply chain verification cache hits.
+	SupplyChainCacheHitsTotal Collector = crioPrefix + "supply_chain_cache_hits_total"
+
+	// SupplyChainFetchErrorsTotal is the key for supply chain attestation fetch errors.
+	SupplyChainFetchErrorsTotal Collector = crioPrefix + "supply_chain_fetch_errors_total"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -107,6 +119,10 @@ func All() Collectors {
 		ContainersSeccompNotifierCountTotal.Stripped(),
 		ResourcesStalledAtStage.Stripped(),
 		ContainersStoppedMonitorCount.Stripped(),
+		SupplyChainVerificationTotal.Stripped(),
+		SupplyChainVerificationDurationSeconds.Stripped(),
+		SupplyChainCacheHitsTotal.Stripped(),
+		SupplyChainFetchErrorsTotal.Stripped(),
 	}
 }
 
