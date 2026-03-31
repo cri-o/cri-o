@@ -398,6 +398,17 @@ type RuntimeConfig struct {
 	// container image spec or in the container runtime configuration.
 	DefaultEnv []string `toml:"default_env"`
 
+	// MinInjectedGOMAXPROCS enables GOMAXPROCS injection for burstable and
+	// best-effort pod containers. This value acts as a minimum floor.
+	// For burstable pods with a CPU request, GOMAXPROCS is auto-calculated
+	// from the request; the calculated value is only used if it exceeds
+	// this configured floor. For best-effort pods (no CPU request), this
+	// value is used directly. Guaranteed pods are skipped (they get
+	// exclusive CPUs via CPU Manager). The value is only injected if the
+	// container does not already have GOMAXPROCS set via the image or pod
+	// spec. Set to 0 to disable. Defaults to 0 (disabled).
+	MinInjectedGOMAXPROCS int64 `toml:"min_injected_gomaxprocs"`
+
 	// Sysctls to add to all containers.
 	DefaultSysctls []string `toml:"default_sysctls"`
 
@@ -1336,6 +1347,10 @@ func (c *RootConfig) CleanShutdownSupportedFileName() string {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution bool) error {
+	if c.MinInjectedGOMAXPROCS < 0 {
+		return fmt.Errorf("min_injected_gomaxprocs must be >= 0, got %d", c.MinInjectedGOMAXPROCS)
+	}
+
 	for _, p := range c.AdditionalArtifactStores {
 		if !filepath.IsAbs(p) {
 			return fmt.Errorf("additional_artifact_stores entry must be absolute: %q", p)
