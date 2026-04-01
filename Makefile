@@ -96,8 +96,11 @@ else
     BUILD_DATE ?= $(shell date -u "$(DATE_FMT)")
 endif
 
+BUILD_COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || true)
+
 BASE_LDFLAGS = ${SHRINKFLAGS} \
-	-X ${PROJECT}/internal/version.buildDate=${BUILD_DATE}
+	-X ${PROJECT}/internal/version.buildDate=${BUILD_DATE} \
+	-X ${PROJECT}/internal/version.buildCommit=${BUILD_COMMIT}
 
 GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 

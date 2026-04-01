@@ -1,5 +1,6 @@
 { stdenv
 , pkgs
+, gitCommit ? "unknown"
 }:
 with pkgs; buildGo126Module /* use go 1.26 */ {
   name = "cri-o";
@@ -36,6 +37,7 @@ with pkgs; buildGo126Module /* use go 1.26 */ {
     export CGO_ENABLED=1
     export CGO_LDFLAGS='-lgpgme -lassuan -lgpg-error'
     export SOURCE_DATE_EPOCH=0
+    export BUILD_COMMIT="${gitCommit}"
   '';
   buildPhase = ''
     make binaries

@@ -35,8 +35,9 @@
             crossSystem = crossSystem;
             overlays = [ (import ./nix/overlay.nix) ];
           };
+          rev = self.rev or self.dirtyRev or "unknown";
         in
-        pkgs.callPackage ./nix/derivation.nix { };
+        pkgs.callPackage ./nix/derivation.nix { gitCommit = rev; };
 
       # Map target config to native nix system string
       configToSystem = {
