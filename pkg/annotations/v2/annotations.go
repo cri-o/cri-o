@@ -42,6 +42,10 @@ const (
 	// can be used without the required `/POD` suffix or a container name.
 	SeccompProfile = "seccomp-profile.crio.io"
 
+	// SkipGoMaxProcs is used to skip GOMAXPROCS injection for a specific pod,
+	// even when inject_gomaxprocs is enabled globally.
+	SkipGoMaxProcs = "skip-gomaxprocs.crio.io"
+
 	// ShmSize is the annotation used to set custom shm size.
 	ShmSize = "shm-size.crio.io"
 
@@ -279,6 +283,7 @@ var AllAnnotations = []string{
 	PodLinuxResources,
 	SeccompNotifierAction,
 	SeccompProfile,
+	SkipGoMaxProcs,
 	ShmSize,
 	Spoofed,
 	StopSignal,
