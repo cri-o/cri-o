@@ -1119,6 +1119,13 @@ func (s *Server) setupSandboxSeccomp(ctx context.Context, g *generate.Generator,
 		}
 
 		seccompRef = ref
+	} else {
+		// Privileged sandbox without a custom seccomp profile: clear the default
+		// seccomp filter that the OCI spec generator populates automatically.
+		// Privileged containers must run unconfined per the CRI specification.
+		if g.Config.Linux != nil {
+			g.Config.Linux.Seccomp = nil
+		}
 	}
 
 	return seccompRef, nil
