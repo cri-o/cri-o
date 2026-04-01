@@ -67,6 +67,8 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		return err
 	}
 
+	defer s.nri.BlockPluginSync().Unblock()
+
 	if sb.InfraContainer().Spoofed() {
 		if err := s.config.CgroupManager().RemoveSandboxCgroup(sb.CgroupParent(), sb.ID()); err != nil {
 			return err
