@@ -28,7 +28,8 @@ var ReleaseMinorVersions = []string{"1.35", "1.34", "1.33"}
 
 // Variables injected during build-time.
 var (
-	buildDate string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+	buildDate   string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+	buildCommit string // git commit, used as fallback when VCS info is unavailable (e.g. nix builds)
 )
 
 type Info struct {
@@ -180,6 +181,17 @@ func Get(verbose bool) (*Info, error) {
 
 		case "-ldflags":
 			ldFlags = s.Value
+		}
+	}
+
+	// Use the ldflags-injected commit as fallback when VCS info is
+	// unavailable (e.g. nix builds where .git is excluded).
+	if gitCommit == unknown && buildCommit != "" {
+		if commit, ok := strings.CutSuffix(buildCommit, "-dirty"); ok {
+			gitCommit = commit
+			gitTreeState = "dirty"
+		} else {
+			gitCommit = buildCommit
 		}
 	}
 
