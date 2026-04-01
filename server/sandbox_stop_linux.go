@@ -89,6 +89,8 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		return fmt.Errorf("failed to stop infra container for pod sandbox %s: %w", sb.ID(), err)
 	}
 
+	defer s.nri.BlockPluginSync().Unblock()
+
 	if err := sb.RemoveManagedNamespaces(); err != nil {
 		return fmt.Errorf("unable to remove managed namespaces: %w", err)
 	}
