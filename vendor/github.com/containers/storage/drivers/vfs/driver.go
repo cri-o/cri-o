@@ -59,6 +59,13 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 			if err != nil {
 				return nil, err
 			}
+		case "vfs.sync", ".sync":
+			logrus.Debugf("vfs: sync=%s", val)
+			var err error
+			d.syncMode, err = graphdriver.ParseSyncMode(val)
+			if err != nil {
+				return nil, fmt.Errorf("invalid sync mode for vfs driver: %w", err)
+			}
 		default:
 			return nil, fmt.Errorf("vfs driver does not support %s options", key)
 		}
@@ -79,6 +86,7 @@ type Driver struct {
 	home              string
 	additionalHomes   []string
 	ignoreChownErrors bool
+	syncMode          graphdriver.SyncMode
 	naiveDiff         graphdriver.DiffDriver
 	updater           graphdriver.LayerIDMapUpdater
 	imageStore        string
@@ -101,6 +109,11 @@ func (d *Driver) Metadata(id string) (map[string]string, error) {
 // Cleanup is used to implement graphdriver.ProtoDriver. There is no cleanup required for this driver.
 func (d *Driver) Cleanup() error {
 	return nil
+}
+
+// SyncMode returns the sync mode configured for the driver.
+func (d *Driver) SyncMode() graphdriver.SyncMode {
+	return graphdriver.SyncModeFilesystem // Enforce sync
 }
 
 type fileGetNilCloser struct {
@@ -131,7 +144,16 @@ func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts)
 	if d.ignoreChownErrors {
 		options.IgnoreChownErrors = d.ignoreChownErrors
 	}
-	return d.naiveDiff.ApplyDiff(id, parent, options)
+	size, err = d.naiveDiff.ApplyDiff(id, parent, options)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := d.syncMode.Sync(d.dir(id)); err != nil {
+		return 0, err
+	}
+
+	return size, nil
 }
 
 // CreateReadWrite creates a layer that is writable for use as a container
@@ -208,7 +230,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		}
 	}
 
-	return nil
+	return d.syncMode.Sync(dir)
 }
 
 func (d *Driver) dir2(id string, useImageStore bool) string {
@@ -328,7 +350,11 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 	if err != nil {
 		return err
 	}
-	return os.Chown(dir, rootIDs.UID, rootIDs.GID)
+	if err := os.Chown(dir, rootIDs.UID, rootIDs.GID); err != nil {
+		return err
+	}
+
+	return d.syncMode.Sync(dir)
 }
 
 // Changes produces a list of changes between the specified layer
