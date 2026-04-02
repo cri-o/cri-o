@@ -18,6 +18,7 @@ const (
 	OrgEnvKey            = "ORG"
 	VersionFile          = "internal/version/version.go"
 	DependenciesYAMLFile = "dependencies.yaml"
+	SpecFile             = "contrib/test/ci/cri-o.spec"
 	BranchPrefix         = "release-"
 	VersionPrefix        = "v"
 	CrioOrgRepo          = "cri-o"

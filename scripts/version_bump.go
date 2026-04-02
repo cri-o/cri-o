@@ -14,9 +14,12 @@ func main() {
 
 	var versionFile string
 
+	var specFile string
+
 	// Define command-line flags for bump type and version file
 	flag.StringVar(&bumpType, "bump", "", "Version bump type: major, minor, or patch")
 	flag.StringVar(&versionFile, "f", "../internal/version/version.go", "Path to the version file")
+	flag.StringVar(&specFile, "spec", "../contrib/test/ci/cri-o.spec", "Path to the spec file")
 	flag.Parse()
 
 	// Read the current version from the version.go file
@@ -32,6 +35,12 @@ func main() {
 	// Update the version in the version.go file
 	if err := updateVersion(versionFile, newVersion); err != nil {
 		fmt.Printf("Error updating version: %q\n", err)
+		os.Exit(1)
+	}
+
+	// Update the version in the spec file
+	if err := updateSpecVersion(specFile, newVersion); err != nil {
+		fmt.Printf("Error updating spec version: %q\n", err)
 		os.Exit(1)
 	}
 
@@ -88,6 +97,24 @@ func incrementVersionPart(part string) string {
 	num++
 
 	return strconv.Itoa(num)
+}
+
+func updateSpecVersion(specFile, newVersion string) error {
+	specPattern := `Version:\s+\S+`
+
+	content, err := os.ReadFile(specFile)
+	if err != nil {
+		return err
+	}
+
+	re := regexp.MustCompile(specPattern)
+	newContent := re.ReplaceAll(content, []byte("Version: "+newVersion))
+
+	if err := os.WriteFile(specFile, newContent, 0o644); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func updateVersion(versionFile, newVersion string) error {
