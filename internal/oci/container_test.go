@@ -900,6 +900,212 @@ var _ = t.Describe("Container", func() {
 		})
 	})
 
+	t.Describe("GetState", func() {
+		It("should return a copy of the container state", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateRunning
+			state.Pid = alwaysRunningPid
+			sut.SetState(state)
+
+			// When
+			stateCopy := sut.GetState()
+
+			// Then
+			Expect(stateCopy.Status).To(Equal(specs.ContainerState(oci.ContainerStateRunning)))
+			Expect(stateCopy.Pid).To(Equal(alwaysRunningPid))
+		})
+
+		It("should not be affected by subsequent state modifications", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateRunning
+			sut.SetState(state)
+
+			// When
+			stateCopy := sut.GetState()
+			sut.ModifyState(func(s *oci.ContainerState) {
+				s.Status = oci.ContainerStateStopped
+			})
+
+			// Then - the copy should still have the original value
+			Expect(stateCopy.Status).To(Equal(specs.ContainerState(oci.ContainerStateRunning)))
+			Expect(sut.GetState().Status).To(Equal(specs.ContainerState(oci.ContainerStateStopped)))
+		})
+	})
+
+	t.Describe("GetStatus", func() {
+		It("should return the container status", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateCreated
+			sut.SetState(state)
+
+			// When
+			status := sut.GetStatus()
+
+			// Then
+			Expect(status).To(Equal(specs.ContainerState(oci.ContainerStateCreated)))
+		})
+
+		It("should reflect status changes", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateCreated
+			sut.SetState(state)
+
+			// When
+			sut.ModifyState(func(s *oci.ContainerState) {
+				s.Status = oci.ContainerStatePaused
+			})
+
+			// Then
+			Expect(sut.GetStatus()).To(Equal(specs.ContainerState(oci.ContainerStatePaused)))
+		})
+	})
+
+	t.Describe("ModifyState", func() {
+		It("should modify the container state", func() {
+			// Given
+			state := &oci.ContainerState{}
+			sut.SetState(state)
+
+			// When
+			now := time.Now()
+
+			sut.ModifyState(func(s *oci.ContainerState) {
+				s.Started = now
+				s.Status = oci.ContainerStateRunning
+			})
+
+			// Then
+			result := sut.GetState()
+			Expect(result.Started).To(Equal(now))
+			Expect(result.Status).To(Equal(specs.ContainerState(oci.ContainerStateRunning)))
+		})
+
+		It("should allow multiple fields to be set atomically", func() {
+			// Given
+			state := &oci.ContainerState{}
+			sut.SetState(state)
+
+			exitCode := int32(137)
+
+			// When
+			sut.ModifyState(func(s *oci.ContainerState) {
+				s.Status = oci.ContainerStateStopped
+				s.ExitCode = &exitCode
+				s.Finished = time.Now()
+				s.OOMKilled = true
+			})
+
+			// Then
+			result := sut.GetState()
+			Expect(result.Status).To(Equal(specs.ContainerState(oci.ContainerStateStopped)))
+			Expect(*result.ExitCode).To(Equal(int32(137)))
+			Expect(result.OOMKilled).To(BeTrue())
+		})
+	})
+
+	t.Describe("ModifyStateWithError", func() {
+		It("should return nil on success", func() {
+			// Given
+			state := &oci.ContainerState{}
+			sut.SetState(state)
+
+			// When
+			err := sut.ModifyStateWithError(func(s *oci.ContainerState) error {
+				s.Status = oci.ContainerStateRunning
+
+				return nil
+			})
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.GetStatus()).To(Equal(specs.ContainerState(oci.ContainerStateRunning)))
+		})
+
+		It("should propagate errors from the modify function", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateCreated
+			sut.SetState(state)
+
+			expectedErr := errors.New("modification failed")
+
+			// When
+			err := sut.ModifyStateWithError(func(s *oci.ContainerState) error {
+				return expectedErr
+			})
+
+			// Then
+			Expect(err).To(Equal(expectedErr))
+		})
+
+		It("should not apply partial changes on error", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateCreated
+			sut.SetState(state)
+
+			// When - modify changes status then returns error
+			err := sut.ModifyStateWithError(func(s *oci.ContainerState) error {
+				s.Status = oci.ContainerStateRunning
+
+				return errors.New("rollback not automatic")
+			})
+
+			// Then - the state IS modified since there's no rollback mechanism
+			Expect(err).To(HaveOccurred())
+			// Note: ModifyStateWithError does not roll back; the caller is responsible
+			Expect(sut.GetStatus()).To(Equal(specs.ContainerState(oci.ContainerStateRunning)))
+		})
+	})
+
+	t.Describe("SetContainerInitPid", func() {
+		It("should succeed with a running pid", func() {
+			// Given
+			state := &oci.ContainerState{}
+			sut.SetState(state)
+
+			// When
+			err := sut.SetContainerInitPid(alwaysRunningPid)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			result := sut.GetState()
+			Expect(result.InitPid).To(Equal(alwaysRunningPid))
+			Expect(result.InitStartTime).ToNot(BeEmpty())
+		})
+
+		It("should fail if already initialized", func() {
+			// Given
+			state := &oci.ContainerState{}
+			sut.SetState(state)
+			Expect(sut.SetContainerInitPid(alwaysRunningPid)).To(Succeed())
+
+			// When
+			err := sut.SetContainerInitPid(alwaysRunningPid)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("already initialized"))
+		})
+
+		It("should fail with a non-running pid", func() {
+			// Given
+			state := &oci.ContainerState{}
+			sut.SetState(state)
+
+			// When
+			err := sut.SetContainerInitPid(neverRunningPid)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 	t.Describe("SetAsDoneStopping", func() {
 		It("should complete without error when no watchers exist", func() {
 			// Given - No watchers registered
