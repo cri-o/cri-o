@@ -57,6 +57,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			return nil, err
 		}
 
+		c.SignalStartedEventDone()
 		log.Infof(ctx, "Restored container: %s", ctr)
 
 		return &types.StartContainerResponse{}, nil
@@ -114,6 +115,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	}
 
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STARTED_EVENT)
+	c.SignalStartedEventDone()
 
 	if err := s.nri.postStartContainer(ctx, sandbox, c); err != nil {
 		log.Warnf(ctx, "NRI post-start failed for container %q: %v", c.ID(), err)
