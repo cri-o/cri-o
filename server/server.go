@@ -38,6 +38,7 @@ import (
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/supplychain"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/cri-o/cri-o/internal/watchdog"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -99,7 +100,8 @@ type Server struct {
 	// hooksRetriever allows getting the runtime hooks for the sandboxes.
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
 
-	artifactStore *ociartifact.Store
+	artifactStore       *ociartifact.Store
+	supplyChainVerifier *supplychain.Verifier
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -462,6 +464,11 @@ func New(
 		return nil, err
 	}
 
+	scVerifier, err := supplychain.NewVerifier(&config.SupplyChain)
+	if err != nil {
+		return nil, fmt.Errorf("initializing supply chain verifier: %w", err)
+	}
+
 	s := &Server{
 		ContainerServer:          containerServer,
 		hostportManager:          hostportManager,
@@ -475,6 +482,7 @@ func New(
 		resourceStore:            resourcestore.New(),
 		hooksRetriever:           runtimehandlerhooks.NewHooksRetriever(ctx, config),
 		artifactStore:            artifactStore,
+		supplyChainVerifier:      scVerifier,
 	}
 
 	if s.config.EnablePodEvents {
@@ -626,6 +634,8 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// Block until the signal is received
 			<-ch
 
+			oldSupplyChain := s.config.SupplyChain
+
 			if err := s.config.Reload(ctx); err != nil {
 				log.Errorf(ctx, "Unable to reload configuration: %v", err)
 
@@ -635,6 +645,13 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// pinned and sandbox/pause images, we need to update them
 			s.ContainerServer.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
 			s.artifactStore.SetPinnedImageRegexps(s.ContainerServer.StorageImageServer().PinnedImageRegexps())
+
+			if err := s.supplyChainVerifier.Reload(&s.config.SupplyChain); err != nil {
+				log.Errorf(ctx, "Unable to reload supply chain verifier, restoring previous config: %v", err)
+
+				s.config.SupplyChain = oldSupplyChain
+			}
+
 			log.Infof(ctx, "Configuration reload completed")
 			// Print the current configuration.
 			tomlConfig, err := s.config.ToString()
