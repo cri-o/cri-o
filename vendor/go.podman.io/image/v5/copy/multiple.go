@@ -60,8 +60,9 @@ func platformV1ToPlatformComparable(platform *imgspecv1.Platform) platformCompar
 	}
 	osFeatures := slices.Clone(platform.OSFeatures)
 	sort.Strings(osFeatures)
-	return platformComparable{architecture: platform.Architecture,
-		os: platform.OS,
+	return platformComparable{
+		architecture: platform.Architecture,
+		os:           platform.OS,
 		// This is strictly speaking ambiguous, fields of OSFeatures can contain a ','. Probably good enough for now.
 		osFeatures: strings.Join(osFeatures, ","),
 		osVersion:  platform.OSVersion,
@@ -103,7 +104,7 @@ func prepareInstanceCopies(list internalManifest.List, instanceDigests []digest.
 	res := []instanceCopy{}
 	if options.ImageListSelection == CopySpecificImages && len(options.EnsureCompressionVariantsExist) > 0 {
 		// List can already contain compressed instance for a compression selected in `EnsureCompressionVariantsExist`
-		// It’s unclear what it means when `CopySpecificImages` includes an instance in options.Instances,
+		// It's unclear what it means when `CopySpecificImages` includes an instance in options.Instances,
 		// EnsureCompressionVariantsExist asks for an instance with some compression,
 		// an instance with that compression already exists, but is not included in options.Instances.
 		// We might define the semantics and implement this in the future.
@@ -117,9 +118,19 @@ func prepareInstanceCopies(list internalManifest.List, instanceDigests []digest.
 	if err != nil {
 		return nil, err
 	}
+
+	// Determine which specific images to copy (combining digest-based and platform-based selection)
+	var specificImages *set.Set[digest.Digest]
+	if options.ImageListSelection == CopySpecificImages {
+		specificImages, err = determineSpecificImages(options, list)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	for i, instanceDigest := range instanceDigests {
 		if options.ImageListSelection == CopySpecificImages &&
-			!slices.Contains(options.Instances, instanceDigest) {
+			!specificImages.Contains(instanceDigest) {
 			logrus.Debugf("Skipping instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
 			continue
 		}
@@ -154,6 +165,45 @@ func prepareInstanceCopies(list internalManifest.List, instanceDigests []digest.
 		}
 	}
 	return res, nil
+}
+
+// determineSpecificImages returns a set of images to copy based on the
+// Instances and InstancePlatforms fields of the passed-in options structure
+func determineSpecificImages(options *Options, updatedList internalManifest.List) (*set.Set[digest.Digest], error) {
+	specificImages := set.NewWithValues(options.Instances...)
+
+	if len(options.InstancePlatforms) > 0 {
+		// Find ALL instances matching each platform specification (OS and Architecture)
+		for _, filter := range options.InstancePlatforms {
+			matched := false
+			instanceDigests := updatedList.Instances()
+			for _, instanceDigest := range instanceDigests {
+				instanceDetails, err := updatedList.Instance(instanceDigest)
+				if err != nil {
+					return nil, fmt.Errorf("getting details for instance %s: %w", instanceDigest, err)
+				}
+
+				// Match the platform. We match nil platforms against empty filter values.
+				instanceOS := ""
+				instanceArch := ""
+				if instanceDetails.ReadOnly.Platform != nil {
+					instanceOS = instanceDetails.ReadOnly.Platform.OS
+					instanceArch = instanceDetails.ReadOnly.Platform.Architecture
+				}
+
+				if instanceOS == filter.OS && instanceArch == filter.Architecture {
+					specificImages.Add(instanceDigest)
+					matched = true
+				}
+			}
+
+			if !matched {
+				return nil, fmt.Errorf("no instances found for platform %s/%s", filter.OS, filter.Architecture)
+			}
+		}
+	}
+
+	return specificImages, nil
 }
 
 // copyMultipleImages copies some or all of an image list's instances, using
@@ -215,6 +265,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	case imgspecv1.MediaTypeImageManifest:
 		forceListMIMEType = imgspecv1.MediaTypeImageIndex
 	}
+	// FIXME: This does not take into account cannotModifyManifestListReason.
 	selectedListType, otherManifestMIMETypeCandidates, err := c.determineListConversion(manifestType, c.dest.SupportedManifestMIMETypes(), forceListMIMEType)
 	if err != nil {
 		return nil, fmt.Errorf("determining manifest list type to write to destination: %w", err)
@@ -252,7 +303,8 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 				UpdateDigest:                updated.manifestDigest,
 				UpdateSize:                  int64(len(updated.manifest)),
 				UpdateCompressionAlgorithms: updated.compressionAlgorithms,
-				UpdateMediaType:             updated.manifestMIMEType})
+				UpdateMediaType:             updated.manifestMIMEType,
+			})
 		case instanceCopyClone:
 			logrus.Debugf("Replicating instance %s (%d/%d)", instance.sourceDigest, i+1, len(instanceCopyList))
 			c.Printf("Replicating image %s (%d/%d)\n", instance.sourceDigest, i+1, len(instanceCopyList))
@@ -260,7 +312,8 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 			updated, err := c.copySingleImage(ctx, unparsedInstance, &instanceCopyList[i].sourceDigest, copySingleImageOptions{
 				requireCompressionFormatMatch: true,
 				compressionFormat:             &instance.cloneCompressionVariant.Algorithm,
-				compressionLevel:              instance.cloneCompressionVariant.Level})
+				compressionLevel:              instance.cloneCompressionVariant.Level,
+			})
 			if err != nil {
 				return nil, fmt.Errorf("replicating image %d/%d from manifest list: %w", i+1, len(instanceCopyList), err)
 			}
@@ -281,7 +334,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	}
 
 	// Now reset the digest/size/types of the manifests in the list to account for any conversions that we made.
-	if err = updatedList.EditInstances(instanceEdits); err != nil {
+	if err = updatedList.EditInstances(instanceEdits, cannotModifyManifestListReason != ""); err != nil {
 		return nil, fmt.Errorf("updating manifest list: %w", err)
 	}
 
@@ -315,7 +368,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 		// If we can't just use the original value, but we have to change it, flag an error.
 		if !bytes.Equal(attemptedManifestList, originalManifestList) {
 			if cannotModifyManifestListReason != "" {
-				return nil, fmt.Errorf("Manifest list must be converted to type %q to be written to destination, but we cannot modify it: %q", thisListType, cannotModifyManifestListReason)
+				return nil, fmt.Errorf("Manifest list was edited, but we cannot modify it: %q", cannotModifyManifestListReason)
 			}
 			logrus.Debugf("Manifest list has been updated")
 		} else {

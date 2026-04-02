@@ -33,42 +33,101 @@ func main() {
 }
 ```
 
-For most purposes, you should use the `String` or `Bytes` methods.
+For most purposes, you should use the `String` or `Bytes` methods. They sum
+the widths of grapheme clusters in the string or byte slice.
 
+> Note: in your application, iterating over runes to measure width is likely incorrect;
+the smallest unit of display is a grapheme, not a rune.
+
+### Iterating over graphemes
+
+If you need the individual graphemes:
+
+```go
+import (
+    "fmt"
+    "github.com/clipperhouse/displaywidth"
+)
+
+func main() {
+    g := displaywidth.StringGraphemes("Hello, 世界!")
+    for g.Next() {
+        width := g.Width()
+        value := g.Value()
+        // do something with the width or value
+    }
+}
+```
 
 ### Options
 
-You can specify East Asian Width settings. When false (default),
-[East Asian Ambiguous characters](https://www.unicode.org/reports/tr11/#Ambiguous)
-are treated as width 1. When true, East Asian Ambiguous characters are treated
-as width 2.
+Create the options you need, and then use methods on the options struct.
 
 ```go
-myOptions := displaywidth.Options{
+var myOptions = displaywidth.Options{
     EastAsianWidth: true,
+    ControlSequences: true,
 }
 
 width := myOptions.String("Hello, 世界!")
-fmt.Println(width)
 ```
 
-## Technical details
+#### ControlSequences
+
+`ControlSequences` specifies whether to ignore ECMA-48 escape sequences
+when calculating the display width. When `false` (default), ANSI escape
+sequences are treated as just a series of characters. When `true`, they are
+treated as a single zero-width unit.
+
+#### ControlSequences8Bit
+
+`ControlSequences8Bit` specifies whether to ignore 8-bit ECMA-48 escape sequences
+when calculating the display width. When `false` (default), these are treated
+as just a series of characters. When `true`, they are treated as a single
+zero-width unit.
+
+Note: this option is ignored by the `Truncate` methods, as the concatenation
+can lead to unintended UTF-8 semantics.
+
+#### EastAsianWidth
+
+`EastAsianWidth` defines how
+[East Asian Ambiguous characters](https://www.unicode.org/reports/tr11/#Ambiguous)
+are treated.
+
+When `false` (default), East Asian Ambiguous characters are treated as width 1.
+When `true`, they are treated as width 2.
+
+You may wish to configure this based on environment variables or locale.
+ `go-runewidth`, for example, does so
+ [during package initialization](https://github.com/mattn/go-runewidth/blob/master/runewidth.go#L26C1-L45C2). `displaywidth` does not do this automatically, we prefer to leave it to you.
+
+
+## Technical standards and compatibility
 
 This package implements the Unicode East Asian Width standard
-([UAX #11](https://www.unicode.org/reports/tr11/)), and handles
+([UAX #11](https://www.unicode.org/reports/tr11/tr11-43.html)), and handles
 [version selectors](https://en.wikipedia.org/wiki/Variation_Selectors_(Unicode_block)),
 and [regional indicator pairs](https://en.wikipedia.org/wiki/Regional_indicator_symbol)
-(flags). We implement [Unicode TR51](https://unicode.org/reports/tr51/).
+(flags). We implement [Unicode TR51](https://www.unicode.org/reports/tr51/tr51-27.html)
+for emojis. We are keeping an eye on
+[emerging standards](https://www.jeffquast.com/post/state-of-terminal-emulation-2025/).
+
+For control sequences, we implement the [ECMA-48](https://ecma-international.org/publications-and-standards/standards/ecma-48/) standard for 7-bit and 8-bit control sequences.
 
 `clipperhouse/displaywidth`, `mattn/go-runewidth`, and `rivo/uniseg` will
-give the same outputs for most real-world text. See extensive details in the
+give the same outputs for most real-world text. Extensive details are in the
 [compatibility analysis](comparison/COMPATIBILITY_ANALYSIS.md).
 
-If you wish to investigate the core logic, see the `lookupProperties` and `width`
-functions in [width.go](width.go#L135). The essential trie generation logic is in
-`buildPropertyBitmap` in [unicode.go](internal/gen/unicode.go#L317).
+## Invalid UTF-8
 
-I (@clipperhouse) am keeping an eye on [emerging standards and test suites](https://www.jeffquast.com/post/state-of-terminal-emulation-2025/).
+This package does not validate UTF-8. If you pass invalid UTF-8, the results
+are undefined. We fuzz against invalid UTF-8 to ensure we don't panic or
+loop indefinitely.
+
+The `ControlSequences8Bit` option means that we will segment valid 8-bit
+control sequences, which are typically _not_ valid UTF-8. 8-bit control bytes
+happen to also be UTF-8 continuation bytes. Use with caution.
 
 ## Prior Art
 
@@ -93,31 +152,39 @@ goarch: arm64
 pkg: github.com/clipperhouse/displaywidth/comparison
 cpu: Apple M2
 
-BenchmarkString_Mixed/clipperhouse/displaywidth-8     	     10469 ns/op	   161.15 MB/s      0 B/op      0 allocs/op
-BenchmarkString_Mixed/mattn/go-runewidth-8            	     14250 ns/op	   118.39 MB/s      0 B/op      0 allocs/op
-BenchmarkString_Mixed/rivo/uniseg-8                   	     19258 ns/op	    87.60 MB/s      0 B/op      0 allocs/op
+BenchmarkString_Mixed/clipperhouse/displaywidth-8             5784 ns/op	      291.69 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_Mixed/mattn/go-runewidth-8                   14751 ns/op	      114.36 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_Mixed/rivo/uniseg-8                          19360 ns/op	       87.14 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkString_EastAsian/clipperhouse/displaywidth-8 	     10518 ns/op	   160.39 MB/s      0 B/op      0 allocs/op
-BenchmarkString_EastAsian/mattn/go-runewidth-8        	     23827 ns/op	    70.80 MB/s      0 B/op      0 allocs/op
-BenchmarkString_EastAsian/rivo/uniseg-8               	     19537 ns/op	    86.35 MB/s      0 B/op      0 allocs/op
+BenchmarkString_ASCII/clipperhouse/displaywidth-8               54.60 ns/op	     2344.32 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_ASCII/mattn/go-runewidth-8                    1195 ns/op	      107.08 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_ASCII/rivo/uniseg-8                           1578 ns/op	       81.13 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkString_ASCII/clipperhouse/displaywidth-8     	      1027 ns/op	   124.61 MB/s      0 B/op      0 allocs/op
-BenchmarkString_ASCII/mattn/go-runewidth-8            	      1166 ns/op	   109.78 MB/s      0 B/op      0 allocs/op
-BenchmarkString_ASCII/rivo/uniseg-8                   	      1551 ns/op	    82.52 MB/s      0 B/op      0 allocs/op
+BenchmarkString_EastAsian/clipperhouse/displaywidth-8         5837 ns/op	      289.01 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_EastAsian/mattn/go-runewidth-8               24418 ns/op	       69.09 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_EastAsian/rivo/uniseg-8                      19339 ns/op	       87.23 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkString_Emoji/clipperhouse/displaywidth-8     	      3164 ns/op	   228.84 MB/s      0 B/op      0 allocs/op
-BenchmarkString_Emoji/mattn/go-runewidth-8            	      4728 ns/op	   153.13 MB/s      0 B/op      0 allocs/op
-BenchmarkString_Emoji/rivo/uniseg-8                   	      6489 ns/op	   111.57 MB/s      0 B/op      0 allocs/op
+BenchmarkString_Emoji/clipperhouse/displaywidth-8             3225 ns/op	      224.51 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_Emoji/mattn/go-runewidth-8                    4851 ns/op	      149.25 MB/s	      0 B/op	   0 allocs/op
+BenchmarkString_Emoji/rivo/uniseg-8                           6591 ns/op	      109.85 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkRune_Mixed/clipperhouse/displaywidth-8       	      3429 ns/op	   491.96 MB/s      0 B/op      0 allocs/op
-BenchmarkRune_Mixed/mattn/go-runewidth-8              	      5308 ns/op	   317.81 MB/s      0 B/op      0 allocs/op
+BenchmarkRune_Mixed/clipperhouse/displaywidth-8               3385 ns/op	      498.34 MB/s	      0 B/op	   0 allocs/op
+BenchmarkRune_Mixed/mattn/go-runewidth-8                      5354 ns/op	      315.07 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkRune_EastAsian/clipperhouse/displaywidth-8   	      3419 ns/op	   493.49 MB/s      0 B/op      0 allocs/op
-BenchmarkRune_EastAsian/mattn/go-runewidth-8          	     15321 ns/op	   110.11 MB/s      0 B/op      0 allocs/op
+BenchmarkRune_EastAsian/clipperhouse/displaywidth-8           3397 ns/op	      496.56 MB/s	      0 B/op	   0 allocs/op
+BenchmarkRune_EastAsian/mattn/go-runewidth-8                 15673 ns/op	      107.64 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkRune_ASCII/clipperhouse/displaywidth-8       	       254.4 ns/op	   503.19 MB/s      0 B/op      0 allocs/op
-BenchmarkRune_ASCII/mattn/go-runewidth-8              	       264.3 ns/op	   484.31 MB/s      0 B/op      0 allocs/op
+BenchmarkRune_ASCII/clipperhouse/displaywidth-8                255.7 ns/op	      500.53 MB/s	      0 B/op	   0 allocs/op
+BenchmarkRune_ASCII/mattn/go-runewidth-8                       261.5 ns/op	      489.55 MB/s	      0 B/op	   0 allocs/op
 
-BenchmarkRune_Emoji/clipperhouse/displaywidth-8       	      1374 ns/op	   527.02 MB/s      0 B/op      0 allocs/op
-BenchmarkRune_Emoji/mattn/go-runewidth-8              	      2210 ns/op	   327.66 MB/s      0 B/op      0 allocs/op
+BenchmarkRune_Emoji/clipperhouse/displaywidth-8               1371 ns/op	      528.22 MB/s	      0 B/op	   0 allocs/op
+BenchmarkRune_Emoji/mattn/go-runewidth-8                      2267 ns/op	      319.43 MB/s	      0 B/op	   0 allocs/op
+
+BenchmarkTruncateWithTail/clipperhouse/displaywidth-8         3229 ns/op	       54.82 MB/s	    192 B/op	  14 allocs/op
+BenchmarkTruncateWithTail/mattn/go-runewidth-8                8408 ns/op	       21.05 MB/s	    192 B/op	  14 allocs/op
+
+BenchmarkTruncateWithoutTail/clipperhouse/displaywidth-8      3554 ns/op	       64.43 MB/s	      0 B/op	   0 allocs/op
+BenchmarkTruncateWithoutTail/mattn/go-runewidth-8            11189 ns/op	       20.47 MB/s	      0 B/op	   0 allocs/op
 ```
+
+Here are some notes on [how to make Unicode things fast](https://clipperhouse.com/go-unicode/).
