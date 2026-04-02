@@ -65,16 +65,6 @@
     target: install
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
 
-- name: use crun
-  copy:
-    dest: /etc/crio/crio.conf.d/01-crun.conf
-    content: |
-      [crio.runtime]
-      default_runtime = "crun"
-      [crio.runtime.runtimes.crun]
-      runtime_root = "/run/crun"
-  when: "build_crun | default(False) | bool"
-
 - name: use conmon-rs
   copy:
     dest: /etc/crio/crio.conf.d/99-conmonrs.conf
