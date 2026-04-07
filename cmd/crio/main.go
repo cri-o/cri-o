@@ -36,6 +36,7 @@ import (
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
+	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 )
 
@@ -397,6 +398,10 @@ func main() {
 				logrus.Errorf("Failed to sync parent directory of clean shutdown file: %v", err)
 			}
 		}
+
+		// Set the default runtime metric after config has been validated.
+		// This is done here rather than in pkg/config to avoid cyclic imports.
+		metrics.Instance().MetricDefaultRuntimeSet(config.DefaultRuntime)
 
 		// We always use 'Volatile: true' when creating containers, which means that in
 		// the event of an unclean shutdown, we might lose track of containers and layers.

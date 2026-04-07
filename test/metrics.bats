@@ -84,6 +84,32 @@ function teardown() {
 	curl -sfk "https://localhost:$PORT/metrics" | grep crio_operations
 }
 
+@test "default runtime metric" {
+	PORT=$(free_port)
+	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
+
+	# Check that the default runtime metric is present
+	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep "^container_runtime_crio_default_runtime{runtime=\"${CONTAINER_DEFAULT_RUNTIME}\"}")
+	[[ "$METRIC" == "container_runtime_crio_default_runtime{runtime=\"${CONTAINER_DEFAULT_RUNTIME}\"} 1" ]]
+
+	# reload with new runtime
+	cat << EOF > "$CRIO_CONFIG_DIR/999-newRuntime.conf"
+[crio.runtime]
+default_runtime = "new"
+[crio.runtime.runtimes.new]
+runtime_path = "$RUNTIME_BINARY_PATH"
+EOF
+
+	reload_crio
+	wait_for_log '"updating runtime configuration"'
+
+	# Check that the new default runtime metric is present
+	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep "^container_runtime_crio_default_runtime{runtime=\"new\"}")
+	[[ "$METRIC" == "container_runtime_crio_default_runtime{runtime=\"new\"} 1" ]]
+	# and the old is not
+	run curl -sf "http://localhost:$PORT/metrics" | grep -v "^container_runtime_crio_default_runtime{runtime=\"${BACKUP_RUNTIME}\"}"
+}
+
 # TODO: deflake and re-enable the test
 #@test "metrics container oom" {
 #	PORT=$(free_port)
