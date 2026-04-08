@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -44,6 +45,10 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	log.Infof(ctx, "Pulling image: %s", image)
 
 	pullArgs := pullArguments{image: image}
+
+	done := make(chan struct{})
+	go logGoroutineStacksIfStuck(ctx, pullArgs.image, done)
+	defer close(done)
 
 	sc := req.GetSandboxConfig()
 	if sc != nil {
@@ -95,11 +100,13 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 			pullOp.wg.Add(1)
 		}
 
+		log.Infof(ctx, "Pull dedup check for image %s: inProgress=%v, totalActivePulls=%d", pullArgs.image, inProgress, len(s.pullOperationsInProgress))
 		return pullOp, inProgress
 	}()
 
 	if !pullInProcess {
 		pullOp.err = errors.New("pullImage was aborted by a Go panic")
+		log.Infof(ctx, "Starting new pull for image %s (sandboxCgroup=%q, namespace=%q)", pullArgs.image, pullArgs.sandboxCgroup, pullArgs.namespace)
 
 		defer func() {
 			s.pullOperationsLock.Lock()
@@ -110,9 +117,12 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 		}()
 
 		pullOp.imageRef, pullOp.err = s.pullImage(ctx, &pullArgs)
+		log.Infof(ctx, "New pull of image %s completed (err=%v)", pullArgs.image, pullOp.err)
 	} else {
 		// Wait for the pull operation to finish.
+		log.Infof(ctx, "Waiting for in-progress pull of image %s (sandboxCgroup=%q, namespace=%q)", pullArgs.image, pullArgs.sandboxCgroup, pullArgs.namespace)
 		pullOp.wg.Wait()
+		log.Infof(ctx, "In-progress pull of image %s completed (err=%v)", pullArgs.image, pullOp.err)
 	}
 
 	if pullOp.err != nil {
@@ -128,6 +138,35 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	return &types.PullImageResponse{
 		ImageRef: pullOp.imageRef,
 	}, nil
+}
+
+const pullStuckTimeout = 5 * time.Minute
+
+// logGoroutineStacksIfStuck starts a watchdog that dumps all goroutine stacks
+// if an image pull has not completed within pullStuckTimeout. This is purely
+// diagnostic — it does not cancel or interrupt the pull.
+// The caller must close the done channel when the pull completes.
+func logGoroutineStacksIfStuck(ctx context.Context, image string, done <-chan struct{}) {
+	ticker := time.NewTicker(pullStuckTimeout)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			log.Warnf(ctx, "Pull of image %s appears stuck (no progress for %v), dumping goroutine stacks", image, pullStuckTimeout)
+			buf := make([]byte, 1<<20) // 1 MiB initial buffer
+			for {
+				n := runtime.Stack(buf, true)
+				if n < len(buf) {
+					log.Warnf(ctx, "Goroutine dump for stuck pull of %s:\n%s", image, buf[:n])
+					break
+				}
+				// Buffer too small, double it and retry
+				buf = make([]byte, len(buf)*2)
+			}
+		}
+	}
 }
 
 // pullImage performs the actual pull operation of PullImage. Used to separate
