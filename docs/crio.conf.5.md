@@ -150,6 +150,9 @@ This option is currently deprecated, and will be replaced with RuntimeHandler.Mo
 Additional environment variables to set for all the containers. These are overridden if set in the container image spec or in
 the container runtime configuration.
 
+**min_injected_gomaxprocs**=0
+Enables GOMAXPROCS injection for burstable and best-effort pod containers. This value acts as a minimum floor. For burstable pods with a CPU request, GOMAXPROCS is auto-calculated from the request; the calculated value is only used if it exceeds this floor. For best-effort pods (no CPU request), this value is used directly. Guaranteed and workload-partitioned pods are skipped. Set to 0 to disable (default).
+
 **selinux**=false
 If true, SELinux will be used for pod separation on the host.
 This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.

@@ -123,6 +123,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-host -r -d 'Host f
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-key -r -d 'Certificate key for the secure metrics endpoint.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-port -r -d 'Port for the metrics endpoint.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-socket -r -d 'Socket for the metrics endpoint.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l min-injected-gomaxprocs -r -d 'Enable GOMAXPROCS injection. Burstable pods auto-calculate from CPU request, with this value as the minimum floor. Best-effort pods use this value directly. 0 to disable.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l minimum-mappable-gid -r -d 'Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l minimum-mappable-uid -r -d 'Specify the lowest host UID which can be specified in mappings for a pod that will be run as a UID other than 0. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l namespaces-dir -r -d 'The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true.'

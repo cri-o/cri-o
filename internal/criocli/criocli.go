@@ -285,6 +285,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.DefaultEnv = StringSliceTrySplit(ctx, "default-env")
 	}
 
+	if ctx.IsSet("min-injected-gomaxprocs") {
+		config.MinInjectedGOMAXPROCS = ctx.Int64("min-injected-gomaxprocs")
+	}
+
 	if ctx.IsSet("default-sysctls") {
 		config.DefaultSysctls = StringSliceTrySplit(ctx, "default-sysctls")
 	}
@@ -1330,6 +1334,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   cli.NewStringSlice(defConf.DefaultEnv...),
 			Usage:   "Additional environment variables to set for all containers.",
 			EnvVars: []string{"CONTAINER_DEFAULT_ENV"},
+		},
+		&cli.Int64Flag{
+			Name:    "min-injected-gomaxprocs",
+			Value:   defConf.MinInjectedGOMAXPROCS,
+			Usage:   "Enable GOMAXPROCS injection. Burstable pods auto-calculate from CPU request, with this value as the minimum floor. Best-effort pods use this value directly. 0 to disable.",
+			EnvVars: []string{"CONTAINER_INJECT_GOMAXPROCS"},
 		},
 		&cli.StringFlag{
 			Name:      "container-attach-socket-dir",
