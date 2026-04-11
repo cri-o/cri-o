@@ -147,6 +147,16 @@ var _ = Describe("Sandbox", func() {
 		})
 	})
 
+	Context("CopyFile", func() {
+		It("should fail if source file does not exist", func() {
+			// When
+			err := libsandbox.CopyFile("/non/existent/source", "/tmp/copyfile-dest")
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 	Context("SetupShm", func() {
 		shmSize := int64(libsandbox.DefaultShmSize)
 		mountLabel := "system_u:object_r:container_file_t:s0:c1,c2"
