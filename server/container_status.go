@@ -159,7 +159,12 @@ type containerInfoCheckpointRestore struct {
 }
 
 func (s *Server) createContainerInfo(container *oci.Container) (map[string]string, error) {
-	metadata, err := s.ContainerServer.StorageRuntimeServer().GetContainerMetadata(container.ID())
+	sb, err := s.LookupSandbox(container.Sandbox())
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup sandbox %s: %w", container.Sandbox(), err)
+	}
+
+	metadata, err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).GetContainerMetadata(container.ID())
 	if err != nil {
 		return nil, fmt.Errorf("getting container metadata: %w", err)
 	}

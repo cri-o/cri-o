@@ -528,7 +528,7 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	imageID := status.ID.IDStringForOutOfProcessConsumptionOnly()
 
 	// Check the signature of the image
-	if err := s.verifyImageSignature(ctx, namespace, m.GetImage().GetUserSpecifiedImage(), status); err != nil {
+	if err := s.verifyImageSignature(ctx, namespace, m.GetImage().GetUserSpecifiedImage(), status, m.GetImage().GetRuntimeHandler()); err != nil {
 		return nil, nil, err
 	}
 
