@@ -537,7 +537,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	}
 
 	resourceCleaner.Add(ctx, "createCtr: deleting container "+ctr.ID()+" from storage", func() error {
-		if err := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID()); err != nil {
+		if err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).DeleteContainer(ctx, ctr.ID()); err != nil {
 			return fmt.Errorf("failed to cleanup container storage: %w", err)
 		}
 
@@ -670,7 +670,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: deleting container %s from storage", containerInfo.ID)
 
-			if err := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, containerInfo.ID); err != nil {
+			if err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).DeleteContainer(ctx, containerInfo.ID); err != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err)
 			}
 		}
@@ -722,7 +722,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage start")
 
-	mountPoint, err := s.ContainerServer.StorageRuntimeServer().StartContainer(containerID)
+	mountPoint, err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %w", containerName, containerID, err)
 	}
@@ -731,7 +731,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: stopping storage container %s", containerID)
 
-			if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, containerID); err != nil {
+			if err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).StopContainer(ctx, containerID); err != nil {
 				log.Warnf(ctx, "Couldn't stop storage container: %v: %v", containerID, err)
 			}
 		}
@@ -1256,7 +1256,7 @@ func (s *Server) createStorageContainer(ctx context.Context, ctr container.Conta
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 
-	containerInfo, err := s.ContainerServer.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
+	containerInfo, err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
 		userRequestedImage, imageID,
 		containerName, containerID,
@@ -1282,20 +1282,22 @@ func (s *Server) resolveAndVerifyContainerImage(ctx context.Context, ctr contain
 	}
 
 	var imgResult *storage.ImageResult
-	if id := s.ContainerServer.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
-		imgResult, err = s.ContainerServer.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+
+	imageService := s.StorageImageServer(sb.RuntimeHandler())
+	if id := imageService.HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
+		imgResult, err = imageService.ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		potentialMatches, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
+		potentialMatches, err := imageService.CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
 		if err != nil {
 			return nil, err
 		}
 
 		var imgResultErr error
 		for _, name := range potentialMatches {
-			imgResult, imgResultErr = s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+			imgResult, imgResultErr = imageService.ImageStatusByName(s.config.SystemContext, name)
 			if imgResultErr == nil {
 				break
 			}
@@ -1318,7 +1320,7 @@ func (s *Server) resolveAndVerifyContainerImage(ctx context.Context, ctr contain
 		someRepoDigest = imgResult.RepoDigests[0]
 	}
 
-	if err := s.verifyImageSignature(ctx, sb.Metadata().GetNamespace(), ctr.Config().GetImage().GetUserSpecifiedImage(), imgResult); err != nil {
+	if err := s.verifyImageSignature(ctx, sb.Metadata().GetNamespace(), ctr.Config().GetImage().GetUserSpecifiedImage(), imgResult, sb.RuntimeHandler()); err != nil {
 		return nil, err
 	}
 
@@ -1420,7 +1422,7 @@ func configureTimezone(tz, containerRunDir, mountPoint, mountLabel, etcPath, con
 }
 
 // verifyImageSignature verifies the signature of a container image.
-func (s *Server) verifyImageSignature(ctx context.Context, namespace, userSpecifiedImage string, status *storage.ImageResult) error {
+func (s *Server) verifyImageSignature(ctx context.Context, namespace, userSpecifiedImage string, status *storage.ImageResult, runtimeHandler string) error {
 	systemCtx, err := s.contextForNamespace(namespace)
 	if err != nil {
 		return fmt.Errorf("get context for namespace: %w", err)
@@ -1444,7 +1446,7 @@ func (s *Server) verifyImageSignature(ctx context.Context, namespace, userSpecif
 			return fmt.Errorf("unable to get userSpecifiedImageRef from user specified image %q: %w", userSpecifiedImage, err)
 		}
 
-		if err := s.ContainerServer.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, status.ID); err != nil {
+		if err := s.ContainerServer.StorageImageServer(runtimeHandler).IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, status.ID); err != nil {
 			return err
 		}
 	}
