@@ -47,7 +47,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 			s.ReleaseContainerName(ctx, ociContainer.Name())
 
-			err2 := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, c.ID())
+			sb, err := s.LookupSandbox(c.Sandbox())
+			if err != nil {
+				return nil, fmt.Errorf("failed to lookup sandbox %s: %w", c.Sandbox(), err)
+			}
+
+			err2 := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).DeleteContainer(ctx, c.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}

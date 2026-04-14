@@ -159,9 +159,22 @@ type containerInfoCheckpointRestore struct {
 }
 
 func (s *Server) createContainerInfo(container *oci.Container) (map[string]string, error) {
-	metadata, err := s.ContainerServer.StorageRuntimeServer().GetContainerMetadata(container.ID())
+	runtimeHandler := ""
+
+	sb, err := s.LookupSandbox(container.Sandbox())
 	if err != nil {
-		return nil, fmt.Errorf("getting container metadata: %w", err)
+		// Do not treat lookup failures as an error.
+		// If it happens, log the error, and use the default ("") runtime handler.
+		log.Debugf(context.TODO(), "failed to lookup sandbox %s: %v", container.Sandbox(), err)
+	} else {
+		runtimeHandler = sb.RuntimeHandler()
+	}
+
+	metadata, err := s.ContainerServer.StorageRuntimeServer(runtimeHandler).GetContainerMetadata(container.ID())
+	if err != nil {
+		log.Debugf(context.TODO(), "getting container metadata: %v", err)
+
+		return nil, nil
 	}
 
 	bytes, err := func(metadata *storage.RuntimeContainerMetadata) ([]byte, error) {

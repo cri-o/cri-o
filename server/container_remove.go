@@ -77,7 +77,7 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 
 	c.CleanupConmonCgroup(ctx)
 
-	if err := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
+	if err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).DeleteContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
 	}
 
