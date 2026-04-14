@@ -84,6 +84,7 @@ crio
 [--metrics-key]=[value]
 [--metrics-port]=[value]
 [--metrics-socket]=[value]
+[--min-injected-gomaxprocs]=[value]
 [--minimum-mappable-gid]=[value]
 [--minimum-mappable-uid]=[value]
 [--namespaces-dir]=[value]
@@ -359,6 +360,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--metrics-port**="": Port for the metrics endpoint. (default: 9090)
 
 **--metrics-socket**="": Socket for the metrics endpoint.
+
+**--min-injected-gomaxprocs**="": Enable GOMAXPROCS injection. Burstable pods auto-calculate from CPU request, with this value as the minimum floor. Best-effort pods use this value directly. 0 to disable. (default: 0)
 
 **--minimum-mappable-gid**="": Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future. (default: -1)
 

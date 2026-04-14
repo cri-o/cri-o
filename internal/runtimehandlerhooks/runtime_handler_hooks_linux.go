@@ -36,11 +36,11 @@ func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetr
 	return rhh
 }
 
-// Get checks runtime name or the sandbox's annotations for allowed high performance annotations. If present, it returns
-// the single instance of highPerformanceHooks.
-// Otherwise, if crio's config allows CPU load balancing anywhere, return a DefaultCPULoadBalanceHooks.
-// Otherwise, return nil.
+// Get checks runtime name or the sandbox's annotations for allowed high performance annotations and
+// the config for GOMAXPROCS injection. It returns a single hook, a CompositeHooks chain, or nil.
 func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAnnotations map[string]string) RuntimeHandlerHooks {
+	var hooks []RuntimeHandlerHooks
+
 	if strings.Contains(runtimeName, HighPerformance) || highPerformanceAnnotationsSpecified(sandboxAnnotations) {
 		runtimeConfig, ok := hr.config.Runtimes[runtimeName]
 		if !ok {
@@ -64,16 +64,28 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 			}
 		}
 
-		return hr.highPerformanceHooks
-	}
-
-	if cpuLoadBalancingAllowed(hr.config) {
-		return &DefaultCPULoadBalanceHooks{
+		hooks = append(hooks, hr.highPerformanceHooks)
+	} else if cpuLoadBalancingAllowed(hr.config) {
+		hooks = append(hooks, &DefaultCPULoadBalanceHooks{
 			CgroupManager: hr.config.CgroupManager(),
-		}
+		})
 	}
 
-	return nil
+	if hr.config.MinInjectedGOMAXPROCS > 0 {
+		hooks = append(hooks, &GomaxprocsHooks{
+			fallback:  hr.config.MinInjectedGOMAXPROCS,
+			workloads: hr.config.Workloads,
+		})
+	}
+
+	switch len(hooks) {
+	case 0:
+		return nil
+	case 1:
+		return hooks[0]
+	default:
+		return &CompositeHooks{hooks: hooks}
+	}
 }
 
 func highPerformanceAnnotationsSpecified(annotations map[string]string) bool {
