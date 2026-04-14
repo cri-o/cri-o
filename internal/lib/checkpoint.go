@@ -115,7 +115,7 @@ func (c *ContainerServer) ContainerCheckpoint(
 	}
 
 	if !opts.KeepRunning {
-		if err := c.storageRuntimeServer.StopContainer(ctx, ctr.ID()); err != nil {
+		if err := c.StorageRuntimeServer().StopContainer(ctx, ctr.ID()); err != nil {
 			return "", fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 		}
 	}

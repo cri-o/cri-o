@@ -50,8 +50,8 @@ type ContainerServer struct {
 
 	runtime              *oci.Runtime
 	store                cstorage.Store
-	storageImageServer   storage.ImageServer
-	storageRuntimeServer storage.RuntimeServer
+	storageImgSvcMgr     *storage.ImageServiceManager
+	storageRuntimeSvcMgr *storage.RuntimeServiceManager
 	ctrNameIndex         *registrar.Registrar
 	ctrIDIndex           *truncindex.TruncIndex
 	podNameIndex         *registrar.Registrar
@@ -78,7 +78,7 @@ func (c *ContainerServer) Store() cstorage.Store {
 
 // StorageImageServer returns the ImageServer for the ContainerServer.
 func (c *ContainerServer) StorageImageServer() storage.ImageServer {
-	return c.storageImageServer
+	return c.storageImgSvcMgr.GetImageService("")
 }
 
 // CtrIDIndex returns the TruncIndex for the ContainerServer.
@@ -98,7 +98,7 @@ func (c *ContainerServer) Config() *libconfig.Config {
 
 // StorageRuntimeServer gets the runtime server for the ContainerServer.
 func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
-	return c.storageRuntimeServer
+	return c.storageRuntimeSvcMgr.GetRuntimeService("")
 }
 
 // New creates a new ContainerServer with options provided.
@@ -145,12 +145,15 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		}
 	}
 
-	imageService, err := storage.GetImageService(ctx, store, nil, config)
+	storageImageServiceMgr, err := storage.GetImageServiceManager(ctx, store, nil, config)
 	if err != nil {
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, nil)
+	storageRuntimeServiceMgr, err := storage.GetRuntimeServiceManager(ctx, storageImageServiceMgr, nil, config)
+	if err != nil {
+		return nil, err
+	}
 
 	runtime, err := oci.New(config)
 	if err != nil {
@@ -165,8 +168,8 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	c := &ContainerServer{
 		runtime:              runtime,
 		store:                store,
-		storageImageServer:   imageService,
-		storageRuntimeServer: storageRuntimeService,
+		storageImgSvcMgr:     storageImageServiceMgr,
+		storageRuntimeSvcMgr: storageRuntimeServiceMgr,
 		ctrNameIndex:         registrar.NewRegistrar(),
 		ctrIDIndex:           truncindex.NewTruncIndex([]string{}),
 		podNameIndex:         registrar.NewRegistrar(),
