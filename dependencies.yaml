@@ -73,7 +73,7 @@ dependencies:
         match: build-libpathrs.sh
 
   - name: runc
-    version: main
+    version: v1.4.2
     refPaths:
       - path: scripts/versions
         match: runc
