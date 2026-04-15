@@ -167,7 +167,7 @@ function get_gomaxprocs() {
 
 	jq '.metadata.name = "skip-sandbox"
 		| .linux.cgroup_parent = "kubepods-burstable-pod123.slice"
-		| .annotations["skip-gomaxprocs.crio.io"] = "true"' \
+		| .annotations["io.kubernetes.cri-o.SkipGoMaxProcs"] = "true"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	jq '.linux.resources.cpu_shares = 2048
