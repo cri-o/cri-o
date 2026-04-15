@@ -86,6 +86,7 @@ h
 --metrics-key
 --metrics-port
 --metrics-socket
+--min-injected-gomaxprocs
 --minimum-mappable-gid
 --minimum-mappable-uid
 --namespaced-auth-dir
