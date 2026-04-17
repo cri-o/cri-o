@@ -2,7 +2,7 @@
 declare -A VERSIONS=(
     ["cni-plugins"]=v1.7.1
     ["conmon"]=v2.1.13
-    ["runc"]=main
+    ["runc"]=v1.4.2
     ["bats"]=v1.11.1
     ["buildah"]=v1.38.0
     ["libpathrs"]=0.2.4
