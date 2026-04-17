@@ -632,6 +632,9 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 
 				continue
 			}
+
+			metrics.Instance().MetricDefaultRuntimeSet(s.config.DefaultRuntime)
+
 			// ImageServer compiles the list with regex for both
 			// pinned and sandbox/pause images, we need to update them
 			s.ContainerServer.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
