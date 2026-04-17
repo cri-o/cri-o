@@ -50,7 +50,7 @@ type NS interface {
 
 // Path returns the bind mount path of the namespace.
 func (n *namespace) Path() string {
-	if n == nil || n.ns == nil {
+	if n == nil {
 		return ""
 	}
 
@@ -67,18 +67,17 @@ func (n *namespace) Remove() error {
 	n.Lock()
 	defer n.Unlock()
 
-	if n.closed {
-		// Remove() can be called multiple
-		// times without returning an error.
-		return nil
+	// Close the namespace handle if not already closed and if we have a valid handle
+	if !n.closed && n.ns != nil {
+		if err := n.ns.Close(); err != nil {
+			return err
+		}
+		n.closed = true
 	}
 
-	if err := n.ns.Close(); err != nil {
-		return err
-	}
-
-	n.closed = true
-
+	// Always attempt to clean up the file, even if already closed or if ns is nil.
+	// This ensures that invalid namespace files (created by partial namespace objects)
+	// are properly cleaned up.
 	fp := n.Path()
 	if fp == "" {
 		return nil

@@ -281,3 +281,88 @@ function check_networking() {
 
 	run ! crictl inspectp "$pod_id"
 }
+
+@test "netns file cleanup after CRI-O restart with invalid namespace" {
+	# This test reproduces the bug where invalid netns files are not cleaned up
+	# after CRI-O restart, preventing pods from restarting.
+	start_crio
+
+	# Create and run a pod
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	# Get the network namespace path
+	NETNS_PATH=/var/run/netns/
+	NS=$(crictl inspectp "$pod_id" |
+		jq -er '.info.runtimeSpec.linux.namespaces[] | select(.type == "network").path | sub("'$NETNS_PATH'"; "")')
+
+	echo "Pod $pod_id created with netns: $NETNS_PATH$NS"
+
+	# Verify the netns file exists before stopping
+	[[ -f "$NETNS_PATH$NS" ]] || [[ -f "/run/netns/$NS" ]]
+
+	# Stop the pod (this marks it as stopped in CRI-O state)
+	crictl stopp "$pod_id"
+
+	# After stopping, the namespace might already be cleaned up by CRI-O
+	# We need to recreate the invalid file scenario that happens after reboot
+	# where the kernel namespace is gone but the file remains
+
+	# Try to delete the kernel namespace if it still exists (may fail if already gone)
+	ip netns del "$NS" 2>/dev/null || true
+
+	# Create a fake/invalid netns file (kernel namespace is gone but file exists)
+	touch "$NETNS_PATH$NS" || touch "/run/netns/$NS"
+
+	# Use whichever path actually exists
+	if [[ -f "/run/netns/$NS" ]]; then
+		NETNS_PATH=/run/netns/
+	fi
+
+	# Verify the invalid file exists
+	[[ -f "$NETNS_PATH$NS" ]]
+	echo "Invalid netns file created at: $NETNS_PATH$NS"
+	ls -la "$NETNS_PATH$NS" || true
+
+	# Restart CRI-O - this triggers LoadSandbox which calls NetNsJoin
+	# NetNsJoin should fail to GetNS but will store partial namespace anyway
+	restart_crio
+
+	echo "After CRI-O restart, checking if invalid file still exists..."
+	if [[ -f "$NETNS_PATH$NS" ]]; then
+		echo "BUG CONFIRMED: Invalid netns file still exists: $NETNS_PATH$NS"
+		ls -la "$NETNS_PATH$NS"
+	else
+		echo "File was cleaned up (bug may be fixed)"
+	fi
+
+	# Try to remove the pod - this should cleanup the invalid file
+	crictl rmp -f "$pod_id" 2>&1 || true
+
+	echo "After pod removal, verifying file cleanup..."
+	if [[ -f "$NETNS_PATH$NS" ]]; then
+		echo "LEAKED: Invalid netns file was not cleaned up: $NETNS_PATH$NS"
+		ls -la "$NETNS_PATH$NS" || true
+		# Cleanup for test
+		rm -f "$NETNS_PATH$NS"
+		rm -f "/run/netns/$NS" 2>/dev/null || true
+		# Fail the test - this demonstrates the bug
+		echo "TEST FAILED: Bug reproduced - netns file leaked"
+		return 1
+	else
+		echo "SUCCESS: Invalid netns file was properly cleaned up"
+	fi
+
+	# Verify we can create a new pod now (would fail with leaked file)
+	new_pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	output=$(crictl inspectp "$new_pod_id" | jq -r '.status.state')
+	[[ "$output" == "SANDBOX_READY" ]]
+
+	# Cleanup
+	crictl stopp "$new_pod_id"
+	crictl rmp "$new_pod_id"
+
+	# Final cleanup - ensure no leaked files
+	rm -f "$NETNS_PATH$NS" 2>/dev/null || true
+	rm -f "/run/netns/$NS" 2>/dev/null || true
+	rm -f "/var/run/netns/$NS" 2>/dev/null || true
+}
