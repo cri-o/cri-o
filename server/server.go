@@ -407,6 +407,7 @@ func New(
 
 	config.SystemContext.AuthFilePath = config.GlobalAuthFile
 	config.SystemContext.SignaturePolicyPath = config.SignaturePolicyPath
+	config.SystemContext.DockerReadTimeout = 2 * time.Minute
 
 	if err := os.MkdirAll(config.ContainerAttachSocketDir, 0o755); err != nil {
 		return nil, err
