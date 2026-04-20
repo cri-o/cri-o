@@ -44,7 +44,7 @@ var _ = t.Describe("DataStore", func() {
 
 		It("should fail when ParseNormalizedNamed fails", func() {
 			// Given
-			dataStore, err := datastore.New(t.MustTempDir("artifact"), nil)
+			dataStore, err := datastore.New(t.MustTempDir("artifact"), nil, false)
 			Expect(err).NotTo(HaveOccurred())
 			dataStore.SetImpl(implMock)
 
@@ -63,7 +63,7 @@ var _ = t.Describe("DataStore", func() {
 
 		It("should fail when DockerNewReference fails", func() {
 			// Given
-			dataStore, err := datastore.New(t.MustTempDir("artifact"), nil)
+			dataStore, err := datastore.New(t.MustTempDir("artifact"), nil, false)
 			Expect(err).NotTo(HaveOccurred())
 			dataStore.SetImpl(implMock)
 
