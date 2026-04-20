@@ -159,7 +159,7 @@ var _ = t.Describe("Store", func() {
 
 			var err error
 
-			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil, nil)
+			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil, nil, false)
 			Expect(err).NotTo(HaveOccurred())
 			store.SetFakeImpl(implMock)
 		})
@@ -410,7 +410,7 @@ var _ = t.Describe("Store", func() {
 
 			var err error
 
-			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil, nil)
+			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil, nil, false)
 			Expect(err).NotTo(HaveOccurred())
 			store.SetFakeStore(&ociartifact.FakeLibartifactStore{storeMock})
 		})
@@ -476,7 +476,7 @@ var _ = t.Describe("Store", func() {
 
 			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil, []*regexp.Regexp{
 				regexp.MustCompile(`nginx`),
-			})
+			}, false)
 			Expect(err).NotTo(HaveOccurred())
 			store.SetFakeStore(&ociartifact.FakeLibartifactStore{storeMock})
 
@@ -601,7 +601,7 @@ var _ = t.Describe("Store", func() {
 
 			var err error
 
-			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil, nil)
+			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil, nil, false)
 			Expect(err).NotTo(HaveOccurred())
 			store.SetFakeStore(&ociartifact.FakeLibartifactStore{mainStoreMock})
 			store.SetFakeImpl(implMock)

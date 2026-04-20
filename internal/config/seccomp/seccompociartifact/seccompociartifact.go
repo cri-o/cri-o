@@ -21,7 +21,7 @@ type SeccompOCIArtifact struct {
 
 // New creates a new seccomp OCI artifact handler.
 func New(root string, systemContext *types.SystemContext) (*SeccompOCIArtifact, error) {
-	store, err := datastore.New(root, systemContext)
+	store, err := datastore.New(root, systemContext, false)
 	if err != nil {
 		return nil, err
 	}
