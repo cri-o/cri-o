@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"math/rand/v2"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -16,6 +17,16 @@ import (
 
 	"github.com/sirupsen/logrus"
 )
+
+// isRetryableNetworkError returns true for network errors that indicate
+// a stalled or interrupted connection that may be resolved by reconnecting.
+func isRetryableNetworkError(err error) bool {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return false
+}
 
 const (
 	// bodyReaderMinimumProgress is the minimum progress we consider a good reason to retry
@@ -147,7 +158,7 @@ func (br *bodyReader) Read(p []byte) (int, error) {
 		br.lastSuccessTime = time.Now()
 		return n, err // Unlike the default: case, don’t log anything.
 
-	case errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, syscall.ECONNRESET):
+	case errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, syscall.ECONNRESET) || isRetryableNetworkError(err):
 		originalErr := err
 		redactedURL := br.logURL.Redacted()
 		if err := br.errorIfNotReconnecting(originalErr, redactedURL); err != nil {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -902,6 +903,22 @@ func newBearerTokenFromHTTPResponseBody(res *http.Response) (*bearerToken, error
 	return bt, nil
 }
 
+// deadlineConn wraps a net.Conn to enforce a read deadline on every Read call.
+// If no data arrives within the configured readTimeout, the Read returns a
+// net.Error with Timeout() == true, which bodyReader treats as a reconnectable
+// condition and retries with a Range request.
+type deadlineConn struct {
+	net.Conn
+	readTimeout time.Duration
+}
+
+func (c *deadlineConn) Read(p []byte) (int, error) {
+	if err := c.Conn.SetReadDeadline(time.Now().Add(c.readTimeout)); err != nil {
+		return 0, err
+	}
+	return c.Conn.Read(p)
+}
+
 // detectPropertiesHelper performs the work of detectProperties which executes
 // it at most once.
 func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
@@ -912,10 +929,24 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 	}
 	tr := tlsclientconfig.NewTransport()
 	tr.TLSClientConfig = c.tlsClientConfig
+	// Wrap the dialer to set per-read deadlines on the underlying connection.
+	// This ensures that a stalled registry response (e.g. TLS read that never
+	// returns data) will time out instead of blocking indefinitely.
+	if c.sys != nil && c.sys.DockerReadTimeout > 0 {
+		originalDial := tr.DialContext
+		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			conn, err := originalDial(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			return &deadlineConn{Conn: conn, readTimeout: c.sys.DockerReadTimeout}, nil
+		}
+	}
 	// if set DockerProxyURL explicitly, use the DockerProxyURL instead of system proxy
 	if c.sys != nil && c.sys.DockerProxyURL != nil {
 		tr.Proxy = http.ProxyURL(c.sys.DockerProxyURL)
 	}
+	tr.ResponseHeaderTimeout = 2 * time.Minute
 	c.client = &http.Client{Transport: tr}
 
 	ping := func(scheme string) error {

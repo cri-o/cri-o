@@ -668,6 +668,12 @@ type SystemContext struct {
 	DockerRegistryPushPrecomputeDigests bool
 	// DockerProxyURL specifies proxy configuration schema (like socks5://username:password@ip:port)
 	DockerProxyURL *url.URL
+	// DockerReadTimeout is the maximum duration a single read from a registry
+	// connection can block without returning any data before the connection is
+	// considered stalled. When triggered, the read returns a timeout error
+	// which allows the download to be resumed with a Range request.
+	// If zero, no per-read deadline is enforced.
+	DockerReadTimeout time.Duration
 
 	// === docker/daemon.Transport overrides ===
 	// A directory containing a CA certificate (ending with ".crt"),
