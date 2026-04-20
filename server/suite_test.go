@@ -233,7 +233,7 @@ func mockNewServer() {
 
 	graphroot := t.MustTempDir("graphroot")
 	gomock.InOrder(
-		cniPluginMock.EXPECT().Status().Return(nil),
+		cniPluginMock.EXPECT().StatusWithContext(gomock.Any()).Return(nil),
 		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 		libMock.EXPECT().GetStore().Return(storeMock, nil),
 		libMock.EXPECT().GetData().Return(serverConfig),

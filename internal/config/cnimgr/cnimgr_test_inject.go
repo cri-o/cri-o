@@ -6,6 +6,8 @@
 package cnimgr
 
 import (
+	"context"
+
 	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
@@ -20,7 +22,8 @@ func (c *CNIManager) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
 
 	c.plugin = plugin
 	// initialize the poll, but don't run it continuously (or else the mocks will get weird)
-	_, _ = c.pollFunc() //nolint:errcheck // error is intentionally ignored in test setup
+	//nolint:errcheck // error is intentionally ignored in test setup
+	_, _ = c.statusPollFunc(context.Background(), false)
 
 	return nil
 }
