@@ -65,12 +65,15 @@ type Store struct {
 	// Access is via atomic.Pointer to allow concurrent reads during listing
 	// while the reload watcher updates the regexps.
 	pinnedImageRegexps atomic.Pointer[[]*regexp.Regexp]
+
+	// allowImages is a flag indicating whether the store should accept to
+	// pull image artifacts. By default, the store is intended to hold only
+	// non-image artifacts.
+	allowImages bool
 }
 
 // NewStore creates a new OCI artifact store.
-func NewStore(rootPath string, additionalPaths []string, systemContext *types.SystemContext, pinnedImageRegexps []*regexp.Regexp) (*Store, error) {
-	storePath := filepath.Join(rootPath, "artifacts")
-
+func NewStore(storePath string, additionalPaths []string, systemContext *types.SystemContext, pinnedImageRegexps []*regexp.Regexp, allowImages bool) (*Store, error) {
 	store, err := libart.NewArtifactStore(storePath, systemContext)
 	if err != nil {
 		return nil, err
@@ -100,6 +103,7 @@ func NewStore(rootPath string, additionalPaths []string, systemContext *types.Sy
 		rootPath:         storePath,
 		impl:             &defaultImpl{},
 		additionalStores: additional,
+		allowImages:      allowImages,
 	}
 	s.SetPinnedImageRegexps(pinnedImageRegexps)
 
@@ -115,8 +119,10 @@ func (s *Store) Pull(
 ) (manifestDigest *digest.Digest, err error) {
 	// Reject regular container images early. If a container image was
 	// pulled into the artifact store, it would not be usable as an image.
-	if err := s.EnsureNotContainerImage(ctx, ref); err != nil {
-		return nil, fmt.Errorf("image reference: %w", err)
+	if !s.allowImages {
+		if err := s.EnsureNotContainerImage(ctx, ref); err != nil {
+			return nil, fmt.Errorf("image reference: %w", err)
+		}
 	}
 
 	strRef := ref.DockerReference().String()

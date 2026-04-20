@@ -880,7 +880,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		//   does not have access to the compiled regexps. The pull result is not
 		//   used for image GC, but the store should ideally be configured at a
 		//   higher level where the regexps are available.
-		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), options.AdditionalArtifactStores, &srcSystemContext, nil)
+		artifactStore, artifactErr := ociartifact.NewStore(store.GraphRoot(), options.AdditionalArtifactStores, &srcSystemContext, nil, false)
 		if artifactErr != nil {
 			return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: create store err: %w", artifactErr)
 		}

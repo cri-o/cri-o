@@ -42,12 +42,12 @@ type Store struct {
 }
 
 // New creates a new OCI artifact data store.
-func New(rootPath string, systemContext *types.SystemContext) (*Store, error) {
+func New(rootPath string, systemContext *types.SystemContext, allowImages bool) (*Store, error) {
 	// The datastore only handles artifacts pulled into the main store.
 	// Additional read-only stores are not threaded through here (we pass
 	// nil for additionalPaths) since the datastore is used for in-memory
 	// artifact data managed by the main CRI-O lifecycle.
-	ociStore, err := ociartifact.NewStore(rootPath, nil, systemContext, nil)
+	ociStore, err := ociartifact.NewStore(rootPath, nil, systemContext, nil, allowImages)
 	if err != nil {
 		return nil, fmt.Errorf("create OCI artifact store: %w", err)
 	}
