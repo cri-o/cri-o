@@ -82,6 +82,7 @@ type Metrics struct {
 	metricContainersSeccompNotifierCountTotal *prometheus.CounterVec
 	metricResourcesStalledAtStage             *prometheus.CounterVec
 	metricContainersStoppedMonitorCount       *prometheus.CounterVec
+	metricDefaultRuntime                      *prometheus.GaugeVec
 }
 
 var instance *Metrics
@@ -247,6 +248,14 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Amount of containers whose monitor process has exited by their name",
 			},
 			[]string{"name"},
+		),
+		metricDefaultRuntime: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.DefaultRuntime.String(),
+				Help:      "Default container runtime configured. Value is always 1.",
+			},
+			[]string{"runtime"},
 		),
 	}
 
@@ -446,6 +455,19 @@ func (m *Metrics) MetricContainersStoppedMonitorCountInc(name string) {
 	c.Inc()
 }
 
+func (m *Metrics) MetricDefaultRuntimeSet(runtime string) {
+	m.metricDefaultRuntime.Reset()
+
+	g, err := m.metricDefaultRuntime.GetMetricWithLabelValues(runtime)
+	if err != nil {
+		logrus.Warnf("Unable to write default runtime metric: %v", err)
+
+		return
+	}
+
+	g.Set(1)
+}
+
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	for collector, metric := range map[collectors.Collector]prometheus.Collector{
@@ -466,6 +488,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ProcessesDefunct:                    m.metricProcessesDefunct,
 		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
 		collectors.ContainersStoppedMonitorCount:       m.metricContainersStoppedMonitorCount,
+		collectors.DefaultRuntime:                      m.metricDefaultRuntime,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())
