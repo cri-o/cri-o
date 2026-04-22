@@ -7,9 +7,11 @@ import (
 	"strings"
 
 	"github.com/opencontainers/go-digest"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/libartifact"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
+	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
 	"go.podman.io/image/v5/pkg/blobinfocache/none"
@@ -319,4 +321,60 @@ func (m *manifestOnlyUnparsed) Manifest(_ context.Context) (manifestBlob []byte,
 
 func (m *manifestOnlyUnparsed) Signatures(_ context.Context) ([][]byte, error) {
 	return [][]byte{}, nil
+}
+
+// PullConfig reads the OCI image config for an entry previously stored by
+// PullManifestOnly.  refStr is the full image reference string used during the
+// original pull (e.g. "docker.io/library/ubuntu:latest").
+func (s *Store) PullConfig(ctx context.Context, refStr string) (*specs.Image, error) {
+	imageReference, err := layout.NewReference(s.storePath, refStr)
+	if err != nil {
+		return nil, fmt.Errorf("create layout reference: %w", err)
+	}
+
+	sys := s.systemContext
+	if sys == nil {
+		sys = &types.SystemContext{}
+	}
+
+	imageSource, err := imageReference.NewImageSource(ctx, sys)
+	if err != nil {
+		return nil, fmt.Errorf("build image source: %w", err)
+	}
+
+	defer func() {
+		if err := imageSource.Close(); err != nil {
+			log.Warnf(ctx, "Unable to close image source: %v", err)
+		}
+	}()
+
+	unparsedToplevel := image.UnparsedInstance(imageSource, nil)
+
+	topManifest, topMIMEType, err := unparsedToplevel.Manifest(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get manifest: %w", err)
+	}
+
+	unparsedInstance := unparsedToplevel
+
+	if manifest.MIMETypeIsMultiImage(topMIMEType) {
+		manifestList, err := manifest.ListFromBlob(topManifest, topMIMEType)
+		if err != nil {
+			return nil, fmt.Errorf("parse manifest list: %w", err)
+		}
+
+		instanceDigest, err := manifestList.ChooseInstance(sys)
+		if err != nil {
+			return nil, fmt.Errorf("choose manifest instance: %w", err)
+		}
+
+		unparsedInstance = image.UnparsedInstance(imageSource, &instanceDigest)
+	}
+
+	sourcedImage, err := image.FromUnparsedImage(ctx, sys, unparsedInstance)
+	if err != nil {
+		return nil, fmt.Errorf("build image from unparsed: %w", err)
+	}
+
+	return sourcedImage.OCIConfig(ctx)
 }
