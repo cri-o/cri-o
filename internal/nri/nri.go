@@ -71,6 +71,9 @@ type API interface {
 
 	// StopContainer relays container removal events to NRI.
 	RemoveContainer(context.Context, PodSandbox, Container) error
+
+	// BlockPluginSync blocks plugin synchronization until it is Unblock()ed.
+	BlockPluginSync() *PluginSyncBlock
 }
 
 type State int
@@ -424,6 +427,16 @@ func (l *local) RemoveContainer(ctx context.Context, pod PodSandbox, ctr Contain
 	l.setState(request.GetContainer().GetId(), Removed)
 
 	return err
+}
+
+type PluginSyncBlock = nri.PluginSyncBlock
+
+func (l *local) BlockPluginSync() *PluginSyncBlock {
+	if !l.IsEnabled() {
+		return nil
+	}
+
+	return l.nri.BlockPluginSync()
 }
 
 func (l *local) IsEnabled() bool {

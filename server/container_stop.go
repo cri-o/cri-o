@@ -79,9 +79,14 @@ func (s *Server) postStopCleanup(ctx context.Context, ctr *oci.Container, sb *sa
 		}
 	}
 
+	blk := s.nri.BlockPluginSync()
+
 	if err := s.nri.stopContainer(ctx, sb, ctr); err != nil {
 		log.Warnf(ctx, "NRI stop container request of %s failed: %v", ctr.ID(), err)
 	}
+
+	blk.Unblock()
+
 	// persist container state at the end, so there's no window where CRI-O reports the container
 	// as stopped, but hasn't run post stop hooks.
 	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
