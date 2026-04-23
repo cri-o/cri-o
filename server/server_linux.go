@@ -15,6 +15,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/server/metrics"
 )
 
@@ -89,8 +90,14 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 			ctx := msg.Ctx()
 			id := msg.ContainerID()
 			syscall := msg.Syscall()
+			ctr := s.GetContainer(ctx, id)
 
-			log.Infof(ctx, "Got seccomp notifier message for container ID: %s (syscall = %s)", id, syscall)
+			if ctr != nil {
+				log.Warnf(ctx, "Seccomp blocked syscall '%s' in container %s (%s)",
+					syscall, id, oci.LabelsToDescription(ctr.Labels()))
+			} else {
+				log.Warnf(ctx, "Seccomp blocked syscall '%s' in container %s", syscall, id)
+			}
 
 			result, ok := s.seccompNotifiers.Load(id)
 			if !ok {
@@ -108,7 +115,6 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 
 			notifier.AddSyscall(syscall)
 
-			ctr := s.GetContainer(ctx, id)
 			usedSyscalls := notifier.UsedSyscalls()
 
 			if notifier.StopContainers() {
