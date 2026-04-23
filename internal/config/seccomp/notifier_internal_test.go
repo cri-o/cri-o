@@ -69,6 +69,7 @@ func TestHandlerStopsOnClosedFdError(t *testing.T) {
 	}{
 		{name: "ebadf", err: unix.EBADF},
 		{name: "ecanceled", err: unix.ECANCELED},
+		{name: "enoent", err: unix.ENOENT},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			restore := stubNotifierCalls(t, []string{"getpid"}, tc.err)

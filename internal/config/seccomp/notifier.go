@@ -241,7 +241,7 @@ func handler(
 	for {
 		req, err := notifReceive(fd)
 		if err != nil {
-			if errors.Is(err, unix.EBADF) || errors.Is(err, unix.ECANCELED) {
+			if errors.Is(err, unix.EBADF) || errors.Is(err, unix.ECANCELED) || errors.Is(err, unix.ENOENT) {
 				log.Infof(ctx, "Stopping notifier for container %s", containerID)
 				return
 			}
