@@ -529,3 +529,210 @@ func TestStatusPolling(t *testing.T) {
 		}
 	})
 }
+
+func newTestManagerWithGrace(plugin *fakeCNIPlugin, gracePeriod time.Duration) *CNIManager {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	mgr := &CNIManager{
+		plugin:              plugin,
+		lastError:           errors.New("plugin status uninitialized"),
+		cancel:              cancel,
+		initPollInterval:    testPollInterval,
+		monitorPollInterval: testPollInterval,
+		gracePeriod:         gracePeriod,
+	}
+
+	go mgr.pollContinuously(ctx)
+
+	return mgr
+}
+
+func TestGracePeriod(t *testing.T) {
+	t.Run("tolerates brief failure within grace period", func(t *testing.T) {
+		fake := &fakeCNIPlugin{}
+		mgr := newTestManagerWithGrace(fake, 2*time.Second)
+
+		defer mgr.Shutdown()
+
+		waitFor(t, "initial ready", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+
+		fake.setStatusErr(errors.New("plugin down"))
+		time.Sleep(200 * time.Millisecond)
+
+		if mgr.ReadyOrError() != nil {
+			t.Fatal("expected still ready within grace period")
+		}
+
+		fake.setStatusErr(nil)
+		time.Sleep(100 * time.Millisecond)
+
+		if mgr.ReadyOrError() != nil {
+			t.Fatal("expected ready after recovery within grace period")
+		}
+	})
+
+	t.Run("reports unhealthy after grace period expires", func(t *testing.T) {
+		fake := &fakeCNIPlugin{}
+		mgr := newTestManagerWithGrace(fake, 200*time.Millisecond)
+
+		defer mgr.Shutdown()
+
+		waitFor(t, "initial ready", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+
+		fake.setStatusErr(errors.New("plugin down"))
+
+		waitFor(t, "not-ready after grace period", func() bool {
+			return mgr.ReadyOrError() != nil
+		})
+	})
+
+	t.Run("zero grace period reports immediately", func(t *testing.T) {
+		fake := &fakeCNIPlugin{}
+		mgr := newTestManagerWithGrace(fake, 0)
+
+		defer mgr.Shutdown()
+
+		waitFor(t, "initial ready", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+
+		fake.setStatusErr(errors.New("plugin down"))
+
+		waitFor(t, "not-ready immediately", func() bool {
+			return mgr.ReadyOrError() != nil
+		})
+	})
+
+	t.Run("grace timer resets after recovery", func(t *testing.T) {
+		fake := &fakeCNIPlugin{}
+		mgr := newTestManagerWithGrace(fake, 500*time.Millisecond)
+
+		defer mgr.Shutdown()
+
+		waitFor(t, "initial ready", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+
+		// First failure -- recover within grace
+		fake.setStatusErr(errors.New("plugin down"))
+		time.Sleep(200 * time.Millisecond)
+		fake.setStatusErr(nil)
+
+		waitFor(t, "recovered", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+
+		// Second failure -- grace timer should have reset
+		fake.setStatusErr(errors.New("plugin down again"))
+		time.Sleep(200 * time.Millisecond)
+
+		if mgr.ReadyOrError() != nil {
+			t.Fatal("expected still ready -- grace timer should have reset")
+		}
+
+		fake.setStatusErr(nil)
+		time.Sleep(100 * time.Millisecond)
+
+		if mgr.ReadyOrError() != nil {
+			t.Fatal("expected ready after second recovery")
+		}
+	})
+
+	t.Run("startup phase ignores grace period", func(t *testing.T) {
+		fake := &fakeCNIPlugin{statusErr: errors.New("not yet")}
+		mgr := newTestManagerWithGrace(fake, 2*time.Second)
+
+		defer mgr.Shutdown()
+
+		time.Sleep(100 * time.Millisecond)
+
+		if mgr.ReadyOrError() == nil {
+			t.Fatal("expected not-ready during startup despite grace period")
+		}
+
+		fake.setStatusErr(nil)
+
+		waitFor(t, "ready after startup recovery", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+	})
+
+	t.Run("self-heals after grace period expiry", func(t *testing.T) {
+		fake := &fakeCNIPlugin{}
+		mgr := newTestManagerWithGrace(fake, 200*time.Millisecond)
+
+		defer mgr.Shutdown()
+
+		waitFor(t, "initial ready", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+
+		fake.setStatusErr(errors.New("plugin down"))
+
+		waitFor(t, "not-ready after grace", func() bool {
+			return mgr.ReadyOrError() != nil
+		})
+
+		fake.setStatusErr(nil)
+
+		waitFor(t, "recovered", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+	})
+
+	t.Run("watcher notified only after grace period expires", func(t *testing.T) {
+		fake := &fakeCNIPlugin{}
+		mgr := newTestManagerWithGrace(fake, 200*time.Millisecond)
+
+		defer mgr.Shutdown()
+
+		waitFor(t, "initial ready", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+
+		fake.setStatusErr(errors.New("plugin down"))
+
+		waitFor(t, "not-ready after grace", func() bool {
+			return mgr.ReadyOrError() != nil
+		})
+
+		watcher := mgr.AddWatcher()
+
+		fake.setStatusErr(nil)
+
+		select {
+		case ready := <-watcher:
+			if !ready {
+				t.Fatal("expected watcher to receive true on recovery")
+			}
+		case <-time.After(testTimeout):
+			t.Fatal("timed out waiting for watcher on recovery")
+		}
+	})
+
+	t.Run("multiple flaps within grace period", func(t *testing.T) {
+		fake := &fakeCNIPlugin{}
+		mgr := newTestManagerWithGrace(fake, 2*time.Second)
+
+		defer mgr.Shutdown()
+
+		waitFor(t, "initial ready", func() bool {
+			return mgr.ReadyOrError() == nil
+		})
+
+		for range 3 {
+			fake.setStatusErr(errors.New("plugin down"))
+			time.Sleep(50 * time.Millisecond)
+			fake.setStatusErr(nil)
+			time.Sleep(50 * time.Millisecond)
+		}
+
+		if mgr.ReadyOrError() != nil {
+			t.Fatal("expected ready -- all flaps were within grace period")
+		}
+	})
+}

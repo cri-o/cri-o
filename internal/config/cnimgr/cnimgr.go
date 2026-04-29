@@ -25,11 +25,13 @@ type CNIManager struct {
 	cancel              context.CancelFunc
 	initPollInterval    time.Duration
 	monitorPollInterval time.Duration
+	gracePeriod         time.Duration
+	firstFailureTime    time.Time
 
 	validPodList PodNetworkLister
 }
 
-func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, error) {
+func New(defaultNetwork, networkDir string, gracePeriod time.Duration, pluginDirs ...string) (*CNIManager, error) {
 	// Init CNI plugin
 	plugin, err := ocicni.InitCNI(
 		defaultNetwork, networkDir, pluginDirs...,
@@ -46,6 +48,7 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 		cancel:              cancel,
 		initPollInterval:    500 * time.Millisecond,
 		monitorPollInterval: 5 * time.Second,
+		gracePeriod:         gracePeriod,
 	}
 
 	go mgr.pollContinuously(ctx)
@@ -78,12 +81,35 @@ func (c *CNIManager) statusPollFunc(ctx context.Context, isStartup bool) (bool, 
 	defer c.mutex.Unlock()
 
 	if err := c.plugin.StatusWithContext(ctx); err != nil {
+		// During Phase 2 monitoring, apply a grace period before reporting
+		// unhealthy. This tolerates brief CNI disruptions (e.g. OVN-K
+		// daemonset rollout where the plugin is unavailable for ~10-15s).
+		if !isStartup && c.lastError == nil && c.gracePeriod > 0 {
+			if c.firstFailureTime.IsZero() {
+				c.firstFailureTime = time.Now()
+				logrus.Warnf("CNI plugin status check failed, will report unhealthy after grace period (%v): %v", c.gracePeriod, err)
+			}
+
+			if time.Since(c.firstFailureTime) < c.gracePeriod {
+				return false, nil
+			}
+
+			logrus.Errorf("CNI plugin unhealthy beyond grace period (%v): %v", c.gracePeriod, err)
+		} else if c.lastError == nil {
+			logrus.Errorf("CNI plugin became unhealthy: %v", err)
+		}
+
 		c.lastError = err
 
 		return false, nil
 	}
 
+	// Plugin is healthy -- reset grace period timer
+	c.firstFailureTime = time.Time{}
+
 	if c.lastError != nil {
+		logrus.Infof("CNI plugin is now healthy (was: %v)", c.lastError)
+
 		c.lastError = nil
 		// on startup, GC might have been attempted before the plugin was
 		// actually ready so we might have deferred it until now, which is

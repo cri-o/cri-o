@@ -527,6 +527,10 @@ func mergeNetworkConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("cni-plugin-dir") {
 		config.PluginDirs = StringSliceTrySplit(ctx, "cni-plugin-dir")
 	}
+
+	if ctx.IsSet("cni-status-grace-period") {
+		config.CNIStatusGracePeriod = ctx.Duration("cni-status-grace-period")
+	}
 }
 
 // mergeAPIConfig merges APIConfig-related CLI flags into the config, including gRPC and streaming settings.
@@ -1021,6 +1025,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   cli.NewStringSlice(defConf.PluginDir),
 			Usage:   "CNI plugin binaries directory.",
 			EnvVars: []string{"CONTAINER_CNI_PLUGIN_DIR"},
+		},
+		&cli.DurationFlag{
+			Name:    "cni-status-grace-period",
+			Usage:   "Duration to wait before reporting CNI plugin as unhealthy after a status check failure. Tolerates brief CNI disruptions during plugin upgrades. Set to 0 for immediate reporting.",
+			Value:   defConf.CNIStatusGracePeriod,
+			EnvVars: []string{"CNI_STATUS_GRACE_PERIOD"},
 		},
 		&cli.StringFlag{
 			Name:  "image-volumes",
