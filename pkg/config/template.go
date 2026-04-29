@@ -603,6 +603,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: slices.Equal(dc.PluginDirs, c.PluginDirs),
 		},
 		{
+			templateString: templateStringCrioNetworkCNIStatusGracePeriod,
+			group:          crioNetworkConfig,
+			isDefaultValue: simpleEqual(dc.CNIStatusGracePeriod, c.CNIStatusGracePeriod),
+		},
+		{
 			templateString: templateStringCrioMetricsEnableMetrics,
 			group:          crioMetricsConfig,
 			isDefaultValue: simpleEqual(dc.EnableMetrics, c.EnableMetrics),
@@ -1641,6 +1646,17 @@ const templateStringCrioNetworkNetworkDir = `# Path to the directory where CNI c
 const templateStringCrioNetworkPluginDirs = `# Paths to directories where CNI plugin binaries are located.
 {{ $.Comment }}plugin_dirs = [
 {{ range $opt := .PluginDirs }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
+
+`
+
+const templateStringCrioNetworkCNIStatusGracePeriod = `# Enable continuous CNI STATUS monitoring with the given grace period.
+# When set to "0s" (default), monitoring is disabled and plugin health is
+# only determined at startup; runtime failures will not be detected.
+# When set to a positive duration (e.g. "1m"), a background goroutine polls
+# the plugin every 5 seconds and waits for this grace period before marking
+# the node not-ready, tolerating brief CNI disruptions during plugin
+# upgrades (e.g. OVN-K daemonset rollout).
+{{ $.Comment }}cni_status_grace_period = "{{ .CNIStatusGracePeriod }}"
 
 `
 

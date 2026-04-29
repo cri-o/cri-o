@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -1146,6 +1147,40 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("should fail on negative CNIStatusGracePeriod", func() {
+			// Given
+			sut.CNIStatusGracePeriod = -1 * time.Second
+
+			// When
+			err := sut.NetworkConfig.Validate(false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not be negative"))
+		})
+
+		It("should succeed with zero CNIStatusGracePeriod", func() {
+			// Given
+			sut.CNIStatusGracePeriod = 0
+
+			// When
+			err := sut.NetworkConfig.Validate(false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should succeed with positive CNIStatusGracePeriod", func() {
+			// Given
+			sut.CNIStatusGracePeriod = 30 * time.Second
+
+			// When
+			err := sut.NetworkConfig.Validate(false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 
 	t.Describe("ValidateRootConfig", func() {
@@ -1490,6 +1525,24 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail with invalid cni_status_grace_period duration string", func() {
+			// Given
+			f := t.MustTempFile("config")
+			Expect(os.WriteFile(f,
+				[]byte(`
+					[crio.network]
+					cni_status_grace_period = "bogus"`,
+				), 0),
+			).To(Succeed())
+
+			// When
+			err := sut.UpdateFromFile(context.Background(), f)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid duration"))
 		})
 	})
 
