@@ -716,6 +716,12 @@ type NetworkConfig struct {
 	// PluginDirs is where CNI plugin binaries are stored.
 	PluginDirs []string `toml:"plugin_dirs"`
 
+	// CNIStatusGracePeriod is the duration to wait before reporting the CNI
+	// plugin as unhealthy after a status check failure. This tolerates brief
+	// CNI disruptions during plugin upgrades (e.g. OVN-K daemonset rollout).
+	// Set to 0 for immediate reporting.
+	CNIStatusGracePeriod time.Duration `toml:"cni_status_grace_period"`
+
 	// cniManager manages the internal ocicni plugin
 	cniManager *cnimgr.CNIManager
 }
@@ -1098,8 +1104,9 @@ func DefaultConfig() (*Config, error) {
 			NamespacedAuthDir:       cpConfig.AuthDir,
 		},
 		NetworkConfig: NetworkConfig{
-			NetworkDir: cniConfigDir,
-			PluginDirs: []string{cniBinDir},
+			NetworkDir:           cniConfigDir,
+			PluginDirs:           []string{cniBinDir},
+			CNIStatusGracePeriod: 60 * time.Second,
 		},
 		MetricsConfig: MetricsConfig{
 			MetricsHost:       "127.0.0.1",
@@ -1915,7 +1922,7 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 
 		// Init CNI plugin
 		cniManager, err := cnimgr.New(
-			c.CNIDefaultNetwork, c.NetworkDir, c.PluginDirs...,
+			c.CNIDefaultNetwork, c.NetworkDir, c.CNIStatusGracePeriod, c.PluginDirs...,
 		)
 		if err != nil {
 			return fmt.Errorf("initialize CNI plugin: %w", err)
