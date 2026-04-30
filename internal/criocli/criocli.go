@@ -531,6 +531,10 @@ func mergeNetworkConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("cni-status-grace-period") {
 		config.CNIStatusGracePeriod = ctx.Duration("cni-status-grace-period")
 	}
+
+	if ctx.IsSet("enable-cni-status-monitoring") {
+		config.EnableCNIStatusMonitoring = ctx.Bool("enable-cni-status-monitoring")
+	}
 }
 
 // mergeAPIConfig merges APIConfig-related CLI flags into the config, including gRPC and streaming settings.
@@ -1028,9 +1032,15 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.DurationFlag{
 			Name:    "cni-status-grace-period",
-			Usage:   "Duration to wait before reporting CNI plugin as unhealthy after a status check failure. Tolerates brief CNI disruptions during plugin upgrades. Set to 0 for immediate reporting.",
+			Usage:   "Duration to wait before reporting CNI plugin as unhealthy after a status check failure. Tolerates brief CNI disruptions during plugin upgrades. Set to 0 for immediate reporting. Only effective when --enable-cni-status-monitoring is true.",
 			Value:   defConf.CNIStatusGracePeriod,
 			EnvVars: []string{"CNI_STATUS_GRACE_PERIOD"},
+		},
+		&cli.BoolFlag{
+			Name:    "enable-cni-status-monitoring",
+			Usage:   "Enable continuous background polling of CNI STATUS to detect plugin health changes at runtime. When disabled (default), plugin health is only determined at startup; runtime failures will not be detected.",
+			Value:   defConf.EnableCNIStatusMonitoring,
+			EnvVars: []string{"ENABLE_CNI_STATUS_MONITORING"},
 		},
 		&cli.StringFlag{
 			Name:  "image-volumes",

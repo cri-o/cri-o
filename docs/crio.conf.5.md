@@ -550,6 +550,12 @@ Path to the directory where CNI configuration files are located.
 **plugin_dirs**=["/opt/cni/bin/",]
 List of paths to directories where CNI plugin binaries are located.
 
+**cni_status_grace_period**="1m0s"
+Duration to wait before reporting the CNI plugin as unhealthy after a status check failure. This tolerates brief CNI disruptions during plugin upgrades (e.g. OVN-K daemonset rollout). Set to "0s" for immediate reporting. Only effective when enable_cni_status_monitoring is true.
+
+**enable_cni_status_monitoring**=false
+Enable continuous background polling of CNI STATUS to detect plugin health changes at runtime. When false (default), plugin health is only determined at startup; runtime failures will not be detected. When true, a background goroutine polls the plugin and can mark the node not-ready if the plugin becomes unhealthy (subject to cni_status_grace_period).
+
 ## CRIO.METRICS TABLE
 
 The `crio.metrics` table containers settings pertaining to the Prometheus based metrics retrieval.

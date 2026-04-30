@@ -27,11 +27,12 @@ type CNIManager struct {
 	monitorPollInterval time.Duration
 	gracePeriod         time.Duration
 	firstFailureTime    time.Time
+	monitoringEnabled   bool
 
 	validPodList PodNetworkLister
 }
 
-func New(defaultNetwork, networkDir string, gracePeriod time.Duration, pluginDirs ...string) (*CNIManager, error) {
+func New(defaultNetwork, networkDir string, gracePeriod time.Duration, monitoringEnabled bool, pluginDirs ...string) (*CNIManager, error) {
 	// Init CNI plugin
 	plugin, err := ocicni.InitCNI(
 		defaultNetwork, networkDir, pluginDirs...,
@@ -49,6 +50,7 @@ func New(defaultNetwork, networkDir string, gracePeriod time.Duration, pluginDir
 		initPollInterval:    500 * time.Millisecond,
 		monitorPollInterval: 5 * time.Second,
 		gracePeriod:         gracePeriod,
+		monitoringEnabled:   monitoringEnabled,
 	}
 
 	go mgr.pollContinuously(ctx)
@@ -56,15 +58,27 @@ func New(defaultNetwork, networkDir string, gracePeriod time.Duration, pluginDir
 	return mgr, nil
 }
 
-func (c *CNIManager) pollContinuously(ctx context.Context) {
-	// Phase 1: fast poll until the plugin is ready for the first time.
-	// This handles startup synchronization, triggers deferred GC, and notifies
-	// watchers that are blocking pod creation.
+// pollUntilReady runs Phase 1: fast poll until the plugin is ready for the
+// first time. This handles startup synchronization, triggers deferred GC,
+// and notifies watchers that are blocking pod creation.
+func (c *CNIManager) pollUntilReady(ctx context.Context) {
 	//nolint:errcheck // error is intentionally ignored, status is tracked via lastError
 	wait.PollUntilContextCancel(ctx, c.initPollInterval, true,
 		func(ctx context.Context) (bool, error) {
 			return c.statusPollFunc(ctx, true)
 		})
+}
+
+func (c *CNIManager) pollContinuously(ctx context.Context) {
+	c.pollUntilReady(ctx)
+
+	if !c.monitoringEnabled {
+		logrus.Info("Continuous CNI STATUS monitoring is disabled")
+
+		return
+	}
+
+	logrus.Infof("Continuous CNI STATUS monitoring enabled (grace period: %v, poll interval: %v)", c.gracePeriod, c.monitorPollInterval)
 
 	// Phase 2: slow poll to continuously monitor plugin health.
 	// If the plugin becomes unhealthy, lastError is set so that

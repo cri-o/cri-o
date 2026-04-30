@@ -26,6 +26,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l clean-shutdown-file -r -d 'Lo
 complete -c crio -n '__fish_crio_no_subcommand' -l cni-config-dir -r -d 'CNI configuration files directory.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-default-network -r -d 'Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-plugin-dir -r -d 'CNI plugin binaries directory.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-status-grace-period -r -d 'Duration to wait before reporting CNI plugin as unhealthy after a status check failure. Tolerates brief CNI disruptions during plugin upgrades. Set to 0 for immediate reporting. Only effective when --enable-cni-status-monitoring is true.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l collection-period -r -d 'The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.'
 complete -c crio -n '__fish_crio_no_subcommand' -l config -s c -r -d 'Path to configuration file'
 complete -c crio -n '__fish_crio_no_subcommand' -l config-dir -s d -r -d 'Path to the configuration drop-in directory.
@@ -55,6 +56,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l default-ulimits -r -d 'Uli
 complete -c crio -n '__fish_crio_no_subcommand' -f -l device-ownership-from-security-context -d 'Set devices\' uid/gid ownership from runAsUser/runAsGroup.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l disable-hostport-mapping -d 'If true, CRI-O would disable the hostport mapping.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l drop-infra-ctr -d 'Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-cni-status-monitoring -d 'Enable continuous background polling of CNI STATUS to detect plugin health changes at runtime. When disabled (default), plugin health is checked at startup and on each CRI Status call.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-criu-support -d 'Enable CRIU integration, requires that the criu binary is available in $PATH.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-metrics -d 'Enable metrics endpoint for the server.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-nri -d 'Enable NRI (Node Resource Interface) support.'

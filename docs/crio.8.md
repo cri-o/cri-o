@@ -28,6 +28,7 @@ crio
 [--cni-config-dir]=[value]
 [--cni-default-network]=[value]
 [--cni-plugin-dir]=[value]
+[--cni-status-grace-period]=[value]
 [--collection-period]=[value]
 [--config-dir|-d]=[value]
 [--config|-c]=[value]
@@ -48,6 +49,7 @@ crio
 [--device-ownership-from-security-context]
 [--disable-hostport-mapping]
 [--drop-infra-ctr]
+[--enable-cni-status-monitoring]
 [--enable-criu-support]
 [--enable-metrics]
 [--enable-nri]
@@ -207,6 +209,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--cni-plugin-dir**="": CNI plugin binaries directory.
 
+**--cni-status-grace-period**="": Duration to wait before reporting CNI plugin as unhealthy after a status check failure. Tolerates brief CNI disruptions during plugin upgrades. Set to 0 for immediate reporting. Only effective when --enable-cni-status-monitoring is true. (default: 1m0s)
+
 **--collection-period**="": The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead. (default: 0)
 
 **--config, -c**="": Path to configuration file (default: "/etc/crio/crio.conf")
@@ -255,6 +259,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--disable-hostport-mapping**: If true, CRI-O would disable the hostport mapping.
 
 **--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.
+
+**--enable-cni-status-monitoring**: Enable continuous background polling of CNI STATUS to detect plugin health changes at runtime. When disabled (default), plugin health is checked at startup and on each CRI Status call.
 
 **--enable-criu-support**: Enable CRIU integration, requires that the criu binary is available in $PATH.
 
