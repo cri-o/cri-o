@@ -902,7 +902,9 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 
 	s.postStopCleanup(ctx, c, sb, s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations()))
 
+	c.LockEventOrder()
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STOPPED_EVENT)
+	c.UnlockEventOrder()
 
 	if err := os.Remove(event.Name); err != nil {
 		log.Warnf(ctx, "Failed to remove exit file: %v", err)

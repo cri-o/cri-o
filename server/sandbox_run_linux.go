@@ -744,6 +744,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
+	container.LockEventOrder()
+	defer container.UnlockEventOrder()
+
 	if err := s.createAndStartInfraContainer(ctx, sb, container, sandboxIDMappings, sboxName, resourceCleaner); err != nil {
 		return nil, err
 	}

@@ -27,6 +27,9 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	}
 
 	if c.Restore() {
+		c.LockEventOrder()
+		defer c.UnlockEventOrder()
+
 		// If the create command found a checkpoint image, the container
 		// has the restore flag set to true. At this point we need to jump
 		// into the restore code.
@@ -74,6 +77,9 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	if err := s.nri.startContainer(ctx, sandbox, c); err != nil {
 		log.Warnf(ctx, "NRI start failed for container %q: %v", c.ID(), err)
 	}
+
+	c.LockEventOrder()
+	defer c.UnlockEventOrder()
 
 	defer func() {
 		// if the call to StartContainer fails below we still want to fill
