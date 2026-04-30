@@ -1,6 +1,6 @@
 dependencies:
   - name: go
-    version: 1.26.2
+    version: 1.26.1
     refPaths:
       - path: nix/derivation.nix
         match: buildGo126Module

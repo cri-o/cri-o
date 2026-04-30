@@ -512,7 +512,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	// It's important to make a spec copy here to not overwrite the initial
 	// process spec
 	pSpec := *c.Spec().Process
-	pSpec.Args = cmd
+	pSpec.Args = NormalizeExecCmdArgs(cmd)
 
 	anyType, err := typeurl.MarshalAny(&pSpec)
 	if err != nil {
