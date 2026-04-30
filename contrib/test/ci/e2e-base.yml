@@ -15,6 +15,14 @@
       runtime_type = "oci"
       runtime_root = "/run/runc"
 
+- name: clone kubernetes source repo
+  include_tasks: "build/kubernetes.yml"
+  vars:
+    force_clone: true
+    k8s_git_version: "16b9490ac14665894411045512bfb11c61a3e1f4"
+    k8s_github_fork: "HirazawaUi"
+    crio_socket: "/run/crio/crio.sock"
+
 - name: create ssh keys
   shell: ssh-keygen -b 2048 -t rsa -f "{{ ssh_location }}" -q -N ""
   args:
