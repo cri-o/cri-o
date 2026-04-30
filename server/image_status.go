@@ -95,8 +95,9 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 // storageImageStatus calls ImageStatus for a k8s ImageSpec.
 // Returns (nil, nil) if image was not found.
 func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) (*pkgstorage.ImageResult, error) {
-	if id := s.ContainerServer.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(spec.GetImage()); id != nil {
-		status, err := s.ContainerServer.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+	imageService := s.StorageImageServer(spec.GetRuntimeHandler())
+	if id := imageService.HeuristicallyTryResolvingStringAsIDPrefix(spec.GetImage()); id != nil {
+		status, err := imageService.ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
 			if errors.Is(err, istorage.ErrNoSuchImage) || errors.Is(err, storage.ErrImageUnknown) {
 				log.Infof(ctx, "Image %s not found", spec.GetImage())
@@ -112,7 +113,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) 
 		return status, nil
 	}
 
-	potentialMatches, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.GetImage())
+	potentialMatches, err := imageService.CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.GetImage())
 	if err != nil {
 		if len(spec.GetImage()) >= 3 && isHexString(spec.GetImage()) {
 			log.Debugf(ctx, "CandidatesForPotentiallyShortImageName failed for %q, but input looks like digest/ID: %v", spec.GetImage(), err)
@@ -126,7 +127,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) 
 	var lastErr error
 
 	for _, name := range potentialMatches {
-		status, err := s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+		status, err := imageService.ImageStatusByName(s.config.SystemContext, name)
 		if err != nil {
 			if errors.Is(err, istorage.ErrNoSuchImage) {
 				log.Debugf(ctx, "Can't find %s", name)

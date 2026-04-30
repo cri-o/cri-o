@@ -9,8 +9,10 @@ import (
 	"slices"
 	"strings"
 
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
 	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/pkg/blobinfocache"
 	"go.podman.io/image/v5/types"
@@ -42,12 +44,12 @@ type Store struct {
 }
 
 // New creates a new OCI artifact data store.
-func New(rootPath string, systemContext *types.SystemContext) (*Store, error) {
+func New(rootPath string, systemContext *types.SystemContext, allowImages bool) (*Store, error) {
 	// The datastore only handles artifacts pulled into the main store.
 	// Additional read-only stores are not threaded through here (we pass
 	// nil for additionalPaths) since the datastore is used for in-memory
 	// artifact data managed by the main CRI-O lifecycle.
-	ociStore, err := ociartifact.NewStore(rootPath, nil, systemContext, nil)
+	ociStore, err := ociartifact.NewStore(rootPath, nil, systemContext, nil, allowImages)
 	if err != nil {
 		return nil, fmt.Errorf("create OCI artifact store: %w", err)
 	}
@@ -271,4 +273,68 @@ func (s *Store) getImageReference(nameOrDigest string) (types.ImageReference, er
 	}
 
 	return ref, nil
+}
+
+// PullConfig returns the pull an image configuration defined by the manifest digest.
+// There is no such config attached to OCI artifacts, but this function can
+// be used to retrieve an image's config without pulling the whole data.
+// This is useful for our support of runtimes that manage image pulls on their own:
+// cri-o still needs to get the config, but should not pull the data layers.
+func (s *Store) PullConfig(ctx context.Context, nameOrDigest string, opts *PullOptions) (*specs.Image, error) {
+	artifact, nameIsDigest, err := s.getByNameOrDigest(ctx, nameOrDigest)
+	if err != nil {
+		return nil, fmt.Errorf("get artifact by name or digest: %w", err)
+	}
+
+	if nameIsDigest {
+		nameOrDigest = artifact.Reference()
+	}
+
+	// get the ImageSource for the image
+	imageReference, err := s.impl.LayoutNewReference(artifact.RootPath(), nameOrDigest)
+	if err != nil {
+		return nil, fmt.Errorf("create new reference: %w", err)
+	}
+
+	imageSource, err := s.impl.NewImageSource(ctx, imageReference, s.systemContext)
+	if err != nil {
+		return nil, fmt.Errorf("build image source: %w", err)
+	}
+
+	defer func() {
+		if err := s.impl.CloseImageSource(imageSource); err != nil {
+			log.Warnf(ctx, "Unable to close image source: %v", err)
+		}
+	}()
+
+	unparsedToplevel := image.UnparsedInstance(imageSource, nil)
+
+	topManifest, topMIMEType, err := unparsedToplevel.Manifest(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get manifest: %w", err)
+	}
+
+	unparsedInstance := unparsedToplevel
+
+	if manifest.MIMETypeIsMultiImage(topMIMEType) {
+		// This is a manifest list. We need to choose a single instance to work with.
+		manifestList, err := manifest.ListFromBlob(topManifest, topMIMEType)
+		if err != nil {
+			return nil, fmt.Errorf("parsing primary manifest as list: %w", err)
+		}
+
+		instanceDigest, err := manifestList.ChooseInstance(s.systemContext)
+		if err != nil {
+			return nil, fmt.Errorf("choosing an image from manifest list: %w", err)
+		}
+
+		unparsedInstance = image.UnparsedInstance(imageSource, &instanceDigest)
+	}
+
+	sourcedImage, err := image.FromUnparsedImage(ctx, s.systemContext, unparsedInstance)
+	if err != nil {
+		return nil, fmt.Errorf("getting sourced image from unparsed image: %w", err)
+	}
+
+	return sourcedImage.OCIConfig(ctx)
 }

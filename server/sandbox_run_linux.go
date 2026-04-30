@@ -532,7 +532,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	podContainer, err := s.ContainerServer.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
+	podContainer, err := s.ContainerServer.StorageRuntimeServer(runtimeHandler).CreatePodSandbox(s.config.SystemContext,
 		sboxName, sboxID,
 		pauseImage,
 		s.config.PauseImageAuthFile,
@@ -554,7 +554,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	resourceCleaner.Add(ctx, "runSandbox: removing pod sandbox from storage: "+sboxID, func() error {
-		return s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, sboxID)
+		return s.ContainerServer.StorageRuntimeServer(runtimeHandler).DeleteContainer(ctx, sboxID)
 	})
 
 	mountLabel := podContainer.MountLabel
@@ -607,7 +607,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// TODO: Pass interface instead of individual field.
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox spec configuration")
 
-	if err := s.setPodSandboxMountLabel(ctx, sboxID, result.mountLabel); err != nil {
+	if err := s.setPodSandboxMountLabel(ctx, sboxID, result.mountLabel, runtimeHandler); err != nil {
 		return nil, err
 	}
 
@@ -1584,13 +1584,13 @@ func (s *Server) prepareSandboxMetadataAndLabels(sbox libsandbox.Builder, kubeAn
 func (s *Server) setupSandboxStorage(ctx context.Context, sb *libsandbox.Sandbox, g *generate.Generator, sboxID, sboxName, containerName string, resourceCleaner *resourcestore.ResourceCleaner) (string, error) {
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox storage start")
 
-	mountPoint, err := s.ContainerServer.StorageRuntimeServer().StartContainer(sboxID)
+	mountPoint, err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).StartContainer(sboxID)
 	if err != nil {
 		return "", fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %w", containerName, sb.Name(), sboxID, err)
 	}
 
 	resourceCleaner.Add(ctx, "runSandbox: stopping storage container for sandbox "+sboxID, func() error {
-		if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, sboxID); err != nil {
+		if err := s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).StopContainer(ctx, sboxID); err != nil {
 			return fmt.Errorf("could not stop storage container: %s: %w", sboxID, err)
 		}
 
