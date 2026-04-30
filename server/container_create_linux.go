@@ -532,6 +532,11 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 		return nil, nil, err
 	}
 
+	// Verify supply chain attestations for the image.
+	if _, err := s.supplyChainVerifier.Verify(ctx, m.GetImage().GetUserSpecifiedImage(), status.Digest.String(), namespace); err != nil {
+		return nil, nil, err
+	}
+
 	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
 	options := []string{"ro", "noexec", "nosuid", "nodev"}

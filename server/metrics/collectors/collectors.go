@@ -69,6 +69,18 @@ const (
 
 	// DefaultRuntime is the key for the default container runtime configured in CRI-O.
 	DefaultRuntime Collector = crioPrefix + "default_runtime"
+
+	// SupplyChainVerificationTotal is the key for supply chain verification attempts.
+	SupplyChainVerificationTotal Collector = crioPrefix + "supply_chain_verification_total"
+
+	// SupplyChainVerificationDurationSeconds is the key for supply chain verification latency.
+	SupplyChainVerificationDurationSeconds Collector = crioPrefix + "supply_chain_verification_duration_seconds"
+
+	// SupplyChainCacheHitsTotal is the key for supply chain verification cache hits.
+	SupplyChainCacheHitsTotal Collector = crioPrefix + "supply_chain_cache_hits_total"
+
+	// SupplyChainFetchErrorsTotal is the key for supply chain attestation fetch errors.
+	SupplyChainFetchErrorsTotal Collector = crioPrefix + "supply_chain_fetch_errors_total"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -111,6 +123,10 @@ func All() Collectors {
 		ResourcesStalledAtStage.Stripped(),
 		ContainersStoppedMonitorCount.Stripped(),
 		DefaultRuntime.Stripped(),
+		SupplyChainVerificationTotal.Stripped(),
+		SupplyChainVerificationDurationSeconds.Stripped(),
+		SupplyChainCacheHitsTotal.Stripped(),
+		SupplyChainFetchErrorsTotal.Stripped(),
 	}
 }
 
