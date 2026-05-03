@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -1145,6 +1146,40 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail on negative CNIStatusGracePeriod", func() {
+			// Given
+			sut.CNIStatusGracePeriod = -1 * time.Second
+
+			// When
+			err := sut.NetworkConfig.Validate(false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not be negative"))
+		})
+
+		It("should succeed with zero CNIStatusGracePeriod", func() {
+			// Given
+			sut.CNIStatusGracePeriod = 0
+
+			// When
+			err := sut.NetworkConfig.Validate(false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should succeed with positive CNIStatusGracePeriod", func() {
+			// Given
+			sut.CNIStatusGracePeriod = 30 * time.Second
+
+			// When
+			err := sut.NetworkConfig.Validate(false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 

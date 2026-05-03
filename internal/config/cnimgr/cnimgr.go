@@ -25,11 +25,14 @@ type CNIManager struct {
 	cancel              context.CancelFunc
 	initPollInterval    time.Duration
 	monitorPollInterval time.Duration
+	gracePeriod         time.Duration
+	firstFailureTime    time.Time
+	monitoringEnabled   bool
 
 	validPodList PodNetworkLister
 }
 
-func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, error) {
+func New(defaultNetwork, networkDir string, gracePeriod time.Duration, monitoringEnabled bool, pluginDirs ...string) (*CNIManager, error) {
 	// Init CNI plugin
 	plugin, err := ocicni.InitCNI(
 		defaultNetwork, networkDir, pluginDirs...,
@@ -46,6 +49,8 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 		cancel:              cancel,
 		initPollInterval:    500 * time.Millisecond,
 		monitorPollInterval: 5 * time.Second,
+		gracePeriod:         gracePeriod,
+		monitoringEnabled:   monitoringEnabled,
 	}
 
 	go mgr.pollContinuously(ctx)
@@ -53,15 +58,27 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 	return mgr, nil
 }
 
-func (c *CNIManager) pollContinuously(ctx context.Context) {
-	// Phase 1: fast poll until the plugin is ready for the first time.
-	// This handles startup synchronization, triggers deferred GC, and notifies
-	// watchers that are blocking pod creation.
+// pollUntilReady runs Phase 1: fast poll until the plugin is ready for the
+// first time. This handles startup synchronization, triggers deferred GC,
+// and notifies watchers that are blocking pod creation.
+func (c *CNIManager) pollUntilReady(ctx context.Context) {
 	//nolint:errcheck // error is intentionally ignored, status is tracked via lastError
 	wait.PollUntilContextCancel(ctx, c.initPollInterval, true,
 		func(ctx context.Context) (bool, error) {
 			return c.statusPollFunc(ctx, true)
 		})
+}
+
+func (c *CNIManager) pollContinuously(ctx context.Context) {
+	c.pollUntilReady(ctx)
+
+	if !c.monitoringEnabled {
+		logrus.Info("Continuous CNI STATUS monitoring is disabled")
+
+		return
+	}
+
+	logrus.Infof("Continuous CNI STATUS monitoring enabled (grace period: %v, poll interval: %v)", c.gracePeriod, c.monitorPollInterval)
 
 	// Phase 2: slow poll to continuously monitor plugin health.
 	// If the plugin becomes unhealthy, lastError is set so that
@@ -78,12 +95,35 @@ func (c *CNIManager) statusPollFunc(ctx context.Context, isStartup bool) (bool, 
 	defer c.mutex.Unlock()
 
 	if err := c.plugin.StatusWithContext(ctx); err != nil {
+		// During Phase 2 monitoring, apply a grace period before reporting
+		// unhealthy. This tolerates brief CNI disruptions (e.g. OVN-K
+		// daemonset rollout where the plugin is unavailable for ~10-15s).
+		if !isStartup && c.lastError == nil && c.gracePeriod > 0 {
+			if c.firstFailureTime.IsZero() {
+				c.firstFailureTime = time.Now()
+				logrus.Warnf("CNI plugin status check failed, will report unhealthy after grace period (%v): %v", c.gracePeriod, err)
+			}
+
+			if time.Since(c.firstFailureTime) < c.gracePeriod {
+				return false, nil
+			}
+
+			logrus.Errorf("CNI plugin unhealthy beyond grace period (%v): %v", c.gracePeriod, err)
+		} else if c.lastError == nil {
+			logrus.Errorf("CNI plugin became unhealthy: %v", err)
+		}
+
 		c.lastError = err
 
 		return false, nil
 	}
 
+	// Plugin is healthy -- reset grace period timer
+	c.firstFailureTime = time.Time{}
+
 	if c.lastError != nil {
+		logrus.Infof("CNI plugin is now healthy (was: %v)", c.lastError)
+
 		c.lastError = nil
 		// on startup, GC might have been attempted before the plugin was
 		// actually ready so we might have deferred it until now, which is
