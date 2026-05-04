@@ -372,6 +372,29 @@ var _ = t.Describe("Container", func() {
 		Expect(containerResources.GetLinux().GetHugepageLimits()).To(BeEmpty())
 	})
 
+	t.Describe("ReportedStatus", func() {
+		It("should report a stopped container as running until post-stop cleanup completed", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateStopped
+			sut.SetState(state)
+
+			// When
+			status := sut.ReportedStatus(state)
+
+			// Then
+			Expect(status).To(Equal(specs.ContainerState(oci.ContainerStateRunning)))
+			Expect(sut.CRIContainer().GetState()).To(Equal(types.ContainerState_CONTAINER_RUNNING))
+
+			// When
+			sut.SetPostStopDone()
+
+			// Then
+			Expect(sut.ReportedStatus(state)).To(Equal(specs.ContainerState(oci.ContainerStateStopped)))
+			Expect(sut.CRIContainer().GetState()).To(Equal(types.ContainerState_CONTAINER_EXITED))
+		})
+	})
+
 	t.Describe("FromDisk", func() {
 		BeforeEach(func() {
 			Expect(os.MkdirAll(sut.Dir(), 0o755)).To(Succeed())

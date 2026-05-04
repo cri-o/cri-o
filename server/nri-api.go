@@ -336,16 +336,9 @@ func (a *nriAPI) stopContainer(
 	ctx context.Context,
 	criPod *sandbox.Sandbox,
 	criCtr *oci.Container,
-	updateState bool,
 ) error {
 	if !a.isEnabled() {
 		return nil
-	}
-
-	if updateState {
-		if err := a.cri.Runtime().UpdateContainerStatus(ctx, criCtr); err != nil {
-			log.Warnf(ctx, "Error updating the container status  %q: %v", criCtr.ID(), err)
-		}
 	}
 
 	ctr := &criContainer{

@@ -38,6 +38,7 @@ var _ = t.Describe("ContainerStatus", func() {
 			addContainerAndSandbox()
 			testContainer.AddVolume(oci.ContainerVolume{})
 			testContainer.SetStateAndSpoofPid(givenState)
+			testContainer.SetPostStopDone()
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
 			gomock.InOrder(
@@ -98,6 +99,26 @@ var _ = t.Describe("ContainerStatus", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
+		})
+
+		It("should report a stopped container as running before post-stop cleanup", func() {
+			// Given
+			setupSUT()
+			addContainerAndSandbox()
+			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
+				State:    specs.State{Status: oci.ContainerStateStopped},
+				ExitCode: new(int32(1)),
+			})
+
+			// When
+			response, err := sut.ContainerStatus(context.Background(),
+				&types.ContainerStatusRequest{ContainerId: testContainer.ID()})
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.GetStatus().GetState()).To(Equal(types.ContainerState_CONTAINER_RUNNING))
+			Expect(response.GetStatus().GetFinishedAt()).To(BeZero())
+			Expect(response.GetStatus().GetReason()).To(BeEmpty())
 		})
 
 		It("should fail with invalid container metadata", func() {

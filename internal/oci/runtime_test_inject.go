@@ -24,6 +24,12 @@ func (r *Runtime) SetRuntimeImpl(containerID string, impl RuntimeImpl) {
 	r.runtimeImplMapMutex.Lock()
 	defer r.runtimeImplMapMutex.Unlock()
 
+	if impl == nil {
+		delete(r.runtimeImplMap, containerID)
+
+		return
+	}
+
 	r.runtimeImplMap[containerID] = impl
 }
 
@@ -85,4 +91,9 @@ func (r *Runtime) HasRuntimeImpl(containerID string) bool {
 	_, ok := r.runtimeImplMap[containerID]
 
 	return ok
+}
+
+// SetRuntimeImplForContainer injects a RuntimeImpl for the provided container.
+func (r *Runtime) SetRuntimeImplForContainer(c *Container, impl RuntimeImpl) {
+	r.SetRuntimeImpl(c.ID(), impl)
 }

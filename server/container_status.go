@@ -105,7 +105,7 @@ func (s *Server) ContainerStatus(
 
 	resp.Status.CreatedAt = c.CreatedAt().UnixNano()
 
-	switch cState.Status {
+	switch c.ReportedStatus(cState) {
 	case oci.ContainerStateCreated:
 		rStatus = types.ContainerState_CONTAINER_CREATED
 	case oci.ContainerStateRunning, oci.ContainerStatePaused:

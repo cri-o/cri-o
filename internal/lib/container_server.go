@@ -592,13 +592,15 @@ func (c *ContainerServer) LoadSandbox(
 
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
-	if err := c.ContainerStateToDisk(ctx, scontainer); err != nil {
+	if err := c.ContainerStateToDiskWithUpdate(ctx, scontainer); err != nil {
 		return sb, fmt.Errorf(
 			"failed to write container %q state to disk: %w",
 			scontainer.ID(),
 			err,
 		)
 	}
+
+	markPostStopDoneIfStopped(scontainer)
 
 	sb.SetCreated()
 
@@ -806,9 +808,11 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
-	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
+	if err := c.ContainerStateToDiskWithUpdate(ctx, ctr); err != nil {
 		return fmt.Errorf("failed to write container state to disk %q: %w", ctr.ID(), err)
 	}
+
+	markPostStopDoneIfStopped(ctr)
 
 	ctr.SetCreated()
 
@@ -841,9 +845,22 @@ func isTrue(annotaton string) bool {
 	return annotaton == "true"
 }
 
-// ContainerStateToDisk writes the container's state information to a JSON file
-// on disk.
-func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Container) error {
+// markPostStopDoneIfStopped marks the post-stop cleanup of a container loaded in
+// the stopped state as done. Its poststop hooks run on container removal.
+func markPostStopDoneIfStopped(ctr *oci.Container) {
+	if ctr.State().Status == oci.ContainerStateStopped {
+		ctr.SetPostStopDone()
+	}
+}
+
+// ContainerStateToDiskWithUpdate refreshes the container status from the
+// runtime (best-effort) and then writes the container's state to disk.
+// The runtime update failure is non-fatal: a stale runtime view (e.g., after
+// the runtime container has been deleted) must not block state persistence.
+func (c *ContainerServer) ContainerStateToDiskWithUpdate(
+	ctx context.Context,
+	ctr *oci.Container,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -851,6 +868,12 @@ func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Con
 		log.Warnf(ctx, "Error updating the container status %q: %v", ctr.ID(), err)
 	}
 
+	return c.ContainerStateToDisk(ctx, ctr)
+}
+
+// ContainerStateToDisk writes the container's state information to a JSON file
+// on disk.
+func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Container) error {
 	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0o644)
 	if err != nil {
 		return err
