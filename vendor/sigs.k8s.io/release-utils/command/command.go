@@ -215,7 +215,7 @@ func (c *Command) RunSuccess() error {
 
 // String returns a string representation of the full command.
 func (c *Command) String() string {
-	str := []string{}
+	str := make([]string, 0, len(c.cmds))
 
 	for _, x := range c.cmds {
 		// Note: the following logic can be replaced with x.String(), which was
