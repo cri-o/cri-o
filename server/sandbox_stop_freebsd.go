@@ -49,17 +49,28 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		containerTimeout = totalTimeout - infraReservedTimeout
 	}
 
+	hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 	errorGroup := &errgroup.Group{}
 
 	for _, ctr := range sb.Containers().List() {
-		if ctr.State().Status == oci.ContainerStateStopped {
-			continue
-		}
-
 		// Because ctr is reused across iterations, all goroutines can end up
 		// calling stopContainer on the last container in the list instead of
 		// their respective one. We fix that by:
 		stopCtr := ctr
+
+		if ctr.State().Status == oci.ContainerStateStopped {
+			// Do not tear down the pod while the post-stop cleanup of a container
+			// which exited on its own is pending.
+			if !ctr.PostStopDone() {
+				errorGroup.Go(func() error {
+					s.postStopCleanup(ctx, stopCtr, sb, hooks)
+
+					return nil
+				})
+			}
+
+			continue
+		}
 
 		errorGroup.Go(func() error {
 			return s.stopContainer(ctx, stopCtr, containerTimeout)
