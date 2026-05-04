@@ -35,8 +35,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	anypb "google.golang.org/protobuf/types/known/anypb"
-	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 	utilexec "k8s.io/utils/exec"
 
 	"github.com/cri-o/cri-o/internal/annotations"

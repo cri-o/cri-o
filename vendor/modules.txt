@@ -591,9 +591,6 @@ github.com/google/uuid
 # github.com/gorilla/mux v1.8.1
 ## explicit; go 1.20
 github.com/gorilla/mux
-# github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
-## explicit; go 1.20
-github.com/gorilla/websocket
 # github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0
 ## explicit; go 1.24.0
 github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
@@ -1484,7 +1481,7 @@ gopkg.in/warnings.v0
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.36.0-beta.0
+# k8s.io/api v0.36.0-rc.0
 ## explicit; go 1.26.0
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1alpha1
@@ -1541,7 +1538,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/storagemigration/v1beta1
-# k8s.io/apimachinery v0.36.0-beta.0
+# k8s.io/apimachinery v0.36.0-rc.0
 ## explicit; go 1.26.0
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -1576,9 +1573,6 @@ k8s.io/apimachinery/pkg/selection
 k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/util/framer
-k8s.io/apimachinery/pkg/util/httpstream
-k8s.io/apimachinery/pkg/util/httpstream/spdy
-k8s.io/apimachinery/pkg/util/httpstream/wsstream
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/util/managedfields
@@ -1586,7 +1580,6 @@ k8s.io/apimachinery/pkg/util/managedfields/internal
 k8s.io/apimachinery/pkg/util/mergepatch
 k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/util/net
-k8s.io/apimachinery/pkg/util/remotecommand
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/util/sets
 k8s.io/apimachinery/pkg/util/strategicpatch
@@ -1599,10 +1592,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.35.1
-## explicit; go 1.25.0
-k8s.io/apiserver/pkg/endpoints/responsewriter
-# k8s.io/client-go v0.36.0-beta.0
+# k8s.io/client-go v0.36.0-rc.0
 ## explicit; go 1.26.0
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1alpha1
@@ -1725,30 +1715,32 @@ k8s.io/client-go/testing
 k8s.io/client-go/tools/clientcmd/api
 k8s.io/client-go/tools/metrics
 k8s.io/client-go/tools/reference
-k8s.io/client-go/tools/remotecommand
 k8s.io/client-go/transport
-k8s.io/client-go/transport/spdy
-k8s.io/client-go/transport/websocket
 k8s.io/client-go/util/apply
 k8s.io/client-go/util/cert
 k8s.io/client-go/util/connrotation
-k8s.io/client-go/util/exec
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
-# k8s.io/component-base v0.36.0-beta.0
+# k8s.io/component-base v0.36.0-rc.0
 ## explicit; go 1.26.0
 k8s.io/component-base/cli/flag
 k8s.io/component-base/logs/logreduction
-# k8s.io/cri-api v0.36.0-beta.0
+# k8s.io/cri-api v0.36.0-rc.0
 ## explicit; go 1.26.0
 k8s.io/cri-api/pkg/apis
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
-# k8s.io/cri-client v0.36.0-beta.0
+# k8s.io/cri-client v0.36.0-rc.0
 ## explicit; go 1.26.0
 k8s.io/cri-client/pkg
 k8s.io/cri-client/pkg/util
+# k8s.io/cri-streaming v0.36.0-rc.0
+## explicit; go 1.26.0
+k8s.io/cri-streaming/pkg/streaming
+k8s.io/cri-streaming/pkg/streaming/internal/httpresponse
+k8s.io/cri-streaming/pkg/streaming/portforward
+k8s.io/cri-streaming/pkg/streaming/remotecommand
 # k8s.io/klog/v2 v2.140.0
 ## explicit; go 1.21
 k8s.io/klog/v2
@@ -1772,13 +1764,10 @@ k8s.io/kube-openapi/pkg/spec3
 k8s.io/kube-openapi/pkg/util
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/validation/spec
-# k8s.io/kubelet v0.35.1
-## explicit; go 1.25.0
-k8s.io/kubelet/pkg/cri/streaming
-k8s.io/kubelet/pkg/cri/streaming/portforward
-k8s.io/kubelet/pkg/cri/streaming/remotecommand
+# k8s.io/kubelet v0.36.0-rc.0
+## explicit; go 1.26.0
 k8s.io/kubelet/pkg/types
-# k8s.io/streaming v0.36.0-beta.0
+# k8s.io/streaming v0.36.0-rc.0
 ## explicit; go 1.26.0
 k8s.io/streaming/pkg/httpstream
 k8s.io/streaming/pkg/httpstream/spdy
