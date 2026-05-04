@@ -302,7 +302,7 @@ func (c *ContainerServer) ContainerRestore(
 		return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), err)
 	}
 
-	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
+	if err := c.ContainerStateToDiskWithUpdate(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 

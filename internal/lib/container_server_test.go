@@ -3,6 +3,7 @@ package lib_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -715,6 +716,41 @@ var _ = t.Describe("ContainerServer", func() {
 	})
 
 	t.Describe("ContainerStateToDisk", func() {
+		It("should write the container state to disk", func() {
+			// Given
+			stateDir := t.MustTempDir("container-state")
+			container, err := oci.NewContainer(containerID, "", "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "", nil, nil, "",
+				&types.ContainerMetadata{}, sandboxID, false,
+				false, false, "", stateDir, time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+
+			exitCode := int32(42)
+			expectedState := &oci.ContainerState{
+				Created:  time.Now().UTC().Round(0),
+				Started:  time.Now().UTC().Add(time.Second).Round(0),
+				Finished: time.Now().UTC().Add(2 * time.Second).Round(0),
+				ExitCode: &exitCode,
+				Error:    "state persisted",
+				InitPid:  7,
+			}
+			container.SetState(expectedState)
+
+			// When
+			err = sut.ContainerStateToDisk(context.Background(), container)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			content, err := os.ReadFile(container.StatePath())
+			Expect(err).ToNot(HaveOccurred())
+
+			var stateOnDisk oci.ContainerState
+			Expect(json.Unmarshal(content, &stateOnDisk)).To(Succeed())
+			Expect(stateOnDisk).To(Equal(*expectedState))
+		})
+
 		It("should fail when state path invalid", func() {
 			// Given
 			container, err := oci.NewContainer(containerID, "", "", "",
@@ -726,6 +762,89 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// When
 			err = sut.ContainerStateToDisk(context.Background(), container)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	t.Describe("ContainerStateToDiskWithUpdate", func() {
+		It("should update status before writing the container state to disk", func() {
+			// Given
+			stateDir := t.MustTempDir("container-state")
+			container, err := oci.NewContainer(containerID, "", "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "", nil, nil, "",
+				&types.ContainerMetadata{}, sandboxID, false,
+				false, false, "", stateDir, time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+
+			exitCode := int32(42)
+			expectedState := &oci.ContainerState{
+				Created:  time.Now().UTC().Round(0),
+				Started:  time.Now().UTC().Add(time.Second).Round(0),
+				Finished: time.Now().UTC().Add(2 * time.Second).Round(0),
+				ExitCode: &exitCode,
+				Error:    "state persisted",
+				InitPid:  7,
+			}
+			container.SetState(&oci.ContainerState{Error: "initial state"})
+			sut.Runtime().SetRuntimeImplForContainer(container, ociRuntimeMock)
+			ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any(), container).DoAndReturn(func(ctx context.Context, c *oci.Container) error {
+				c.SetState(expectedState)
+				return nil
+			})
+
+			// When
+			err = sut.ContainerStateToDiskWithUpdate(context.Background(), container)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			content, err := os.ReadFile(container.StatePath())
+			Expect(err).ToNot(HaveOccurred())
+
+			var stateOnDisk oci.ContainerState
+			Expect(json.Unmarshal(content, &stateOnDisk)).To(Succeed())
+			Expect(stateOnDisk).To(Equal(*expectedState))
+		})
+
+		It("should still write the state to disk when status update fails", func() {
+			// Given
+			stateDir := t.MustTempDir("container-state")
+			container, err := oci.NewContainer(containerID, "", "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "", nil, nil, "",
+				&types.ContainerMetadata{}, sandboxID, false,
+				false, false, "", stateDir, time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+
+			container.SetState(&oci.ContainerState{Error: "written after update failure"})
+			sut.Runtime().SetRuntimeImplForContainer(container, ociRuntimeMock)
+			ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any(), container).Return(t.TestError)
+
+			// When
+			err = sut.ContainerStateToDiskWithUpdate(context.Background(), container)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(container.StatePath()).To(BeAnExistingFile())
+		})
+
+		It("should fail when the state cannot be written to disk", func() {
+			// Given
+			container, err := oci.NewContainer(containerID, "", "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "", nil, nil, "",
+				&types.ContainerMetadata{}, sandboxID, false,
+				false, false, "", "/invalid", time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+
+			sut.Runtime().SetRuntimeImplForContainer(container, ociRuntimeMock)
+			ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any(), container).Return(nil)
+
+			// When
+			err = sut.ContainerStateToDiskWithUpdate(context.Background(), container)
 
 			// Then
 			Expect(err).To(HaveOccurred())
