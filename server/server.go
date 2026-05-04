@@ -1108,7 +1108,9 @@ func (s *Server) generateCRIEvent(
 	// runtime implementation is gone, the lookup for the update would create
 	// a new one which stays around, and start a conmon-rs server for an
 	// infra container of the pod runtime type which nothing stops.
-	if eventType != types.ContainerEventType_CONTAINER_DELETED_EVENT {
+	// The stop cleanup updates the status before deleting the runtime container,
+	// so probing the runtime again would fail for runtimes such as Kata.
+	if eventNeedsStatusRefresh(eventType) {
 		if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, container); err != nil {
 			log.Errorf(
 				ctx,
@@ -1173,6 +1175,11 @@ func (s *Server) generateCRIEvent(
 
 		return
 	}
+}
+
+func eventNeedsStatusRefresh(eventType types.ContainerEventType) bool {
+	return eventType != types.ContainerEventType_CONTAINER_STOPPED_EVENT &&
+		eventType != types.ContainerEventType_CONTAINER_DELETED_EVENT
 }
 
 func isNotFound(err error) bool {

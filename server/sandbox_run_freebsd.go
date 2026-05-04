@@ -517,7 +517,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", container.Name(), sb.ID(), err)
 		}
 		log.Infof(ctx, "RunSandbox: writing container %s state to disk", container.ID())
-		if err := s.ContainerStateToDiskWithUpdate(ctx, container); err != nil {
+		if err := s.ContainerStateToDisk(ctx, container); err != nil {
 			return fmt.Errorf("failed to write container state %s in pod sandbox %s: %w", container.Name(), sb.ID(), err)
 		}
 		return nil

@@ -1070,7 +1070,7 @@ function assert_log_linking() {
 	crictl inspectp "$pod_id" | grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
 
 	# sandbox annotations passed through to container OCI config
-	ctr_id=$(crictl run "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
 	check_oci_annotation "$ctr_id" "com.example.test" "sandbox annotation"
 }
 

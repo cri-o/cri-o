@@ -900,11 +900,6 @@ func (r *runtimeVM) DeleteContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	if c.state.OOMKilled {
-		// Collect metric by container name
-		metrics.Instance().MetricContainersOOMCountTotalDelete(c.Name())
-	}
-
 	return r.deleteContainer(c, false)
 }
 
