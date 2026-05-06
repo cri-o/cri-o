@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 06 May 2026 07:27:11 UTC for commit [fca9a09][0]._
+_Generated on Wed, 06 May 2026 11:35:39 UTC for commit [202cfcc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fca9a09c1d5148fb12875cd0d3b6693c7b2ddf77
+[0]: https://github.com/cri-o/cri-o/commit/202cfccccbb28ba9726ce5808b0a498c853fdc02
 
 ## Outdated Dependencies
 
@@ -19,7 +19,7 @@ _Generated on Wed, 06 May 2026 07:27:11 UTC for commit [fca9a09][0]._
 | github.com/fsnotify/fsnotify                                                | v1.9.0                                | v1.10.1                            | true   | true             |
 | github.com/goccy/go-json                                                    | v0.10.5                               | v0.10.6                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.11.0                               | v0.12.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260505221206-bdaa65e29d07 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260506101502-7f31fb4c582d | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.1                               | v2.28.3                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.39.1                               | v1.40.0                            | true   | true             |
 | github.com/opencontainers/runc                                              | v1.4.0                                | v1.4.2                             | true   | true             |
@@ -364,7 +364,7 @@ _Generated on Wed, 06 May 2026 07:27:11 UTC for commit [fca9a09][0]._
 | github.com/gliderlabs/ssh                                                   | v0.3.8                                 |                                    | false  | true             |
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                 |                                    | true   | true             |
 | github.com/go-git/gcfg                                                      | v1.5.1-0.20230307220236-3a3c6141e376   |                                    | false  | true             |
-| github.com/go-git/go-billy/v5                                               | v5.6.2                                 | v5.8.0                             | false  | true             |
+| github.com/go-git/go-billy/v5                                               | v5.6.2                                 | v5.9.0                             | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                        | v4.3.2-0.20231010084843-55a94097c399   |                                    | false  | true             |
 | github.com/go-git/go-git/v5                                                 | v5.16.3                                | v5.18.0                            | false  | true             |
 | github.com/go-ini/ini                                                       | v1.67.0                                | v1.67.2                            | false  | true             |
@@ -467,7 +467,7 @@ _Generated on Wed, 06 May 2026 07:27:11 UTC for commit [fca9a09][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260505221206-bdaa65e29d07 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260506101502-7f31fb4c582d | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.10.0                            | false  | true             |
