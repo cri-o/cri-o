@@ -20,6 +20,29 @@ func supportedNamespacesForPinning() []NSType {
 	return []NSType{NETNS, IPCNS, UTSNS, USERNS, PIDNS}
 }
 
+// ShadowedMountError indicates a namespace bind mount is shadowed by a directory overmount.
+// This error should never be ignored, even for stopped sandboxes, as it will cause
+// setns EINVAL when containers try to use the namespace.
+type ShadowedMountError struct {
+	Path string
+	Err  error
+}
+
+func (e *ShadowedMountError) Error() string {
+	return fmt.Sprintf("namespace bind mount at %s is shadowed by directory overmount: %v", e.Path, e.Err)
+}
+
+func (e *ShadowedMountError) Unwrap() error {
+	return e.Err
+}
+
+// IsShadowedMountError returns true if the error indicates a shadowed mount.
+func IsShadowedMountError(err error) bool {
+	var shadowedErr *ShadowedMountError
+
+	return errors.As(err, &shadowedErr)
+}
+
 type PodNamespacesConfig struct {
 	Namespaces []*PodNamespaceConfig
 	IDMappings *idtools.IDMappings
@@ -103,6 +126,11 @@ func (n *namespace) Remove() error {
 func GetNamespace(nsPath string, nsType NSType) (Namespace, error) {
 	ns, err := nspkg.GetNS(nsPath)
 	if err != nil {
+		// Wrap NSPathNotNSErr to indicate potential mount shadowing
+		var nsPathNotNSErr nspkg.NSPathNotNSErr
+		if errors.As(err, &nsPathNotNSErr) {
+			return &namespace{nsType: nsType, nsPath: nsPath, closed: true}, &ShadowedMountError{Path: nsPath, Err: err}
+		}
 		// Failed to GetNS. It's possible this is expected (pod is stopped).
 		return &namespace{nsType: nsType, nsPath: nsPath, closed: true}, err
 	}

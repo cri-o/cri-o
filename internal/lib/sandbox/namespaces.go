@@ -110,8 +110,8 @@ func (s *Sandbox) NetNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.NETNS, s.netns)
 	// Regardless of error, set the namespace
 	s.netns = ns
-	// Only error if the sandbox is not stopped
-	if err != nil && !s.stopped {
+	// Shadowed mounts must fail even for stopped sandboxes to prevent setns EINVAL.
+	if err != nil && (!s.stopped || nsmgr.IsShadowedMountError(err)) {
 		return err
 	}
 
@@ -129,15 +129,11 @@ func (s *Sandbox) IpcNsPath() string {
 // IpcNsJoin attempts to join the sandbox to an existing IPC namespace
 // This will fail if the sandbox is already part of a IPC namespace.
 func (s *Sandbox) IpcNsJoin(nspath string) error {
-	if s.stopped {
-		return nil
-	}
-
 	ns, err := nsJoin(nspath, nsmgr.IPCNS, s.ipcns)
 	// Regardless of error, set the namespace
 	s.ipcns = ns
-	// Only error if the sandbox is not stopped
-	if err != nil && !s.stopped {
+	// Shadowed mounts must fail even for stopped sandboxes to prevent setns EINVAL.
+	if err != nil && (!s.stopped || nsmgr.IsShadowedMountError(err)) {
 		return err
 	}
 
@@ -155,15 +151,11 @@ func (s *Sandbox) UtsNsPath() string {
 // UtsNsJoin attempts to join the sandbox to an existing UTS namespace
 // This will fail if the sandbox is already part of a UTS namespace.
 func (s *Sandbox) UtsNsJoin(nspath string) error {
-	if s.stopped {
-		return nil
-	}
-
 	ns, err := nsJoin(nspath, nsmgr.UTSNS, s.utsns)
 	// Regardless of error, set the namespace
 	s.utsns = ns
-	// Only error if the sandbox is not stopped
-	if err != nil && !s.stopped {
+	// Shadowed mounts must fail even for stopped sandboxes to prevent setns EINVAL.
+	if err != nil && (!s.stopped || nsmgr.IsShadowedMountError(err)) {
 		return err
 	}
 
@@ -184,8 +176,8 @@ func (s *Sandbox) UserNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.USERNS, s.userns)
 	// Regardless of error, set the namespace
 	s.userns = ns
-	// Only error if the sandbox is not stopped
-	if err != nil && !s.stopped {
+	// Shadowed mounts must fail even for stopped sandboxes to prevent setns EINVAL.
+	if err != nil && (!s.stopped || nsmgr.IsShadowedMountError(err)) {
 		return err
 	}
 

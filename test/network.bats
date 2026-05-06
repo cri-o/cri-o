@@ -324,26 +324,26 @@ function check_networking() {
 	ls -la "$NETNS_PATH$NS" || true
 
 	# Restart CRI-O - this triggers LoadSandbox which calls NetNsJoin
-	# NetNsJoin should fail to GetNS but will store partial namespace anyway
+	# With the shadowing detection fix, CRI-O should detect the invalid namespace
+	# and auto-delete the broken sandbox during startup
 	restart_crio
 
-	echo "After CRI-O restart, checking if invalid file still exists..."
-	if [[ -f "$NETNS_PATH$NS" ]]; then
-		echo "BUG CONFIRMED: Invalid netns file still exists: $NETNS_PATH$NS"
-		ls -la "$NETNS_PATH$NS"
-	else
-		echo "File was cleaned up (bug may be fixed)"
-	fi
+	# CRI-O should have auto-deleted the broken sandbox and cleaned up the file
+	echo "After CRI-O restart, verifying sandbox was auto-deleted..."
+	run ! crictl inspectp "$pod_id"
 
-	# Try to remove the pod - this should cleanup the invalid file
-	crictl rmp -f "$pod_id"
+	# Verify CRI-O logged the shadowed mount detection and cleanup
+	grep -q "is shadowed by directory overmount" "$CRIO_LOG" || grep -q "unknown FS magic" "$CRIO_LOG"
+	grep -q "Could not restore sandbox.*$pod_id" "$CRIO_LOG"
+	grep -q "Deleting all containers under sandbox $pod_id" "$CRIO_LOG"
+	grep -q "Successfully cleaned up network for pod $pod_id" "$CRIO_LOG"
 
-	echo "After pod removal, verifying file cleanup..."
+	# Verify the invalid file was cleaned up during auto-deletion
+	echo "Verifying invalid file was cleaned up..."
 	if [[ -f "$NETNS_PATH$NS" ]]; then
 		echo "LEAKED: Invalid netns file was not cleaned up: $NETNS_PATH$NS"
 		ls -la "$NETNS_PATH$NS" || true
-		# Fail the test - this demonstrates the bug
-		echo "TEST FAILED: Bug reproduced - netns file leaked"
+		echo "TEST FAILED: File leaked despite auto-deletion"
 		return 1
 	else
 		echo "SUCCESS: Invalid netns file was properly cleaned up"
@@ -353,4 +353,101 @@ function check_networking() {
 	new_pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	output=$(crictl inspectp "$new_pod_id" | jq -r '.status.state')
 	[[ "$output" == "SANDBOX_READY" ]]
+}
+
+@test "detect and handle shadowed netns bind mount after overmount" {
+	# Reproduces mount shadowing where directory-level overmount at /run/netns
+	# shadows earlier sandbox bind mounts, making them unreachable via path lookup.
+
+	NETNS_PATH=/var/run/netns/
+	trap 'umount "$NETNS_PATH" 2>/dev/null || true' EXIT INT TERM
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	NS=$(crictl inspectp "$pod_id" |
+		jq -er '.info.runtimeSpec.linux.namespaces[] | select(.type == "network").path | sub("'$NETNS_PATH'"; "")')
+
+	echo "Pod $pod_id created with netns: $NETNS_PATH$NS"
+
+	[[ -f "$NETNS_PATH$NS" ]]
+	original_fstype=$(stat -f -c %t "$NETNS_PATH$NS")
+	echo "Original filesystem type: 0x$original_fstype"
+	[[ "$original_fstype" == "6e736673" ]]
+
+	# Stop CRI-O without stopping sandbox (bind mount persists via pinns)
+	stop_crio
+
+	echo "Stopped CRI-O, bind mount should persist via pinns"
+	[[ -f "$NETNS_PATH$NS" ]]
+	still_nsfs=$(stat -f -c %t "$NETNS_PATH$NS")
+	echo "After stopping CRI-O, filesystem type still: 0x$still_nsfs"
+	[[ "$still_nsfs" == "6e736673" ]]
+
+	[[ -d "$NETNS_PATH" ]]
+
+	# Create directory-level overmount that shadows existing bind mounts
+	echo "Creating directory-level overmount at $NETNS_PATH"
+	mount --bind "$NETNS_PATH" "$NETNS_PATH" || {
+		echo "Failed to create bind mount at $NETNS_PATH" >&2
+		exit 1
+	}
+	mount --make-shared "$NETNS_PATH" || {
+		echo "Failed to make mount shared at $NETNS_PATH" >&2
+		exit 1
+	}
+
+	if ! findmnt -n -o PROPAGATION "$NETNS_PATH" | grep -q "shared"; then
+		echo "Failed to create shared overmount at $NETNS_PATH" >&2
+		echo "Mount information:" >&2
+		findmnt "$NETNS_PATH" >&2
+		exit 1
+	fi
+	echo "Successfully created shared overmount at $NETNS_PATH"
+
+	if ! grep -q "nsfs.*$NETNS_PATH$NS" /proc/self/mountinfo; then
+		echo "WARNING: Original nsfs bind mount not found in mountinfo" >&2
+		echo "This may be expected in some test environments" >&2
+	fi
+
+	# Path lookup now returns tmpfs file instead of nsfs
+	shadowed_fstype=$(stat -f -c %t "$NETNS_PATH$NS" 2> /dev/null || echo "missing")
+	echo "After overmount, filesystem type: 0x$shadowed_fstype"
+
+	if [[ "$shadowed_fstype" == "6e736673" ]]; then
+		echo "ERROR: Bind mount was not shadowed - still shows nsfs" >&2
+		findmnt "$NETNS_PATH" >&2
+		exit 1
+	fi
+	echo "Confirmed: bind mount is shadowed (fstype: 0x$shadowed_fstype, not nsfs)"
+
+	# CRI-O restart must detect shadowing even for stopped sandboxes
+	start_crio
+
+	if ! grep -q "is shadowed by directory overmount" "$CRIO_LOG"; then
+		echo "ERROR: CRI-O did not detect the shadowed mount for stopped sandbox" >&2
+		echo "=== CRI-O log excerpt ===" >&2
+		grep -i "namespace\|netns\|shadowed" "$CRIO_LOG" | tail -20 >&2
+		exit 1
+	fi
+	echo "CRI-O correctly detected the shadowed mount for stopped sandbox"
+
+	grep -q "Could not restore sandbox.*$pod_id" "$CRIO_LOG"
+	grep -q "Deleting all containers under sandbox $pod_id" "$CRIO_LOG"
+	grep -q "Successfully cleaned up network for pod $pod_id" "$CRIO_LOG"
+
+	run ! crictl inspectp "$pod_id"
+
+	new_pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	output=$(crictl inspectp "$new_pod_id" | jq -r '.status.state')
+	[[ "$output" == "SANDBOX_READY" ]]
+
+	NEW_NS=$(crictl inspectp "$new_pod_id" |
+		jq -er '.info.runtimeSpec.linux.namespaces[] | select(.type == "network").path | sub("'$NETNS_PATH'"; "")')
+
+	new_fstype=$(stat -f -c %t "$NETNS_PATH$NEW_NS" 2> /dev/null)
+	echo "New pod filesystem type: 0x$new_fstype"
+	[[ "$new_fstype" == "6e736673" ]]
 }
