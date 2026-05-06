@@ -882,7 +882,7 @@ func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerCo
 					Destination: "/sys",
 					Type:        "bind",
 					Source:      "/sys",
-					Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+					Options:     []string{"nosuid", "noexec", "nodev", "rro", "rbind"},
 				})
 			} else {
 				ctr.SpecAddMount(rspec.Mount{
