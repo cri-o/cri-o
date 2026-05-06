@@ -411,6 +411,22 @@ function teardown() {
 	[[ "${output}" == "${ctr_status_info}" ]]
 }
 
+@test "crio restore imageRef for containers" {
+	start_crio
+	[[ -n "$REDIS_IMAGEREF" ]]
+
+	ctr_id=$(crictl run "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+
+	imageRef=$(crictl inspect -o json "$ctr_id" | jq -r '.status.imageRef')
+	[[ "$imageRef" == "$REDIS_IMAGEREF" ]]
+
+	stop_crio
+	start_crio
+
+	imageRef=$(crictl inspect -o json "$ctr_id" | jq -r '.status.imageRef')
+	[[ "$imageRef" == "$REDIS_IMAGEREF" ]]
+}
+
 @test "crio restore volumes for containers" {
 	start_crio
 
