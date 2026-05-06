@@ -124,7 +124,10 @@ The release notes have been generated for the commit range
 
 ## Downloads
 
-Download one of our static release bundles via our Google Cloud Bucket:
+### Release Bundles
+
+Download one of our static release bundles via our Google Cloud Bucket.
+Each bundle includes a SHA-256 checksum, a [cosign](https://github.com/sigstore/cosign) signature (`+"`.bundle`"+`), and a [SPDX](https://spdx.org) bill of materials (`+"`.spdx`"+`) with its own signature:
 
 - [cri-o.amd64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz)
   - [cri-o.amd64.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.sha256sum)
@@ -147,16 +150,23 @@ Download one of our static release bundles via our Google Cloud Bucket:
   - [cri-o.s390x.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx)
   - [cri-o.s390x.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.bundle)
 
-The [OpenVEX](https://openvex.dev) report for this release is available at:
+### Supply Chain Artifacts
+
+The [OpenVEX](https://openvex.dev) vulnerability report:
 
 - [cri-o.%s.openvex.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.openvex.json)
+  - [cri-o.%s.openvex.json.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.openvex.json.bundle)
 
-The [SLSA](https://slsa.dev) provenance attestation for this release is available at:
+The [SLSA](https://slsa.dev) provenance attestation:
 
 - [cri-o.%s.provenance.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.provenance.json)
   - [cri-o.%s.provenance.json.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.provenance.json.bundle)
 
-All release artifacts (bundles, SBOMs, VEX, and provenance) are also available as signed [OCI artifacts](https://github.com/opencontainers/image-spec/blob/main/manifest.md) at `+"`"+`ghcr.io/cri-o/bundle:%s`+"`"+`.
+### OCI Distribution
+
+All release artifacts are also available as signed [OCI artifacts](https://github.com/opencontainers/image-spec/blob/main/manifest.md) at `+"`"+`ghcr.io/cri-o/bundle:%s`+"`"+`.
+
+### Verification
 
 To verify the artifact signatures via [cosign](https://github.com/sigstore/cosign), run:
 
@@ -246,6 +256,7 @@ To verify the [SLSA](https://slsa.dev) provenance attestation, run:
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
 		bundleVersion,
 		startTag,
 	); err != nil {
@@ -269,7 +280,6 @@ To verify the [SLSA](https://slsa.dev) provenance attestation, run:
 		"--skip-first-commit",
 		"--end-sha="+head,
 		"--output="+outputFilePath,
-		"--toc",
 		"--go-template=go-template:"+templateFile.Name(),
 	); err != nil {
 		return fmt.Errorf("generate release notes: %w", err)
