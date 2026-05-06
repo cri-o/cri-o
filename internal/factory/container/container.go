@@ -235,6 +235,11 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 
 	c.spec.AddAnnotation(annotations.SomeNameOfTheImage, someNameOfThisImage)
 	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID.IDStringForOutOfProcessConsumptionOnly())
+
+	if len(imageResult.RepoDigests) > 0 {
+		c.spec.AddAnnotation(annotations.ImageRepoDigests, strings.Join(imageResult.RepoDigests, ","))
+	}
+
 	c.spec.AddAnnotation(annotations.Name, c.Name())
 	c.spec.AddAnnotation(annotations.ContainerID, c.ID())
 	c.spec.AddAnnotation(annotations.SandboxID, sb.ID())
