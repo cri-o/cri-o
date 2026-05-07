@@ -14,7 +14,6 @@ describes the CRI-O governance.
 | Sascha Grunert    | [saschagrunert](https://github.com/saschagrunert)   | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Peter Hunt        | [pehunt](https://github.com/pehunt)                 | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Fabiano Fidêncio  | [fidencio](https://github.com/fidencio)             | Approver      | [Intel](https://github.com/intel)         |
-| Kir Kolyshkin     | [kolyshkin](https://github.com/kolyshkin)           | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Sohan Kunkerkar   | [sohankunkerkar](https://github.com/sohankunkerkar) | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Skyler Clark      | [wgahnagl](https://github.com/wgahnagl)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
 | Qi Wang           | [QiWang19](https://github.com/QiWang19)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
@@ -29,6 +28,7 @@ describes the CRI-O governance.
 | Antonio Murdaca   | [runcom](https://github.com/runcom)       | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Dan Walsh         | [rhatdan](https://github.com/rhatdan)     | Approver      | [Red Hat](https://github.com/redhat)      |
 | Valentin Rothberg | [vrothberg](https://github.com/vrothberg) | Approver      | [Red Hat](https://github.com/redhat)      |
+| Kir Kolyshkin     | [kolyshkin](https://github.com/kolyshkin) | Approver      | [Red Hat](https://www.github.com/redhat/) |
 
 ## Credits
 
