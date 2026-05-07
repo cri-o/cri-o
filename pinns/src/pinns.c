@@ -66,6 +66,7 @@ int main(int argc, char **argv) {
       {"uid-mapping", optional_argument, NULL, UID_MAPPING},
       {"gid-mapping", optional_argument, NULL, GID_MAPPING},
       {"sysctl", optional_argument, NULL, 's'},
+      {NULL, 0, NULL, 0},
   };
 
   sysctls = calloc(argc/2, sizeof(char *));
