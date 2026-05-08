@@ -37,7 +37,8 @@ func NewTableWriter(output io.Writer, options ...tablewriter.Option) *tablewrite
 // NewTableWriterWithDefaults creates a new table writer with default markdown configuration.
 // It includes left alignment, markdown renderer, and custom borders optimized for terminal output.
 func NewTableWriterWithDefaults(output io.Writer, options ...tablewriter.Option) *tablewriter.Table {
-	defaultOptions := []tablewriter.Option{
+	defaultOptions := make([]tablewriter.Option, 0, 4+len(options))
+	defaultOptions = append(defaultOptions,
 		tablewriter.WithConfig(tablewriter.Config{
 			Header: tw.CellConfig{
 				Alignment: tw.CellAlignment{Global: tw.AlignLeft},
@@ -59,8 +60,7 @@ func NewTableWriterWithDefaults(output io.Writer, options ...tablewriter.Option)
 			},
 		}),
 		tablewriter.WithRowAutoWrap(tw.WrapNone),
-	}
-
+	)
 	defaultOptions = append(defaultOptions, options...)
 
 	return NewTableWriter(output, defaultOptions...)

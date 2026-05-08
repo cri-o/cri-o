@@ -541,15 +541,20 @@ func WrapText(originalText string, lineSize int) (wrappedText string) {
 	wrappedText = words[0]
 
 	spaceLeft := lineSize - len(wrappedText)
+
+	var sb strings.Builder
+
 	for _, word := range words[1:] {
 		if len(word)+1 > spaceLeft {
-			wrappedText += "\n" + word
+			sb.WriteString("\n" + word)
 			spaceLeft = lineSize - len(word)
 		} else {
-			wrappedText += " " + word
+			sb.WriteString(" " + word)
 			spaceLeft -= 1 + len(word)
 		}
 	}
+
+	wrappedText += sb.String()
 
 	return wrappedText
 }
