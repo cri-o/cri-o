@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 08 May 2026 14:59:49 UTC for commit [deba594][0]._
+_Generated on Fri, 08 May 2026 16:02:23 UTC for commit [057d02b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/deba5948e5a906d15ff57950678419e4f1159acb
+[0]: https://github.com/cri-o/cri-o/commit/057d02b5e20b6c7d6b9b07b1f53b25e1ed9d7975
 
 ## Outdated Dependencies
 
@@ -697,14 +697,14 @@ _Generated on Fri, 08 May 2026 14:59:49 UTC for commit [deba594][0]._
 | goa.design/goa/v3                                                           | v3.23.4                                | v3.26.0                            | false  | true             |
 | golang.org/x/crypto                                                         | v0.50.0                                |                                    | false  | true             |
 | golang.org/x/exp                                                            | v0.0.0-20240719175910-8a7402abbf56     | v0.0.0-20260410095643-746e56fc9e2f | false  | true             |
-| golang.org/x/mod                                                            | v0.35.0                                |                                    | false  | true             |
+| golang.org/x/mod                                                            | v0.35.0                                | v0.36.0                            | false  | true             |
 | golang.org/x/net                                                            | v0.53.0                                |                                    | true   | true             |
 | golang.org/x/oauth2                                                         | v0.36.0                                |                                    | false  | true             |
 | golang.org/x/sync                                                           | v0.20.0                                |                                    | true   | true             |
 | golang.org/x/sys                                                            | v0.43.0                                | v0.44.0                            | true   | true             |
 | golang.org/x/telemetry                                                      | v0.0.0-20260409153401-be6f6cb8b1fa     | v0.0.0-20260508143814-452d2f60da57 | false  | true             |
-| golang.org/x/term                                                           | v0.42.0                                |                                    | false  | true             |
-| golang.org/x/text                                                           | v0.36.0                                |                                    | false  | true             |
+| golang.org/x/term                                                           | v0.42.0                                | v0.43.0                            | false  | true             |
+| golang.org/x/text                                                           | v0.36.0                                | v0.37.0                            | false  | true             |
 | golang.org/x/time                                                           | v0.14.0                                | v0.15.0                            | false  | true             |
 | golang.org/x/tools                                                          | v0.44.0                                |                                    | false  | true             |
 | golang.org/x/tools/go/expect                                                | v0.1.0-deprecated                      | v0.1.1-deprecated                  | false  | true             |
