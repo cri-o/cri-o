@@ -49,6 +49,14 @@ const (
 //nolint:gochecknoinits // Init function is intentional here.
 func init() {
 	reexec.Register("crio-pull-image", pullImageChild)
+	// Collapse Accept MIME types into one comma-separated value so proxies like
+	// CloudFront (which drop all but the first header line) see the full list.
+	// See https://github.com/cri-o/cri-o/issues/9902.
+	if len(manifest.DefaultRequestedManifestMIMETypes) > 0 {
+		manifest.DefaultRequestedManifestMIMETypes = []string{
+			strings.Join(manifest.DefaultRequestedManifestMIMETypes, ", "),
+		}
+	}
 }
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
