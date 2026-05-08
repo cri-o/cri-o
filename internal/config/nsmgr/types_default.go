@@ -2,8 +2,8 @@
 
 package nsmgr
 
-// IsShadowedMountError returns true if the error indicates a shadowed mount.
+// IsInvalidNamespaceMountError returns true if the error indicates an invalid namespace mount.
 // On non-Linux platforms, this always returns false.
-func IsShadowedMountError(err error) bool {
+func IsInvalidNamespaceMountError(err error) bool {
 	return false
 }

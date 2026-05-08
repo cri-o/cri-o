@@ -110,8 +110,8 @@ func (s *Sandbox) NetNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.NETNS, s.netns)
 	// Regardless of error, set the namespace
 	s.netns = ns
-	// Shadowed mounts must fail even for stopped sandboxes to prevent setns EINVAL.
-	if err != nil && (!s.stopped || nsmgr.IsShadowedMountError(err)) {
+	// Invalid namespace mounts must fail even for stopped sandboxes to prevent setns EINVAL.
+	if err != nil && (!s.stopped || nsmgr.IsInvalidNamespaceMountError(err)) {
 		return err
 	}
 
@@ -132,8 +132,8 @@ func (s *Sandbox) IpcNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.IPCNS, s.ipcns)
 	// Regardless of error, set the namespace
 	s.ipcns = ns
-	// Shadowed mounts must fail even for stopped sandboxes to prevent setns EINVAL.
-	if err != nil && (!s.stopped || nsmgr.IsShadowedMountError(err)) {
+	// Invalid namespace mounts must fail even for stopped sandboxes to prevent setns EINVAL.
+	if err != nil && (!s.stopped || nsmgr.IsInvalidNamespaceMountError(err)) {
 		return err
 	}
 
@@ -154,8 +154,8 @@ func (s *Sandbox) UtsNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.UTSNS, s.utsns)
 	// Regardless of error, set the namespace
 	s.utsns = ns
-	// Shadowed mounts must fail even for stopped sandboxes to prevent setns EINVAL.
-	if err != nil && (!s.stopped || nsmgr.IsShadowedMountError(err)) {
+	// Invalid namespace mounts must fail even for stopped sandboxes to prevent setns EINVAL.
+	if err != nil && (!s.stopped || nsmgr.IsInvalidNamespaceMountError(err)) {
 		return err
 	}
 
@@ -176,8 +176,8 @@ func (s *Sandbox) UserNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.USERNS, s.userns)
 	// Regardless of error, set the namespace
 	s.userns = ns
-	// Shadowed mounts must fail even for stopped sandboxes to prevent setns EINVAL.
-	if err != nil && (!s.stopped || nsmgr.IsShadowedMountError(err)) {
+	// Invalid namespace mounts must fail even for stopped sandboxes to prevent setns EINVAL.
+	if err != nil && (!s.stopped || nsmgr.IsInvalidNamespaceMountError(err)) {
 		return err
 	}
 

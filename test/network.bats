@@ -332,8 +332,8 @@ function check_networking() {
 	echo "After CRI-O restart, verifying sandbox was auto-deleted..."
 	run ! crictl inspectp "$pod_id"
 
-	# Verify CRI-O logged the shadowed mount detection and cleanup
-	grep -q "is shadowed by directory overmount" "$CRIO_LOG" || grep -q "unknown FS magic" "$CRIO_LOG"
+	# Verify CRI-O logged the invalid namespace detection and cleanup
+	grep -q "is not a valid namespace filesystem" "$CRIO_LOG"
 	grep -q "Could not restore sandbox.*$pod_id" "$CRIO_LOG"
 	grep -q "Deleting all containers under sandbox $pod_id" "$CRIO_LOG"
 	grep -q "Successfully cleaned up network for pod $pod_id" "$CRIO_LOG"
@@ -360,7 +360,7 @@ function check_networking() {
 	# shadows earlier sandbox bind mounts, making them unreachable via path lookup.
 
 	NETNS_PATH=/var/run/netns/
-	trap 'umount "$NETNS_PATH" 2>/dev/null || true' EXIT INT TERM
+	trap 'umount -l "$NETNS_PATH" 2>/dev/null || true' EXIT INT TERM
 
 	start_crio
 
@@ -422,16 +422,16 @@ function check_networking() {
 	fi
 	echo "Confirmed: bind mount is shadowed (fstype: 0x$shadowed_fstype, not nsfs)"
 
-	# CRI-O restart must detect shadowing even for stopped sandboxes
+	# CRI-O restart must detect invalid namespace even for stopped sandboxes
 	start_crio
 
-	if ! grep -q "is shadowed by directory overmount" "$CRIO_LOG"; then
-		echo "ERROR: CRI-O did not detect the shadowed mount for stopped sandbox" >&2
+	if ! grep -q "is not a valid namespace filesystem" "$CRIO_LOG"; then
+		echo "ERROR: CRI-O did not detect the invalid namespace for stopped sandbox" >&2
 		echo "=== CRI-O log excerpt ===" >&2
-		grep -i "namespace\|netns\|shadowed" "$CRIO_LOG" | tail -20 >&2
+		grep -i "namespace\|netns" "$CRIO_LOG" | tail -20 >&2
 		exit 1
 	fi
-	echo "CRI-O correctly detected the shadowed mount for stopped sandbox"
+	echo "CRI-O correctly detected the invalid namespace for stopped sandbox"
 
 	grep -q "Could not restore sandbox.*$pod_id" "$CRIO_LOG"
 	grep -q "Deleting all containers under sandbox $pod_id" "$CRIO_LOG"
