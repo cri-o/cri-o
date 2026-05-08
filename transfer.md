@@ -46,11 +46,13 @@ Podman is a daemonless container engine that provides a command-line interface
 similar to Docker. It can run containers, manage container images, and perform
 various container-related operations.
 
-While Podman and CRI-O are separate projects with different purposes, Podman offers
-a more comprehensive set of commands that can facilitate debugging and
+While Podman and CRI-O are separate projects with different purposes,
+Podman offers a more comprehensive set of commands that can facilitate
+debugging and
 troubleshooting tasks within a containerized environment. You can use Podman
-commands to perform actions like executing commands within a container (`podman exec`),
-inspecting container metadata (`podman inspect`),
+commands to perform actions like executing commands within a
+container (`podman exec`), inspecting container
+metadata (`podman inspect`),
 viewing container logs (`podman logs`), and many others.
 
 It's important to note that Podman and CRI-O are not interchangeable. Podman is

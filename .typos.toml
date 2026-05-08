@@ -19,7 +19,11 @@ unicode = true
 ignore-hex = true
 identifier-leading-digits = false
 locale = "en"
-extend-ignore-identifiers-re = []
+extend-ignore-identifiers-re = [
+    "writeable",
+    "facter",
+    "cpy",
+]
 extend-ignore-re = [
     "ClosID",
     "ClosId",

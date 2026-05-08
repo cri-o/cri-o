@@ -92,11 +92,15 @@ placeholder for the tag:
 sudo crictl images --digests
 ```
 
+<!-- markdownlint-disable MD013 -->
+
 ```text
 IMAGE                               TAG       DIGEST           IMAGE ID         SIZE
 quay.io/saschagrunert/hello-world   <none>    2403474085c1e    14c28051b743c    5.88MB
 quay.io/saschagrunert/hello-world   latest    ca810c5740f66    d1165f2212346    17.7kB
 ```
+
+<!-- markdownlint-enable MD013 -->
 
 The `kubelet` is still able to list the image by its digest, which could be
 referenced by a Kubernetes container:

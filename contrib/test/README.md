@@ -8,8 +8,8 @@ automated testing and integration. These playbooks are referenced in the
 
 ## Integration Testing in Prow
 
-- The base image for the test environment is built daily with the job defined
-  [here](https://github.com/openshift/release/tree/master/ci-operator/step-registry/cri-o/setup)
+- The base image for the test environment is built daily with the
+  [job defined in the OpenShift release repository](https://github.com/openshift/release/tree/master/ci-operator/step-registry/cri-o/setup)
   using `setup-main.yml`
 - All necessary dependencies are automatically installed during image creation
 - The integration and e2e tests use this prebuilt image from that day

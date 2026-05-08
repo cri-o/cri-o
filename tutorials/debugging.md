@@ -7,8 +7,9 @@ troubleshooting/debugging/inspecting the behavior of CRI-O.
 
 Often with a long-running process, it can be useful to know what that
 process is up to.
-CRI-O has built-in functionality to print the go routine stacks to provide such information.
-All one has to do is send SIGUSR1 to CRI-O, either with `kill` or `systemctl`
+CRI-O has built-in functionality to print the go routine stacks to
+provide such information. All one has to do is send SIGUSR1 to CRI-O,
+either with `kill` or `systemctl`
 (if running CRI-O as a systemd unit):
 
 ```shell
