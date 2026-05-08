@@ -126,10 +126,14 @@ Image is up to date for docker.io/enccont/encrypted_image@sha256:2c3c078642b13e3
 Verify that image indeed got downloaded and decrypted using
 `crictl -r unix:///var/run/crio/crio.sock images`
 
+<!-- markdownlint-disable MD013 -->
+
 ```text
 IMAGE                                   TAG                 IMAGE ID            SIZE
 docker.io/enccont/encrypted_image       encrypted           5eb6083c55f01       130MB
 ```
+
+<!-- markdownlint-enable MD013 -->
 
 Please note that the confidentiality provided by the encrypted images could get
 compromised if the private keys are accessed by unauthorized and/or unintended entities.

@@ -32,4 +32,11 @@ describes the CRI-O governance.
 
 ## Credits
 
-The structure of this document was based off of the equivalent one in the [Argo Project](https://github.com/argoproj/argoproj/blob/master/MAINTAINERS.md).
+The structure of this document was based off of the equivalent one
+in the [Argo Project][argo-maintainers].
+
+<!-- markdownlint-disable MD013 -->
+
+[argo-maintainers]: https://github.com/argoproj/argoproj/blob/master/MAINTAINERS.md
+
+<!-- markdownlint-enable MD013 -->

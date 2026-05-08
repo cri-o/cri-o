@@ -8,10 +8,11 @@ It is responsible for starting microservices pods (such as `kube-proxy`, `kubedn
 etc. - they can be different for various ways of deploying k8s) and user pods.
 Configuration of kubelet determines which runtime is used and in what way.
 
-Kubelet itself is executed in Docker container (as we can see in `kubelet.service`),
-but, what is important, **it's not** a Kubernetes pod (at least for now),
-so we can keep kubelet running inside the container (as well as directly on the host),
-and regardless of this, run pods in the chosen runtime.
+Kubelet itself is executed in Docker container (as we can see in
+`kubelet.service`), but, what is important, **it's not** a Kubernetes
+pod (at least for now), so we can keep kubelet running inside the
+container (as well as directly on the host), and regardless of this,
+run pods in the chosen runtime.
 
 Below, you can find an instruction how to switch one or more nodes on running
 Kubernetes cluster from Docker to CRI-O.
@@ -38,8 +39,9 @@ $ cat /etc/systemd/system/kubelet.service | grep Wants
 Wants=docker.socket crio.service
 ```
 
-If you'd like to change the way of starting kubelet (e.g., directly on the host instead
-of in a container), you can change it here, but, as mentioned, it's not necessary.
+If you'd like to change the way of starting kubelet (e.g., directly
+on the host instead of in a container), you can change it here, but,
+as mentioned, it's not necessary.
 
 Kubelet parameters are stored in `/etc/kubernetes/kubelet.env` file.
 
