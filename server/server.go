@@ -10,11 +10,15 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"go.podman.io/common/libimage"
+	"go.podman.io/image/v5/docker"
+	"go.podman.io/image/v5/docker/reference"
 	imageTypes "go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/idtools"
 	storageTypes "go.podman.io/storage/types"
@@ -101,6 +105,10 @@ type Server struct {
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
 
 	artifactStore *ociartifact.Store
+	// pinnedArtifactsPullMu serializes concurrent pullPinnedArtifacts goroutines
+	// (triggered at startup and on each SIGHUP) so they don't race on the shared
+	// store or pull the same artifact concurrently.
+	pinnedArtifactsPullMu sync.Mutex
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -478,6 +486,8 @@ func New(
 		artifactStore:            artifactStore,
 	}
 
+	go s.pullPinnedArtifacts(ctx, append([]string(nil), s.config.PinnedArtifacts...))
+
 	if s.config.EnablePodEvents {
 		// creating a container events channel only if the evented pleg is enabled
 		s.ContainerEventsChan = make(chan types.ContainerEventResponse, 1000)
@@ -627,6 +637,10 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// Block until the signal is received
 			<-ch
 
+			// Snapshot the artifact list before reload so we can detect whether
+			// it actually changed (avoids network I/O on unrelated reloads).
+			prevArtifacts := append([]string(nil), s.config.PinnedArtifacts...)
+
 			if err := s.config.Reload(ctx); err != nil {
 				log.Errorf(ctx, "Unable to reload configuration: %v", err)
 
@@ -639,6 +653,18 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// pinned and sandbox/pause images, we need to update them
 			s.ContainerServer.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
 			s.artifactStore.SetPinnedImageRegexps(s.ContainerServer.StorageImageServer().PinnedImageRegexps())
+
+			// Only re-pull when the list changed; use sorted comparison to
+			// match ReloadPinnedArtifacts' order-insensitive equality check.
+			slices.Sort(prevArtifacts)
+
+			currArtifacts := append([]string(nil), s.config.PinnedArtifacts...)
+			slices.Sort(currArtifacts)
+
+			if !slices.Equal(prevArtifacts, currArtifacts) {
+				go s.pullPinnedArtifacts(ctx, append([]string(nil), s.config.PinnedArtifacts...))
+			}
+
 			log.Infof(ctx, "Configuration reload completed")
 			// Print the current configuration.
 			tomlConfig, err := s.config.ToString()
@@ -653,12 +679,63 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 	log.Infof(ctx, "Registered SIGHUP reload watcher")
 }
 
+// pullPinnedArtifacts pulls every artifact in refs.
+// Errors are logged and skipped so a single bad reference does not block the
+// others. Intended to run in a background goroutine on startup and reload.
+// refs must be a snapshot taken before launching the goroutine so the caller
+// and this function do not race on s.config.PinnedArtifacts.
+func (s *Server) pullPinnedArtifacts(ctx context.Context, refs []string) {
+	if len(refs) == 0 {
+		return
+	}
+
+	s.pinnedArtifactsPullMu.Lock()
+	defer s.pinnedArtifactsPullMu.Unlock()
+
+	log.Infof(ctx, "Pre-pulling %d pinned artifact(s)", len(refs))
+
+	seen := make(map[string]struct{}, len(refs))
+
+	for _, refStr := range refs {
+		if _, ok := seen[refStr]; ok {
+			continue
+		}
+
+		seen[refStr] = struct{}{}
+
+		named, err := reference.ParseNormalizedNamed(refStr)
+		if err != nil {
+			log.Errorf(ctx, "Failed to parse pinned artifact reference %q: %v", refStr, err)
+
+			continue
+		}
+
+		imageRef, err := docker.NewReference(named)
+		if err != nil {
+			log.Errorf(ctx, "Failed to create image reference for pinned artifact %q: %v", refStr, err)
+
+			continue
+		}
+
+		if _, err := s.artifactStore.Pull(ctx, imageRef, &libimage.CopyOptions{
+			RemoveSignatures: true, // OCI layout destination does not support signature storage
+		}); err != nil {
+			log.Errorf(ctx, "Failed to pull pinned artifact %q: %v", refStr, err)
+
+			continue
+		}
+
+		log.Infof(ctx, "Pinned artifact pre-pulled: %s", refStr)
+	}
+}
+
 func useDefaultUmask(ctx context.Context) {
 	const defaultUmask = 0o022
 
 	oldUmask := unix.Umask(defaultUmask)
 	if oldUmask != defaultUmask {
-		log.Infof(ctx,
+		log.Infof(
+			ctx,
 			"Using default umask 0o%#o instead of 0o%#o",
 			defaultUmask, oldUmask,
 		)

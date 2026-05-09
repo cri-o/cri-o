@@ -2,6 +2,7 @@ _cli_zsh_autocomplete() {
 
   local -a cmds
   cmds=(
+        "artifact:Manage OCI artifacts in CRI-O's artifact store"
         "check:Check CRI-O storage directory for errors.
 
 This command can also repair damaged containers, images and layers.
@@ -137,6 +138,7 @@ it later with **--config**. Global options will modify the output.'
         '--pause-image'
         '--pause-image-auth-file'
         '--pids-limit'
+        '--pinned-artifacts'
         '--pinned-images'
         '--pinns-path'
         '--privileged-seccomp-profile'

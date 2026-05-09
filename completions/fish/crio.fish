@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i check complete completion help h config man markdown md status config c containers container cs s info i goroutines g heap hp version wipe help h
+        if contains -- $i artifact pull check complete completion help h config man markdown md status config c containers container cs s info i goroutines g heap hp version wipe help h
             return 1
         end
     end
@@ -147,6 +147,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-command -r -d 'Path 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-image -r -d 'Image which contains the pause executable.'
 complete -c crio -n '__fish_crio_no_subcommand' -l pause-image-auth-file -r -d 'Path to a config file containing credentials for --pause-image.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pids-limit -r -d 'Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag \'--pod-pids-limit\' should be used instead.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l pinned-artifacts -r -d 'A list of OCI artifact references to pre-pull and keep in CRI-O\'s artifact store.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pinned-images -r -d 'A list of images that will be excluded from the kubelet\'s garbage collection.'
 complete -c crio -n '__fish_crio_no_subcommand' -l pinns-path -r -d 'The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty.'
 complete -c crio -n '__fish_crio_no_subcommand' -l privileged-seccomp-profile -r -d 'Enable a seccomp profile for privileged containers from the local path.'
@@ -189,6 +190,10 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l help -s h -d 'show help'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l version -s v -d 'print the version'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l help -s h -d 'show help'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l version -s v -d 'print the version'
+complete -c crio -n '__fish_seen_subcommand_from artifact' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_crio_no_subcommand' -a 'artifact' -d 'Manage OCI artifacts in CRI-O\'s artifact store'
+complete -c crio -n '__fish_seen_subcommand_from pull' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_seen_subcommand_from artifact' -a 'pull' -d 'Pull an OCI artifact into CRI-O\'s artifact store'
 complete -c crio -n '__fish_seen_subcommand_from check' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'check' -d 'Check CRI-O storage directory for errors.
 

@@ -60,6 +60,8 @@ func (c *Config) Reload(ctx context.Context) error {
 
 	c.ReloadPinnedImages(newConfig)
 
+	c.ReloadPinnedArtifacts(newConfig)
+
 	if err := c.ReloadRegistries(); err != nil {
 		return err
 	}
@@ -200,6 +202,38 @@ func (c *Config) ReloadPinnedImages(newConfig *Config) {
 	logConfig("pinned_images", strings.Join(pinnedImages, ","))
 
 	c.PinnedImages = pinnedImages
+}
+
+// ReloadPinnedArtifacts replaces the PinnedArtifacts list with the provided
+// newConfig.PinnedArtifacts. The method skips empty items and logs changes.
+func (c *Config) ReloadPinnedArtifacts(newConfig *Config) {
+	if len(newConfig.PinnedArtifacts) == 0 {
+		c.PinnedArtifacts = []string{}
+
+		logConfig("pinned_artifacts", "[]")
+
+		return
+	}
+
+	if cmp.Equal(c.PinnedArtifacts, newConfig.PinnedArtifacts,
+		cmpopts.SortSlices(func(a, b string) bool {
+			return a < b
+		}),
+	) {
+		return
+	}
+
+	pinnedArtifacts := []string{}
+
+	for _, ref := range newConfig.PinnedArtifacts {
+		if ref != "" {
+			pinnedArtifacts = append(pinnedArtifacts, ref)
+		}
+	}
+
+	logConfig("pinned_artifacts", strings.Join(pinnedArtifacts, ","))
+
+	c.PinnedArtifacts = pinnedArtifacts
 }
 
 // ReloadRegistries reloads the registry configuration from the Configs

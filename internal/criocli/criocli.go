@@ -206,6 +206,10 @@ func mergeImageConfig(config *libconfig.Config, ctx *cli.Context) {
 		config.PinnedImages = StringSliceTrySplit(ctx, "pinned-images")
 	}
 
+	if ctx.IsSet("pinned-artifacts") {
+		config.PinnedArtifacts = StringSliceTrySplit(ctx, "pinned-artifacts")
+	}
+
 	if ctx.IsSet("short-name-mode") {
 		config.ShortNameMode = ctx.String("short-name-mode")
 	}
@@ -1566,6 +1570,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "A list of images that will be excluded from the kubelet's garbage collection.",
 			EnvVars: []string{"CONTAINER_PINNED_IMAGES"},
 			Value:   cli.NewStringSlice(defConf.PinnedImages...),
+		},
+		&cli.StringSliceFlag{
+			Name:    "pinned-artifacts",
+			Usage:   "A list of OCI artifact references to pre-pull and keep in CRI-O's artifact store.",
+			EnvVars: []string{"CONTAINER_PINNED_ARTIFACTS"},
+			Value:   cli.NewStringSlice(defConf.PinnedArtifacts...),
 		},
 		&cli.BoolFlag{
 			Name:    "disable-hostport-mapping",

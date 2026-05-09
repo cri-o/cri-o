@@ -2,7 +2,8 @@ _cli_bash_autocomplete() {
     local cur opts base
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    opts="check
+    opts="artifact
+check
 complete
 completion
 config
@@ -112,6 +113,7 @@ h
 --pause-image
 --pause-image-auth-file
 --pids-limit
+--pinned-artifacts
 --pinned-images
 --pinns-path
 --privileged-seccomp-profile

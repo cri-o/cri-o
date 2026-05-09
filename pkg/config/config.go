@@ -661,6 +661,12 @@ type ImageConfig struct {
 	// Pinned images will remain in the container runtime's storage until
 	// they are manually removed. Default value: empty list (no images pinned)
 	PinnedImages []string `toml:"pinned_images"`
+	// PinnedArtifacts is a list of OCI artifact references that CRI-O should
+	// pre-pull and keep available in the artifact store. CRI-O pulls listed
+	// artifacts on startup and on every SIGHUP config reload. This is the
+	// primary mechanism to pre-warm large AI/ML model artifacts before pods
+	// need them, eliminating cold-start delays. Default value: empty list.
+	PinnedArtifacts []string `toml:"pinned_artifacts"`
 	// SignaturePolicyPath is the name of the file which decides what sort
 	// of policy we use when deciding whether or not to trust an image that
 	// we've pulled.  Outside of testing situations, it is strongly advised

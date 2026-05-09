@@ -543,6 +543,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: slices.Equal(dc.PinnedImages, c.PinnedImages),
 		},
 		{
+			templateString: templateStringCrioImagePinnedArtifacts,
+			group:          crioImageConfig,
+			isDefaultValue: slices.Equal(dc.PinnedArtifacts, c.PinnedArtifacts),
+		},
+		{
 			templateString: templateStringCrioImageSignaturePolicy,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.SignaturePolicyPath, c.SignaturePolicyPath),
@@ -1559,6 +1564,16 @@ const templateStringCrioImagePinnedImages = `# List of images to be excluded fro
 # configured by the user, which is used as a placeholder in Kubernetes pods.
 {{ $.Comment }}pinned_images = [
 {{ range $opt := .PinnedImages }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
+
+`
+
+const templateStringCrioImagePinnedArtifacts = `# List of OCI artifact references to pre-pull and keep in CRI-O's artifact store.
+# CRI-O pulls each listed artifact on startup and on every SIGHUP config reload,
+# eliminating cold-start delays for workloads that use large OCI artifacts such
+# as AI/ML models. References use standard image reference format.
+# This option supports live configuration reload.
+{{ $.Comment }}pinned_artifacts = [
+{{ range $opt := .PinnedArtifacts }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
 `
 

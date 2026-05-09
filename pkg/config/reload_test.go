@@ -478,4 +478,46 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.PinnedImages).To(Equal([]string{"image1", "image2", "image3"}))
 		})
 	})
+
+	t.Describe("ReloadPinnedArtifacts", func() {
+		It("should update PinnedArtifacts when the new list differs", func() {
+			sut.PinnedArtifacts = []string{"registry.example.com/old:v1"}
+			newConfig := &config.Config{}
+			newConfig.PinnedArtifacts = []string{"registry.example.com/new:v2"}
+			sut.ReloadPinnedArtifacts(newConfig)
+			Expect(sut.PinnedArtifacts).To(Equal([]string{"registry.example.com/new:v2"}))
+		})
+
+		It("should not update PinnedArtifacts when the lists are identical", func() {
+			sut.PinnedArtifacts = []string{"registry.example.com/model:v1", "registry.example.com/model:v2"}
+			newConfig := &config.Config{}
+			newConfig.PinnedArtifacts = []string{"registry.example.com/model:v1", "registry.example.com/model:v2"}
+			sut.ReloadPinnedArtifacts(newConfig)
+			Expect(sut.PinnedArtifacts).To(Equal([]string{"registry.example.com/model:v1", "registry.example.com/model:v2"}))
+		})
+
+		It("should clear PinnedArtifacts when the new list is empty", func() {
+			sut.PinnedArtifacts = []string{"registry.example.com/model:v1"}
+			newConfig := &config.Config{}
+			newConfig.PinnedArtifacts = []string{}
+			sut.ReloadPinnedArtifacts(newConfig)
+			Expect(sut.PinnedArtifacts).To(BeEmpty())
+		})
+
+		It("should skip empty entries in the new list", func() {
+			sut.PinnedArtifacts = []string{}
+			newConfig := &config.Config{}
+			newConfig.PinnedArtifacts = []string{"registry.example.com/model:v1", "", "registry.example.com/model:v2"}
+			sut.ReloadPinnedArtifacts(newConfig)
+			Expect(sut.PinnedArtifacts).To(Equal([]string{"registry.example.com/model:v1", "registry.example.com/model:v2"}))
+		})
+
+		It("should treat order-only differences as equal (no update)", func() {
+			sut.PinnedArtifacts = []string{"registry.example.com/a:1", "registry.example.com/b:1"}
+			newConfig := &config.Config{}
+			newConfig.PinnedArtifacts = []string{"registry.example.com/b:1", "registry.example.com/a:1"}
+			sut.ReloadPinnedArtifacts(newConfig)
+			Expect(sut.PinnedArtifacts).To(Equal([]string{"registry.example.com/a:1", "registry.example.com/b:1"}))
+		})
+	})
 })

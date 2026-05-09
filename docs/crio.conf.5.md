@@ -501,6 +501,9 @@ The command to run to have a container stay in the paused state. This option sup
 **pinned_images**=[]
 A list of images to be excluded from the kubelet's garbage collection. It allows specifying image names using either exact, glob, or keyword patterns. Exact matches must match the entire name, glob matches can have a wildcard \* at the end, and keyword matches can have wildcards on both ends. By default, this list includes the `pause` image if configured by the user, which is used as a placeholder in Kubernetes pods.
 
+**pinned_artifacts**=[]
+A list of OCI artifact references that CRI-O should pre-pull into its artifact store at startup and on SIGHUP reload. Use this to warm caches for large artifacts (e.g. AI/ML model files) so pods that reference them via image-volume mounts start without waiting for a network pull. References must be fully-qualified (e.g. `ghcr.io/example/model:v1`). Failures (bad reference, network error, registry returning a container image instead of an artifact) are logged and skipped — startup is not blocked, and the artifact will still be pulled on-demand as a fallback. This option supports live configuration reload.
+
 **signature_policy**=""
 Path to the file which decides what sort of policy we use when deciding whether or not to trust an image that we've pulled. It is not recommended that this option be used, as the default behavior of using the system-wide default policy (i.e., /etc/containers/policy.json) is most often preferred. Please refer to containers-policy.json(5) for more details.
 

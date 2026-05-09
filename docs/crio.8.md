@@ -108,6 +108,7 @@ crio
 [--pause-image-auth-file]=[value]
 [--pause-image]=[value]
 [--pids-limit]=[value]
+[--pinned-artifacts]=[value]
 [--pinned-images]=[value]
 [--pinns-path]=[value]
 [--privileged-seccomp-profile]=[value]
@@ -409,6 +410,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--pids-limit**="": Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead. (default: -1)
 
+**--pinned-artifacts**="": A list of OCI artifact references to pre-pull and keep in CRI-O's artifact store.
+
 **--pinned-images**="": A list of images that will be excluded from the kubelet's garbage collection.
 
 **--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty.
@@ -489,6 +492,14 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 
 # COMMANDS
+
+## artifact
+
+Manage OCI artifacts in CRI-O's artifact store
+
+### pull
+
+Pull an OCI artifact into CRI-O's artifact store
 
 ## check
 

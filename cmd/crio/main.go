@@ -160,6 +160,7 @@ func main() {
 
 	app.Commands = criocli.DefaultCommands
 	app.Commands = append(app.Commands,
+		criocli.ArtifactCommand,
 		criocli.CheckCommand,
 		criocli.ConfigCommand,
 		criocli.PublishCommand,
