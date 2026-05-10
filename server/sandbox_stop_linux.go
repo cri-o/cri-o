@@ -34,15 +34,26 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		}
 	}
 
-	// Clean up sandbox networking and close its network namespace.
-	if err := s.networkStop(ctx, sb); err != nil {
-		return err
-	}
-
 	if sb.Stopped() {
+		// Network cleanup may still be needed even for already-stopped sandboxes.
+		if err := s.networkStop(ctx, sb); err != nil {
+			return fmt.Errorf("failed to stop network for pod sandbox %s: %w", sb.ID(), err)
+		}
+
 		log.Infof(ctx, "Stopped pod sandbox (already stopped): %s", sb.ID())
 
 		return nil
+	}
+
+	// NRI StopPodSandbox must run before network namespace teardown so that
+	// NRI plugins (e.g. network plugins) can still access the network namespace.
+	if err := s.nri.stopPodSandbox(ctx, sb); err != nil {
+		return fmt.Errorf("failed to stop NRI pod sandbox %s: %w", sb.ID(), err)
+	}
+
+	// Clean up sandbox networking and close its network namespace.
+	if err := s.networkStop(ctx, sb); err != nil {
+		return fmt.Errorf("failed to stop network for pod sandbox %s: %w", sb.ID(), err)
 	}
 
 	// Calculate the timeout once. Regular containers get most of the timeout,
@@ -94,10 +105,6 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	}
 
 	if err := sb.UnmountShm(ctx); err != nil {
-		return err
-	}
-
-	if err := s.nri.stopPodSandbox(ctx, sb); err != nil {
 		return err
 	}
 
