@@ -405,6 +405,9 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		return sb, err
 	}
 
+	// Pre-populate the runtime handler config cache while the handler is still available in the live config.
+	c.Runtime().EnsureRuntimeHandlerConfig(scontainer)
+
 	// We should restore the infraContainer to the container state store
 	c.AddInfraContainer(ctx, scontainer)
 
@@ -604,6 +607,9 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	ctr.SetCreated()
 
 	ctr.SetRuntimePathForPlatform(platformRuntimePath)
+
+	// Pre-populate the runtime handler config cache while the handler is still available in the live config.
+	c.Runtime().EnsureRuntimeHandlerConfig(ctr)
 
 	c.AddContainer(ctx, ctr)
 

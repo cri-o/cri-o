@@ -1067,30 +1067,15 @@ func (s *Server) startWatcherForMirrorRegistries(ctx context.Context, registries
 }
 
 func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context, watcher *fsnotify.Watcher) {
-	var timer *time.Timer
-
-	reloadChannel := make(chan string, 1)
-
-	go func() {
-		// The for loop ensures that the channel is properly drained, even if
-		// no new events are received, thus preventing potential deadlocks.
-		// For each event name received, the goroutine checks if it's not
-		// an empty string and then reloads the registries.
-		for evenName := range reloadChannel {
-			log.Infof(ctx, "File %q changed, reloading registries configuration", evenName)
-
-			if err := s.config.ReloadRegistries(); err != nil {
-				log.Errorf(ctx, "Failed to reload registry configuration: %v", err)
-			}
-		}
-	}()
+	var (
+		timerCh  <-chan time.Time
+		lastName string
+	)
 
 	for {
 		select {
 		case event, ok := <-watcher.Events:
 			if !ok {
-				close(reloadChannel)
-
 				return
 			}
 
@@ -1099,20 +1084,26 @@ func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context
 			}
 
 			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Chmod) != 0 {
-				// Reset timer if exists, else create a new one.
-				if timer != nil {
-					timer.Reset(debounceDuration)
-				} else {
-					timer = time.AfterFunc(debounceDuration, func() {
-						reloadChannel <- event.Name
-					})
-				}
+				// Reassigning timerCh replaces any pending timer: the old
+				// time.After channel is no longer selected and is GC'd when
+				// its internal timer fires.  This gives trailing-edge
+				// debounce without the AfterFunc.Reset race where Reset on an
+				// already-fired AfterFunc timer schedules the function again.
+				lastName = event.Name
+				timerCh = time.After(debounceDuration)
+			}
+
+		case <-timerCh:
+			timerCh = nil
+
+			log.Infof(ctx, "File %q changed, reloading registries configuration", lastName)
+
+			if err := s.config.ReloadRegistries(); err != nil {
+				log.Errorf(ctx, "Failed to reload registry configuration: %v", err)
 			}
 
 		case err, ok := <-watcher.Errors:
 			if !ok {
-				close(reloadChannel)
-
 				return
 			}
 

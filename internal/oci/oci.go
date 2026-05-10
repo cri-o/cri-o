@@ -48,6 +48,9 @@ type Runtime struct {
 	config              *config.Config
 	runtimeImplMap      map[string]RuntimeImpl
 	runtimeImplMapMutex sync.RWMutex
+	// runtimeHandlerConfigMap caches handler config per container ID for fallback when handler is removed from live config.
+	runtimeHandlerConfigMap      map[string]*config.RuntimeHandler
+	runtimeHandlerConfigMapMutex sync.RWMutex
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -93,8 +96,9 @@ func New(c *config.Config) (*Runtime, error) {
 	}
 
 	return &Runtime{
-		config:         c,
-		runtimeImplMap: make(map[string]RuntimeImpl),
+		config:                  c,
+		runtimeImplMap:          make(map[string]RuntimeImpl),
+		runtimeHandlerConfigMap: make(map[string]*config.RuntimeHandler),
 	}, nil
 }
 
@@ -269,7 +273,20 @@ func (r *Runtime) RuntimeStreamWebsockets(runtimeHandler string) (bool, error) {
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
 	if err != nil {
-		return nil, err
+		// Handler removed from live config; fall back to cached config so the container can still be stopped/deleted.
+		r.runtimeHandlerConfigMapMutex.RLock()
+		rh = r.runtimeHandlerConfigMap[c.ID()]
+		r.runtimeHandlerConfigMapMutex.RUnlock()
+
+		if rh == nil {
+			return nil, err
+		}
+
+		log.Warnf(context.Background(), "Runtime handler %q no longer in config; using cached handler config for container %s", c.runtimeHandler, c.ID())
+	} else {
+		r.runtimeHandlerConfigMapMutex.Lock()
+		r.runtimeHandlerConfigMap[c.ID()] = rh
+		r.runtimeHandlerConfigMapMutex.Unlock()
 	}
 
 	if rh.RuntimeType == config.RuntimeTypeVM {
@@ -283,6 +300,26 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	// If the runtime type is different from "vm", then let's fallback
 	// onto the OCI implementation by default.
 	return newRuntimeOCI(r, rh), nil
+}
+
+// EnsureRuntimeHandlerConfig snapshots the handler config for a container at restore time so it survives config reloads.
+func (r *Runtime) EnsureRuntimeHandlerConfig(c *Container) {
+	r.runtimeHandlerConfigMapMutex.RLock()
+	_, already := r.runtimeHandlerConfigMap[c.ID()]
+	r.runtimeHandlerConfigMapMutex.RUnlock()
+
+	if already {
+		return
+	}
+
+	rh, err := r.getRuntimeHandler(c.runtimeHandler)
+	if err != nil {
+		return
+	}
+
+	r.runtimeHandlerConfigMapMutex.Lock()
+	r.runtimeHandlerConfigMap[c.ID()] = rh
+	r.runtimeHandlerConfigMapMutex.Unlock()
 }
 
 // RuntimeImpl returns the runtime implementation for a given container.
@@ -410,6 +447,10 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 				r.runtimeImplMapMutex.Lock()
 				delete(r.runtimeImplMap, c.ID())
 				r.runtimeImplMapMutex.Unlock()
+
+				r.runtimeHandlerConfigMapMutex.Lock()
+				delete(r.runtimeHandlerConfigMap, c.ID())
+				r.runtimeHandlerConfigMapMutex.Unlock()
 			}
 		}()
 	}
