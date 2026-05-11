@@ -226,11 +226,11 @@ func (r *runtimePod) RestoreContainer(
 	return r.oci.RestoreContainer(ctx, c, cgroupParent, mountLabel)
 }
 
-func (r *runtimePod) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
-	return r.oci.ExecContainer(ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
+func (r *runtimePod) ExecContainer(ctx context.Context, c *Container, cmd, env []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+	return r.oci.ExecContainer(ctx, c, cmd, env, stdin, stdout, stderr, tty, resizeChan)
 }
 
-func (r *runtimePod) ExecSyncContainer(ctx context.Context, c *Container, cmd []string, timeout int64) (*types.ExecSyncResponse, error) {
+func (r *runtimePod) ExecSyncContainer(ctx context.Context, c *Container, cmd, env []string, timeout int64) (*types.ExecSyncResponse, error) {
 	if c.Spoofed() {
 		return nil, nil
 	}
@@ -368,7 +368,7 @@ func (r *runtimePod) ProbeMonitor(ctx context.Context, c *Container) error {
 	return r.oci.ProbeMonitor(ctx, c)
 }
 
-func (r *runtimePod) ServeExecContainer(ctx context.Context, c *Container, cmd []string, tty, stdin, stdout, stderr bool) (string, error) {
+func (r *runtimePod) ServeExecContainer(ctx context.Context, c *Container, cmd, env []string, tty, stdin, stdout, stderr bool) (string, error) {
 	res, err := r.client.ServeExecContainer(ctx, &conmonClient.ServeExecContainerConfig{
 		ID:      c.ID(),
 		Command: cmd,
