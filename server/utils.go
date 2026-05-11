@@ -56,7 +56,7 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 		}
 
 		if imageConfig != nil {
-			// Pre-compute env keys map for O(1) lookup instead of O(M) repeated splits
+			// Pre-compute the set of existing environment variable keys to avoid repeatedly parsing them when merging new variables
 			envKeys := make(map[string]bool, len(envs))
 			for _, kubeEnv := range envs {
 				if key, _, ok := strings.Cut(kubeEnv, "="); ok && key != "" {
