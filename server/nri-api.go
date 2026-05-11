@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"slices"
 
 	"github.com/containerd/nri/pkg/api"
 	nrigen "github.com/containerd/nri/pkg/runtime-tools/generate"
@@ -292,9 +293,15 @@ func (a *nriAPI) postUpdateContainer(ctx context.Context, criCtr *oci.Container)
 	return a.nri.PostUpdateContainer(ctx, pod, ctr)
 }
 
-func (a *nriAPI) stopContainer(ctx context.Context, criPod *sandbox.Sandbox, criCtr *oci.Container) error {
+func (a *nriAPI) stopContainer(ctx context.Context, criPod *sandbox.Sandbox, criCtr *oci.Container, updateState bool) error {
 	if !a.isEnabled() {
 		return nil
+	}
+
+	if updateState {
+		if err := a.cri.Runtime().UpdateContainerStatus(ctx, criCtr); err != nil {
+			log.Warnf(ctx, "Error updating the container status  %q: %v", criCtr.ID(), err)
+		}
 	}
 
 	ctr := &criContainer{
@@ -668,21 +675,70 @@ func (c *criContainer) GetName() string {
 	return c.GetSpec().Annotations["io.kubernetes.container.name"]
 }
 
-func (c *criContainer) GetState() api.ContainerState {
-	if c.ctr != nil {
-		switch c.ctr.State().Status {
-		case oci.ContainerStateCreated:
-			return api.ContainerState_CONTAINER_CREATED
-		case oci.ContainerStatePaused:
-			return api.ContainerState_CONTAINER_PAUSED
-		case oci.ContainerStateRunning:
-			return api.ContainerState_CONTAINER_RUNNING
-		case oci.ContainerStateStopped:
-			return api.ContainerState_CONTAINER_STOPPED
+func (c *criContainer) GetStatus() *nri.ContainerStatus {
+	const (
+		// unknownReason is the exit reason when a container's exit code is not known
+		unknownReason = "Unknown"
+		// completedExitReason is the exit reason when container exits with 0.
+		completedExitReason = "Completed"
+		// errorExitReason is the exit reason when container exits with non-zero.
+		errorExitReason = "Error"
+		// oomKilledReason is the exit reason when container is killed by OOM killer.
+		oomKilledReason = "OOMKilled"
+		// seccompKilledReason is the exit reason when container is killed by seccomp.
+		seccompKilledReason = "seccomp killed"
+	)
+
+	status := &nri.ContainerStatus{
+		State:  api.ContainerState_CONTAINER_UNKNOWN,
+		Reason: unknownReason,
+	}
+
+	if c.ctr == nil {
+		return status
+	}
+
+	cState := c.ctr.State()
+
+	switch cState.Status {
+	case oci.ContainerStateCreated:
+		status.State = api.ContainerState_CONTAINER_CREATED
+		status.CreatedAt = c.ctr.CreatedAt().UnixNano()
+	case oci.ContainerStateRunning, oci.ContainerStatePaused:
+		status.State = api.ContainerState_CONTAINER_RUNNING
+		status.CreatedAt = c.ctr.CreatedAt().UnixNano()
+		status.StartedAt = cState.Started.UnixNano()
+	case oci.ContainerStateStopped:
+		status.State = api.ContainerState_CONTAINER_STOPPED
+		status.CreatedAt = c.ctr.CreatedAt().UnixNano()
+		status.StartedAt = cState.Started.UnixNano()
+		status.FinishedAt = cState.Finished.UnixNano()
+
+		if cState.ExitCode != nil {
+			status.ExitCode = *cState.ExitCode
+		}
+
+		switch {
+		case cState.OOMKilled:
+			status.Reason = oomKilledReason
+		case cState.SeccompKilled:
+			status.Reason = seccompKilledReason
+			status.Message = cState.Error
+		case cState.ExitCode != nil:
+			if status.ExitCode == 0 {
+				status.Reason = completedExitReason
+			} else {
+				status.Reason = errorExitReason
+				status.Message = cState.Error
+			}
 		}
 	}
 
-	return api.ContainerState_CONTAINER_UNKNOWN
+	if cState.InitPid > 0 {
+		status.Pid = uint32(cState.InitPid)
+	}
+
+	return status
 }
 
 func (c *criContainer) GetLabels() map[string]string {
@@ -809,6 +865,39 @@ func (c *criContainer) GetRdt() *api.LinuxRdt {
 		Schemata:         api.RepeatedString(spec.Linux.IntelRdt.Schemata),
 		EnableMonitoring: api.Bool(spec.Linux.IntelRdt.EnableMonitoring),
 	}
+}
+
+func (c *criContainer) GetUser() *api.User {
+	spec := c.GetSpec()
+
+	if spec.Process == nil {
+		return nil
+	}
+
+	return &api.User{
+		Uid:            spec.Process.User.UID,
+		Gid:            spec.Process.User.GID,
+		AdditionalGids: slices.Clone(spec.Process.User.AdditionalGids),
+	}
+}
+
+func (c *criContainer) GetRlimits() []*api.POSIXRlimit {
+	spec := c.GetSpec()
+	if spec.Process == nil {
+		return nil
+	}
+
+	rlimits := make([]*api.POSIXRlimit, 0, len(spec.Process.Rlimits))
+
+	for _, l := range spec.Process.Rlimits {
+		rlimits = append(rlimits, &api.POSIXRlimit{
+			Type: l.Type,
+			Hard: l.Hard,
+			Soft: l.Soft,
+		})
+	}
+
+	return rlimits
 }
 
 func (c *criContainer) GetSpec() *rspec.Spec {

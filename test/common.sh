@@ -70,6 +70,8 @@ ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/.artifacts}
 CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/test/checkseccomp/checkseccomp}
 # Path of the checkcriu binary.
 CHECKCRIU_BINARY=${CHECKCRIU_BINARY:-${CRIO_ROOT}/test/checkcriu/checkcriu}
+# Path of the updateunified binary.
+UPDATEUNIFIED_BINARY=${UPDATEUNIFIED_BINARY:-${CRIO_ROOT}/test/updateunified/updateunified}
 # The default log directory where all logs will go unless directly specified by the kubelet
 DEFAULT_LOG_PATH=${DEFAULT_LOG_PATH:-/var/log/crio/pods}
 # Cgroup manager to be used

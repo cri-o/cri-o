@@ -13,6 +13,7 @@ crio
 ```
 [--absent-mount-sources-to-reject]=[value]
 [--add-inheritable-capabilities]
+[--additional-artifact-stores]=[value]
 [--additional-devices]=[value]
 [--allowed-devices]=[value]
 [--apparmor-profile]=[value]
@@ -83,6 +84,7 @@ crio
 [--metrics-key]=[value]
 [--metrics-port]=[value]
 [--metrics-socket]=[value]
+[--min-injected-gomaxprocs]=[value]
 [--minimum-mappable-gid]=[value]
 [--minimum-mappable-uid]=[value]
 [--namespaces-dir]=[value]
@@ -137,6 +139,8 @@ crio
 [--stream-tls-cert]=[value]
 [--stream-tls-key]=[value]
 [--timezone|--tz]=[value]
+[--tls-cipher-suites]=[value]
+[--tls-min-version]=[value]
 [--tracing-endpoint]=[value]
 [--tracing-sampling-rate-per-million]=[value]
 [--uid-mappings]=[value]
@@ -172,6 +176,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--absent-mount-sources-to-reject**="": A list of paths that, when absent from the host, will cause a container creation to fail (as opposed to the current behavior of creating a directory).
 
 **--add-inheritable-capabilities**: Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.
+
+**--additional-artifact-stores**="": Additional read-only OCI artifact store paths.
 
 **--additional-devices**="": Devices to add to the containers.
 
@@ -345,7 +351,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
-**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count")
+**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime")
 
 **--metrics-host**="": Host for the metrics endpoint. (default: "127.0.0.1")
 
@@ -354,6 +360,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--metrics-port**="": Port for the metrics endpoint. (default: 9090)
 
 **--metrics-socket**="": Socket for the metrics endpoint.
+
+**--min-injected-gomaxprocs**="": Enable GOMAXPROCS injection. Burstable pods auto-calculate from CPU request, with this value as the minimum floor. Best-effort pods use this value directly. 0 to disable. (default: 0)
 
 **--minimum-mappable-gid**="": Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future. (default: -1)
 
@@ -462,6 +470,10 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--stream-tls-key**="": Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes.
 
 **--timezone, --tz**="": To set the timezone for a container in CRI-O. If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.
+
+**--tls-cipher-suites**="": Comma-separated list of cipher suites for TLS 1.2.
+
+**--tls-min-version**="": Minimum TLS version for streaming and metrics servers (VersionTLS12 or VersionTLS13). (default: "VersionTLS12")
 
 **--tracing-endpoint**="": Address on which the gRPC tracing collector will listen. (default: "127.0.0.1:4317")
 

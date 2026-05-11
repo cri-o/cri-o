@@ -17,6 +17,7 @@ var _ = t.Describe("ResourceCleaner", func() {
 		sut := resourcestore.NewResourceCleaner()
 		called1 := false
 		called2 := false
+
 		sut.Add(context.Background(), "test1", func() error {
 			called1 = true
 
@@ -42,18 +43,22 @@ var _ = t.Describe("ResourceCleaner", func() {
 		sut := resourcestore.NewResourceCleaner()
 		called1 := false
 		called2 := false
+
 		sut.Add(context.Background(), "test1", func() error {
 			called1 = true
 
 			return nil
 		})
+
 		failureCnt := 0
+
 		sut.Add(context.Background(), "test2", func() error {
 			if failureCnt == 2 {
 				called2 = true
 
 				return nil
 			}
+
 			failureCnt++
 
 			return errors.New("")
@@ -73,6 +78,7 @@ var _ = t.Describe("ResourceCleaner", func() {
 		// Given
 		sut := resourcestore.NewResourceCleaner()
 		failureCnt := 0
+
 		sut.Add(context.Background(), "test", func() error {
 			failureCnt++
 

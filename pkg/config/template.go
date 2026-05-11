@@ -208,6 +208,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.StreamTLSCA, c.StreamTLSCA),
 		},
 		{
+			templateString: templateStringCrioAPITLSMinVersion,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.TLSMinVersion, c.TLSMinVersion),
+		},
+		{
+			templateString: templateStringCrioAPITLSCipherSuites,
+			group:          crioAPIConfig,
+			isDefaultValue: slices.Equal(dc.TLSCipherSuites, c.TLSCipherSuites),
+		},
+		{
 			templateString: templateStringCrioAPIGrpcMaxSendMsgSize,
 			group:          crioAPIConfig,
 			isDefaultValue: simpleEqual(dc.GRPCMaxSendMsgSize, c.GRPCMaxSendMsgSize),
@@ -233,6 +243,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.DecryptionKeysPath, c.DecryptionKeysPath),
 		},
 		{
+			templateString: templateStringCrioRuntimeAdditionalArtifactStores,
+			group:          crioRuntimeConfig,
+			isDefaultValue: slices.Equal(dc.AdditionalArtifactStores, c.AdditionalArtifactStores),
+		},
+		{
 			templateString: templateStringCrioRuntimeConmon,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.Conmon, c.Conmon),
@@ -251,6 +266,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringCrioRuntimeDefaultEnv,
 			group:          crioRuntimeConfig,
 			isDefaultValue: slices.Equal(dc.DefaultEnv, c.DefaultEnv),
+		},
+		{
+			templateString: templateStringCrioRuntimeMinInjectedGOMAXPROCS,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.MinInjectedGOMAXPROCS, c.MinInjectedGOMAXPROCS),
 		},
 		{
 			templateString: templateStringCrioRuntimeSelinux,
@@ -878,6 +898,28 @@ const templateStringCrioAPIStreamTLSCa = `# Path to the x509 CA(s) file used to 
 
 `
 
+const templateStringCrioAPITLSMinVersion = `# Minimum TLS version for CRI-O's TLS servers (streaming and metrics).
+# Valid values are: "VersionTLS12" and "VersionTLS13" (matching Kubernetes conventions).
+# Default is "VersionTLS12".
+{{ $.Comment }}tls_min_version = "{{ .TLSMinVersion }}"
+
+`
+
+const templateStringCrioAPITLSCipherSuites = `# List of cipher suites for TLS 1.2 (TOML array).
+# If omitted, the default Go cipher suites will be used.
+# This has no effect on TLS 1.3 as Go manages cipher suites automatically.
+# Preferred TLS 1.2 values: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+#   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+#   TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256.
+# Insecure values: TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+#   TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+#   TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_256_GCM_SHA384,
+#   TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_AES_256_CBC_SHA.
+{{ $.Comment }}tls_cipher_suites = [
+{{ range $cs := .TLSCipherSuites }}{{ $.Comment }}{{ printf "\t%q,\n" $cs }}{{ end }}{{ $.Comment }}]
+
+`
+
 const templateStringCrioAPIGrpcMaxSendMsgSize = `# Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 80 * 1024 * 1024.
 {{ $.Comment }}grpc_max_send_msg_size = {{ .GRPCMaxSendMsgSize }}
 
@@ -914,6 +956,17 @@ const templateStringCrioRuntimeDecryptionKeysPath = `# decryption_keys_path is t
 
 `
 
+const templateStringCrioRuntimeAdditionalArtifactStores = `# A list of additional read-only OCI artifact store paths
+# (experimental, subject to change).
+# CRI-O expects an "artifacts/" subdirectory within each configured path.
+# All entries must be absolute paths. Artifacts in these stores take priority
+# over the main store. Tag re-pointing is not supported for artifacts in
+# read-only stores; remove the artifact from the store filesystem to update.
+{{ $.Comment }}additional_artifact_stores = [
+{{ range $store := .AdditionalArtifactStores }}{{ $.Comment }}{{ printf "\t%q,\n" $store }}{{ end }}{{ $.Comment }}]
+
+`
+
 const templateStringCrioRuntimeConmon = `# Path to the conmon binary, used for monitoring the OCI runtime.
 # Will be searched for using $PATH if empty.
 # This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorEnv.
@@ -940,6 +993,17 @@ const templateStringCrioRuntimeDefaultEnv = `# Additional environment variables 
 # container image spec or in the container runtime configuration.
 {{ $.Comment }}default_env = [
 {{ range $env := .DefaultEnv }}{{ $.Comment }}{{ printf "\t%q,\n" $env }}{{ end }}{{ $.Comment }}]
+
+`
+
+const templateStringCrioRuntimeMinInjectedGOMAXPROCS = `# Enables GOMAXPROCS injection for burstable and best-effort pod containers.
+# This value acts as a minimum floor. For burstable pods with a CPU request,
+# GOMAXPROCS is auto-calculated from the request; the calculated value is only
+# used if it exceeds this floor. For best-effort pods (no CPU request), this
+# value is used directly. Guaranteed pods are skipped. The value is only
+# injected if the container does not already have GOMAXPROCS set via the image
+# or pod spec. Set to 0 to disable (default).
+{{ $.Comment }}min_injected_gomaxprocs = {{ .MinInjectedGOMAXPROCS }}
 
 `
 

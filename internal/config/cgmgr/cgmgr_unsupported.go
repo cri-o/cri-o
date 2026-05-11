@@ -4,6 +4,8 @@ package cgmgr
 
 import (
 	"errors"
+
+	"github.com/cri-o/cri-o/internal/lib/stats"
 )
 
 type CgroupManager interface {
@@ -23,7 +25,7 @@ type CgroupManager interface {
 	// ContainerCgroupStats takes the sandbox parent, and container ID.
 	// It creates a new cgroup if one does not already exist.
 	// It returns the cgroup stats for that container.
-	ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error)
+	ContainerCgroupStats(sbParent, containerID string) (*stats.CgroupStats, error)
 }
 
 type NullCgroupManager struct{}
@@ -67,7 +69,7 @@ func (*NullCgroupManager) SandboxCgroupPath(string, string, int64) string {
 	return ""
 }
 
-func (*NullCgroupManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
+func (*NullCgroupManager) ContainerCgroupStats(sbParent, containerID string) (*stats.CgroupStats, error) {
 	return nil, nil
 }
 

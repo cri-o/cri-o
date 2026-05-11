@@ -15,7 +15,7 @@ import (
 	cstorage "go.podman.io/storage"
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	"k8s.io/kubelet/pkg/cri/streaming"
+	"k8s.io/cri-streaming/pkg/streaming"
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -137,10 +137,12 @@ var beforeEach = func() {
 
 	// Prepare the server config
 	var err error
+
 	testPath, err = filepath.Abs("test")
 	Expect(err).ToNot(HaveOccurred())
 	serverConfig, err = config.DefaultConfig()
 	Expect(err).ToNot(HaveOccurred())
+
 	serverConfig.ContainerAttachSocketDir = testPath
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
 	serverConfig.LogDir = path.Join(testPath, "log")
@@ -214,7 +216,9 @@ var afterEach = func() {
 
 var setupSUT = func() {
 	var err error
+
 	mockNewServer()
+
 	sut, err = server.New(context.Background(), libMock)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sut).NotTo(BeNil())
@@ -229,7 +233,7 @@ func mockNewServer() {
 
 	graphroot := t.MustTempDir("graphroot")
 	gomock.InOrder(
-		cniPluginMock.EXPECT().Status().Return(nil),
+		cniPluginMock.EXPECT().StatusWithContext(gomock.Any()).Return(nil),
 		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 		libMock.EXPECT().GetStore().Return(storeMock, nil),
 		libMock.EXPECT().GetData().Return(serverConfig),

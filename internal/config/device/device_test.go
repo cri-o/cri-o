@@ -9,6 +9,7 @@ import (
 
 var _ = t.Describe("DeviceConfig", func() {
 	var d *device.Config
+
 	BeforeEach(func() {
 		d = device.New()
 	})

@@ -43,13 +43,16 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		// Then
 		spec := sut.Spec()
 		Expect(spec.Config.Linux.Namespaces).To(HaveLen(len(nsmgrtest.AllSpoofedNamespaces)))
+
 		for _, ns := range nsmgrtest.AllSpoofedNamespaces {
 			found := false
+
 			for _, specNs := range spec.Config.Linux.Namespaces {
 				if specNs.Path == ns.Path() {
 					found = true
 				}
 			}
+
 			Expect(found).To(BeTrue())
 		}
 	})
@@ -159,11 +162,13 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		Expect(spec.Config.Linux.Namespaces).To(HaveLen(len(nsmgrtest.AllSpoofedNamespaces) + 1))
 
 		found := false
+
 		for _, specNs := range spec.Config.Linux.Namespaces {
 			if specNs.Type == rspec.PIDNamespace {
 				found = true
 			}
 		}
+
 		Expect(found).To(BeTrue())
 	})
 	It("should use target PID namespace", func() {
@@ -191,6 +196,7 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
+
 		cfg := &config.Config{}
 		nsMgr := nsmgr.New(t.MustTempDir("ns"), "")
 		Expect(nsMgr.Initialize()).To(Succeed())
@@ -200,19 +206,28 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(Succeed())
 		sut.Spec().ClearLinuxNamespaces()
 		Expect(sut.SpecAddNamespaces(sb, targetCtr, cfg)).To(Succeed())
-		defer Expect(sut.PidNamespace().Remove()).To(BeNil())
+
+		if ns := sut.PidNamespace(); ns != nil {
+			defer Expect(ns.Remove()).To(BeNil())
+		}
 
 		// Then
 		spec := sut.Spec()
 		Expect(spec.Config.Linux.Namespaces).To(HaveLen(len(nsmgrtest.AllSpoofedNamespaces) + 1))
 
+		pidNS := sut.PidNamespace()
+		Expect(pidNS).ToNot(BeNil())
+
 		found := false
+
 		for _, specNs := range spec.Config.Linux.Namespaces {
 			if specNs.Type == rspec.PIDNamespace {
-				Expect(specNs.Path).To(Equal(sut.PidNamespace().Path()))
+				Expect(specNs.Path).To(Equal(pidNS.Path()))
+
 				found = true
 			}
 		}
+
 		Expect(found).To(BeTrue())
 	})
 	It("should ignore if empty", func() {

@@ -70,6 +70,7 @@ type Container struct {
 	created            bool
 	spoofed            bool
 	stopping           bool
+	stopDone           bool
 	stopLock           sync.Mutex
 	// stopTimeoutChan is used to update the stop timeout.
 	// After the container goes into the kill loop, the channel must not be used
@@ -689,7 +690,7 @@ func (c *Container) SetStopKillLoopBegun() {
 func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 	c.stopLock.Lock()
 
-	if !c.stopping {
+	if !c.stopping || c.stopDone {
 		c.stopLock.Unlock()
 
 		return
@@ -718,6 +719,8 @@ func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 
 func (c *Container) SetAsDoneStopping() {
 	c.stopLock.Lock()
+
+	c.stopDone = true
 
 	for _, watcher := range c.stopWatchers {
 		close(watcher)
@@ -907,7 +910,7 @@ func (c *Container) DeleteExecPID(pid int) {
 // If shouldKill is true, the signal is SIGKILL. Otherwise, SIGINT.
 func (c *Container) KillExecPIDs() {
 	c.stopLock.Lock()
-	toKill := c.execPIDs
+	toKill := maps.Clone(c.execPIDs)
 	c.stopLock.Unlock()
 
 	for len(toKill) != 0 {

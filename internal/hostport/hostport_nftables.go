@@ -198,7 +198,7 @@ func ensureHostPortsTable(tx *knftables.Transaction, family knftables.Family) {
 	}
 
 	tx.Add(&knftables.Table{
-		Comment: knftables.PtrTo("HostPort rules created by CRI-O"),
+		Comment: new("HostPort rules created by CRI-O"),
 	})
 
 	tx.Add(&knftables.Map{
@@ -206,14 +206,14 @@ func ensureHostPortsTable(tx *knftables.Transaction, family knftables.Family) {
 		Type: knftables.Concat(
 			"inet_proto", ".", "inet_service", ":", ipaddr, ".", "inet_service",
 		),
-		Comment: knftables.PtrTo("hostports on all local IPs (protocol . hostPort -> podIP . podPort)"),
+		Comment: new("hostports on all local IPs (protocol . hostPort -> podIP . podPort)"),
 	})
 	tx.Add(&knftables.Map{
 		Name: hostIPPortsMap,
 		Type: knftables.Concat(
 			ipaddr, ".", "inet_proto", ".", "inet_service", ":", ipaddr, ".", "inet_service",
 		),
-		Comment: knftables.PtrTo("hostports on specific IPs (hostIP . protocol . hostPort -> podIP . podPort)"),
+		Comment: new("hostports on specific IPs (hostIP . protocol . hostPort -> podIP . podPort)"),
 	})
 
 	// Create the "hostports" chain with the map lookup rules, and then create
@@ -290,7 +290,7 @@ func ensureHostPortsTable(tx *knftables.Transaction, family knftables.Family) {
 		Type: knftables.Concat(
 			ipaddr, ".", ipaddr,
 		),
-		Comment: knftables.PtrTo("hostport hairpin connections"),
+		Comment: new("hostport hairpin connections"),
 	})
 	// Note that this rule runs after any "dnat" rules in "hostports", so "ip daddr"
 	// here is the DNATted destination address (the pod IP), not the original packet's

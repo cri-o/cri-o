@@ -127,6 +127,7 @@ var _ = t.Describe("CLI Flags", func() {
 		}
 		err = setFlag.Apply(flagSet)
 		Expect(err).ToNot(HaveOccurred())
+
 		ctx.Command.Flags = append(commandFlags, setFlag)
 		config, err = criocli.GetAndMergeConfigFromContext(ctx)
 		Expect(err).ToNot(HaveOccurred())
@@ -153,6 +154,7 @@ var _ = t.Describe("CLI Flags", func() {
 		}
 		err = setFlag.Apply(flagSet)
 		Expect(err).ToNot(HaveOccurred())
+
 		ctx.Command.Flags = append(commandFlags, setFlag)
 		config, err = criocli.GetAndMergeConfigFromContext(ctx)
 		Expect(err).ToNot(HaveOccurred())

@@ -81,6 +81,13 @@ func (b *ConfigBuilder) WithTrimSpace(state tw.State) *ConfigBuilder {
 	return b
 }
 
+// WithTrimTab enables or disables automatic trimming of leading/trailing tabs.
+// Useful for preserving indentation in code blocks while trimming other whitespace.
+func (b *ConfigBuilder) WithTrimTab(state tw.State) *ConfigBuilder {
+	b.config.Behavior.TrimTab = state
+	return b
+}
+
 // WithDebug enables/disables debug logging
 func (b *ConfigBuilder) WithDebug(debug bool) *ConfigBuilder {
 	b.config.Debug = debug
@@ -135,12 +142,12 @@ func (b *ConfigBuilder) WithFooterMaxWidth(maxWidth int) *ConfigBuilder {
 	return b
 }
 
-// WithFooterMergeMode sets the merge behavior for footer cells (e.g., horizontal, hierarchical).
-// Invalid merge modes are ignored.
+// Deprecated: Use .Footer().CellMerging().WithMode(...) instead. This method will be removed in a future version.
 func (b *ConfigBuilder) WithFooterMergeMode(mergeMode int) *ConfigBuilder {
 	if mergeMode < tw.MergeNone || mergeMode > tw.MergeHierarchical {
 		return b
 	}
+	b.config.Footer.Merging.Mode = mergeMode
 	b.config.Footer.Formatting.MergeMode = mergeMode
 	return b
 }
@@ -187,12 +194,12 @@ func (b *ConfigBuilder) WithHeaderMaxWidth(maxWidth int) *ConfigBuilder {
 	return b
 }
 
-// WithHeaderMergeMode sets the merge behavior for header cells (e.g., horizontal, vertical).
-// Invalid merge modes are ignored.
+// Deprecated: Use .Header().CellMerging().WithMode(...) instead. This method will be removed in a future version.
 func (b *ConfigBuilder) WithHeaderMergeMode(mergeMode int) *ConfigBuilder {
 	if mergeMode < tw.MergeNone || mergeMode > tw.MergeHierarchical {
 		return b
 	}
+	b.config.Header.Merging.Mode = mergeMode
 	b.config.Header.Formatting.MergeMode = mergeMode
 	return b
 }
@@ -246,12 +253,12 @@ func (b *ConfigBuilder) WithRowMaxWidth(maxWidth int) *ConfigBuilder {
 	return b
 }
 
-// WithRowMergeMode sets the merge behavior for row cells (e.g., horizontal, hierarchical).
-// Invalid merge modes are ignored.
+// Deprecated: Use .Row().CellMerging().WithMode(...) instead. This method will be removed in a future version.
 func (b *ConfigBuilder) WithRowMergeMode(mergeMode int) *ConfigBuilder {
 	if mergeMode < tw.MergeNone || mergeMode > tw.MergeHierarchical {
 		return b
 	}
+	b.config.Row.Merging.Mode = mergeMode
 	b.config.Row.Formatting.MergeMode = mergeMode
 	return b
 }
@@ -282,6 +289,14 @@ func (h *HeaderConfigBuilder) Formatting() *HeaderFormattingBuilder {
 		parent:  h,
 		config:  &h.config.Formatting,
 		section: "header",
+	}
+}
+
+// Merging returns a HeaderMergingBuilder for configuring cell merging.
+func (h *HeaderConfigBuilder) Merging() *HeaderMergingBuilder {
+	return &HeaderMergingBuilder{
+		parent: h,
+		config: &h.config.Merging,
 	}
 }
 
@@ -341,6 +356,14 @@ func (r *RowConfigBuilder) Formatting() *RowFormattingBuilder {
 	}
 }
 
+// Merging returns a RowMergingBuilder for configuring cell merging.
+func (r *RowConfigBuilder) Merging() *RowMergingBuilder {
+	return &RowMergingBuilder{
+		parent: r,
+		config: &r.config.Merging,
+	}
+}
+
 // Padding returns a RowPaddingBuilder for row padding
 func (r *RowConfigBuilder) Padding() *RowPaddingBuilder {
 	return &RowPaddingBuilder{
@@ -394,6 +417,14 @@ func (f *FooterConfigBuilder) Formatting() *FooterFormattingBuilder {
 		parent:  f,
 		config:  &f.config.Formatting,
 		section: "footer",
+	}
+}
+
+// Merging returns a FooterMergingBuilder for configuring cell merging.
+func (f *FooterConfigBuilder) Merging() *FooterMergingBuilder {
+	return &FooterMergingBuilder{
+		parent: f,
+		config: &f.config.Merging,
 	}
 }
 
@@ -478,9 +509,10 @@ func (hf *HeaderFormattingBuilder) WithAutoWrap(autoWrap int) *HeaderFormattingB
 	return hf
 }
 
-// WithMergeMode sets merge mode
+// Deprecated: Use .CellMerging().WithMode(...) instead. This method will be removed in a future version.
 func (hf *HeaderFormattingBuilder) WithMergeMode(mergeMode int) *HeaderFormattingBuilder {
 	if mergeMode >= tw.MergeNone && mergeMode <= tw.MergeHierarchical {
+		hf.parent.config.Merging.Mode = mergeMode
 		hf.config.MergeMode = mergeMode
 	}
 	return hf
@@ -512,9 +544,10 @@ func (rf *RowFormattingBuilder) WithAutoWrap(autoWrap int) *RowFormattingBuilder
 	return rf
 }
 
-// WithMergeMode sets merge mode
+// Deprecated: Use .CellMerging().WithMode(...) instead. This method will be removed in a future version.
 func (rf *RowFormattingBuilder) WithMergeMode(mergeMode int) *RowFormattingBuilder {
 	if mergeMode >= tw.MergeNone && mergeMode <= tw.MergeHierarchical {
+		rf.parent.config.Merging.Mode = mergeMode
 		rf.config.MergeMode = mergeMode
 	}
 	return rf
@@ -546,12 +579,115 @@ func (ff *FooterFormattingBuilder) WithAutoWrap(autoWrap int) *FooterFormattingB
 	return ff
 }
 
-// WithMergeMode sets merge mode
+// Deprecated: Use .CellMerging().WithMode(...) instead. This method will be removed in a future version.
 func (ff *FooterFormattingBuilder) WithMergeMode(mergeMode int) *FooterFormattingBuilder {
 	if mergeMode >= tw.MergeNone && mergeMode <= tw.MergeHierarchical {
+		ff.parent.config.Merging.Mode = mergeMode
 		ff.config.MergeMode = mergeMode
 	}
 	return ff
+}
+
+// HeaderMergingBuilder configures header cell merging
+type HeaderMergingBuilder struct {
+	parent *HeaderConfigBuilder
+	config *tw.CellMerging
+}
+
+// Build returns the parent HeaderConfigBuilder.
+func (hm *HeaderMergingBuilder) Build() *HeaderConfigBuilder {
+	return hm.parent
+}
+
+// WithMode sets the merge mode (e.g., tw.MergeHorizontal).
+func (hm *HeaderMergingBuilder) WithMode(mode int) *HeaderMergingBuilder {
+	hm.config.Mode = mode
+	// Also set the deprecated field for backward compatibility
+	hm.parent.config.Formatting.MergeMode = mode
+	return hm
+}
+
+// ByColumnIndex sets specific columns to be merged by their index.
+// If not called, merging applies to all columns.
+func (hm *HeaderMergingBuilder) ByColumnIndex(indices []int) *HeaderMergingBuilder {
+	if len(indices) == 0 {
+		hm.config.ByColumnIndex = nil // nil means apply to all
+	} else {
+		mapper := tw.NewMapper[int, bool]()
+		for _, idx := range indices {
+			mapper.Set(idx, true)
+		}
+		hm.config.ByColumnIndex = mapper
+	}
+	return hm
+}
+
+// RowMergingBuilder configures row cell merging
+type RowMergingBuilder struct {
+	parent *RowConfigBuilder
+	config *tw.CellMerging
+}
+
+// Build returns the parent RowConfigBuilder.
+func (rm *RowMergingBuilder) Build() *RowConfigBuilder {
+	return rm.parent
+}
+
+// WithMode sets the merge mode (e.g., tw.MergeVertical, tw.MergeHierarchical).
+func (rm *RowMergingBuilder) WithMode(mode int) *RowMergingBuilder {
+	rm.config.Mode = mode
+	// Also set the deprecated field for backward compatibility
+	rm.parent.config.Formatting.MergeMode = mode
+	return rm
+}
+
+// ByColumnIndex sets specific columns to be merged by their index.
+// If not called, merging applies to all columns.
+func (rm *RowMergingBuilder) ByColumnIndex(indices []int) *RowMergingBuilder {
+	if len(indices) == 0 {
+		rm.config.ByColumnIndex = nil // nil means apply to all
+	} else {
+		mapper := tw.NewMapper[int, bool]()
+		for _, idx := range indices {
+			mapper.Set(idx, true)
+		}
+		rm.config.ByColumnIndex = mapper
+	}
+	return rm
+}
+
+// FooterMergingBuilder configures footer cell merging
+type FooterMergingBuilder struct {
+	parent *FooterConfigBuilder
+	config *tw.CellMerging
+}
+
+// Build returns the parent FooterConfigBuilder.
+func (fm *FooterMergingBuilder) Build() *FooterConfigBuilder {
+	return fm.parent
+}
+
+// WithMode sets the merge mode (e.g., tw.MergeHorizontal).
+func (fm *FooterMergingBuilder) WithMode(mode int) *FooterMergingBuilder {
+	fm.config.Mode = mode
+	// Also set the deprecated field for backward compatibility
+	fm.parent.config.Formatting.MergeMode = mode
+	return fm
+}
+
+// ByColumnIndex sets specific columns to be merged by their index.
+// If not called, merging applies to all columns.
+func (fm *FooterMergingBuilder) ByColumnIndex(indices []int) *FooterMergingBuilder {
+	if len(indices) == 0 {
+		fm.config.ByColumnIndex = nil // nil means apply to all
+	} else {
+		mapper := tw.NewMapper[int, bool]()
+		for _, idx := range indices {
+			mapper.Set(idx, true)
+		}
+		fm.config.ByColumnIndex = mapper
+	}
+	return fm
 }
 
 // HeaderPaddingBuilder configures header padding
@@ -664,6 +800,12 @@ func (bb *BehaviorConfigBuilder) WithAutoHide(state tw.State) *BehaviorConfigBui
 // WithTrimSpace enables/disables trim space
 func (bb *BehaviorConfigBuilder) WithTrimSpace(state tw.State) *BehaviorConfigBuilder {
 	bb.config.TrimSpace = state
+	return bb
+}
+
+// WithTrimTab enables/disables trim tab
+func (bb *BehaviorConfigBuilder) WithTrimTab(state tw.State) *BehaviorConfigBuilder {
+	bb.config.TrimTab = state
 	return bb
 }
 

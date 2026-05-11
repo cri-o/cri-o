@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 
@@ -14,64 +13,44 @@ import (
 var _ = t.Describe("Automated Releases", func() {
 	t.Describe("Patch Release", func() {
 		It("should read the version file", func() {
-			tempFileName := "tempVersionFile"
-			tmpfile, err := os.CreateTemp("", tempFileName)
-			if err != nil {
-				Expect(err).ToNot(HaveOccurred())
-			}
-			defer os.Remove(tempFileName)
+			tmpfile, err := os.CreateTemp("", "tempVersionFile")
+			Expect(err).ToNot(HaveOccurred())
+
+			defer os.Remove(tmpfile.Name())
+			defer tmpfile.Close()
+
 			currentVersion := "1.30.0"
 			originalFileContent := getMockVersionFileContent(currentVersion)
 
-			if _, err := tmpfile.Write(originalFileContent); err != nil {
-				tmpfile.Close()
-				Expect(err).ToNot(HaveOccurred())
-			}
-			if err := tmpfile.Close(); err != nil {
-				Expect(err).ToNot(HaveOccurred())
-			}
+			_, err = tmpfile.Write(originalFileContent)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(tmpfile.Close()).To(Succeed())
 
 			versionFromFile, err := utils.GetCurrentVersionFromVersionFile(tmpfile.Name())
-			if err != nil {
-				Expect(err).ToNot(HaveOccurred())
-			}
-
-			areVersionsTheSame := currentVersion == versionFromFile
-
-			Expect(areVersionsTheSame).To(BeTrue())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(versionFromFile).To(Equal(currentVersion))
 		})
 		It("should modify the version file", func() {
-			tempFileName := "tempVersionFile"
-			tmpfile, err := os.CreateTemp("", tempFileName)
-			if err != nil {
-				Expect(err).ToNot(HaveOccurred())
-			}
-			defer os.Remove(tempFileName)
+			tmpfile, err := os.CreateTemp("", "tempVersionFile")
+			Expect(err).ToNot(HaveOccurred())
+
+			defer os.Remove(tmpfile.Name())
+			defer tmpfile.Close()
+
 			oldVersion := "1.30.0"
 			newVersion := "1.30.1"
 
 			originalFileContent := getMockVersionFileContent(oldVersion)
-			if _, err := tmpfile.Write(originalFileContent); err != nil {
-				tmpfile.Close()
-				Expect(err).ToNot(HaveOccurred())
-			}
-			if err := tmpfile.Close(); err != nil {
-				Expect(err).ToNot(HaveOccurred())
-			}
-
-			if err := modifyVersionFile(tmpfile.Name(), oldVersion, newVersion); err != nil {
-				Expect(err).ToNot(HaveOccurred())
-			}
+			_, err = tmpfile.Write(originalFileContent)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(tmpfile.Close()).To(Succeed())
+			Expect(modifyVersionFile(tmpfile.Name(), oldVersion, newVersion)).To(Succeed())
 
 			modifiedContent, err := os.ReadFile(tmpfile.Name())
-			if err != nil {
-				Expect(err).ToNot(HaveOccurred())
-			}
+			Expect(err).ToNot(HaveOccurred())
 
 			expectedModifiedContent := getMockVersionFileContent(newVersion)
-			if !bytes.Equal(modifiedContent, expectedModifiedContent) {
-				Expect(err).ToNot(HaveOccurred())
-			}
+			Expect(modifiedContent).To(Equal(expectedModifiedContent))
 		})
 	})
 })

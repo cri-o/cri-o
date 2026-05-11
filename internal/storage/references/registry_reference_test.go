@@ -42,6 +42,7 @@ var _ = t.Describe("RegistryImageReference", func() {
 
 	It("Should reject use of uninitialized/empty values", func() {
 		ref := references.RegistryImageReference{}
+
 		Expect(func() { _ = ref.StringForOutOfProcessConsumptionOnly() }).To(Panic())
 	})
 
@@ -81,6 +82,7 @@ var _ = t.Describe("RegistryImageReference", func() {
 		} {
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(c.in)
 			Expect(err).ToNot(HaveOccurred())
+
 			registry := ref.Registry()
 			Expect(registry).To(Equal(c.expected))
 		}

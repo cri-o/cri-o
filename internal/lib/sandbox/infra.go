@@ -86,7 +86,7 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 		)
 	}
 
-	cmd := []string{}
+	cmd := make([]string, 0, len(image.Config.Entrypoint)+len(image.Config.Cmd))
 	cmd = append(cmd, image.Config.Entrypoint...)
 	cmd = append(cmd, image.Config.Cmd...)
 

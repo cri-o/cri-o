@@ -1,5 +1,32 @@
 # ChangeLog
 
+## v0.0.21
+
+- Updated previous `List()` fix to pass the `--terse` flag to `nft
+  list`, to avoid wasting memory and CPU parsing JSON that isn't
+  relevant to `List()`'s output anyway. (`@danwinship`)
+
+- Added a note about `nft` versions to [README.md](./README.md).
+  (`@danwinship`)
+
+## v0.0.20
+
+- `List()` has been changed to use `nft list table` rather than, e.g.,
+  `nft list sets`, to ensure that it doesn't try to parse objects in
+  other tables (which may have been created by newer versions of `nft`
+  and might trigger crashes in older versions of `nft`; see
+  https://issues.k8s.io/136786). (`@danwinship` based on a previous PR
+  from `@kairosci`).
+
+- A new `ListAll()` method has been added to help work around the fact
+  that `List()` is now much less efficient with large tables.
+  (`@danwinship`).
+
+- `ListElements()` now correctly handles maps/sets with concatenated
+  keys/values including CIDR values.
+  ([#32](https://github.com/kubernetes-sigs/knftables/issues/32)
+  (`@danwinship`)
+
 ## v0.0.19
 
 - Added the ability to use a single `knftables.Interface` (and a
@@ -17,7 +44,9 @@
   for more details. (`@danwinship`)
 
 - Added `Counter` objects and the `tx.Reset()` verb, to support
-  nftables counters. (`@aroradaman`)
+  nftables counters.
+  ([#20](https://github.com/kubernetes-sigs/knftables/issues/20))
+  (`@aroradaman`)
 
 - Added `Table.Flags` and `Chain.Policy`. (Note that at this time the
   "owner" and "persist" table flags can't usefully be used with
@@ -26,7 +55,9 @@
   after it was created.) (`@danwinship`)
 
 - Fixed `Fake.ParseDump()` to correctly parse rules with raw payload
-  expressions (`@danwinship`) and `flow add` rules (`hongliangl`).
+  expressions
+  ([#22](https://github.com/kubernetes-sigs/knftables/issues/22))
+  (`@danwinship`) and `flow add` rules (`hongliangl`).
 
 ## v0.0.18
 

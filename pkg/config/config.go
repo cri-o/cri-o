@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,8 +28,8 @@ import (
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
+	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/utils/cpuset"
-	"k8s.io/utils/ptr"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
 	"github.com/cri-o/cri-o/internal/config/apparmor"
@@ -90,8 +91,9 @@ const (
 	PressureMetrics = "pressure"
 )
 
+// AvailableMetrics is a list of all available metrics that can be included in stats.
+// It excludes the "all" metric, which is a special value that includes all other metrics.
 var AvailableMetrics = []string{
-	AllMetrics,
 	CPUMetrics,
 	DiskMetrics,
 	DiskIOMetrics,
@@ -396,6 +398,17 @@ type RuntimeConfig struct {
 	// container image spec or in the container runtime configuration.
 	DefaultEnv []string `toml:"default_env"`
 
+	// MinInjectedGOMAXPROCS enables GOMAXPROCS injection for burstable and
+	// best-effort pod containers. This value acts as a minimum floor.
+	// For burstable pods with a CPU request, GOMAXPROCS is auto-calculated
+	// from the request; the calculated value is only used if it exceeds
+	// this configured floor. For best-effort pods (no CPU request), this
+	// value is used directly. Guaranteed pods are skipped (they get
+	// exclusive CPUs via CPU Manager). The value is only injected if the
+	// container does not already have GOMAXPROCS set via the image or pod
+	// spec. Set to 0 to disable. Defaults to 0 (disabled).
+	MinInjectedGOMAXPROCS int64 `toml:"min_injected_gomaxprocs"`
+
 	// Sysctls to add to all containers.
 	DefaultSysctls []string `toml:"default_sysctls"`
 
@@ -421,6 +434,12 @@ type RuntimeConfig struct {
 
 	// DecryptionKeysPath is the path where keys for image decryption are stored.
 	DecryptionKeysPath string `toml:"decryption_keys_path"`
+
+	// AdditionalArtifactStores is a list of additional read-only artifact stores.
+	// Note that CRI-O expects an "artifacts/" subdirectory within each configured
+	// path (mirroring the main store convention). For example, if configured with
+	// "/mnt/nfs", the artifacts should be placed in "/mnt/nfs/artifacts/".
+	AdditionalArtifactStores []string `toml:"additional_artifact_stores"`
 
 	// Conmon is the path to conmon binary, used for managing the runtime.
 	// This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorConfig.Path.
@@ -735,6 +754,20 @@ type APIConfig struct {
 
 	// StreamIdleTimeout is how long to leave idle connections open for
 	StreamIdleTimeout string `toml:"stream_idle_timeout"`
+
+	// TLSMinVersion is the minimum TLS version for CRI-O's TLS servers (streaming and metrics).
+	// Valid values are: "VersionTLS12" and "VersionTLS13" (matching Kubernetes conventions).
+	// Default is "VersionTLS12".
+	TLSMinVersion string `toml:"tls_min_version"`
+
+	// TLSCipherSuites is the list of cipher suites to use for TLS 1.2.
+	// If empty, the Go default cipher suites are used.
+	// This has no effect on TLS 1.3 as Go manages cipher suites automatically for TLS 1.3.
+	TLSCipherSuites []string `toml:"tls_cipher_suites"`
+
+	// Parsed TLS values (populated during Validate)
+	tlsMinVersionParsed   uint16
+	tlsCipherSuitesParsed []uint16
 }
 
 // MetricsConfig specifies all necessary configuration for Prometheus based
@@ -788,7 +821,14 @@ type StatsConfig struct {
 
 	// IncludedPodMetrics specifies the list of metrics to include when collecting pod metrics.
 	// If "all" is specified, all metrics are included. In that case, "all" should be the only element.
+	//
+	// Deprecated: Use this field only when the user input config is needed because it's not formalized.
+	// Use EnabledPodMetrics() instead.
 	IncludedPodMetrics []string `toml:"included_pod_metrics"`
+
+	// includedPodMetrics is an internal representation of IncludedPodMetrics.
+	// It doesn't contain "all".
+	includedPodMetrics []string
 }
 
 // tomlConfig is another way of looking at a Config, which is
@@ -812,10 +852,10 @@ type tomlConfig struct {
 // SetSystemContext configures the SystemContext used by containers/image library.
 func (t *tomlConfig) SetSystemContext(c *Config) {
 	c.SystemContext.BigFilesTemporaryDir = c.BigFilesTemporaryDir
-	c.SystemContext.ShortNameMode = ptr.To(types.ShortNameModeEnforcing)
+	c.SystemContext.ShortNameMode = new(types.ShortNameModeEnforcing)
 
 	if c.ShortNameMode == "disabled" {
-		c.SystemContext.ShortNameMode = ptr.To(types.ShortNameModeDisabled)
+		c.SystemContext.ShortNameMode = new(types.ShortNameModeDisabled)
 	}
 }
 
@@ -951,6 +991,7 @@ func (c *Config) UpdateFromPath(ctx context.Context, path string) error {
 			if err != nil {
 				return err
 			}
+
 			if info.IsDir() {
 				return nil
 			}
@@ -1042,6 +1083,7 @@ func DefaultConfig() (*Config, error) {
 			StreamPort:         "0",
 			GRPCMaxSendMsgSize: defaultGRPCMaxMsgSize,
 			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
+			TLSMinVersion:      DefaultTLSMinVersion,
 		},
 		RuntimeConfig: *DefaultRuntimeConfig(cgroupManager),
 		ImageConfig: ImageConfig{
@@ -1206,6 +1248,36 @@ func (c *APIConfig) Validate(onExecution bool) error {
 		}
 	}
 
+	// Reset parsed TLS state to avoid stale values after reloads
+	c.tlsMinVersionParsed = 0
+	c.tlsCipherSuitesParsed = nil
+
+	// Parse and validate TLS version using Kubernetes component-base
+	tlsVersion, err := cliflag.TLSVersion(c.TLSMinVersion)
+	if err != nil {
+		return fmt.Errorf("validating tls_min_version: %w", err)
+	}
+
+	// Only TLS 1.2 and TLS 1.3 are supported
+	if tlsVersion != tls.VersionTLS12 && tlsVersion != tls.VersionTLS13 {
+		return errors.New("tls_min_version must be VersionTLS12 or VersionTLS13, got unsupported version")
+	}
+
+	c.tlsMinVersionParsed = tlsVersion
+
+	// Parse and validate TLS cipher suites using Kubernetes component-base
+	// Note: TLS 1.3 cipher suites are managed by Go automatically
+	if tlsVersion == tls.VersionTLS12 && len(c.TLSCipherSuites) > 0 {
+		cipherSuites, err := cliflag.TLSCipherSuites(c.TLSCipherSuites)
+		if err != nil {
+			return fmt.Errorf("validating tls_cipher_suites: %w", err)
+		}
+
+		c.tlsCipherSuitesParsed = cipherSuites
+	} else if tlsVersion == tls.VersionTLS13 && len(c.TLSCipherSuites) > 0 {
+		logrus.Warn("tls_cipher_suites configuration is ignored when tls_min_version is VersionTLS13 (Go manages TLS 1.3 cipher suites automatically)")
+	}
+
 	if onExecution {
 		return RemoveUnusedSocket(c.Listen)
 	}
@@ -1275,6 +1347,16 @@ func (c *RootConfig) CleanShutdownSupportedFileName() string {
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution bool) error {
+	if c.MinInjectedGOMAXPROCS < 0 {
+		return fmt.Errorf("min_injected_gomaxprocs must be >= 0, got %d", c.MinInjectedGOMAXPROCS)
+	}
+
+	for _, p := range c.AdditionalArtifactStores {
+		if !filepath.IsAbs(p) {
+			return fmt.Errorf("additional_artifact_stores entry must be absolute: %q", p)
+		}
+	}
+
 	if err := c.ulimitsConfig.LoadUlimits(c.DefaultUlimits); err != nil {
 		return err
 	}
@@ -1999,7 +2081,7 @@ func (r *RuntimeHandler) ValidateContainerMinMemory(name string) error {
 
 	memorySize, err := units.RAMInBytes(r.ContainerMinMemory)
 	if err != nil {
-		err = fmt.Errorf("unable to set runtime memory to %q: %w. Setting to %q instead", r.ContainerMinMemory, err, defaultContainerMinMemory)
+		err = fmt.Errorf("unable to set runtime memory to %q: %w. Setting to %d instead", r.ContainerMinMemory, err, defaultContainerMinMemory)
 		// Fallback to default value if something is wrong with the configured value.
 		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
 
@@ -2213,8 +2295,14 @@ func (c *Config) SetSingleConfigPath(singleConfigPath string) {
 }
 
 func (c *StatsConfig) Validate() error {
+	if len(c.IncludedPodMetrics) == 1 && c.IncludedPodMetrics[0] == AllMetrics {
+		c.includedPodMetrics = AvailableMetrics
+
+		return nil
+	}
+
 	for _, metrics := range c.IncludedPodMetrics {
-		if metrics == AllMetrics && len(c.IncludedPodMetrics) != 1 {
+		if metrics == AllMetrics {
 			return errors.New("'all' should be only one element in included_pod_metrics")
 		}
 
@@ -2223,5 +2311,27 @@ func (c *StatsConfig) Validate() error {
 		}
 	}
 
+	c.includedPodMetrics = c.IncludedPodMetrics
+
 	return nil
+}
+
+func (c *StatsConfig) EnabledPodMetrics() []string {
+	return c.includedPodMetrics
+}
+
+// DefaultTLSMinVersion is the default minimum TLS version.
+const DefaultTLSMinVersion = "VersionTLS12"
+
+// GetTLSMinVersion returns the parsed TLS minimum version.
+// The value is parsed and validated during Validate().
+func (c *APIConfig) GetTLSMinVersion() uint16 {
+	return c.tlsMinVersionParsed
+}
+
+// GetTLSCipherSuites returns the TLS cipher suites for the API config.
+// Returns nil if no cipher suites are configured or if TLS 1.3+ (uses Go defaults).
+// The value is parsed and validated during Validate().
+func (c *APIConfig) GetTLSCipherSuites() []uint16 {
+	return c.tlsCipherSuitesParsed
 }

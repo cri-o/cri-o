@@ -66,6 +66,9 @@ const (
 
 	// ContainersStoppedMonitorCount is the key for the containers whose monitor is stopped per container name.
 	ContainersStoppedMonitorCount Collector = crioPrefix + "containers_stopped_monitor_count"
+
+	// DefaultRuntime is the key for the default container runtime configured in CRI-O.
+	DefaultRuntime Collector = crioPrefix + "default_runtime"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -107,6 +110,7 @@ func All() Collectors {
 		ContainersSeccompNotifierCountTotal.Stripped(),
 		ResourcesStalledAtStage.Stripped(),
 		ContainersStoppedMonitorCount.Stripped(),
+		DefaultRuntime.Stripped(),
 	}
 }
 

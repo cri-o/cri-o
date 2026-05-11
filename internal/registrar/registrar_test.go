@@ -16,7 +16,7 @@ func TestRegistrar(t *testing.T) {
 	RunSpecs(t, "Registrar")
 }
 
-//nolint:gochecknoglobals
+//nolint:gochecknoglobals // test framework requires global state
 var t *TestFramework
 
 var _ = BeforeSuite(func() {
@@ -149,6 +149,7 @@ var _ = t.Describe("Registrar", func() {
 		It("should succeed to retrieve all names for a registrar", func() {
 			// Given
 			anotherKey := "anotherKey"
+
 			testNames := []string{"test1", "test2"}
 			for _, name := range testNames {
 				Expect(sut.Reserve(name, anotherKey)).To(Succeed())

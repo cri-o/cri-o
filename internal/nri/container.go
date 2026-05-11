@@ -5,6 +5,18 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
+// ContainerStatus represents the status of a container.
+type ContainerStatus struct {
+	State      nri.ContainerState
+	Reason     string
+	Message    string
+	Pid        uint32
+	CreatedAt  int64
+	StartedAt  int64
+	FinishedAt int64
+	ExitCode   int32
+}
+
 // Container interface for interacting with NRI.
 type Container interface {
 	GetDomain() string
@@ -12,7 +24,7 @@ type Container interface {
 	GetPodSandboxID() string
 	GetID() string
 	GetName() string
-	GetState() nri.ContainerState
+	GetStatus() *ContainerStatus
 	GetLabels() map[string]string
 	GetAnnotations() map[string]string
 	GetArgs() []string
@@ -20,6 +32,8 @@ type Container interface {
 	GetMounts() []*nri.Mount
 	GetHooks() *nri.Hooks
 	GetLinuxContainer() LinuxContainer
+	GetUser() *nri.User
+	GetRlimits() []*nri.POSIXRlimit
 
 	GetSpec() *specs.Spec
 }
@@ -37,11 +51,13 @@ type LinuxContainer interface {
 }
 
 func containerToNRI(ctr Container) *nri.Container {
+	status := ctr.GetStatus()
+
 	return &nri.Container{
 		Id:           ctr.GetID(),
 		PodSandboxId: ctr.GetPodSandboxID(),
 		Name:         ctr.GetName(),
-		State:        ctr.GetState(),
+		State:        status.State,
 		Labels:       ctr.GetLabels(),
 		Annotations:  ctr.GetAnnotations(),
 		Args:         ctr.GetArgs(),
@@ -49,11 +65,18 @@ func containerToNRI(ctr Container) *nri.Container {
 		Mounts:       ctr.GetMounts(),
 		Hooks:        ctr.GetHooks(),
 		Linux:        linuxContainerToNRI(ctr),
+		User:         ctr.GetUser(),
+		Rlimits:      ctr.GetRlimits(),
+		Pid:          status.Pid,
+		CreatedAt:    status.CreatedAt,
+		StartedAt:    status.StartedAt,
+		FinishedAt:   status.FinishedAt,
+		ExitCode:     status.ExitCode,
 	}
 }
 
 func containersToNRI(ctrList []Container) []*nri.Container {
-	ctrs := []*nri.Container{}
+	ctrs := make([]*nri.Container, 0, len(ctrList))
 	for _, ctr := range ctrList {
 		ctrs = append(ctrs, containerToNRI(ctr))
 	}

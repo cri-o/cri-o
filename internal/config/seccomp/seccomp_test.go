@@ -100,10 +100,11 @@ var _ = t.Describe("Config", func() {
 			}
 		})
 
-		It("should succeed with custom profile from field", func() {
+		It("should succeed with runtime default profile from field", func() {
 			// Given
 			generator, err := generate.New("linux")
 			Expect(err).ToNot(HaveOccurred())
+
 			field := &types.SecurityProfile{
 				ProfileType: types.SecurityProfile_RuntimeDefault,
 			}
@@ -127,10 +128,11 @@ var _ = t.Describe("Config", func() {
 			Expect(ref).To(Equal(types.SecurityProfile_RuntimeDefault.String()))
 		})
 
-		It("should succeed with custom profile from field", func() {
+		It("should succeed with localhost profile from field", func() {
 			// Given
 			generator, err := generate.New("linux")
 			Expect(err).ToNot(HaveOccurred())
+
 			file := writeProfileFile()
 			field := &types.SecurityProfile{
 				ProfileType:  types.SecurityProfile_Localhost,
@@ -160,6 +162,7 @@ var _ = t.Describe("Config", func() {
 			// Given
 			generator, err := generate.New("linux")
 			Expect(err).ToNot(HaveOccurred())
+
 			field := &types.SecurityProfile{
 				ProfileType:  types.SecurityProfile_Localhost,
 				LocalhostRef: "not-existing",

@@ -25,7 +25,7 @@ func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.M
 // containers/image/storage.ResolveReference
 // expectedImageName must be in the fully normalized format (reference.Named.String())!
 // resolvedImageID may be "" to simulate a missing image.
-func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTransportMock *criostoragemock.MockStorageTransport, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence { //nolint:unparam
+func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTransportMock *criostoragemock.MockStorageTransport, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence { //nolint:unparam // parameters are used for different test scenarios
 	var namedRef reference.Named
 
 	if expectedImageName != "" {

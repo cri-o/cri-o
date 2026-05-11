@@ -97,11 +97,12 @@ type NetworkUpdateOptions struct {
 
 // NetworkInfo contains the network information.
 type NetworkInfo struct {
-	Backend NetworkBackend `json:"backend"`
-	Version string         `json:"version,omitempty"`
-	Package string         `json:"package,omitempty"`
-	Path    string         `json:"path,omitempty"`
-	DNS     DNSNetworkInfo `json:"dns,omitempty"`
+	Backend        NetworkBackend `json:"backend"`
+	Version        string         `json:"version,omitempty"`
+	Package        string         `json:"package,omitempty"`
+	Path           string         `json:"path,omitempty"`
+	DNS            DNSNetworkInfo `json:"dns,omitempty"`
+	DefaultNetwork string         `json:"defaultNetwork,omitempty"`
 }
 
 // DNSNetworkInfo contains the DNS information.
@@ -322,6 +323,7 @@ type PortMapping struct {
 }
 
 // OCICNIPortMapping maps to the standard CNI portmapping Capability.
+//
 // Deprecated: Do not use this struct for new fields. This only exists
 // for backwards compatibility.
 type OCICNIPortMapping struct {

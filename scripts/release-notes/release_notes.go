@@ -124,7 +124,10 @@ The release notes have been generated for the commit range
 
 ## Downloads
 
-Download one of our static release bundles via our Google Cloud Bucket:
+### Release Bundles
+
+Download one of our static release bundles via our Google Cloud Bucket.
+Each bundle includes a SHA-256 checksum, a [cosign](https://github.com/sigstore/cosign) signature (`+"`.bundle`"+`), and a [SPDX](https://spdx.org) bill of materials (`+"`.spdx`"+`) with its own signature:
 
 - [cri-o.amd64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz)
   - [cri-o.amd64.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.sha256sum)
@@ -147,6 +150,24 @@ Download one of our static release bundles via our Google Cloud Bucket:
   - [cri-o.s390x.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx)
   - [cri-o.s390x.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.bundle)
 
+### Supply Chain Artifacts
+
+The [OpenVEX](https://openvex.dev) vulnerability report:
+
+- [cri-o.%s.openvex.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.openvex.json)
+  - [cri-o.%s.openvex.json.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.openvex.json.bundle)
+
+The [SLSA](https://slsa.dev) provenance attestation:
+
+- [cri-o.%s.provenance.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.provenance.json)
+  - [cri-o.%s.provenance.json.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.%s.provenance.json.bundle)
+
+### OCI Distribution
+
+All release artifacts are also available as signed [OCI artifacts](https://github.com/opencontainers/image-spec/blob/main/manifest.md) at `+"`"+`ghcr.io/cri-o/bundle:%s`+"`"+`.
+
+### Verification
+
 To verify the artifact signatures via [cosign](https://github.com/sigstore/cosign), run:
 
 `+"```"+`console
@@ -164,6 +185,28 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 `+"```"+`console
 > tar xfz cri-o.amd64.%s.tar.gz
 > bom validate -e cri-o.amd64.%s.tar.gz.spdx -d cri-o
+`+"```"+`
+
+To verify the [OpenVEX](https://openvex.dev) vulnerability report, run:
+
+`+"```"+`console
+> cosign verify-blob cri-o.%s.openvex.json \
+    --certificate-identity https://github.com/cri-o/packaging/.github/workflows/obs.yml@refs/heads/main \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    --certificate-github-workflow-repository cri-o/packaging \
+    --certificate-github-workflow-ref refs/heads/main \
+    --bundle cri-o.%s.openvex.json.bundle
+`+"```"+`
+
+To verify the [SLSA](https://slsa.dev) provenance attestation, run:
+
+`+"```"+`console
+> cosign verify-blob cri-o.%s.provenance.json \
+    --certificate-identity https://github.com/cri-o/packaging/.github/workflows/obs.yml@refs/heads/main \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    --certificate-github-workflow-repository cri-o/packaging \
+    --certificate-github-workflow-ref refs/heads/main \
+    --bundle cri-o.%s.provenance.json.bundle
 `+"```"+`
 
 ## Changelog since %s
@@ -208,6 +251,13 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion,
 		startTag,
 	); err != nil {
 		return fmt.Errorf("writing template to file: %w", err)
@@ -230,7 +280,6 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		"--skip-first-commit",
 		"--end-sha="+head,
 		"--output="+outputFilePath,
-		"--toc",
 		"--go-template=go-template:"+templateFile.Name(),
 	); err != nil {
 		return fmt.Errorf("generate release notes: %w", err)

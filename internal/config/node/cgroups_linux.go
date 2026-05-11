@@ -13,6 +13,8 @@ import (
 	"go.podman.io/common/pkg/cgroups"
 )
 
+const cgroupRoot = "/sys/fs/cgroup"
+
 var (
 	cgroupHasMemorySwapOnce sync.Once
 	cgroupHasMemorySwap     bool
@@ -46,7 +48,7 @@ func CgroupHasMemorySwap() bool {
 				return
 			}
 
-			memSwap := filepath.Join("/sys/fs/cgroup", cg[""], "memory.swap.current")
+			memSwap := filepath.Join(cgroupRoot, cg[""], "memory.swap.current")
 			if _, err := os.Stat(memSwap); err != nil {
 				cgroupHasMemorySwap = false
 

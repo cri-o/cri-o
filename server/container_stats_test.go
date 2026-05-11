@@ -11,7 +11,7 @@ import (
 )
 
 // The actual test suite.
-var _ = t.Describe("ContainerStats", func() {
+var _ = t.Describe("CgroupStats", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
@@ -20,7 +20,7 @@ var _ = t.Describe("ContainerStats", func() {
 
 	AfterEach(afterEach)
 
-	t.Describe("ContainerStats", func() {
+	t.Describe("CgroupStats", func() {
 		It("should fail on invalid container", func() {
 			// Given
 			// When

@@ -18,7 +18,7 @@ var _ = t.Describe("Config", func() {
 	BeforeEach(beforeEach)
 
 	t.Describe("Reload", func() {
-		modifyDefaultConfig := func(old, new string) {
+		modifyDefaultConfig := func(old, updated string) {
 			filePath := t.MustTempFile("config")
 			Expect(sut.ToFile(filePath)).To(Succeed())
 			Expect(sut.UpdateFromFile(context.Background(), filePath)).To(Succeed())
@@ -26,7 +26,7 @@ var _ = t.Describe("Config", func() {
 			read, err := os.ReadFile(filePath)
 			Expect(err).ToNot(HaveOccurred())
 
-			newContents := strings.ReplaceAll(string(read), old, new)
+			newContents := strings.ReplaceAll(string(read), old, updated)
 			err = os.WriteFile(filePath, []byte(newContents), 0)
 			Expect(err).ToNot(HaveOccurred())
 		}
@@ -100,6 +100,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with config change", func() {
 			// Given
 			const newLogLevel = "fatal"
+
 			newConfig := defaultConfig()
 			newConfig.LogLevel = newLogLevel
 
@@ -137,6 +138,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with config change", func() {
 			// Given
 			const newLogFilter = "fatal"
+
 			newConfig := defaultConfig()
 			newConfig.LogFilter = newLogFilter
 
@@ -174,6 +176,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with pause_image change", func() {
 			// Given
 			const newPauseImage = "my-pause"
+
 			newConfig := defaultConfig()
 			newConfig.PauseImage = newPauseImage
 
@@ -188,6 +191,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail with invalid pause_image change", func() {
 			// Given
 			const newPauseImage = "//THIS=is!invalid"
+
 			newConfig := defaultConfig()
 			newConfig.PauseImage = newPauseImage
 
@@ -201,6 +205,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with pause_command change", func() {
 			// Given
 			const newPauseCommand = "/new-pause"
+
 			newConfig := defaultConfig()
 			newConfig.PauseCommand = newPauseCommand
 
@@ -331,6 +336,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with config change", func() {
 			// Given
 			const profile = "unconfined"
+
 			newConfig := defaultConfig()
 			newConfig.ApparmorProfile = profile
 
@@ -345,6 +351,7 @@ var _ = t.Describe("Config", func() {
 
 	t.Describe("ReloadRuntimes", func() {
 		var existingRuntimePath string
+
 		BeforeEach(func() {
 			existingRuntimePath = filepath.Join(t.EnsureRuntimeDeps(), config.DefaultRuntime)
 		})

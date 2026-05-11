@@ -94,6 +94,10 @@
       - glibc-static
       # required to test the crun-wasm workflow.
       - crun-wasm
+      # required for building libpathrs from source.
+      - rust
+      - cargo
+      - cargo-c
   when: ansible_distribution in ['Fedora']
 
 - name: Add python-boto for RHEL and CentOS

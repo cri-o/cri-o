@@ -71,7 +71,7 @@ var _ = t.Describe("Runtime", func() {
 		)
 	}
 
-	//nolint: dupl
+	//nolint:dupl // intentionally similar test structure for different directories
 	t.Describe("GetRunDir", func() {
 		It("should succeed to retrieve the run dir", func() {
 			// Given
@@ -126,7 +126,7 @@ var _ = t.Describe("Runtime", func() {
 		})
 	})
 
-	//nolint: dupl
+	//nolint:dupl // intentionally similar test structure for different directories
 	t.Describe("GetWorkDir", func() {
 		It("should succeed to retrieve the work dir", func() {
 			// Given
@@ -405,6 +405,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to set the container on store error", func() {
 			// Given
 			metadata := &storage.RuntimeContainerMetadata{Pod: true}
+
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().SetMetadata(gomock.Any(), gomock.Any()).

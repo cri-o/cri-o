@@ -19,6 +19,7 @@ var _ = t.Describe("History", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
+
 		createdAt := time.Now()
 		sbox := sandbox.NewBuilder()
 		sbox.SetID("sandboxID")

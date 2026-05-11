@@ -242,7 +242,7 @@ func normalizeRule(rule string) (string, error) {
 }
 
 func (f *fakeIPTables) EnsureRule(position utiliptables.RulePosition, tableName utiliptables.Table, chainName utiliptables.Chain, args ...string) (bool, error) {
-	ruleArgs := make([]string, 0)
+	ruleArgs := make([]string, 0, len(args))
 
 	for _, arg := range args {
 		// quote args with internal spaces (like comments)

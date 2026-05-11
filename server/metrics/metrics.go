@@ -65,6 +65,7 @@ func GetSizeBucket(size float64) string {
 // Metrics is the main structure for starting the metrics endpoints.
 type Metrics struct {
 	config                                    *libconfig.MetricsConfig
+	apiConfig                                 *libconfig.APIConfig
 	metricImagePullsLayerSize                 prometheus.Histogram
 	metricContainersEventsDropped             prometheus.Counter
 	metricContainersOOMTotal                  prometheus.Counter
@@ -82,14 +83,16 @@ type Metrics struct {
 	metricContainersSeccompNotifierCountTotal *prometheus.CounterVec
 	metricResourcesStalledAtStage             *prometheus.CounterVec
 	metricContainersStoppedMonitorCount       *prometheus.CounterVec
+	metricDefaultRuntime                      *prometheus.GaugeVec
 }
 
 var instance *Metrics
 
 // New creates a new metrics instance.
-func New(config *libconfig.MetricsConfig) *Metrics {
+func New(config *libconfig.MetricsConfig, apiConfig *libconfig.APIConfig) *Metrics {
 	instance = &Metrics{
-		config: config,
+		config:    config,
+		apiConfig: apiConfig,
 		metricImagePullsLayerSize: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
 				Subsystem: collectors.Subsystem,
@@ -248,6 +251,14 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			},
 			[]string{"name"},
 		),
+		metricDefaultRuntime: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.DefaultRuntime.String(),
+				Help:      "Default container runtime configured. Value is always 1.",
+			},
+			[]string{"runtime"},
+		),
 	}
 
 	return Instance()
@@ -256,7 +267,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 // Instance returns the singleton instance of the Metrics.
 func Instance() *Metrics {
 	if instance == nil {
-		return New(&libconfig.MetricsConfig{})
+		return New(&libconfig.MetricsConfig{}, &libconfig.APIConfig{})
 	}
 
 	return instance
@@ -266,6 +277,10 @@ func Instance() *Metrics {
 func (m *Metrics) Start(ctx context.Context, stop chan struct{}) error {
 	if m.config == nil {
 		return errors.New("provided config is nil")
+	}
+
+	if m.apiConfig == nil {
+		return errors.New("provided api config is nil")
 	}
 
 	me, err := m.createEndpoint()
@@ -446,6 +461,19 @@ func (m *Metrics) MetricContainersStoppedMonitorCountInc(name string) {
 	c.Inc()
 }
 
+func (m *Metrics) MetricDefaultRuntimeSet(runtime string) {
+	m.metricDefaultRuntime.Reset()
+
+	g, err := m.metricDefaultRuntime.GetMetricWithLabelValues(runtime)
+	if err != nil {
+		logrus.Warnf("Unable to write default runtime metric: %v", err)
+
+		return
+	}
+
+	g.Set(1)
+}
+
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	for collector, metric := range map[collectors.Collector]prometheus.Collector{
@@ -466,6 +494,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ProcessesDefunct:                    m.metricProcessesDefunct,
 		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
 		collectors.ContainersStoppedMonitorCount:       m.metricContainersStoppedMonitorCount,
+		collectors.DefaultRuntime:                      m.metricDefaultRuntime,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())
@@ -508,14 +537,16 @@ func (m *Metrics) startEndpoint(
 
 			var cc *cert.Config
 
-			cc, err = cert.NewCertConfig(ctx, stop, m.config.MetricsCert, m.config.MetricsKey, "")
+			cc, err = cert.NewCertConfig(ctx, stop, m.config.MetricsCert, m.config.MetricsKey, "", m.apiConfig.GetTLSMinVersion(), m.apiConfig.GetTLSCipherSuites())
 			if err != nil {
 				log.Fatalf(ctx, "Creating key pair reloader: %v", err)
 			}
 
+			// #nosec G402 -- GetTLSMinVersion returns the validated TLS version. Any version older than TLS 1.2 will be rejected in config validation.
 			srv.TLSConfig = &tls.Config{
 				GetConfigForClient: cc.GetConfigForClient,
-				MinVersion:         tls.VersionTLS12,
+				MinVersion:         m.apiConfig.GetTLSMinVersion(),
+				CipherSuites:       m.apiConfig.GetTLSCipherSuites(),
 			}
 
 			go func() {

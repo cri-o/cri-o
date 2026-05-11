@@ -386,8 +386,7 @@ func (runner *runner) SaveInto(table Table, buffer *bytes.Buffer) error {
 
 	err := cmd.Run()
 	if err != nil {
-		//nolint:errcheck
-		stderrBuffer.WriteTo(buffer) // ignore error, since we need to return the original error
+		stderrBuffer.WriteTo(buffer) //nolint:errcheck // ignore error, since we need to return the original error
 	}
 
 	return err
@@ -615,7 +614,7 @@ const (
 // Monitor is part of Interface.
 func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{}) {
 	for {
-		_ = utilwait.PollImmediateUntil(interval, func() (bool, error) { //nolint:errcheck,staticcheck
+		_ = utilwait.PollImmediateUntil(interval, func() (bool, error) { //nolint:errcheck,staticcheck // deprecated poll API, error intentionally ignored
 			for _, table := range tables {
 				if _, err := runner.EnsureChain(table, canary); err != nil {
 					log.Errorf(context.Background(), "Could not set up iptables canary: %s (table=%+v chain=%q)", err, table, canary)
@@ -628,7 +627,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 		}, stopCh)
 
 		// Poll until stopCh is closed or iptables is flushed
-		err := utilwait.PollUntil(interval, func() (bool, error) { //nolint:staticcheck
+		err := utilwait.PollUntil(interval, func() (bool, error) { //nolint:staticcheck // deprecated poll API
 			if exists, err := runner.ChainExists(tables[0], canary); exists {
 				return false, nil
 			} else if isResourceError(err) {
@@ -640,7 +639,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 			log.Debugf(context.Background(), "IPTables canary deleted (table=%q chain=%q)", tables[0], canary)
 			// Wait for the other canaries to be deleted too before returning
 			// so we don't start reloading too soon.
-			err := utilwait.PollImmediate(iptablesFlushPollTime, iptablesFlushTimeout, func() (bool, error) { //nolint:staticcheck
+			err := utilwait.PollImmediate(iptablesFlushPollTime, iptablesFlushTimeout, func() (bool, error) { //nolint:staticcheck // deprecated poll API
 				for i := 1; i < len(tables); i++ {
 					if exists, err := runner.ChainExists(tables[i], canary); exists || isResourceError(err) {
 						return false, nil
@@ -658,7 +657,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 		if err != nil {
 			// stopCh was closed
 			for _, table := range tables {
-				_ = runner.DeleteChain(table, canary) //nolint:errcheck
+				_ = runner.DeleteChain(table, canary) //nolint:errcheck // best-effort cleanup during shutdown
 			}
 
 			return

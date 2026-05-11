@@ -115,6 +115,7 @@ var _ = AfterSuite(func() {
 	removeConfig()
 	t.Teardown()
 	mockCtrl.Finish()
+
 	_ = os.RemoveAll("/tmp/fake-runtime")
 })
 

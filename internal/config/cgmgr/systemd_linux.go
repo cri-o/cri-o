@@ -21,6 +21,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
+	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/utils"
 )
 
@@ -128,7 +129,7 @@ func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (c
 // ContainerCgroupStats takes the sandbox parent, and container ID.
 // It creates a new cgroup if one does not already exist.
 // It returns the cgroup stats for that container.
-func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
+func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*stats.CgroupStats, error) {
 	cgMgr, err := m.ContainerCgroupManager(sbParent, containerID)
 	if err != nil {
 		return nil, err
@@ -274,7 +275,7 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 // SandboxCgroupStats takes the sandbox parent, and sandbox ID.
 // It creates a new cgroup for that sandbox if it does not already exist.
 // It returns the cgroup stats for that sandbox.
-func (m *SystemdManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
+func (m *SystemdManager) SandboxCgroupStats(sbParent, sbID string) (*stats.CgroupStats, error) {
 	cgMgr, err := m.SandboxCgroupManager(sbParent, sbID)
 	if err != nil {
 		return nil, err

@@ -40,9 +40,9 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 		// and this has limitations when running inside a namespace, so we try to the connections
 		// serially disabling the Fast Fallback support.
 		// xref https://github.com/golang/go/issues/44922
-		var d net.Dialer
-		d.FallbackDelay = -1
-		conn, err := d.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		d := net.Dialer{FallbackDelay: -1}
+
+		conn, err := d.DialContext(ctx, "tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			return fmt.Errorf("failed to connect to localhost:%d inside namespace %s: %w", port, c.ID(), err)
 		}
@@ -59,6 +59,7 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 		// Copy from the namespace port connection to the client stream
 		go func() {
 			debug("copy data from container to client")
+
 			_, err := io.Copy(stream, conn)
 			errCh <- err
 		}()
@@ -66,6 +67,7 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 		// Copy from the client stream to the namespace port connection
 		go func() {
 			debug("copy data from client to container")
+
 			_, err := io.Copy(conn, stream)
 			errCh <- err
 		}()
@@ -90,6 +92,7 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 			if errFwd == nil {
 				errFwd = e
 			}
+
 			debug("stopped forwarding in both directions")
 
 		case <-time.After(timeout):

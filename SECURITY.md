@@ -41,3 +41,24 @@ being incorporated into the repository without breaking the embargo.
 - You need help tuning CRI-O components for security
 - You need help applying security related updates
 - Your issue is not security related
+
+## OpenVEX
+
+CRI-O publishes [OpenVEX](https://openvex.dev) documents with each release to
+communicate the exploitability of known vulnerabilities in our dependency tree.
+These documents are generated using
+[govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) and indicate
+which vulnerabilities are actually reachable in CRI-O's code paths versus those
+that exist in dependencies but are not called.
+
+The VEX report for each release is available as a signed artifact alongside the
+release bundles. See the release notes for download and verification
+instructions.
+
+To generate a VEX report locally:
+
+```console
+make vex
+```
+
+This produces `build/cri-o.openvex.json`.

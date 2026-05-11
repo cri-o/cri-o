@@ -126,8 +126,42 @@ func NewFake(family Family, table string) *Fake {
 
 var _ Interface = &Fake{}
 
+// ListAll is part of Interface.
+func (fake *Fake) ListAll(_ context.Context) (map[string][]string, error) {
+	fake.RLock()
+	defer fake.RUnlock()
+	if fake.Table == nil {
+		return nil, notFoundError("no such table %q", fake.table)
+	}
+
+	result := make(map[string][]string)
+
+	for name := range fake.Table.Flowtables {
+		result["flowtable"] = append(result["flowtable"], name)
+	}
+	for name := range fake.Table.Chains {
+		result["chain"] = append(result["chain"], name)
+	}
+	for name := range fake.Table.Sets {
+		result["set"] = append(result["set"], name)
+	}
+	for name := range fake.Table.Maps {
+		result["map"] = append(result["map"], name)
+	}
+	for name := range fake.Table.Counters {
+		result["counter"] = append(result["counter"], name)
+	}
+
+	return result, nil
+}
+
 // List is part of Interface.
 func (fake *Fake) List(_ context.Context, objectType string) ([]string, error) {
+	objectType = canonicalObjectType(objectType)
+	if _, ok := listableTypes[objectType]; !ok {
+		return nil, fmt.Errorf("can't List() type %q", objectType)
+	}
+
 	fake.RLock()
 	defer fake.RUnlock()
 	if fake.Table == nil {
@@ -137,29 +171,29 @@ func (fake *Fake) List(_ context.Context, objectType string) ([]string, error) {
 	var result []string
 
 	switch objectType {
-	case "flowtable", "flowtables":
+	case "flowtable":
 		for name := range fake.Table.Flowtables {
 			result = append(result, name)
 		}
-	case "chain", "chains":
+	case "chain":
 		for name := range fake.Table.Chains {
 			result = append(result, name)
 		}
-	case "set", "sets":
+	case "set":
 		for name := range fake.Table.Sets {
 			result = append(result, name)
 		}
-	case "map", "maps":
+	case "map":
 		for name := range fake.Table.Maps {
 			result = append(result, name)
 		}
-	case "counter", "counters":
+	case "counter":
 		for name := range fake.Table.Counters {
 			result = append(result, name)
 		}
 
 	default:
-		return nil, fmt.Errorf("unsupported object type %q", objectType)
+		return nil, fmt.Errorf("internal error: missing List() support for %q", objectType)
 	}
 
 	return result, nil
@@ -191,6 +225,10 @@ func (fake *Fake) ListRules(_ context.Context, chain string) ([]*Rule, error) {
 
 // ListElements is part of Interface
 func (fake *Fake) ListElements(_ context.Context, objectType, name string) ([]*Element, error) {
+	if objectType != "set" && objectType != "map" {
+		return nil, fmt.Errorf("invalid objectType %q", objectType)
+	}
+
 	fake.RLock()
 	defer fake.RUnlock()
 	if fake.Table == nil {

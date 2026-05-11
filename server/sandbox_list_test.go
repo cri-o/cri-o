@@ -77,6 +77,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
+
 			_, err := sut.LoadSandbox(context.Background(), sandboxID)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -96,8 +97,10 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
+
 			sb, err := sut.LoadSandbox(context.Background(), sandboxID)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(sb).ToNot(BeNil())
 			sb.SetStopped(context.Background(), false)
 
 			// When
@@ -119,6 +122,7 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
+
 			_, err := sut.LoadSandbox(context.Background(), sandboxID)
 			Expect(err).ToNot(HaveOccurred())
 

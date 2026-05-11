@@ -66,7 +66,8 @@ reviewers, approvers and emeritus approvers.
   organization, and can be considered to be a community member whose
   contributions have demonstrated they can be trusted with access to the CRI-O CI.
 - Reviewers are a set of people responsible for reviewing PRs and triaging
-  issues. In most cases, they're also responsible for fixing issues in the code base.
+  issues. In most cases, they're also responsible for fixing issues in
+  the code base.
 - Approvers are the set of people that have final say over the direction of the
   project. For any PR to merge, an approver must approve it.
 - Emeritus Approvers can be considered "retired" approver--while they don't have

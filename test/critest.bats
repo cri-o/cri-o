@@ -30,7 +30,6 @@ function teardown() {
 		--ginkgo.randomize-all \
 		--ginkgo.timeout 5m \
 		--ginkgo.trace \
-		--ginkgo.vv \
 		--ginkgo.flake-attempts 3 \
 		"${WEBSOCKET_ARGS[@]}" >&3
 

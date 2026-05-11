@@ -12,6 +12,7 @@ import (
 // The actual test suite.
 var _ = t.Describe("Log", func() {
 	const msg = "Hello world"
+
 	BeforeEach(func() {
 		beforeEach(logrus.DebugLevel)
 		log.InitKlogShim()
@@ -42,7 +43,7 @@ var _ = t.Describe("Log", func() {
 	It("should fill missing value", func() {
 		// Given
 		// When
-		klog.InfoS(msg, "key1", "val1", "key2") //nolint:loggercheck
+		klog.InfoS(msg, "key1", "val1", "key2") //nolint:loggercheck // intentionally passing odd number of args to test missing value handling
 
 		// Then
 		Expect(buf.String()).To(ContainSubstring(msg))

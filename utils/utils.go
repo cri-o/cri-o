@@ -18,8 +18,8 @@ import (
 	"github.com/moby/sys/user"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 )
 
 // StatusToExitCode converts wait status code to an exit code.
@@ -401,11 +401,6 @@ func GetUser(containerMount, userIDorName string) (*user.User, error) {
 	}
 
 	return nil, user.ErrNoPasswdEntries
-}
-
-// Int32Ptr is a utility function to assign to integer pointer variables.
-func Int32Ptr(i int32) *int32 {
-	return &i
 }
 
 // EnsureSaneLogPath is a hack to fix https://issues.k8s.io/44043 which causes

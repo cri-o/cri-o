@@ -3,7 +3,7 @@
   git:
     repo: "https://github.com/containers/conmon.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
-    version: main
+    version: v2.1.13
 
 - name: clean conmon build directory
   command: make clean

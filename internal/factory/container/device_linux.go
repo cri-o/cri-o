@@ -143,7 +143,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 			// check if it is a directory
 			if e := utils.IsDirectory(path); e == nil {
 				// mount the internal devices recursively
-				//nolint: errcheck
+				//nolint:errcheck // walk errors are handled within the callback
 				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {
 					// filepath.Walk failed, skip
 					if e != nil {

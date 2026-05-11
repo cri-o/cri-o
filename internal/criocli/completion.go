@@ -108,7 +108,7 @@ func zshCompletion(c *cli.Context) error {
 		}
 	}
 
-	opts := []string{}
+	opts := make([]string, 0, len(c.App.Flags))
 	for _, flag := range c.App.Flags {
 		// only includes full flag name.
 		opts = append(opts, "'--"+flag.Names()[0]+"'")

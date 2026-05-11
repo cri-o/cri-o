@@ -22,7 +22,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	"k8s.io/kubelet/pkg/cri/streaming"
+	"k8s.io/cri-streaming/pkg/streaming"
 	kubetypes "k8s.io/kubelet/pkg/types"
 
 	"github.com/cri-o/cri-o/internal/cert"
@@ -50,6 +50,7 @@ const (
 	irqBalanceConfigRestoreDisable = "disable"
 	debounceDuration               = 200 * time.Millisecond
 	defaultRegistriesConfDDir      = "/etc/containers/registries.conf.d"
+	streamChunkSize                = 3000
 )
 
 var errSandboxNotCreated = errors.New("sandbox not created")
@@ -67,8 +68,8 @@ type StreamService struct {
 // Server implements the RuntimeService and ImageService.
 type Server struct {
 	*lib.ContainerServer
-	types.UnsafeImageServiceServer
-	types.UnsafeRuntimeServiceServer
+	types.UnimplementedImageServiceServer
+	types.UnimplementedRuntimeServiceServer
 
 	config          libconfig.Config
 	stream          *StreamService
@@ -118,9 +119,8 @@ type pullOperation struct {
 	// wg allows for Goroutines trying to pull the same image to wait until the
 	// currently running pull operation has finished.
 	wg sync.WaitGroup
-	// imageRef is the reference of the actually pulled image; it is always
-	// in a full repo@digest format, resolving short names and tags
-	imageRef storage.RegistryImageReference
+	// imageRef is the resolved image ID to return in the CRI PullImageResponse
+	imageRef string
 	// err is the error indicating if the pull operation has succeeded or not.
 	err error
 }
@@ -321,7 +321,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	}
 
 	// Return a slice of images to remove, if internal_wipe is set.
-	imagesOfDeletedContainers := []storage.StorageImageID{}
+	imagesOfDeletedContainers := make([]storage.StorageImageID, 0, len(containersAndTheirImages))
 	for _, image := range containersAndTheirImages {
 		imagesOfDeletedContainers = append(imagesOfDeletedContainers, image)
 	}
@@ -458,7 +458,7 @@ func New(
 		os.Unsetenv("DBUS_SESSION_BUS_ADDRESS")
 	}
 
-	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.SystemContext)
+	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.AdditionalArtifactStores, config.SystemContext, containerServer.StorageImageServer().PinnedImageRegexps())
 	if err != nil {
 		return nil, err
 	}
@@ -533,7 +533,7 @@ func New(
 	if config.StreamEnableTLS {
 		log.Debugf(ctx, "TLS enabled for streaming server")
 
-		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh, config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA)
+		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh, config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA, config.GetTLSMinVersion(), config.GetTLSCipherSuites())
 		if err != nil {
 			return nil, err
 		}
@@ -545,10 +545,12 @@ func New(
 			return nil, fmt.Errorf("load stream server x509 key pair: %w", err)
 		}
 
+		// #nosec G402 -- GetTLSMinVersion returns the validated TLS version. Any version older than TLS 1.2 will be rejected in config validation.
 		streamServerConfig.TLSConfig = &tls.Config{
 			GetConfigForClient: certConf.GetConfigForClient,
 			Certificates:       []tls.Certificate{certificate},
-			MinVersion:         tls.VersionTLS12,
+			MinVersion:         config.GetTLSMinVersion(),
+			CipherSuites:       config.GetTLSCipherSuites(),
 		}
 
 		log.Debugf(ctx, "Applying stream server TLS configuration")
@@ -579,7 +581,7 @@ func New(
 	}
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
-		if err := metrics.New(&s.config.MetricsConfig).Start(ctx, s.monitorsChan); err != nil {
+		if err := metrics.New(&s.config.MetricsConfig, &s.config.APIConfig).Start(ctx, s.monitorsChan); err != nil {
 			return nil, err
 		}
 	} else {
@@ -630,9 +632,13 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 
 				continue
 			}
+
+			metrics.Instance().MetricDefaultRuntimeSet(s.config.DefaultRuntime)
+
 			// ImageServer compiles the list with regex for both
 			// pinned and sandbox/pause images, we need to update them
 			s.ContainerServer.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
+			s.artifactStore.SetPinnedImageRegexps(s.ContainerServer.StorageImageServer().PinnedImageRegexps())
 			log.Infof(ctx, "Configuration reload completed")
 			// Print the current configuration.
 			tomlConfig, err := s.config.ToString()

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/checkpoint-restore/go-criu/v7/stats"
+	"github.com/checkpoint-restore/go-criu/v8/stats"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.podman.io/common/pkg/crutils"
@@ -93,6 +93,11 @@ func (c *ContainerServer) ContainerCheckpoint(
 	}
 
 	if err := c.runtime.CheckpointContainer(ctx, ctr, specgen.Config, opts.KeepRunning); err != nil {
+		// in the case of an error, clean up any leftover CRIU images
+		if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
+			log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
+		}
+
 		return "", fmt.Errorf("failed to checkpoint container %s: %w", ctr.ID(), err)
 	}
 
@@ -251,7 +256,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	// CRI-O is now tracking all bind mount types in the checkpoint archive. This
 	// way it is possible to know if a missing bind mount needs to be a file or a
 	// directory.
-	var externalBindMounts []ExternalBindMount //nolint:prealloc
+	var externalBindMounts []ExternalBindMount
 
 	for _, m := range g.Config.Mounts {
 		if containerMounts[m.Destination] {
@@ -298,15 +303,6 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 	dest := ctr.Dir()
 	log.Debugf(ctx, "Exporting checkpoint image of container %q to %q", id, dest)
 
-	includeFiles := []string{
-		stats.StatsDump,
-		metadata.DumpLogFile,
-		metadata.CheckpointDirectory,
-		metadata.ConfigDumpFile,
-		metadata.SpecDumpFile,
-		"bind.mounts",
-	}
-
 	// To correctly track deleted files, let's go through the output of 'podman diff'
 	rootFsChanges, err := c.getDiff(ctx, id, specgen)
 	if err != nil {
@@ -350,6 +346,16 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		addToTarFiles = append(addToTarFiles, annotations.LogPath)
 	}
 
+	baseFiles := []string{
+		stats.StatsDump,
+		metadata.DumpLogFile,
+		metadata.CheckpointDirectory,
+		metadata.ConfigDumpFile,
+		metadata.SpecDumpFile,
+		"bind.mounts",
+	}
+	includeFiles := make([]string, 0, len(baseFiles)+len(addToTarFiles))
+	includeFiles = append(includeFiles, baseFiles...)
 	includeFiles = append(includeFiles, addToTarFiles...)
 
 	input, err := archive.TarWithOptions(ctr.Dir(), &archive.TarOptions{

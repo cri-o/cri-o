@@ -74,10 +74,39 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	var ctrs []*types.Container
+	ctrs, err := s.listContainers(ctx, req.GetFilter())
+	if err != nil {
+		return nil, err
+	}
 
-	filter := req.GetFilter()
+	return &types.ListContainersResponse{
+		Containers: ctrs,
+	}, nil
+}
 
+// StreamContainers returns a stream of containers.
+func (s *Server) StreamContainers(req *types.StreamContainersRequest, stream types.RuntimeService_StreamContainersServer) error {
+	ctx := stream.Context()
+
+	ctrs, err := s.listContainers(ctx, req.GetFilter())
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(ctrs); i += streamChunkSize {
+		end := min(i+streamChunkSize, len(ctrs))
+		if err := stream.Send(&types.StreamContainersResponse{
+			Containers: ctrs[i:end],
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// listContainers returns a filtered list of Container objects.
+func (s *Server) listContainers(ctx context.Context, filter *types.ContainerFilter) ([]*types.Container, error) {
 	ctrList, err := s.ContainerServer.ListContainers()
 	if err != nil {
 		return nil, err
@@ -87,6 +116,8 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 		ctrList = s.filterContainerList(ctx, filter, ctrList)
 	}
 
+	var ctrs []*types.Container
+
 	for _, ctr := range ctrList {
 		// Skip over containers that are still being created
 		if !ctr.Created() {
@@ -95,12 +126,10 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 
 		c := ctr.CRIContainer()
 		// Filter by other criteria such as state and labels.
-		if filterContainer(c, req.GetFilter()) {
+		if filterContainer(c, filter) {
 			ctrs = append(ctrs, c)
 		}
 	}
 
-	return &types.ListContainersResponse{
-		Containers: ctrs,
-	}, nil
+	return ctrs, nil
 }

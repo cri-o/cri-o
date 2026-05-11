@@ -285,6 +285,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.DefaultEnv = StringSliceTrySplit(ctx, "default-env")
 	}
 
+	if ctx.IsSet("min-injected-gomaxprocs") {
+		config.MinInjectedGOMAXPROCS = ctx.Int64("min-injected-gomaxprocs")
+	}
+
 	if ctx.IsSet("default-sysctls") {
 		config.DefaultSysctls = StringSliceTrySplit(ctx, "default-sysctls")
 	}
@@ -313,6 +317,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	// Decryption
 	if ctx.IsSet("decryption-keys-path") {
 		config.DecryptionKeysPath = ctx.String("decryption-keys-path")
+	}
+
+	if ctx.IsSet("additional-artifact-stores") {
+		config.AdditionalArtifactStores = StringSliceTrySplit(ctx, "additional-artifact-stores")
 	}
 
 	// Cgroup configuration
@@ -559,6 +567,14 @@ func mergeAPIConfig(config *libconfig.Config, ctx *cli.Context) {
 		config.StreamTLSKey = ctx.String("stream-tls-key")
 	}
 
+	if ctx.IsSet("tls-min-version") {
+		config.TLSMinVersion = ctx.String("tls-min-version")
+	}
+
+	if ctx.IsSet("tls-cipher-suites") {
+		config.TLSCipherSuites = ctx.StringSlice("tls-cipher-suites")
+	}
+
 	if ctx.IsSet("stream-idle-timeout") {
 		config.StreamIdleTimeout = ctx.String("stream-idle-timeout")
 	}
@@ -604,6 +620,7 @@ func mergeMetricsConfig(config *libconfig.Config, ctx *cli.Context) {
 	}
 
 	if ctx.IsSet("included-pod-metrics") {
+		//nolint:staticcheck // Needs to use the user input config.
 		config.IncludedPodMetrics = StringSliceTrySplit(ctx, "included-pod-metrics")
 	}
 }
@@ -900,6 +917,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:  "decryption-keys-path",
 			Usage: "Path to load keys for image decryption.",
 			Value: defConf.DecryptionKeysPath,
+		},
+		&cli.StringSliceFlag{
+			Name:  "additional-artifact-stores",
+			Value: cli.NewStringSlice(defConf.AdditionalArtifactStores...),
+			Usage: "Additional read-only OCI artifact store paths.",
 		},
 		&cli.StringFlag{
 			Name:    "default-runtime",
@@ -1313,6 +1335,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Additional environment variables to set for all containers.",
 			EnvVars: []string{"CONTAINER_DEFAULT_ENV"},
 		},
+		&cli.Int64Flag{
+			Name:    "min-injected-gomaxprocs",
+			Value:   defConf.MinInjectedGOMAXPROCS,
+			Usage:   "Enable GOMAXPROCS injection. Burstable pods auto-calculate from CPU request, with this value as the minimum floor. Best-effort pods use this value directly. 0 to disable.",
+			EnvVars: []string{"CONTAINER_INJECT_GOMAXPROCS"},
+		},
 		&cli.StringFlag{
 			Name:      "container-attach-socket-dir",
 			Usage:     "Path to directory for container attach sockets.",
@@ -1381,6 +1409,17 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     "Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes.",
 			EnvVars:   []string{"CONTAINER_TLS_CA"},
 			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:    "tls-min-version",
+			Usage:   "Minimum TLS version for streaming and metrics servers (VersionTLS12 or VersionTLS13).",
+			EnvVars: []string{"CONTAINER_TLS_MIN_VERSION"},
+			Value:   defConf.TLSMinVersion,
+		},
+		&cli.StringSliceFlag{
+			Name:    "tls-cipher-suites",
+			Usage:   "Comma-separated list of cipher suites for TLS 1.2.",
+			EnvVars: []string{"CONTAINER_TLS_CIPHER_SUITES"},
 		},
 		&cli.StringFlag{
 			Name:      "stream-tls-cert",
@@ -1497,6 +1536,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 				"CONTAINER_INCLUDED_POD_METRCIS", // TODO: This typo'ed variable is deprecated and can be removed in a future release.
 				"CONTAINER_INCLUDED_POD_METRICS",
 			},
+			//nolint:staticcheck // Needs to use the user input config.
 			Value: cli.NewStringSlice(defConf.IncludedPodMetrics...),
 		},
 		&cli.BoolFlag{

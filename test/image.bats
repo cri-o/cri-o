@@ -414,58 +414,42 @@ EOF
 	crictl pull nginx
 }
 
-@test "image status preserves pulled digest order for multi-arch images" {
+@test "image pull returns image ID not repo digest" {
 	start_crio
 
-	# Pull a multi-arch image by its manifest list digest
-	crictl pull "$IMAGE_LIST_DIGEST"
+	# Pull an image and capture the returned image reference
+	pulled_ref=$(crictl pull "$IMAGE")
 
-	# Get image status as JSON
-	output=$(crictl inspecti -o json "$IMAGE_LIST_DIGEST")
+	# Extract the image ID from crictl output
+	# crictl may output "Image is up to date for <id>" or just "<id>"
+	# We want just the ID part (the last word)
+	pulled_id=$(echo "$pulled_ref" | awk '{print $NF}')
 
-	# On amd64, the platform-specific digest should appear FIRST in RepoDigests
-	# because it's the one that was actually pulled (stored in knownRepoDigests).
-	# The manifest list digest should also be present, but should come AFTER the
-	# platform-specific digest.
-	case $ARCH in
-	x86_64)
-		# Verify the first digest is the platform-specific one (what was actually pulled)
-		firstDigest=$(jq -r '.status.repoDigests[0]' <<< "$output")
-		[[ "$firstDigest" == "$IMAGE_LIST_DIGEST_AMD64" ]]
+	# Ensure we actually got an ID back (format is storage-defined)
+	[ "$pulled_id" != "" ]
 
-		# Verify the manifest list digest appears somewhere in the array
-		manifestListIndex=$(jq '.status.repoDigests | index("'"$IMAGE_LIST_DIGEST"'")' <<< "$output")
-		[[ -n "$manifestListIndex" ]] && [[ "$manifestListIndex" != "null" ]]
+	# Get the image status for the same image
+	imageid=$(crictl images --quiet "$IMAGE")
+	[ "$imageid" != "" ]
 
-		# Verify the manifest list digest comes AFTER the platform-specific digest (index > 0)
-		[[ "$manifestListIndex" -gt 0 ]]
-		;;
-	esac
+	# The pulled reference should match the image ID from ImageStatus
+	# Both PullImage and GetImageRef (via ImageStatus) should return the same value
+	# to ensure Kubernetes credential verification works correctly
+	[ "$pulled_id" = "$imageid" ]
+
+	# Verify we can use the image ID to inspect the image
+	output=$(crictl inspecti "$imageid")
+	[[ "$output" == *"$IMAGE"* ]]
 
 	cleanup_images
 }
 
-@test "image status preserves pulled digest order for single-arch images" {
+@test "image pull should not fall back to OCI artifact on network error" {
 	start_crio
 
-	# Pull a single-arch image by tag to verify tag-to-digest conversion works
-	crictl pull "$IMAGE"
+	# 192.0.2.1 is TEST-NET-1 (RFC 5737), guaranteed unreachable
+	run ! crictl pull 192.0.2.1/test/image:latest
 
-	# Get image status as JSON
-	output=$(crictl inspecti -o json "$IMAGE")
-
-	# Extract the first RepoDigest
-	firstDigest=$(jq -r '.status.repoDigests[0]' <<< "$output")
-
-	# Verify we got at least one digest
-	[[ -n "$firstDigest" ]] && [[ "$firstDigest" != "null" ]]
-
-	# The first digest should reference the correct image repository
-	[[ "$firstDigest" == quay.io/crio/pause@sha256:* ]]
-
-	# Verify RepoDigests is not empty and is deterministically ordered
-	repoDigestsCount=$(jq '.status.repoDigests | length' <<< "$output")
-	[[ "$repoDigestsCount" -gt 0 ]]
-
-	cleanup_images
+	# Network errors should not trigger the OCI artifact fallback
+	run ! grep -q "Falling back" "$CRIO_LOG"
 }

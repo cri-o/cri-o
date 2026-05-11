@@ -9,6 +9,8 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 )
 
 func hasNetworkNamespace(config *rspec.Spec) bool {
@@ -119,7 +121,7 @@ func getAvailableV2Controllers() map[string]struct{} {
 		return nil
 	}
 
-	controllersPath := filepath.Join("/sys/fs/cgroup", v2Group, "cgroup.controllers")
+	controllersPath := filepath.Join(cgmgr.CgroupMemoryPathV2, v2Group, "cgroup.controllers")
 
 	controllersBytes, err := os.ReadFile(controllersPath)
 	if err != nil {

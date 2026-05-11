@@ -9,13 +9,12 @@ import (
 	ociartifactmock "github.com/cri-o/cri-o/test/mocks/ociartifact"
 )
 
-// SetOCIArtifactImpl sets the OCI artifact implementation.
-func (s *Store) SetImpl(impl Impl) {
-	s.impl = impl
+func (s *Store) SetFakeStore(l LibartifactStore) {
+	s.libartifactStore = l
 }
 
-func (s *Store) SetFakeStore(l LibartifactStore) {
-	s.LibartifactStore = l
+func (s *Store) SetFakeImpl(impl Impl) {
+	s.impl = impl
 }
 
 type FakeLibartifactStore struct {

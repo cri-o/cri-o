@@ -9,7 +9,7 @@ import (
 	"go.podman.io/image/v5/types"
 
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/ociartifact"
+	"github.com/cri-o/cri-o/internal/ociartifact/datastore"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
@@ -21,13 +21,13 @@ type SeccompOCIArtifact struct {
 
 // New creates a new seccomp OCI artifact handler.
 func New(root string, systemContext *types.SystemContext) (*SeccompOCIArtifact, error) {
-	impl, err := ociartifact.NewStore(root, systemContext)
+	store, err := datastore.New(root, systemContext)
 	if err != nil {
 		return nil, err
 	}
 
 	return &SeccompOCIArtifact{
-		impl,
+		store,
 	}, nil
 }
 
@@ -76,7 +76,7 @@ func (s *SeccompOCIArtifact) TryPull(
 		return nil, nil
 	}
 
-	artifactData, err := s.impl.PullData(ctx, profileRef, &ociartifact.PullOptions{EnforceConfigMediaType: requiredConfigMediaType})
+	artifactData, err := s.impl.PullData(ctx, profileRef, &datastore.PullOptions{EnforceConfigMediaType: requiredConfigMediaType})
 	if err != nil {
 		return nil, fmt.Errorf("pull OCI artifact: %w", err)
 	}

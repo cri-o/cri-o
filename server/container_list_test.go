@@ -29,9 +29,11 @@ var _ = t.Describe("ContainerList", func() {
 		) {
 			// Given
 			addContainerAndSandbox()
+
 			if created {
 				testContainer.SetCreated()
 			}
+
 			testContainer.SetState(givenState)
 
 			// When
@@ -41,6 +43,7 @@ var _ = t.Describe("ContainerList", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
+
 			if created {
 				Expect(len(response.GetContainers())).To(BeEquivalentTo(1))
 				Expect(response.GetContainers()[0].GetState()).To(Equal(expectedState))

@@ -27,6 +27,7 @@ var _ = t.Describe("Listen", func() {
 		It("should fail when already bound", func() {
 			// Given
 			defer os.Remove("address")
+
 			listener, err := server.Listen("unix", "address")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(listener).NotTo(BeNil())

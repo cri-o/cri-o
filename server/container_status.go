@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	json "github.com/goccy/go-json"
@@ -37,16 +36,9 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	containerID := c.ID()
 	imageRef := c.CRIContainer().GetImageRef()
 
-	// For the image field: prefer tags (friendly names) over digests.
-	// After digest reordering in pullImageImplementation, SomeNameOfTheImage() may return
-	// a platform-specific digest instead of the user-requested manifest list digest.
-	// So default to imageRef (user-requested), but prefer SomeNameOfTheImage if it's a tag.
-	imageNameInSpec := imageRef
-
+	imageNameInSpec := ""
 	if someNameOfTheImage := c.SomeNameOfTheImage(); someNameOfTheImage != nil {
-		if someNameStr := someNameOfTheImage.StringForOutOfProcessConsumptionOnly(); !strings.Contains(someNameStr, "@") {
-			imageNameInSpec = someNameStr
-		}
+		imageNameInSpec = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
 	}
 
 	imageID := ""

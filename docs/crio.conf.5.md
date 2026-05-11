@@ -103,6 +103,12 @@ Path to the key file used to serve the encrypted stream. This file can change an
 **stream_tls_ca**=""
 Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
+**tls_min_version**="VersionTLS12"
+Minimum TLS version for streaming and metrics servers. Valid values are "VersionTLS12" and "VersionTLS13". Default is "VersionTLS12".
+
+**tls_cipher_suites**=[]
+List of cipher suites for TLS 1.2. If omitted, the default Go cipher suites will be used. This has no effect on TLS 1.3 as Go manages cipher suites automatically.
+
 **grpc_max_send_msg_size**=83886080
 Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 80 _ 1024 _ 1024.
 
@@ -125,6 +131,9 @@ If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 **decryption_keys_path**="/etc/crio/keys/"
 Path where the keys required for image decryption are located
 
+**additional_artifact_stores**=[]
+A list of additional read-only OCI artifact store paths (experimental, subject to change). CRI-O expects an "artifacts/" subdirectory within each configured path. All entries must be absolute paths. Artifacts in these stores take priority over the main store. Because these stores are read-only, CRI-O cannot remove artifacts from them. If a tag is re-pointed on the registry, the stale local copy in a read-only store will continue to be used; the artifact must be removed from the read-only store directly on the filesystem to pick up the new version.
+
 **conmon**=""
 Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty.
 This option is currently deprecated, and will be replaced with RuntimeHandler.MonitorPath.
@@ -140,6 +149,9 @@ This option is currently deprecated, and will be replaced with RuntimeHandler.Mo
 **default_env**=[]
 Additional environment variables to set for all the containers. These are overridden if set in the container image spec or in
 the container runtime configuration.
+
+**min_injected_gomaxprocs**=0
+Enables GOMAXPROCS injection for burstable and best-effort pod containers. This value acts as a minimum floor. For burstable pods with a CPU request, GOMAXPROCS is auto-calculated from the request; the calculated value is only used if it exceeds this floor. For best-effort pods (no CPU request), this value is used directly. Guaranteed and workload-partitioned pods are skipped. Set to 0 to disable (default).
 
 **selinux**=false
 If true, SELinux will be used for pod separation on the host.

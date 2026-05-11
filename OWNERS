@@ -10,6 +10,7 @@ filters:
     - runcom
     - rhatdan
     - vrothberg
+    - kolyshkin
   # go.{mod,sum}, vendor/* files related to go dependencies,
   # and should be reviewed by the cri-o reviewers
   "go\\.(mod|sum)$":

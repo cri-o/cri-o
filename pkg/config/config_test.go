@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"context"
+	"crypto/tls"
 	"os"
 	"os/exec"
 	"path"
@@ -540,7 +541,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// Given
-			cgm, _ := cgmgr.SetCgroupManager("cgroupfs") //nolint:errcheck
+			cgm, _ := cgmgr.SetCgroupManager("cgroupfs") //nolint:errcheck // error not relevant in test setup
 			runtimeConfig := *config.DefaultRuntimeConfig(cgm)
 
 			// When
@@ -618,6 +619,7 @@ var _ = t.Describe("Config", func() {
 
 			// Given
 			cmdrunner.ResetPrependedCmd()
+
 			sut.InfraCtrCPUSet = "0"
 
 			// When
@@ -631,6 +633,7 @@ var _ = t.Describe("Config", func() {
 		It("should not configure a taskset prefix for cmdrunner for an empty InfraCtrCPUSet", func() {
 			// Given
 			cmdrunner.ResetPrependedCmd()
+
 			sut.InfraCtrCPUSet = ""
 
 			// When
@@ -943,6 +946,7 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
+
 			for _, dir := range []string{signaturePolicyDir, namespacedAuthDir} {
 				_, err := os.Stat(dir)
 				Expect(err).NotTo(HaveOccurred())
@@ -1078,7 +1082,9 @@ var _ = t.Describe("Config", func() {
 			file, err := os.Create(tmpfile)
 			Expect(err).ToNot(HaveOccurred())
 			file.Close()
+
 			defer os.Remove(tmpfile)
+
 			sut.NetworkDir = tmpfile
 			sut.PluginDirs = []string{}
 
@@ -1299,6 +1305,7 @@ var _ = t.Describe("Config", func() {
 					]`,
 				), 0),
 			).To(Succeed())
+
 			for _, tc := range []struct {
 				opts   []string
 				expect []string
@@ -1942,6 +1949,93 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	// TLSMinVersion configuration tests
+	t.Describe("TLSMinVersion", func() {
+		It("should validate VersionTLS12 in APIConfig", func() {
+			sut.TLSMinVersion = "VersionTLS12"
+			Expect(sut.APIConfig.Validate(false)).To(Succeed())
+			Expect(sut.APIConfig.GetTLSMinVersion()).To(Equal(uint16(tls.VersionTLS12)))
+		})
+
+		It("should validate VersionTLS13 in APIConfig", func() {
+			sut.TLSMinVersion = "VersionTLS13"
+			Expect(sut.APIConfig.Validate(false)).To(Succeed())
+			Expect(sut.APIConfig.GetTLSMinVersion()).To(Equal(uint16(tls.VersionTLS13)))
+		})
+
+		It("should fail validation for invalid version string", func() {
+			sut.TLSMinVersion = "InvalidTLSVersion"
+			Expect(sut.APIConfig.Validate(false)).ToNot(Succeed())
+		})
+
+		It("should fail validation for deprecated TLS 1.0", func() {
+			sut.TLSMinVersion = "VersionTLS10"
+			Expect(sut.APIConfig.Validate(false)).ToNot(Succeed())
+		})
+
+		It("should fail validation for deprecated TLS 1.1", func() {
+			sut.TLSMinVersion = "VersionTLS11"
+			Expect(sut.APIConfig.Validate(false)).ToNot(Succeed())
+		})
+
+		It("should default to TLS 1.2 when empty", func() {
+			sut.TLSMinVersion = ""
+			Expect(sut.APIConfig.Validate(false)).To(Succeed())
+			Expect(sut.APIConfig.GetTLSMinVersion()).To(Equal(uint16(tls.VersionTLS12)))
+		})
+	})
+
+	// TLSCipherSuites configuration tests
+	t.Describe("TLSCipherSuites", func() {
+		It("should return nil when no cipher suites configured", func() {
+			sut.TLSCipherSuites = nil
+			Expect(sut.APIConfig.Validate(false)).To(Succeed())
+			Expect(sut.APIConfig.GetTLSCipherSuites()).To(BeNil())
+		})
+
+		It("should parse valid cipher suite names after Validate", func() {
+			sut.TLSMinVersion = "VersionTLS12"
+			sut.TLSCipherSuites = []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}
+			Expect(sut.APIConfig.Validate(false)).To(Succeed())
+			Expect(sut.APIConfig.GetTLSCipherSuites()).To(HaveLen(1))
+		})
+
+		It("should fail validation for unknown cipher suite", func() {
+			sut.TLSMinVersion = "VersionTLS12"
+			sut.TLSCipherSuites = []string{"UNKNOWN_CIPHER"}
+			Expect(sut.APIConfig.Validate(false)).ToNot(Succeed())
+		})
+	})
+
+	// TLSMinVersion and TLSCipherSuites together tests
+	t.Describe("TLSMinVersion and CipherSuites together", func() {
+		It("should accept both minVersion and cipher suites for TLS 1.2", func() {
+			sut.TLSMinVersion = "VersionTLS12"
+			sut.TLSCipherSuites = []string{
+				"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+				"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+			}
+			Expect(sut.APIConfig.Validate(false)).To(Succeed())
+			Expect(sut.APIConfig.GetTLSCipherSuites()).To(HaveLen(2))
+		})
+
+		It("should ignore cipher suites when TLS 1.3 is set", func() {
+			sut.TLSMinVersion = "VersionTLS13"
+			sut.TLSCipherSuites = []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}
+			Expect(sut.APIConfig.Validate(false)).To(Succeed())
+			// GetTLSCipherSuites returns nil for TLS 1.3
+			Expect(sut.APIConfig.GetTLSCipherSuites()).To(BeNil())
+		})
+
+		It("should skip cipher suite validation when TLS 1.3 is set", func() {
+			sut.TLSMinVersion = "VersionTLS13"
+			// Invalid cipher suite should not cause validation error with TLS 1.3
+			sut.TLSCipherSuites = []string{"INVALID_CIPHER_SUITE"}
+			Expect(sut.APIConfig.Validate(false)).To(Succeed())
+			Expect(sut.APIConfig.GetTLSCipherSuites()).To(BeNil())
 		})
 	})
 })

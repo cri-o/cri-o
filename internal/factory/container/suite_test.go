@@ -32,6 +32,7 @@ var _ = AfterSuite(func() {
 
 var _ = BeforeEach(func() {
 	var err error
+
 	sut, err = container.New()
 	Expect(err).ToNot(HaveOccurred())
 })

@@ -414,7 +414,7 @@ func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
 	if slices.Contains(image.MappedTopLayers, layerID) {
 		// if the layer is used by other containers, DeleteLayer
 		// will fail.
-		store.DeleteLayer(layerID) //nolint: errcheck
+		store.DeleteLayer(layerID) //nolint:errcheck // best-effort cleanup, failure is expected if layer is in use
 
 		return
 	}

@@ -24,6 +24,7 @@ var (
 var _ = BeforeSuite(func() {
 	t = NewTestFramework(NilFunc, NilFunc)
 	t.Setup()
+
 	mockCtrl = gomock.NewController(GinkgoT())
 })
 

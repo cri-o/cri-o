@@ -1,9 +1,9 @@
 { stdenv
 , pkgs
+, gitCommit ? "unknown"
 }:
-with pkgs; buildGo125Module /* use go 1.25 */ {
+with pkgs; buildGo126Module /* use go 1.26.2 */ {
   name = "cri-o";
-  # Use Pure to avoid exuding the .git directory
   src = nix-gitignore.gitignoreSourcePure [ ../.gitignore ] ./..;
   vendorHash = null;
   doCheck = false;
@@ -37,6 +37,7 @@ with pkgs; buildGo125Module /* use go 1.25 */ {
     export CGO_ENABLED=1
     export CGO_LDFLAGS='-lgpgme -lassuan -lgpg-error'
     export SOURCE_DATE_EPOCH=0
+    export BUILD_COMMIT="${gitCommit}"
   '';
   buildPhase = ''
     make binaries

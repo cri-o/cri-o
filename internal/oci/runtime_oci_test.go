@@ -11,9 +11,12 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kclock "k8s.io/utils/clock"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	runnerMock "github.com/cri-o/cri-o/test/mocks/cmdrunner"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
@@ -35,6 +38,7 @@ var _ = t.Describe("Oci", func() {
 			runtime      oci.RuntimeOCI
 			bm           kwait.BackoffManager
 		)
+
 		BeforeEach(func() {
 			sleepProcess = exec.Command("sleep", "100000")
 			Expect(sleepProcess.Start()).To(Succeed())
@@ -52,24 +56,26 @@ var _ = t.Describe("Oci", func() {
 
 			cfg, err := libconfig.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
+
 			cfg.ContainerAttachSocketDir = t.MustTempDir("attach-socket")
 			r, err := oci.New(cfg)
 			Expect(err).ToNot(HaveOccurred())
+
 			runtime = oci.NewRuntimeOCI(r, &libconfig.RuntimeHandler{})
-			bm = kwait.NewExponentialBackoffManager( //nolint:staticcheck
-				1.0, // Initial backoff.
-				10,  // Maximum backoff.
-				10,  // Reset backoff.
+			bm = kwait.NewExponentialBackoffManager( //nolint:staticcheck // deprecated but still functional
+				1,   // Initial backoff (1 ns — intentionally tiny for test speed).
+				10,  // Maximum backoff (10 ns).
+				10,  // Reset duration (10 ns).
 				2.0, // Backoff factor.
 				0.0, // Backoff jitter.
-				kclock.RealClock{},
+				&kclock.RealClock{},
 			)
 		})
 		AfterEach(func() {
-			//nolint:errcheck
+			//nolint:errcheck // best-effort cleanup in test teardown
 			oci.Kill(sleepProcess.Process.Pid)
 			// make sure the entry in the process table is cleaned up
-			//nolint:errcheck
+			//nolint:errcheck // best-effort cleanup in test teardown
 			sleepProcess.Wait()
 			cmdrunner.ResetPrependedCmd()
 		})
@@ -89,7 +95,9 @@ var _ = t.Describe("Oci", func() {
 
 			// When
 			sut.SetAsStopping()
+
 			go runtime.StopLoopForContainer(context.Background(), sut, bm)
+
 			stoppedChan := stopTimeoutWithChannel(context.Background(), sut, shortTimeout)
 			<-stoppedChan
 
@@ -110,6 +118,7 @@ var _ = t.Describe("Oci", func() {
 				),
 			)
 			sut.SetAsStopping()
+
 			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 
 			// Then
@@ -119,6 +128,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
 			sut.SetAsStopping()
+
 			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 
 			// Then
@@ -128,6 +138,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
 			sut.SetAsStopping()
+
 			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 			go sut.WaitOnStopTimeout(context.Background(), longTimeout)
 
@@ -139,6 +150,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
 			sut.SetAsStopping()
+
 			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 
 			// When
@@ -152,6 +164,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
 			sut.SetAsStopping()
+
 			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 			// very long timeout
 			stoppedChan := stopTimeoutWithChannel(context.Background(), sut, longTimeout*10)
@@ -159,8 +172,10 @@ var _ = t.Describe("Oci", func() {
 			// When
 			for range 10 {
 				go sut.WaitOnStopTimeout(context.Background(), int64(rand.Intn(100)+20))
+
 				time.Sleep(time.Second)
 			}
+
 			sut.WaitOnStopTimeout(context.Background(), mediumTimeout)
 
 			// Then
@@ -217,6 +232,118 @@ var _ = t.Describe("Oci", func() {
 				Expect(found).To(Equal(test.expected))
 			})
 		}
+	})
+})
+
+var _ = t.Describe("UpdateContainerStatus", func() {
+	It("should wait for exit file when runtime state fails for fast-exiting container", func() {
+		// Set up a container with a temp directory for exit file.
+		containerDir := t.MustTempDir("container-dir")
+
+		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image-name:latest")
+		Expect(err).ToNot(HaveOccurred())
+		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+		Expect(err).ToNot(HaveOccurred())
+		sut, err := oci.NewContainer("test-fast-exit", "name", "bundlePath", "logPath",
+			map[string]string{}, map[string]string{}, map[string]string{},
+			"image", &imageName, &imageID, "", &types.ContainerMetadata{}, "sandbox",
+			false, false, false, "", containerDir, time.Now(), "")
+		Expect(err).ToNot(HaveOccurred())
+
+		state := &oci.ContainerState{}
+		state.Pid = 1
+		Expect(state.SetInitPid(1)).To(Succeed())
+		sut.SetState(state)
+
+		// Mock the runtime command to always fail (simulating container
+		// already cleaned up by the OCI runtime).
+		runner := runnerMock.NewMockCommandRunner(mockCtrl)
+		cmdrunner.SetMocked(runner)
+
+		defer cmdrunner.ResetPrependedCmd()
+
+		runner.EXPECT().Command(gomock.Any(), gomock.Any()).Return(
+			exec.Command("/bin/false"),
+		).AnyTimes()
+
+		// Set up the runtime.
+		cfg, err := libconfig.DefaultConfig()
+		Expect(err).ToNot(HaveOccurred())
+
+		cfg.ContainerAttachSocketDir = t.MustTempDir("attach-socket")
+		r, err := oci.New(cfg)
+		Expect(err).ToNot(HaveOccurred())
+
+		runtime := oci.NewRuntimeOCI(r, &libconfig.RuntimeHandler{})
+
+		// Write the exit file after a short delay, simulating conmon
+		// writing it after the first read attempt fails.
+		go func() {
+			time.Sleep(800 * time.Millisecond)
+			Expect(os.WriteFile(
+				containerDir+"/exit", []byte("0"), 0o644,
+			)).To(Succeed())
+		}()
+
+		// Call UpdateContainerStatus — without the fix this would
+		// default to exit code 255 immediately; with the fix it waits
+		// for the exit file and reads exit code 0.
+		Expect(runtime.UpdateContainerStatus(
+			context.Background(), sut,
+		)).To(Succeed())
+
+		Expect(sut.State().ExitCode).NotTo(BeNil())
+		Expect(*sut.State().ExitCode).To(Equal(int32(0)))
+		Expect(string(sut.State().Status)).To(Equal(oci.ContainerStateStopped))
+	})
+
+	It("should default to exit code 255 when exit file never appears", func() {
+		// Set up a container with a temp directory — no exit file will be created.
+		containerDir := t.MustTempDir("container-dir-no-exit")
+
+		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image-name:latest")
+		Expect(err).ToNot(HaveOccurred())
+		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+		Expect(err).ToNot(HaveOccurred())
+		sut, err := oci.NewContainer("test-no-exit", "name", "bundlePath", "logPath",
+			map[string]string{}, map[string]string{}, map[string]string{},
+			"image", &imageName, &imageID, "", &types.ContainerMetadata{}, "sandbox",
+			false, false, false, "", containerDir, time.Now(), "")
+		Expect(err).ToNot(HaveOccurred())
+
+		state := &oci.ContainerState{}
+		state.Pid = 1
+		Expect(state.SetInitPid(1)).To(Succeed())
+		sut.SetState(state)
+
+		// Mock the runtime command to always fail.
+		runner := runnerMock.NewMockCommandRunner(mockCtrl)
+		cmdrunner.SetMocked(runner)
+
+		defer cmdrunner.ResetPrependedCmd()
+
+		runner.EXPECT().Command(gomock.Any(), gomock.Any()).Return(
+			exec.Command("/bin/false"),
+		).AnyTimes()
+
+		// Set up the runtime.
+		cfg, err := libconfig.DefaultConfig()
+		Expect(err).ToNot(HaveOccurred())
+
+		cfg.ContainerAttachSocketDir = t.MustTempDir("attach-socket-2")
+		r, err := oci.New(cfg)
+		Expect(err).ToNot(HaveOccurred())
+
+		runtime := oci.NewRuntimeOCI(r, &libconfig.RuntimeHandler{})
+
+		// Call UpdateContainerStatus — exit file never appears, should
+		// fall back to 255 after exhausting retries.
+		Expect(runtime.UpdateContainerStatus(
+			context.Background(), sut,
+		)).To(Succeed())
+
+		Expect(sut.State().ExitCode).NotTo(BeNil())
+		Expect(*sut.State().ExitCode).To(Equal(int32(255)))
 	})
 })
 

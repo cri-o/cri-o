@@ -12,7 +12,6 @@ import (
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/utils"
 )
 
 // The actual test suite.
@@ -34,6 +33,7 @@ var _ = t.Describe("ContainerStatus", func() {
 			if checkpointingEnabled {
 				serverConfig.SetCheckpointRestore(true)
 			}
+
 			setupSUT()
 			addContainerAndSandbox()
 			testContainer.AddVolume(oci.ContainerVolume{})
@@ -57,8 +57,9 @@ var _ = t.Describe("ContainerStatus", func() {
 			Expect(len(response.GetStatus().GetMounts())).To(BeEquivalentTo(1))
 			Expect(response.GetStatus().GetState()).To(Equal(expectedState))
 			Expect(response.GetInfo()["info"]).To(ContainSubstring(`"ociVersion":"1.0.0"`))
+
 			if checkpointingEnabled {
-				Expect(response).To(ContainSubstring(`checkpointedAt`))
+				Expect(response.GetInfo()["info"]).To(ContainSubstring(`checkpointedAt`))
 			}
 		},
 			Entry("Created", &oci.ContainerState{
@@ -71,11 +72,11 @@ var _ = t.Describe("ContainerStatus", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			}, types.ContainerState_CONTAINER_RUNNING, true),
 			Entry("Stopped: ExitCode 0", &oci.ContainerState{
-				ExitCode: utils.Int32Ptr(0),
+				ExitCode: new(int32(0)),
 				State:    specs.State{Status: oci.ContainerStateStopped},
 			}, types.ContainerState_CONTAINER_EXITED, false),
 			Entry("Stopped: ExitCode -1", &oci.ContainerState{
-				ExitCode: utils.Int32Ptr(-1),
+				ExitCode: new(int32(-1)),
 				State:    specs.State{Status: oci.ContainerStateStopped},
 			}, types.ContainerState_CONTAINER_EXITED, false),
 			Entry("Stopped: OOMKilled", &oci.ContainerState{

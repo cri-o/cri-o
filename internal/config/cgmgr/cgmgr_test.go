@@ -37,6 +37,7 @@ var _ = t.Describe("Cgmgr", func() {
 			// Given
 			// When
 			var err error
+
 			sut, err = cgmgr.SetCgroupManager(cgroupfsManager)
 
 			// Then
@@ -47,6 +48,7 @@ var _ = t.Describe("Cgmgr", func() {
 			// Given
 			// When
 			var err error
+
 			sut, err = cgmgr.SetCgroupManager(systemdManager)
 
 			// Then
@@ -57,6 +59,7 @@ var _ = t.Describe("Cgmgr", func() {
 			// Given
 			// When
 			var err error
+
 			sut, err = cgmgr.SetCgroupManager("invalid")
 
 			// Then
@@ -76,6 +79,7 @@ var _ = t.Describe("Cgmgr", func() {
 		It("should be able to be set to cgroupfs", func() {
 			// Given
 			var err error
+
 			sut, err = cgmgr.SetCgroupManager(cgroupfsManager)
 			Expect(sut).To(Not(BeNil()))
 			Expect(err).ToNot(HaveOccurred())
@@ -98,6 +102,7 @@ var _ = t.Describe("Cgmgr", func() {
 		It("should be able to be set to cgroupfs", func() {
 			// Given
 			var err error
+
 			sut, err = cgmgr.SetCgroupManager(cgroupfsManager)
 			Expect(sut).To(Not(BeNil()))
 			Expect(err).ToNot(HaveOccurred())

@@ -5,7 +5,8 @@ GO_ARCH=$(shell $(GO) env GOARCH)
 GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_TEST ?= $(GO) test $(TRIMPATH)
 GO_RUN ?= $(GO) run
-NIX_IMAGE ?= nixos/nix:2.31.2
+NIX_IMAGE ?= nixos/nix:2.33.3
+NIX_FLAKE_FLAGS ?= --extra-experimental-features 'nix-command flakes'
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
@@ -49,11 +50,11 @@ GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
-GOLANGCI_LINT_VERSION := v2.6.2
+GOLANGCI_LINT_VERSION := v2.10.1
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
 GOSEC := ${BUILD_BIN_PATH}/gosec
-GOSEC_VERSION := 2.22.8
+GOSEC_VERSION := 2.24.7
 MDTOC := ${BUILD_BIN_PATH}/mdtoc
 MDTOC_VERSION := v1.4.0
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
@@ -95,8 +96,11 @@ else
     BUILD_DATE ?= $(shell date -u "$(DATE_FMT)")
 endif
 
+BUILD_COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || true)
+
 BASE_LDFLAGS = ${SHRINKFLAGS} \
-	-X ${PROJECT}/internal/version.buildDate=${BUILD_DATE}
+	-X ${PROJECT}/internal/version.buildDate=${BUILD_DATE} \
+	-X ${PROJECT}/internal/version.buildCommit=${BUILD_COMMIT}
 
 GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
@@ -184,6 +188,7 @@ test-binaries: \
 	test/copyimg/copyimg \
 	test/checkseccomp/checkseccomp \
 	test/checkcriu/checkcriu \
+	test/updateunified/updateunified \
 	test/nri/nri.test
 
 bin/pinns: ## Build pinns.
@@ -198,6 +203,9 @@ test/checkseccomp/checkseccomp: $(GO_FILES) ## Build the checkseccomp test binar
 test/checkcriu/checkcriu: $(GO_FILES) ## Build the checkcriu test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkcriu
 
+test/updateunified/updateunified: $(GO_FILES) ## Build the updateunified test binary.
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/updateunified
+
 test/nri/nri.test: $(wildcard test/nri/*.go) ## Build the NRI test binary.
 	$(GO_TEST) $(GCFLAGS) $(GO_LDFLAGS) --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
 
@@ -209,7 +217,7 @@ build-static: ## Build the static binaries.
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /:/mnt \
 		$(NIX_IMAGE) cp -rfT /nix /mnt/nix
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} \
-		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/ --extra-experimental-features nix-command
+		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build $(NIX_FLAKE_FLAGS)
 	mkdir -p bin
 	cp -r result/bin bin/static
 
@@ -381,11 +389,15 @@ verify-dependencies: ${ZEITGEIST} ## Verify the local dependencies.
 
 .PHONY: verify-gosec
 verify-gosec: ${GOSEC} ## Run gosec on the project.
-	${BUILD_BIN_PATH}/gosec -exclude-dir=test -exclude-dir=_output -severity high -confidence high -exclude G304,G108 ./...
+	${BUILD_BIN_PATH}/gosec -exclude-dir=test -exclude-dir=_output -severity high -confidence high -exclude G304,G108,G703 ./...
 
 .PHONY: verify-govulncheck
 verify-govulncheck: ## Check common vulnerabilities.
 	./hack/govulncheck.sh
+
+.PHONY: vex
+vex: ## Generate an OpenVEX report.
+	VEX_ONLY=true ./hack/govulncheck.sh
 
 .PHONY: verify-mdtoc
 verify-mdtoc: ${MDTOC} ## Verify the table of contents for the docs.
@@ -411,13 +423,13 @@ clean: ## Clean the repository.
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -f test/checkcriu/checkcriu
+	rm -f test/updateunified/updateunified
 	rm -f test/nri/nri.test
 	rm -rf ${BUILD_PATH}
 
 .PHONY: nixpkgs
 nixpkgs: ## Update the NIX package dependencies.
-	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -- \
-		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
+	nix $(NIX_FLAKE_FLAGS) flake update
 
 .PHONY: vendor
 vendor: export GOSUMDB :=
@@ -448,6 +460,7 @@ mockgen: \
 	mock-ocicni-types \
 	mock-seccompociartifact-types \
 	mock-ociartifact-types \
+	mock-ociartifact-datastore-types \
 	mock-systemd \
 	mock-cgmgr
 
@@ -527,6 +540,13 @@ mock-ociartifact-types: ${MOCKGEN}
 		-package ociartifactmock \
 		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
 		github.com/cri-o/cri-o/internal/ociartifact Impl,LibartifactStore
+
+.PHONY: mock-ociartifact-datastore-types
+mock-ociartifact-datastore-types: ${MOCKGEN}
+	${BUILD_BIN_PATH}/mockgen \
+		-package datastoremock \
+		-destination ${MOCK_PATH}/ociartifact/datastore/datastore.go \
+		github.com/cri-o/cri-o/internal/ociartifact/datastore Impl
 
 .PHONY: mock-systemd
 mock-systemd: ${MOCKGEN}

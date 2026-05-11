@@ -44,6 +44,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
+
 			const (
 				ipv4 = "10.0.0.2"
 				ipv6 = "ff02::1"

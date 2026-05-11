@@ -46,7 +46,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		}
 
 		if err := s.ContainerServer.StorageImageServer().DeleteImage(s.config.SystemContext, *id); err != nil {
-			if errors.Is(err, storagetypes.ErrImageUnknown) {
+			if errors.Is(err, storagetypes.ErrImageUnknown) || errors.Is(err, storagetypes.ErrNotAnImage) {
 				// The RemoveImage RPC is idempotent, and must not return an
 				// error if the image has already been removed. Ref:
 				// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
@@ -96,6 +96,10 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 	}
 
 	if !deleted && untagErr != nil {
+		if errors.Is(untagErr, storagetypes.ErrImageUnknown) || errors.Is(untagErr, storagetypes.ErrNotAnImage) {
+			return nil
+		}
+
 		return untagErr
 	}
 

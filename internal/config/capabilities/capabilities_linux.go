@@ -28,7 +28,7 @@ func Default() Capabilities {
 
 // Validate checks if the provided capabilities are available on the system.
 func (c Capabilities) Validate() error {
-	caps := Capabilities{}
+	caps := make(Capabilities, 0, len(c))
 	for _, cap := range c {
 		caps = append(caps, "CAP_"+strings.ToUpper(cap))
 	}

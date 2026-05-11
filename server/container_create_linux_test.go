@@ -286,7 +286,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 		MountLabel: "",
 	}
 
-	//nolint: dogsled
+	//nolint:dogsled // test only needs the error return
 	_, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, true, false, false)
 	if err != nil {
 		t.Error(err)
@@ -327,7 +327,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 
 	var hasCgroupRO bool
 
-	//nolint: dogsled
+	//nolint:dogsled // test only needs the error return
 	_, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, false, false)
 	if err != nil {
 		t.Error(err)
@@ -384,13 +384,13 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 		MountLabel: "",
 	}
 
-	//nolint: dogsled
+	//nolint:dogsled // test only needs the error return
 	_, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, false, false)
 	if err == nil {
 		t.Errorf("Should have failed to create id mapped mount with no id map support")
 	}
 
-	//nolint: dogsled
+	//nolint:dogsled // test only needs the error return
 	_, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, true, false)
 	if err != nil {
 		t.Errorf("%v", err)
