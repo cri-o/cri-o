@@ -75,6 +75,18 @@ func TestMergeEnvs(t *testing.T) {
 			},
 			expected: []string{"VAR2=2", "VAR1=1"},
 		},
+		{
+			name: "valid envs with empty values",
+			imageConfig: &v1.Image{
+				Config: v1.ImageConfig{
+					Env: []string{"VAR1=", "VAR2=2"},
+				},
+			},
+			kubeEnvs: []*types.KeyValue{
+				{Key: "VAR3", Value: ""},
+			},
+			expected: []string{"VAR3=", "VAR1=", "VAR2=2"},
+		},
 	}
 
 	for _, tc := range cases {
