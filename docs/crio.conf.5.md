@@ -159,7 +159,6 @@ This option is deprecated, and be interpreted from whether SELinux is enabled on
 
 **seccomp_profile**=""
 Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the internal default seccomp profile will be used.
-This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
 
 **privileged_seccomp_profile**=""
 Enable a seccomp profile for privileged containers from the local path.
