@@ -152,6 +152,12 @@ linters:
     presets:
       - comments
       - std-error-handling
+    rules:
+      # TODO: remove once https://github.com/leighmcculloch/gocheckcompilerdirectives/issues/7 is fixed.
+      - text: "compiler directive unrecognized: //go:fix"
+        linters:
+          - gocheckcompilerdirectives
+
 formatters:
   enable:
     - gci

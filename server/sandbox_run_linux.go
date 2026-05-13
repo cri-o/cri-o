@@ -16,6 +16,7 @@ import (
 	json "github.com/goccy/go-json"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/idtools"
@@ -1298,7 +1299,7 @@ func (s *Server) setupInfraContainer(ctx context.Context, sb *libsandbox.Sandbox
 		// If using a kernel separated container runtime, the process label should be set to container_kvm_t
 		// Keep in mind that kata does *not* apply any process label to containers within the VM
 		if podIsKernelSeparated {
-			processLabel, err = KVMLabel(processLabel)
+			processLabel, err = selinux.SetProcessKind(processLabel, selinux.ProcessKindKVM)
 			if err != nil {
 				return nil, "", err
 			}
