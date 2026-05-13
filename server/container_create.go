@@ -18,6 +18,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 	"go.podman.io/common/pkg/subscriptions"
 	"go.podman.io/common/pkg/timezone"
 	cstorage "go.podman.io/storage"
@@ -1213,7 +1214,7 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 	// the container and the process label is unset, the init selinux label is required
 	// to run the container.
 	if ctr.WillRunSystemd() && processLabel == "" {
-		processLabel, err = InitLabel(processLabel)
+		processLabel, err = selinux.SetProcessKind(processLabel, selinux.ProcessKindInit)
 		if err != nil {
 			return "", "", false, false, fmt.Errorf("failed to get init label: %w", err)
 		}
