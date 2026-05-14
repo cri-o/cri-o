@@ -1,151 +1,129 @@
-//go:build seccomp && linux && cgo
+//go:build seccomp && linux && cgo && test
 
-package seccomp
+package seccomp_test
 
 import (
 	"context"
 	"errors"
-	"testing"
-	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 	"golang.org/x/sys/unix"
+
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 )
 
-var errStopHandlerTest = errors.New("stop handler test")
+var errReceiveAgain = errors.New("receive again")
 
-func TestHandlerStopsAfterFirstNotificationInStopMode(t *testing.T) {
-	restore := stubNotifierCalls(t, []string{"getpid"}, nil)
-	defer restore()
+var _ = t.Describe("Notifier", func() {
+	t.Describe("handler", func() {
+		It("should keep polling notifications until the seccomp fd closes", func() {
+			// Given
+			msgChan := make(chan seccomp.Notification, 2)
+			notifReceive := stubNotifReceive("getpid", "getppid", unix.ENOENT)
 
-	msgChan := make(chan Notification, 1)
+			// When
+			seccomp.RunHandlerForTest(
+				context.Background(),
+				"ctr",
+				msgChan,
+				libseccomp.ScmpFd(-1),
+				notifReceive,
+				stubNotifIDValid,
+				stubNotifRespond,
+			)
 
-	handler(context.Background(), "ctr", msgChan, libseccomp.ScmpFd(-1), true)
-
-	if got := len(msgChan); got != 1 {
-		t.Fatalf("expected 1 notification, got %d", got)
-	}
-
-	notification := <-msgChan
-	if notification.Syscall() != "getpid" {
-		t.Fatalf("expected first syscall to be reported, got %q", notification.Syscall())
-	}
-}
-
-func TestHandlerKeepsPollingInLogMode(t *testing.T) {
-	restore := stubNotifierCalls(t, []string{"getpid", "getppid"}, nil)
-	defer restore()
-
-	msgChan := make(chan Notification, 2)
-
-	defer func() {
-		if recovered := recover(); recovered != errStopHandlerTest {
-			t.Fatalf("expected sentinel panic to stop test handler, got %v", recovered)
-		}
-
-		if got := len(msgChan); got != 2 {
-			t.Fatalf("expected 2 notifications, got %d", got)
-		}
-
-		first := <-msgChan
-		second := <-msgChan
-
-		if first.Syscall() != "getpid" {
-			t.Fatalf("expected first syscall to be getpid, got %q", first.Syscall())
-		}
-
-		if second.Syscall() != "getppid" {
-			t.Fatalf("expected second syscall to be getppid, got %q", second.Syscall())
-		}
-	}()
-
-	handler(context.Background(), "ctr", msgChan, libseccomp.ScmpFd(-1), false)
-}
-
-func TestHandlerStopsOnClosedFdError(t *testing.T) {
-	for _, tc := range []struct {
-		name string
-		err  error
-	}{
-		{name: "ebadf", err: unix.EBADF},
-		{name: "ecanceled", err: unix.ECANCELED},
-		{name: "enoent", err: unix.ENOENT},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			restore := stubNotifierCalls(t, []string{"getpid"}, tc.err)
-			defer restore()
-
-			msgChan := make(chan Notification, 1)
-			done := make(chan struct{})
-
-			go func() {
-				handler(context.Background(), "ctr", msgChan, libseccomp.ScmpFd(-1), false)
-				close(done)
-			}()
-
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-				t.Fatal("handler did not exit after closed fd error")
-			}
-
-			if got := len(msgChan); got != 1 {
-				t.Fatalf("expected 1 notification before closed fd error, got %d", got)
-			}
-
-			notification := <-msgChan
-			if notification.Syscall() != "getpid" {
-				t.Fatalf("expected first syscall to be reported, got %q", notification.Syscall())
-			}
+			// Then
+			Expect(msgChan).To(HaveLen(2))
+			Expect((<-msgChan).Syscall()).To(Equal("getpid"))
+			Expect((<-msgChan).Syscall()).To(Equal("getppid"))
 		})
-	}
-}
 
-func stubNotifierCalls(t *testing.T, syscallNames []string, terminalErr error) func() {
-	t.Helper()
+		It("should continue polling after a transient receive error", func() {
+			// Given
+			msgChan := make(chan seccomp.Notification, 1)
+			notifReceive := stubNotifReceive(errReceiveAgain, "getpid", unix.ENOENT)
 
+			// When
+			seccomp.RunHandlerForTest(
+				context.Background(),
+				"ctr",
+				msgChan,
+				libseccomp.ScmpFd(-1),
+				notifReceive,
+				stubNotifIDValid,
+				stubNotifRespond,
+			)
+
+			// Then
+			Expect(msgChan).To(HaveLen(1))
+			Expect((<-msgChan).Syscall()).To(Equal("getpid"))
+		})
+
+		DescribeTable(
+			"should stop on a closed seccomp fd error",
+			func(terminalErr error) {
+				// Given
+				msgChan := make(chan seccomp.Notification, 1)
+				notifReceive := stubNotifReceive("getpid", terminalErr)
+
+				// When
+				seccomp.RunHandlerForTest(
+					context.Background(),
+					"ctr",
+					msgChan,
+					libseccomp.ScmpFd(-1),
+					notifReceive,
+					stubNotifIDValid,
+					stubNotifRespond,
+				)
+
+				// Then
+				Expect(msgChan).To(HaveLen(1))
+				Expect((<-msgChan).Syscall()).To(Equal("getpid"))
+			},
+			Entry("EBADF", unix.EBADF),
+			Entry("ECANCELED", unix.ECANCELED),
+			Entry("ENOENT", unix.ENOENT),
+		)
+	})
+})
+
+func stubNotifReceive(events ...any) seccomp.NotifReceiveFunc {
 	receiveCalls := 0
 
-	origReceive := notifReceive
-	origIDValid := notifIDValid
-	origRespond := notifRespond
+	return func(fd libseccomp.ScmpFd) (*libseccomp.ScmpNotifReq, error) {
+		Expect(receiveCalls).To(BeNumerically("<", len(events)))
 
-	notifReceive = func(fd libseccomp.ScmpFd) (*libseccomp.ScmpNotifReq, error) {
-		if receiveCalls >= len(syscallNames) {
-			if terminalErr != nil {
-				return nil, terminalErr
-			}
-
-			panic(errStopHandlerTest)
-		}
-
-		syscallName := syscallNames[receiveCalls]
+		event := events[receiveCalls]
 		receiveCalls++
 
-		syscallID, err := libseccomp.GetSyscallFromName(syscallName)
-		if err != nil {
-			t.Fatalf("resolve syscall %q: %v", syscallName, err)
+		switch value := event.(type) {
+		case string:
+			syscallID, err := libseccomp.GetSyscallFromName(value)
+			Expect(err).ToNot(HaveOccurred())
+
+			return &libseccomp.ScmpNotifReq{
+				ID: uint64(receiveCalls),
+				Data: libseccomp.ScmpNotifData{
+					Syscall: syscallID,
+				},
+			}, nil
+		case error:
+			return nil, value
+		default:
+			Fail("unsupported notifier receive event")
+
+			return nil, nil
 		}
-
-		return &libseccomp.ScmpNotifReq{
-			ID: uint64(receiveCalls),
-			Data: libseccomp.ScmpNotifData{
-				Syscall: syscallID,
-			},
-		}, nil
 	}
+}
 
-	notifIDValid = func(fd libseccomp.ScmpFd, id uint64) error {
-		return nil
-	}
+func stubNotifIDValid(fd libseccomp.ScmpFd, id uint64) error {
+	return nil
+}
 
-	notifRespond = func(fd libseccomp.ScmpFd, resp *libseccomp.ScmpNotifResp) error {
-		return nil
-	}
-
-	return func() {
-		notifReceive = origReceive
-		notifIDValid = origIDValid
-		notifRespond = origRespond
-	}
+func stubNotifRespond(fd libseccomp.ScmpFd, resp *libseccomp.ScmpNotifResp) error {
+	return nil
 }

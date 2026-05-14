@@ -92,12 +92,14 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 			syscall := msg.Syscall()
 			ctr := s.GetContainer(ctx, id)
 
-			if ctr != nil {
-				log.Warnf(ctx, "Seccomp blocked syscall '%s' in container %s (%s)",
-					syscall, id, oci.LabelsToDescription(ctr.Labels()))
-			} else {
-				log.Warnf(ctx, "Seccomp blocked syscall '%s' in container %s", syscall, id)
+			if ctr == nil {
+				log.Infof(ctx, "Seccomp blocked syscall '%s' in container %s", syscall, id)
+
+				continue
 			}
+
+			log.Infof(ctx, "Seccomp blocked syscall '%s' in container %s (%s)",
+				syscall, id, oci.LabelsToDescription(ctr.Labels()))
 
 			result, ok := s.seccompNotifiers.Load(id)
 			if !ok {

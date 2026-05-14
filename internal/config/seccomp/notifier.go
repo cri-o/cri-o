@@ -24,12 +24,6 @@ import (
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
-var (
-	notifReceive = libseccomp.NotifReceive
-	notifIDValid = libseccomp.NotifIDValid
-	notifRespond = libseccomp.NotifRespond
-)
-
 // Notifier wraps a seccomp notifier instance for a container.
 type Notifier struct {
 	listener       net.Listener
@@ -181,8 +175,6 @@ func NewNotifier(
 		return nil, fmt.Errorf("%s annotation not set on container", v2.SeccompNotifierAction)
 	}
 
-	stopAfterFirstNotification := action == v2.SeccompNotifierActionStop
-
 	go func() {
 		for {
 			conn, err := listener.Accept()
@@ -217,7 +209,7 @@ func NewNotifier(
 			}
 
 			log.Infof(ctx, "Received new seccomp fd: %v", newFd)
-			go handler(ctx, containerID, msgChan, libseccomp.ScmpFd(newFd), stopAfterFirstNotification)
+			go handler(ctx, containerID, msgChan, libseccomp.ScmpFd(newFd))
 		}
 	}()
 
@@ -226,8 +218,14 @@ func NewNotifier(
 		syscalls:       sync.Map{},
 		timer:          nil,
 		timeLock:       sync.Mutex{},
-		stopContainers: stopAfterFirstNotification,
+		stopContainers: action == v2.SeccompNotifierActionStop,
 	}, nil
+}
+
+type notifierHandler struct {
+	notifReceive func(libseccomp.ScmpFd) (*libseccomp.ScmpNotifReq, error)
+	notifIDValid func(libseccomp.ScmpFd, uint64) error
+	notifRespond func(libseccomp.ScmpFd, *libseccomp.ScmpNotifResp) error
 }
 
 func handler(
@@ -235,11 +233,23 @@ func handler(
 	containerID string,
 	msgChan chan Notification,
 	fd libseccomp.ScmpFd,
-	stopAfterFirstNotification bool,
+) {
+	notifierHandler{
+		notifReceive: libseccomp.NotifReceive,
+		notifIDValid: libseccomp.NotifIDValid,
+		notifRespond: libseccomp.NotifRespond,
+	}.handle(ctx, containerID, msgChan, fd)
+}
+
+func (h notifierHandler) handle(
+	ctx context.Context,
+	containerID string,
+	msgChan chan Notification,
+	fd libseccomp.ScmpFd,
 ) {
 	defer unix.Close(int(fd))
 	for {
-		req, err := notifReceive(fd)
+		req, err := h.notifReceive(fd)
 		if err != nil {
 			if errors.Is(err, unix.EBADF) || errors.Is(err, unix.ECANCELED) || errors.Is(err, unix.ENOENT) {
 				log.Infof(ctx, "Stopping notifier for container %s", containerID)
@@ -270,21 +280,14 @@ func handler(
 		}
 
 		// TOCTOU check
-		if err := notifIDValid(fd, req.ID); err != nil {
+		if err := h.notifIDValid(fd, req.ID); err != nil {
 			log.Errorf(ctx, "TOCTOU check failed: req.ID is no longer valid: %v", err)
 			continue
 		}
 
-		if err = notifRespond(fd, resp); err != nil {
+		if err = h.notifRespond(fd, resp); err != nil {
 			log.Errorf(ctx, "Unable to send notification response: %v", err)
 			continue
-		}
-
-		if stopAfterFirstNotification {
-			// Stop-mode only cares about the first blocked syscall because the
-			// container is terminated immediately afterwards. Log-mode must keep
-			// polling so later blocked syscalls are still reported.
-			break
 		}
 	}
 }
