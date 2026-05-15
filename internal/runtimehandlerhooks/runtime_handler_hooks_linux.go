@@ -60,8 +60,7 @@ func (hr *HooksRetriever) Get(runtimeName string, sandboxAnnotations map[string]
 
 	if hr.config.MinInjectedGOMAXPROCS > 0 {
 		hooks = append(hooks, &GomaxprocsHooks{
-			fallback:  hr.config.MinInjectedGOMAXPROCS,
-			workloads: hr.config.Workloads,
+			fallback: hr.config.MinInjectedGOMAXPROCS,
 		})
 	}
 
