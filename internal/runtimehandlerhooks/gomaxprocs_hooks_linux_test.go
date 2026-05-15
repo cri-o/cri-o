@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/opencontainers/runtime-tools/generate"
-
-	"github.com/cri-o/cri-o/pkg/config"
 )
 
 func TestMinInjectedGOMAXPROCS(t *testing.T) {
@@ -184,76 +182,4 @@ func TestCalculateGOMAXPROCS(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestIsWorkloadPartitioned(t *testing.T) {
-	workloads := config.Workloads{
-		"management": &config.WorkloadConfig{
-			ActivationAnnotation: "target.workload.openshift.io/management",
-			AnnotationPrefix:     "resources.workload.openshift.io",
-			Resources: &config.Resources{
-				CPUShares: 0,
-			},
-		},
-	}
-
-	cases := []struct {
-		name        string
-		annotations map[string]string
-		expected    bool
-	}{
-		{
-			name: "workload-partitioned pod",
-			annotations: map[string]string{
-				"target.workload.openshift.io/management": `{"effect":"PreferredDuringScheduling"}`,
-			},
-			expected: true,
-		},
-		{
-			name: "non-workload-partitioned pod",
-			annotations: map[string]string{
-				"some-other-annotation": "value",
-			},
-			expected: false,
-		},
-		{
-			name:        "no annotations",
-			annotations: map[string]string{},
-			expected:    false,
-		},
-		{
-			name:        "nil annotations",
-			annotations: nil,
-			expected:    false,
-		},
-		{
-			name: "workload annotation with other annotations",
-			annotations: map[string]string{
-				"target.workload.openshift.io/management": `{"effect":"PreferredDuringScheduling"}`,
-				"resources.workload.openshift.io/dns":     `{"cpushares":51}`,
-			},
-			expected: true,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := workloads.IsWorkloadPartitioned(tc.annotations)
-			if result != tc.expected {
-				t.Errorf("expected IsWorkloadPartitioned=%v, got %v", tc.expected, result)
-			}
-		})
-	}
-
-	t.Run("empty workloads config", func(t *testing.T) {
-		emptyWorkloads := config.Workloads{}
-
-		annotations := map[string]string{
-			"target.workload.openshift.io/management": `{"effect":"PreferredDuringScheduling"}`,
-		}
-
-		if emptyWorkloads.IsWorkloadPartitioned(annotations) {
-			t.Error("expected false when no workloads are configured")
-		}
-	})
 }
