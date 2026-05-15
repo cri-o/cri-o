@@ -73,8 +73,7 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 
 	if hr.config.MinInjectedGOMAXPROCS > 0 {
 		hooks = append(hooks, &GomaxprocsHooks{
-			fallback:  hr.config.MinInjectedGOMAXPROCS,
-			workloads: hr.config.Workloads,
+			fallback: hr.config.MinInjectedGOMAXPROCS,
 		})
 	}
 
