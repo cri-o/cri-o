@@ -11,7 +11,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/pkg/config"
 )
 
 // GomaxprocsHooks injects the GOMAXPROCS environment variable into containers
@@ -19,8 +18,7 @@ import (
 // for burstable pods with a CPU request, GOMAXPROCS is auto-calculated from
 // the request's CPU shares and only used if it exceeds the floor.
 type GomaxprocsHooks struct {
-	fallback  int64
-	workloads config.Workloads
+	fallback int64
 }
 
 func (g *GomaxprocsHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
@@ -31,13 +29,6 @@ func (g *GomaxprocsHooks) PreCreate(ctx context.Context, specgen *generate.Gener
 	// Skip if pod has the skip annotation.
 	if skipAnnotation, ok := annotations[crioann.SkipGoMaxProcsAnnotation]; ok && skipAnnotation == "true" {
 		log.Debugf(ctx, "Skipping GOMAXPROCS injection: %s annotation is set", crioann.SkipGoMaxProcsAnnotation)
-
-		return nil
-	}
-
-	// Skip workload-partitioned pods — their cpuset is managed by workload partitioning.
-	if g.workloads.IsWorkloadPartitioned(annotations) {
-		log.Debugf(ctx, "Skipping GOMAXPROCS injection: pod is workload-partitioned")
 
 		return nil
 	}

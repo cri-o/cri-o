@@ -178,33 +178,6 @@ function get_gomaxprocs() {
 	[[ $(get_gomaxprocs "$ctr_id") == "not-set" ]]
 }
 
-# Verify workload-partitioned pods are skipped.
-@test "min_injected_gomaxprocs skips workload-partitioned pods" {
-	cat << EOF > "$CRIO_CONFIG_DIR/01-gomaxprocs.conf"
-[crio.runtime]
-min_injected_gomaxprocs = 4
-
-[crio.runtime.workloads.management]
-activation_annotation = "target.workload.openshift.io/management"
-annotation_prefix = "resources.workload.openshift.io"
-[crio.runtime.workloads.management.resources]
-cpuset = "0-1"
-EOF
-	start_crio
-
-	jq '.metadata.name = "wp-sandbox"
-		| .linux.cgroup_parent = "kubepods-burstable-pod123.slice"
-		| .annotations["target.workload.openshift.io/management"] = "{\"effect\":\"PreferredDuringScheduling\"}"' \
-		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
-
-	jq '.linux.resources.cpu_shares = 2048
-		| .linux.resources.cpu_quota = 0' \
-		"$TESTDATA"/container_sleep.json > "$ctrconfig"
-
-	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	[[ $(get_gomaxprocs "$ctr_id") == "not-set" ]]
-}
-
 # Verify configurable floor value works.
 @test "min_injected_gomaxprocs respects custom floor value" {
 	enable_gomaxprocs 8
