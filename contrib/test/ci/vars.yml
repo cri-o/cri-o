@@ -43,6 +43,8 @@ ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
 
 # variables for testing with the kata-containers runtime
 kata_version: "3.6.0"
+podvm_image: "quay.io/confidential-containers/podvm-generic-ubuntu-amd64:v0.18.0"
+caa_image: "quay.io/confidential-containers/cloud-api-adaptor:v0.18.0-dev"
 
 kata_skip_files:
   - "apparmor.bats"
