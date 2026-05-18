@@ -10,7 +10,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v8 v8.2.0
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.31
-	github.com/containerd/containerd/api v1.10.0
+	github.com/containerd/containerd/api v1.11.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/nri v0.12.0
 	github.com/containerd/otelttrpc v0.1.0
@@ -19,7 +19,7 @@ require (
 	github.com/containernetworking/cni v1.3.0
 	github.com/containernetworking/plugins v1.9.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.7.3
+	github.com/containers/conmon-rs v0.8.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.3.0
 	github.com/coreos/go-systemd/v22 v22.7.0
@@ -66,9 +66,9 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.43.0
 	go.opentelemetry.io/otel/sdk v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0
-	go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39
-	go.podman.io/image/v5 v5.38.0
-	go.podman.io/storage v1.61.1-0.20251212224252-b0f86df5a665
+	go.podman.io/common v0.67.0
+	go.podman.io/image/v5 v5.39.1
+	go.podman.io/storage v1.62.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.53.0
 	golang.org/x/sync v0.20.0
@@ -103,6 +103,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/checkpoint-restore/go-criu/v7 v7.2.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/clipperhouse/displaywidth v0.10.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.6.0 // indirect
@@ -187,7 +188,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mattn/go-sqlite3 v1.14.33 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
-	github.com/mistifyio/go-zfs/v4 v4.0.0 // indirect
+	github.com/mistifyio/go-zfs/v3 v3.1.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/spdystream v0.5.1 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect

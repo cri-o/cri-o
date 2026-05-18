@@ -1,6 +1,6 @@
 //go:build !remote
 
-package libartifact
+package store
 
 import (
 	"context"

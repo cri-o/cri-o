@@ -1,6 +1,6 @@
 //go:build !remote
 
-package libartifact
+package store
 
 import (
 	"archive/tar"
@@ -23,17 +23,19 @@ import (
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/libartifact"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
-	"go.podman.io/image/v5/docker"
-	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
 	"go.podman.io/image/v5/pkg/blobinfocache/none"
+	"go.podman.io/image/v5/transports/alltransports"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/lockfile"
 )
+
+var ErrEmptyArtifactName = errors.New("artifact name cannot be empty")
 
 const ManifestSchemaVersion = 2
 
@@ -81,96 +83,58 @@ func NewArtifactStore(storePath string, sc *types.SystemContext) (*ArtifactStore
 	return artifactStore, nil
 }
 
-// lookupArtifactLocked looks up an artifact by fully qualified name,
-// or name@digest, full ID, or partial ID.
-// note: lookupArtifactLocked must be called while under a store lock
-func (as ArtifactStore) lookupArtifactLocked(ctx context.Context, asr ArtifactStoreReference) (*Artifact, error) {
+// Remove an artifact from the local artifact store.
+func (as ArtifactStore) Remove(ctx context.Context, name string) (*digest.Digest, error) {
+	if len(name) == 0 {
+		return nil, ErrEmptyArtifactName
+	}
+
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
+	// validate and see if the input is a digest
 	artifacts, err := as.getArtifacts(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if asr.ref != nil {
-		lookupRef := *asr.ref
-		digestedRef, isDigested := lookupRef.(reference.Digested)
-		if isDigested {
-			for _, a := range artifacts {
-				if len(a.Name) == 0 {
-					continue
-				}
-				storedRef, err := reference.ParseNamed(a.Name)
-				if err != nil {
-					logrus.Error(fmt.Errorf("error parsing %s in %s: %q", a.Name, as.storePath, err))
-					continue
-				}
-				if storedRef.Name() == lookupRef.Name() {
-					if a.Digest == digestedRef.Digest() {
-						return a, nil
-					}
-				}
-			}
-		} else {
-			lookupName := lookupRef.String()
-			for _, a := range artifacts {
-				if a.Name == lookupName {
-					return a, nil
-				}
-			}
-		}
-		return nil, fmt.Errorf("%s: %w", lookupRef, libartTypes.ErrArtifactNotExist)
-	}
-
-	// It has been established that we need to preserve lookup by full or partial
-	// ID like images or containers.  In this case, the "ID" is actually the digest
-	if len(asr.possibleDigest) == 0 {
-		return nil, errors.New("reference did not have name or id")
-	}
-	var returnArtifacts []*Artifact
-	for _, a := range artifacts {
-		if strings.HasPrefix(a.Digest.Encoded(), asr.possibleDigest) {
-			returnArtifacts = append(returnArtifacts, a)
-		}
-	}
-	// Now deal with the consequences of looking up by "ID"
-	if len(returnArtifacts) == 0 {
-		return nil, fmt.Errorf("%s: %w", asr.possibleDigest, libartTypes.ErrArtifactNotExist)
-	}
-	if len(returnArtifacts) > 1 {
-		names := make([]string, 0, len(returnArtifacts))
-		for _, a := range returnArtifacts {
-			names = append(names, a.Name)
-		}
-		return nil, fmt.Errorf("multiple artifacts found with matching digest: %q", strings.Join(names, ","))
-	}
-	return returnArtifacts[0], nil
-}
-
-// Remove an artifact from the local artifact store.
-func (as ArtifactStore) Remove(ctx context.Context, asr ArtifactStoreReference) (*digest.Digest, error) {
-	as.lock.Lock()
-	defer as.lock.Unlock()
-
-	arty, err := as.lookupArtifactLocked(ctx, asr)
+	arty, nameIsDigest, err := artifacts.GetByNameOrDigest(name)
 	if err != nil {
 		return nil, err
 	}
-	ir, err := layout.NewReference(as.storePath, arty.Name)
+	if nameIsDigest {
+		name = arty.Name
+	}
+	ir, err := layout.NewReference(as.storePath, name)
 	if err != nil {
 		return nil, err
 	}
-	return &arty.Digest, ir.DeleteImage(ctx, as.SystemContext)
+	artifactDigest, err := arty.GetDigest()
+	if err != nil {
+		return nil, err
+	}
+	return artifactDigest, ir.DeleteImage(ctx, as.SystemContext)
 }
 
 // Inspect an artifact in a local store.
-func (as ArtifactStore) Inspect(ctx context.Context, asr ArtifactStoreReference) (*Artifact, error) {
+func (as ArtifactStore) Inspect(ctx context.Context, nameOrDigest string) (*libartifact.Artifact, error) {
+	if len(nameOrDigest) == 0 {
+		return nil, ErrEmptyArtifactName
+	}
+
 	as.lock.RLock()
 	defer as.lock.Unlock()
 
-	return as.lookupArtifactLocked(ctx, asr)
+	artifacts, err := as.getArtifacts(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	inspectData, _, err := artifacts.GetByNameOrDigest(nameOrDigest)
+	return inspectData, err
 }
 
 // List artifacts in the local store.
-func (as ArtifactStore) List(ctx context.Context) (ArtifactList, error) {
+func (as ArtifactStore) List(ctx context.Context) (libartifact.ArtifactList, error) {
 	as.lock.RLock()
 	defer as.lock.Unlock()
 
@@ -178,15 +142,19 @@ func (as ArtifactStore) List(ctx context.Context) (ArtifactList, error) {
 }
 
 // Pull an artifact from an image registry to a local store.
-func (as ArtifactStore) Pull(ctx context.Context, ref ArtifactReference, opts libimage.CopyOptions) (digest.Digest, error) {
-	srcRef, err := docker.NewReference(ref.ref)
+func (as ArtifactStore) Pull(ctx context.Context, name string, opts libimage.CopyOptions) (digest.Digest, error) {
+	if len(name) == 0 {
+		return "", ErrEmptyArtifactName
+	}
+	srcRef, err := alltransports.ParseImageName("docker://" + name)
 	if err != nil {
 		return "", err
 	}
+
 	as.lock.Lock()
 	defer as.lock.Unlock()
 
-	destRef, err := layout.NewReference(as.storePath, ref.String())
+	destRef, err := layout.NewReference(as.storePath, name)
 	if err != nil {
 		return "", err
 	}
@@ -206,8 +174,11 @@ func (as ArtifactStore) Pull(ctx context.Context, ref ArtifactReference, opts li
 }
 
 // Push an artifact to an image registry.
-func (as ArtifactStore) Push(ctx context.Context, src, dest ArtifactReference, opts libimage.CopyOptions) (digest.Digest, error) {
-	destRef, err := docker.NewReference(dest.ref)
+func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimage.CopyOptions) (digest.Digest, error) {
+	if len(dest) == 0 {
+		return "", ErrEmptyArtifactName
+	}
+	destRef, err := alltransports.ParseImageName("docker://" + dest)
 	if err != nil {
 		return "", err
 	}
@@ -215,7 +186,7 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest ArtifactReference, o
 	as.lock.Lock()
 	defer as.lock.Unlock()
 
-	srcRef, err := layout.NewReference(as.storePath, src.String())
+	srcRef, err := layout.NewReference(as.storePath, src)
 	if err != nil {
 		return "", err
 	}
@@ -236,55 +207,15 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest ArtifactReference, o
 	return artifactDigest, nil
 }
 
-// createNewArtifactManifest creates a new manifest with annotations.
-func createNewArtifactManifest(options *libartTypes.AddOptions) specV1.Manifest {
-	// Set creation timestamp and other annotations
-	annotations := make(map[string]string)
-	if options.Annotations != nil {
-		annotations = maps.Clone(options.Annotations)
-	}
-	annotations[specV1.AnnotationCreated] = time.Now().UTC().Format(time.RFC3339Nano)
-
-	return specV1.Manifest{
-		Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
-		MediaType:    specV1.MediaTypeImageManifest,
-		ArtifactType: options.ArtifactMIMEType, // TODO This should probably be configurable once the CLI is capable
-		Config:       specV1.DescriptorEmptyJSON,
-		Layers:       make([]specV1.Descriptor, 0),
-		Annotations:  annotations,
-	}
-}
-
-// cleanupAfterAppend removes previous image when doing an append.
-func cleanupAfterAppend(ctx context.Context, oldDigest digest.Digest, as ArtifactStore) error {
-	lrs, err := layout.List(as.storePath)
-	if err != nil {
-		return err
-	}
-
-	for _, l := range lrs {
-		if oldDigest.String() == l.ManifestDescriptor.Digest.String() {
-			if _, ok := l.ManifestDescriptor.Annotations[specV1.AnnotationRefName]; ok {
-				continue
-			}
-
-			if err := l.Reference.DeleteImage(ctx, as.SystemContext); err != nil {
-				return err
-			}
-			break
-		}
-	}
-	return nil
-}
-
 // Add takes one or more artifact blobs and add them to the local artifact store.  The empty
 // string input is for possible custom artifact types.
-func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifactBlobs []libartTypes.ArtifactBlob, options *libartTypes.AddOptions) (*digest.Digest, error) {
+func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []libartTypes.ArtifactBlob, options *libartTypes.AddOptions) (*digest.Digest, error) {
+	if len(dest) == 0 {
+		return nil, ErrEmptyArtifactName
+	}
+
 	if options.Append && len(options.ArtifactMIMEType) > 0 {
 		return nil, errors.New("append option is not compatible with type option")
-	}
-	if options.Append && options.Replace {
-		return nil, errors.New("append and replace options are mutually exclusive")
 	}
 
 	locked := true
@@ -295,45 +226,56 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 		}
 	}()
 
+	// Check if artifact already exists
+	artifacts, err := as.getArtifacts(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	var artifactManifest specV1.Manifest
-	var oldDigest digest.Digest
+	var oldDigest *digest.Digest
 	fileNames := map[string]struct{}{}
 
-	existingArtifact, lookupErr := as.lookupArtifactLocked(ctx, dest.ToArtifactStoreReference())
-
-	switch {
-	case options.Append:
-		// Append to existing artifact
-		if lookupErr != nil {
-			return nil, lookupErr
+	if !options.Append {
+		// Check if artifact exists; in GetByName not getting an
+		// error means it exists
+		_, _, err := artifacts.GetByNameOrDigest(dest)
+		if err == nil {
+			return nil, fmt.Errorf("%s: %w", dest, libartTypes.ErrArtifactAlreadyExists)
 		}
-		artifactManifest = existingArtifact.Manifest.Manifest
-		oldDigest = existingArtifact.Digest
+
+		// Set creation timestamp and other annotations
+		annotations := make(map[string]string)
+		if options.Annotations != nil {
+			annotations = maps.Clone(options.Annotations)
+		}
+		annotations[specV1.AnnotationCreated] = time.Now().UTC().Format(time.RFC3339Nano)
+
+		artifactManifest = specV1.Manifest{
+			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
+			MediaType:    specV1.MediaTypeImageManifest,
+			ArtifactType: options.ArtifactMIMEType,
+			// TODO This should probably be configurable once the CLI is capable
+			Config:      specV1.DescriptorEmptyJSON,
+			Layers:      make([]specV1.Descriptor, 0),
+			Annotations: annotations,
+		}
+	} else {
+		artifact, _, err := artifacts.GetByNameOrDigest(dest)
+		if err != nil {
+			return nil, err
+		}
+		artifactManifest = artifact.Manifest.Manifest
+		oldDigest, err = artifact.GetDigest()
+		if err != nil {
+			return nil, err
+		}
+
 		for _, layer := range artifactManifest.Layers {
 			if value, ok := layer.Annotations[specV1.AnnotationTitle]; ok && value != "" {
 				fileNames[value] = struct{}{}
 			}
 		}
-	case options.Replace:
-		// Replace existing artifact - delete old one if it exists, then create new
-		if lookupErr == nil {
-			ir, err := layout.NewReference(as.storePath, dest.String())
-			if err != nil {
-				return nil, err
-			}
-			if err := ir.DeleteImage(ctx, as.SystemContext); err != nil {
-				return nil, err
-			}
-		}
-
-		// Create new manifest
-		artifactManifest = createNewArtifactManifest(options)
-	default:
-		// Add new artifact - error if it already exists
-		if lookupErr == nil {
-			return nil, fmt.Errorf("%s: %w", dest.String(), libartTypes.ErrArtifactAlreadyExists)
-		}
-		artifactManifest = createNewArtifactManifest(options)
 	}
 
 	for _, artifact := range artifactBlobs {
@@ -344,7 +286,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 		fileNames[fileName] = struct{}{}
 	}
 
-	ir, err := layout.NewReference(as.storePath, dest.String())
+	ir, err := layout.NewReference(as.storePath, dest)
 	if err != nil {
 		return nil, err
 	}
@@ -363,14 +305,11 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 	// ImageDestination, in general, requires the caller to write a full image; here we may write only the added layers.
 	// This works for the oci/layout transport we hard-code.
 	for _, artifactBlob := range artifactBlobs {
-		if (artifactBlob.BlobFilePath == "" && artifactBlob.BlobReader == nil) || (artifactBlob.BlobFilePath != "" && artifactBlob.BlobReader != nil) {
+		if artifactBlob.BlobFilePath == "" && artifactBlob.BlobReader == nil || artifactBlob.BlobFilePath != "" && artifactBlob.BlobReader != nil {
 			return nil, errors.New("Artifact.BlobFile or Artifact.BlobReader must be provided")
 		}
 
-		annotations := make(map[string]string)
-		if options.Annotations != nil {
-			annotations = maps.Clone(options.Annotations)
-		}
+		annotations := maps.Clone(options.Annotations)
 		if title, ok := annotations[specV1.AnnotationTitle]; ok {
 			// Verify a duplicate AnnotationTitle is not in use in a different layer.
 			for _, layer := range artifactManifest.Layers {
@@ -442,27 +381,55 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 	}
 
 	// Clean up after append. Remove previous artifact from store.
-	if oldDigest != "" {
-		if err := cleanupAfterAppend(ctx, oldDigest, as); err != nil {
+	if oldDigest != nil {
+		lrs, err := layout.List(as.storePath)
+		if err != nil {
 			return nil, err
+		}
+
+		for _, l := range lrs {
+			if oldDigest.String() == l.ManifestDescriptor.Digest.String() {
+				if _, ok := l.ManifestDescriptor.Annotations[specV1.AnnotationRefName]; ok {
+					continue
+				}
+
+				if err := l.Reference.DeleteImage(ctx, as.SystemContext); err != nil {
+					return nil, err
+				}
+				break
+			}
 		}
 	}
 	return &artifactManifestDigest, nil
 }
 
-func getArtifactAndImageSource(ctx context.Context, as ArtifactStore, asr ArtifactStoreReference, options *libartTypes.FilterBlobOptions) (*Artifact, types.ImageSource, error) {
+func getArtifactAndImageSource(ctx context.Context, as ArtifactStore, nameOrDigest string, options *libartTypes.FilterBlobOptions) (*libartifact.Artifact, types.ImageSource, error) {
 	if len(options.Digest) > 0 && len(options.Title) > 0 {
 		return nil, nil, errors.New("cannot specify both digest and title")
 	}
-	arty, err := as.lookupArtifactLocked(ctx, asr)
+	if len(nameOrDigest) == 0 {
+		return nil, nil, ErrEmptyArtifactName
+	}
+
+	artifacts, err := as.getArtifacts(ctx, nil)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	arty, nameIsDigest, err := artifacts.GetByNameOrDigest(nameOrDigest)
+	if err != nil {
+		return nil, nil, err
+	}
+	name := nameOrDigest
+	if nameIsDigest {
+		name = arty.Name
+	}
+
 	if len(arty.Manifest.Layers) == 0 {
 		return nil, nil, errors.New("the artifact has no blobs, nothing to extract")
 	}
 
-	ir, err := layout.NewReference(as.storePath, arty.Name)
+	ir, err := layout.NewReference(as.storePath, name)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -471,10 +438,8 @@ func getArtifactAndImageSource(ctx context.Context, as ArtifactStore, asr Artifa
 }
 
 // BlobMountPaths allows the caller to access the file names from the store and how they should be mounted.
-func (as ArtifactStore) BlobMountPaths(ctx context.Context, asr ArtifactStoreReference, options *libartTypes.BlobMountPathOptions) ([]libartTypes.BlobMountPath, error) {
-	// FIX ME
-	// LOCKING BUG: getArtifactAndImageSource assumes a locked ArtifactStore
-	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, asr, &options.FilterBlobOptions)
+func (as ArtifactStore) BlobMountPaths(ctx context.Context, nameOrDigest string, options *libartTypes.BlobMountPathOptions) ([]libartTypes.BlobMountPath, error) {
+	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, &options.FilterBlobOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -530,9 +495,7 @@ func (as ArtifactStore) BlobMountPaths(ctx context.Context, asr ArtifactStoreRef
 }
 
 // Extract an artifact to local file or directory.
-func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest ArtifactStoreReference, target string, options *libartTypes.ExtractOptions) error {
-	// FIX ME
-	// LOCKING BUG: getArtifactAndImageSource assumes a locked ArtifactStore
+func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
 	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, &options.FilterBlobOptions)
 	if err != nil {
 		return err
@@ -599,14 +562,12 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest ArtifactStoreR
 }
 
 // Extract an artifact to tar stream.
-func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, asr ArtifactStoreReference, options *libartTypes.ExtractOptions) error {
+func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, nameOrDigest string, options *libartTypes.ExtractOptions) error {
 	if options == nil {
 		options = &libartTypes.ExtractOptions{}
 	}
 
-	// FIX ME
-	// LOCKING BUG: getArtifactAndImageSource assumes a locked ArtifactStore
-	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, asr, &options.FilterBlobOptions)
+	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, &options.FilterBlobOptions)
 	if err != nil {
 		return err
 	}
@@ -705,7 +666,7 @@ func generateArtifactBlobName(title string, digest digest.Digest) (string, error
 	return filename, nil
 }
 
-func findDigest(arty *Artifact, options *libartTypes.FilterBlobOptions) (digest.Digest, error) {
+func findDigest(arty *libartifact.Artifact, options *libartTypes.FilterBlobOptions) (digest.Digest, error) {
 	var digest digest.Digest
 	for _, l := range arty.Manifest.Layers {
 		if options.Digest == l.Digest.String() {
@@ -778,7 +739,7 @@ func copyTrustedImageBlobToTarStream(ctx context.Context, imgSrc types.ImageSour
 	now := time.Now()
 	header := tar.Header{
 		Name:       filename,
-		Mode:       0o600,
+		Mode:       600,
 		Size:       srcSize,
 		ModTime:    now,
 		ChangeTime: now,
@@ -819,8 +780,8 @@ func (as ArtifactStore) indexPath() string {
 
 // getArtifacts returns an ArtifactList based on the artifact's store.  The return error and
 // unused opts is meant for future growth like filters, etc so the API does not change.
-func (as ArtifactStore) getArtifacts(ctx context.Context, _ *libartTypes.GetArtifactOptions) (ArtifactList, error) {
-	var al ArtifactList
+func (as ArtifactStore) getArtifacts(ctx context.Context, _ *libartTypes.GetArtifactOptions) (libartifact.ArtifactList, error) {
+	var al libartifact.ArtifactList
 
 	lrs, err := layout.List(as.storePath)
 	if err != nil {
@@ -831,15 +792,13 @@ func (as ArtifactStore) getArtifacts(ctx context.Context, _ *libartTypes.GetArti
 		if err != nil {
 			return nil, err
 		}
-		artManifest, b, err := getManifest(ctx, imgSrc)
+		manifest, err := getManifest(ctx, imgSrc)
 		imgSrc.Close()
 		if err != nil {
 			return nil, err
 		}
-		artifact := Artifact{
-			Digest:      digest.FromBytes(b),
-			Manifest:    artManifest,
-			rawManifest: b,
+		artifact := libartifact.Artifact{
+			Manifest: manifest,
 		}
 		if val, ok := l.ManifestDescriptor.Annotations[specV1.AnnotationRefName]; ok {
 			artifact.SetName(val)
@@ -850,26 +809,25 @@ func (as ArtifactStore) getArtifacts(ctx context.Context, _ *libartTypes.GetArti
 	return al, nil
 }
 
-// getManifest takes an imgSrc and returns the manifest for the imgSrc and
-// the blob as it was originally read. A OCI index list is not supported and
-// will return an error.
-func getManifest(ctx context.Context, imgSrc types.ImageSource) (*manifest.OCI1, []byte, error) {
+// getManifest takes an imgSrc and returns the manifest for the imgSrc.
+// A OCI index list is not supported and will return an error.
+func getManifest(ctx context.Context, imgSrc types.ImageSource) (*manifest.OCI1, error) {
 	b, manifestType, err := image.UnparsedInstance(imgSrc, nil).Manifest(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// We only support a single flat manifest and not an oci index list
 	if manifest.MIMETypeIsMultiImage(manifestType) {
-		return nil, nil, fmt.Errorf("manifest %q is index list", imgSrc.Reference().StringWithinTransport())
+		return nil, fmt.Errorf("manifest %q is index list", imgSrc.Reference().StringWithinTransport())
 	}
 
 	// parse the single manifest
 	mani, err := manifest.OCI1FromManifest(b)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return mani, b, nil
+	return mani, nil
 }
 
 func createEmptyStanza(path string) error {

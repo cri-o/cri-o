@@ -64,12 +64,24 @@ func (a *Artifact) Reference() string {
 }
 
 func (a *Artifact) CanonicalName() string {
-	return fmt.Sprintf("%s@%s", a.namedRef.Name(), a.Artifact.Digest)
+	dgst, err := a.Artifact.GetDigest()
+	if err != nil {
+		log.Warnf(context.Background(), "Failed to get artifact digest for %s: %v", a.namedRef.Name(), err)
+		return fmt.Sprintf("%s@<unknown>", a.namedRef.Name())
+	}
+
+	return fmt.Sprintf("%s@%s", a.namedRef.Name(), dgst)
 }
 
 // Digest returns the digest of the artifact.
 func (a *Artifact) Digest() digest.Digest {
-	return a.Artifact.Digest
+	dgst, err := a.Artifact.GetDigest()
+	if err != nil {
+		log.Warnf(context.Background(), "Failed to get artifact digest: %v", err)
+		return ""
+	}
+
+	return *dgst
 }
 
 // RootPath returns the root path where the artifact is stored.
