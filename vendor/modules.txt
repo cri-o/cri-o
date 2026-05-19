@@ -92,6 +92,9 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v1.5.0
 ## explicit; go 1.24.6
 github.com/checkpoint-restore/checkpointctl/lib
+# github.com/checkpoint-restore/go-criu/v7 v7.2.0
+## explicit; go 1.20
+github.com/checkpoint-restore/go-criu/v7/stats
 # github.com/checkpoint-restore/go-criu/v8 v8.2.0
 ## explicit; go 1.24.0
 github.com/checkpoint-restore/go-criu/v8
@@ -158,8 +161,8 @@ github.com/containerd/containerd/runtime/v2/shim
 github.com/containerd/containerd/sys
 github.com/containerd/containerd/sys/reaper
 github.com/containerd/containerd/version
-# github.com/containerd/containerd/api v1.10.0
-## explicit; go 1.23.0
+# github.com/containerd/containerd/api v1.11.0
+## explicit; go 1.24.0
 github.com/containerd/containerd/api/runtime/task/v2
 github.com/containerd/containerd/api/services/ttrpc/events/v1
 github.com/containerd/containerd/api/types
@@ -232,11 +235,11 @@ github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.7.3
-## explicit; go 1.25
+# github.com/containers/conmon-rs v0.8.0
+## explicit; go 1.26.0
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/kubensmnt v1.2.0
+# github.com/containers/kubensmnt v1.3.0
 ## explicit; go 1.18
 github.com/containers/kubensmnt
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
@@ -671,9 +674,9 @@ github.com/mattn/go-sqlite3
 # github.com/miekg/pkcs11 v1.1.1
 ## explicit; go 1.12
 github.com/miekg/pkcs11
-# github.com/mistifyio/go-zfs/v4 v4.0.0
+# github.com/mistifyio/go-zfs/v3 v3.1.0
 ## explicit; go 1.14
-github.com/mistifyio/go-zfs/v4
+github.com/mistifyio/go-zfs/v3
 # github.com/moby/docker-image-spec v1.3.1
 ## explicit; go 1.18
 github.com/moby/docker-image-spec/specs-go/v1
@@ -730,7 +733,7 @@ github.com/olekukonko/tablewriter/pkg/twwarp
 github.com/olekukonko/tablewriter/pkg/twwidth
 github.com/olekukonko/tablewriter/renderer
 github.com/olekukonko/tablewriter/tw
-# github.com/onsi/ginkgo/v2 v2.28.3
+# github.com/onsi/ginkgo/v2 v2.29.0
 ## explicit; go 1.25.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -754,7 +757,7 @@ github.com/onsi/ginkgo/v2/internal/reporters
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.40.0
+# github.com/onsi/gomega v1.41.0
 ## explicit; go 1.24.0
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -784,7 +787,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.4.1
+# github.com/opencontainers/runc v1.4.2
 ## explicit; go 1.24.0
 github.com/opencontainers/runc/internal/linux
 github.com/opencontainers/runc/internal/pathrs
@@ -799,8 +802,8 @@ github.com/opencontainers/runtime-spec/specs-go/features
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/validate/capabilities
-# github.com/opencontainers/selinux v1.13.1
-## explicit; go 1.19
+# github.com/opencontainers/selinux v1.14.1
+## explicit; go 1.22
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
@@ -1054,8 +1057,8 @@ go.opentelemetry.io/proto/otlp/collector/trace/v1
 go.opentelemetry.io/proto/otlp/common/v1
 go.opentelemetry.io/proto/otlp/resource/v1
 go.opentelemetry.io/proto/otlp/trace/v1
-# go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39
-## explicit; go 1.24.6
+# go.podman.io/common v0.67.0
+## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
 go.podman.io/common/libimage
@@ -1068,6 +1071,7 @@ go.podman.io/common/pkg/apparmor
 go.podman.io/common/pkg/apparmor/internal/supported
 go.podman.io/common/pkg/capabilities
 go.podman.io/common/pkg/cgroups
+go.podman.io/common/pkg/cgroupv2
 go.podman.io/common/pkg/config
 go.podman.io/common/pkg/crutils
 go.podman.io/common/pkg/detach
@@ -1090,7 +1094,7 @@ go.podman.io/common/pkg/timetype
 go.podman.io/common/pkg/timezone
 go.podman.io/common/pkg/umask
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.38.0
+# go.podman.io/image/v5 v5.39.1
 ## explicit; go 1.24.0
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -1157,7 +1161,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.61.1-0.20251212224252-b0f86df5a665
+# go.podman.io/storage v1.62.0
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1217,7 +1221,7 @@ go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/crypto v0.50.0
+# golang.org/x/crypto v0.51.0
 ## explicit; go 1.25.0
 golang.org/x/crypto/argon2
 golang.org/x/crypto/blake2b
@@ -1248,7 +1252,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.35.0
 ## explicit; go 1.25.0
 golang.org/x/mod/semver
-# golang.org/x/net v0.53.0
+# golang.org/x/net v0.54.0
 ## explicit; go 1.25.0
 golang.org/x/net/context
 golang.org/x/net/html
@@ -1273,7 +1277,7 @@ golang.org/x/oauth2/internal
 ## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.43.0
+# golang.org/x/sys v0.44.0
 ## explicit; go 1.25.0
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1281,10 +1285,10 @@ golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.42.0
+# golang.org/x/term v0.43.0
 ## explicit; go 1.25.0
 golang.org/x/term
-# golang.org/x/text v0.36.0
+# golang.org/x/text v0.37.0
 ## explicit; go 1.25.0
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -1343,8 +1347,8 @@ google.golang.org/genproto/googleapis/api/httpbody
 ## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.80.0
-## explicit; go 1.24.0
+# google.golang.org/grpc v1.81.1
+## explicit; go 1.25.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
@@ -1399,6 +1403,7 @@ google.golang.org/grpc/internal/status
 google.golang.org/grpc/internal/syscall
 google.golang.org/grpc/internal/transport
 google.golang.org/grpc/internal/transport/networktype
+google.golang.org/grpc/internal/transport/readyreader
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/mem
 google.golang.org/grpc/metadata
@@ -1465,7 +1470,7 @@ gopkg.in/warnings.v0
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.36.0
+# k8s.io/api v0.36.1
 ## explicit; go 1.26.0
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1alpha1
@@ -1522,7 +1527,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/storagemigration/v1beta1
-# k8s.io/apimachinery v0.36.0
+# k8s.io/apimachinery v0.36.1
 ## explicit; go 1.26.0
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -1576,7 +1581,7 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/client-go v0.36.0
+# k8s.io/client-go v0.36.1
 ## explicit; go 1.26.0
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1alpha1
@@ -1706,11 +1711,11 @@ k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
-# k8s.io/component-base v0.36.0
+# k8s.io/component-base v0.36.1
 ## explicit; go 1.26.0
 k8s.io/component-base/cli/flag
 k8s.io/component-base/logs/logreduction
-# k8s.io/cri-api v0.36.0
+# k8s.io/cri-api v0.36.1
 ## explicit; go 1.26.0
 k8s.io/cri-api/pkg/apis
 k8s.io/cri-api/pkg/apis/runtime/v1
@@ -1719,7 +1724,7 @@ k8s.io/cri-api/pkg/errors
 ## explicit; go 1.26.0
 k8s.io/cri-client/pkg
 k8s.io/cri-client/pkg/util
-# k8s.io/cri-streaming v0.36.0
+# k8s.io/cri-streaming v0.36.1
 ## explicit; go 1.26.0
 k8s.io/cri-streaming/pkg/streaming
 k8s.io/cri-streaming/pkg/streaming/internal/httpresponse
