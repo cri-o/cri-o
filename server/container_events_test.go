@@ -64,6 +64,8 @@ var _ = t.Describe("ContainerEvents", func() {
 			}
 
 			recv := func(ces types.RuntimeService_GetContainerEventsServer) {
+				defer GinkgoRecover()
+
 				err := sut.GetContainerEvents(nil, ces)
 				Expect(err).ToNot(HaveOccurred())
 			}
