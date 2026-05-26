@@ -386,6 +386,62 @@ function start_crio_with_stopped_pod() {
 	fi
 }
 
+@test "skip wipe on unclean shutdown with only stale overlay mounts" {
+	setup_crio
+	touch "$CONTAINER_CLEAN_SHUTDOWN_FILE".supported
+
+	start_crio_no_setup
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl stopp "$pod_id"
+
+	stop_crio_no_clean
+
+	# Simulate stale overlay mounts left behind after kill -9.
+	for dir in "$TESTDIR"/crio/overlay/*/merged; do
+		[ -d "$dir" ] && mount --bind "$dir" "$dir"
+	done
+
+	rm -Rf "$CONTAINER_CLEAN_SHUTDOWN_FILE"
+
+	CONTAINER_INTERNAL_REPAIR=true start_crio_no_setup
+
+	# Storage should not have been wiped.
+	[[ $(crictl images) == *"quay.io/crio"* ]]
+}
+
+@test "wipe storage on unclean shutdown with real corruption" {
+	setup_crio
+	touch "$CONTAINER_CLEAN_SHUTDOWN_FILE".supported
+
+	start_crio_no_setup
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	# This will corrupt the storage directory.
+	cp -r "$TESTDIR"/crio/overlay{,.old}
+	umount -R -l -f "$TESTDIR"/crio/overlay
+	rm -Rf "$TESTDIR"/crio/overlay
+	cp -r "$TESTDIR"/crio/overlay{.old,}
+
+	stop_crio_no_clean
+
+	rm -Rf "$CONTAINER_CLEAN_SHUTDOWN_FILE"
+
+	CONTAINER_INTERNAL_REPAIR=true start_crio_no_setup
+
+	# Storage directory wipe should leave only the metadata behind.
+	size=$(du -sb "$TESTDIR"/crio | cut -f 1)
+	if ((size > 1024 * 128)); then
+		echo "The storage directory wipe did not work" >&3
+		return 1
+	fi
+}
+
 @test "crio-wipe should create /run/crio/crio-wipe-done and not wipe again" {
 	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean

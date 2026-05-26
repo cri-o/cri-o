@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 
 	json "github.com/goccy/go-json"
@@ -119,6 +120,13 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 	if config.InternalRepair && ShutdownWasUnclean(config) {
 		graphRoot := store.GraphRoot()
+
+		// Clean stale overlay mounts from the unclean shutdown so that
+		// store.Check() does not report false layer errors.
+		if err := cmount.RecursiveUnmount(filepath.Join(graphRoot, "overlay")); err != nil {
+			log.Warnf(ctx, "Failed to clean stale overlay mounts under %s: %v", graphRoot, err)
+		}
+
 		log.Warnf(ctx, "Checking storage directory %s for errors because of unclean shutdown", graphRoot)
 
 		wipeStorage := false
@@ -128,7 +136,14 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 			log.Warnf(ctx, "Attempting to repair storage directory %s because of unclean shutdown", graphRoot)
 
 			if errs := store.Repair(report, cstorage.RepairEverything()); len(errs) > 0 {
-				wipeStorage = true
+				for _, repairErr := range errs {
+					log.Warnf(ctx, "Storage repair error for %s: %v", graphRoot, repairErr)
+				}
+				if allRepairErrorsAreTransient(errs) {
+					log.Warnf(ctx, "Storage repair for %s encountered only transient errors (e.g. device busy), skipping wipe", graphRoot)
+				} else {
+					wipeStorage = true
+				}
 			}
 		} else if err != nil {
 			// Storage check has failed with irrecoverable errors.
@@ -1070,4 +1085,15 @@ func (c *ContainerServer) probeMonitorProcesses(ctx context.Context) {
 
 		timer.Reset(probeInterval + time.Duration(rand.Int63n(probeJitter.Nanoseconds())))
 	}
+}
+
+// allRepairErrorsAreTransient returns true if every repair error is a transient
+// "device or resource busy" issue rather than actual storage corruption.
+func allRepairErrorsAreTransient(errs []error) bool {
+	for _, err := range errs {
+		if !errors.Is(err, syscall.EBUSY) {
+			return false
+		}
+	}
+	return len(errs) > 0
 }
