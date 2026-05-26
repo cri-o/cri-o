@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
+_Generated on Tue, 26 May 2026 10:00:33 UTC for commit [869599c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/251f25a5e345aa73cff2ae6a7f636fb9268946ca
+[0]: https://github.com/cri-o/cri-o/commit/869599c20bb99cfbaaa2a400ce1f002321ec9fe2
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | github.com/containers/conmon-rs                        | v0.7.3                                | v0.8.0                             | true   | true             |
 | github.com/containers/kubensmnt                        | v1.2.0                                | v1.3.0                             | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.2.5                                | v5.3.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260525081611-7ddea26137e8 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260525205655-25491fc20cdc | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.28.3                               | v2.29.0                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.40.0                               | v1.41.0                            | true   | true             |
 | github.com/opencontainers/runc                         | v1.4.1                                | v1.4.2                             | true   | true             |
@@ -164,7 +164,7 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | cloud.google.com/go/webrisk                                                 | v1.11.2                                | v1.16.0                            | false  | true             |
 | cloud.google.com/go/websecurityscanner                                      | v1.7.7                                 | v1.12.0                            | false  | true             |
 | cloud.google.com/go/workflows                                               | v1.14.3                                | v1.19.0                            | false  | true             |
-| code.cloudfoundry.org/bytefmt                                               | v0.0.0-20211005130812-5bb3c17173e5     | v0.73.0                            | false  | true             |
+| code.cloudfoundry.org/bytefmt                                               | v0.0.0-20211005130812-5bb3c17173e5     | v0.74.0                            | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                              | v0.0.0-20250715075730-49cab49c8e9d     | v0.0.0-20251212221603-3adeb8663819 | false  | true             |
 | cuelang.org/go                                                              | v0.14.1                                | v0.16.1                            | false  | true             |
 | cyphar.com/go-pathrs                                                        | v0.2.4                                 |                                    | false  | true             |
@@ -177,7 +177,7 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | github.com/Azure/azure-sdk-for-go/sdk/azcore                                | v1.20.0                                | v1.21.1                            | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                            | v1.13.1                                |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/internal                              | v1.11.2                                | v1.12.0                            | false  | true             |
-| github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys              | v1.4.0                                 |                                    | false  | true             |
+| github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys              | v1.4.0                                 | v1.5.0                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal            | v1.2.0                                 |                                    | false  | true             |
 | github.com/Azure/go-ansiterm                                                | v0.0.0-20250102033503-faa5f7b0171c     |                                    | false  | true             |
 | github.com/Azure/go-autorest                                                | v14.2.0+incompatible                   |                                    | false  | true             |
@@ -249,7 +249,7 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | github.com/blang/semver/v4                                                  | v4.0.0                                 |                                    | true   | true             |
 | github.com/brianvoe/gofakeit/v7                                             | v7.12.1                                | v7.15.0                            | false  | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                 | v1.2.0                             | false  | true             |
-| github.com/buildkite/agent/v3                                               | v3.104.0                               | v3.127.0                           | false  | true             |
+| github.com/buildkite/agent/v3                                               | v3.104.0                               | v3.127.1                           | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.15.0                                | v0.17.1                            | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                 |                                    | false  | true             |
 | github.com/buildkite/roko                                                   | v1.4.0                                 |                                    | false  | true             |
@@ -336,7 +336,7 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | github.com/docker/go-units                                                  | v0.5.0                                 |                                    | true   | true             |
 | github.com/docker/libtrust                                                  | v0.0.0-20160708172513-aabc10ec26b7     |                                    | false  | true             |
 | github.com/dustin/go-humanize                                               | v1.0.1                                 |                                    | false  | true             |
-| github.com/elazarl/goproxy                                                  | v1.7.2                                 | v1.8.3                             | false  | true             |
+| github.com/elazarl/goproxy                                                  | v1.7.2                                 | v1.8.4                             | false  | true             |
 | github.com/emicklei/go-restful/v3                                           | v3.13.0                                |                                    | false  | true             |
 | github.com/emicklei/proto                                                   | v1.14.2                                | v1.14.3                            | false  | true             |
 | github.com/emirpasic/gods                                                   | v1.18.1                                |                                    | false  | true             |
@@ -365,12 +365,12 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | github.com/go-logr/logr                                                     | v1.4.3                                 |                                    | true   | true             |
 | github.com/go-logr/stdr                                                     | v1.2.2                                 |                                    | false  | true             |
 | github.com/go-logr/zapr                                                     | v1.3.0                                 |                                    | false  | true             |
-| github.com/go-openapi/analysis                                              | v0.24.3                                | v0.25.0                            | false  | true             |
+| github.com/go-openapi/analysis                                              | v0.24.3                                | v0.25.1                            | false  | true             |
 | github.com/go-openapi/errors                                                | v0.22.7                                |                                    | false  | true             |
 | github.com/go-openapi/jsonpointer                                           | v0.22.5                                | v0.23.1                            | false  | true             |
 | github.com/go-openapi/jsonreference                                         | v0.21.5                                |                                    | false  | true             |
 | github.com/go-openapi/loads                                                 | v0.23.3                                |                                    | false  | true             |
-| github.com/go-openapi/runtime                                               | v0.29.3                                | v0.31.0                            | false  | true             |
+| github.com/go-openapi/runtime                                               | v0.29.3                                | v0.32.1                            | false  | true             |
 | github.com/go-openapi/spec                                                  | v0.22.4                                |                                    | false  | true             |
 | github.com/go-openapi/strfmt                                                | v0.26.0                                | v0.26.2                            | false  | true             |
 | github.com/go-openapi/swag                                                  | v0.25.5                                | v0.26.0                            | false  | true             |
@@ -460,7 +460,7 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260525081611-7ddea26137e8 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260525205655-25491fc20cdc | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
@@ -497,8 +497,8 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | github.com/matttproud/golang_protobuf_extensions/v2                         | v2.0.0                                 |                                    | false  | true             |
 | github.com/maxbrunsfeld/counterfeiter/v6                                    | v6.12.1                                | v6.12.2                            | false  | true             |
 | github.com/mdlayher/packet                                                  | v1.1.2                                 |                                    | false  | true             |
-| github.com/mdlayher/socket                                                  | v0.5.1                                 | v0.6.0                             | false  | true             |
-| github.com/mdlayher/vsock                                                   | v1.2.1                                 |                                    | false  | true             |
+| github.com/mdlayher/socket                                                  | v0.5.1                                 | v0.6.1                             | false  | true             |
+| github.com/mdlayher/vsock                                                   | v1.2.1                                 | v1.3.0                             | false  | true             |
 | github.com/mfridman/tparse                                                  | v0.18.0                                |                                    | false  | true             |
 | github.com/miekg/pkcs11                                                     | v1.1.1                                 | v1.1.2                             | false  | true             |
 | github.com/mistifyio/go-zfs/v3                                              | v3.1.0                                 |                                    | false  | true             |
@@ -597,7 +597,7 @@ _Generated on Mon, 25 May 2026 12:30:20 UTC for commit [251f25a][0]._
 | github.com/sigstore/cosign/v2                                               | v2.6.2                                 | v2.6.3                             | false  | true             |
 | github.com/sigstore/fulcio                                                  | v1.8.5                                 |                                    | false  | true             |
 | github.com/sigstore/protobuf-specs                                          | v0.5.0                                 | v0.5.1                             | false  | true             |
-| github.com/sigstore/rekor                                                   | v1.5.1                                 |                                    | false  | true             |
+| github.com/sigstore/rekor                                                   | v1.5.1                                 | v1.5.2                             | false  | true             |
 | github.com/sigstore/rekor-tiles/v2                                          | v2.0.1                                 | v2.2.1                             | false  | true             |
 | github.com/sigstore/sigstore                                                | v1.10.4                                | v1.10.6                            | false  | true             |
 | github.com/sigstore/sigstore-go                                             | v1.1.4                                 |                                    | false  | true             |
