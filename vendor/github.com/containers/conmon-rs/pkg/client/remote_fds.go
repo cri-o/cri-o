@@ -84,7 +84,7 @@ func (r *RemoteFDs) Send(fds ...int) ([]RemoteFD, error) {
 
 	n, err := r.conn.Read(buf)
 	if err != nil {
-		return nil, fmt.Errorf("receviree reaponse: %w", err)
+		return nil, fmt.Errorf("receive response: %w", err)
 	}
 
 	buf = buf[:n]
