@@ -22,7 +22,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	"k8s.io/kubelet/pkg/cri/streaming"
+	"k8s.io/cri-streaming/pkg/streaming"
 	kubetypes "k8s.io/kubelet/pkg/types"
 
 	"github.com/cri-o/cri-o/internal/cert"
@@ -68,8 +68,8 @@ type StreamService struct {
 // Server implements the RuntimeService and ImageService.
 type Server struct {
 	*lib.ContainerServer
-	types.UnsafeImageServiceServer
-	types.UnsafeRuntimeServiceServer
+	types.UnimplementedImageServiceServer
+	types.UnimplementedRuntimeServiceServer
 
 	config          libconfig.Config
 	stream          *StreamService

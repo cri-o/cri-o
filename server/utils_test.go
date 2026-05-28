@@ -13,33 +13,101 @@ import (
 )
 
 func TestMergeEnvs(t *testing.T) {
-	configImage := &v1.Image{
-		Config: v1.ImageConfig{
-			Env: []string{"VAR1=1", "VAR2=2"},
-		},
-	}
-
-	configKube := []*types.KeyValue{
+	cases := []struct {
+		name        string
+		imageConfig *v1.Image
+		kubeEnvs    []*types.KeyValue
+		expected    []string
+	}{
 		{
-			Key:   "VAR2",
-			Value: "3",
+			name: "both provided, kubeEnvs overrides",
+			imageConfig: &v1.Image{
+				Config: v1.ImageConfig{
+					Env: []string{"VAR1=1", "VAR2=2"},
+				},
+			},
+			kubeEnvs: []*types.KeyValue{
+				{Key: "VAR2", Value: "3"},
+				{Key: "VAR3", Value: "3"},
+			},
+			expected: []string{"VAR2=3", "VAR3=3", "VAR1=1"},
 		},
 		{
-			Key:   "VAR3",
-			Value: "3",
+			name: "kubeEnvs is nil",
+			imageConfig: &v1.Image{
+				Config: v1.ImageConfig{
+					Env: []string{"VAR1=1", "VAR2=2"},
+				},
+			},
+			kubeEnvs: nil,
+			expected: []string{"VAR1=1", "VAR2=2"},
+		},
+		{
+			name:        "imageConfig is nil",
+			imageConfig: nil,
+			kubeEnvs: []*types.KeyValue{
+				{Key: "VAR1", Value: "1"},
+			},
+			expected: []string{"VAR1=1"},
+		},
+		{
+			name: "kubeEnvs with empty key skipped",
+			imageConfig: &v1.Image{
+				Config: v1.ImageConfig{
+					Env: []string{"VAR1=1"},
+				},
+			},
+			kubeEnvs: []*types.KeyValue{
+				{Key: "", Value: "3"},
+				{Key: "VAR2", Value: "2"},
+			},
+			expected: []string{"VAR2=2", "VAR1=1"},
+		},
+		{
+			name: "imageConfig with invalid env skipped",
+			imageConfig: &v1.Image{
+				Config: v1.ImageConfig{
+					Env: []string{"INVALID_NO_EQUALS", "=NO_KEY", "VAR1=1"},
+				},
+			},
+			kubeEnvs: []*types.KeyValue{
+				{Key: "VAR2", Value: "2"},
+			},
+			expected: []string{"VAR2=2", "VAR1=1"},
+		},
+		{
+			name: "valid envs with empty values",
+			imageConfig: &v1.Image{
+				Config: v1.ImageConfig{
+					Env: []string{"VAR1=", "VAR2=2"},
+				},
+			},
+			kubeEnvs: []*types.KeyValue{
+				{Key: "VAR3", Value: ""},
+			},
+			expected: []string{"VAR3=", "VAR1=", "VAR2=2"},
 		},
 	}
 
-	mergedEnvs := mergeEnvs(configImage, configKube)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mergedEnvs := mergeEnvs(tc.imageConfig, tc.kubeEnvs)
 
-	if len(mergedEnvs) != 3 {
-		t.Fatalf("Expected 3 env var, VAR1=1, VAR2=3 and VAR3=3, found %d", len(mergedEnvs))
-	}
+			if len(mergedEnvs) != len(tc.expected) {
+				t.Fatalf("Expected %d env vars, found %d", len(tc.expected), len(mergedEnvs))
+			}
 
-	for _, env := range mergedEnvs {
-		if env != "VAR1=1" && env != "VAR2=3" && env != "VAR3=3" {
-			t.Fatalf("Expected VAR1=1 or VAR2=3 or VAR3=3, found %s", env)
-		}
+			expectedMap := make(map[string]bool)
+			for _, e := range tc.expected {
+				expectedMap[e] = true
+			}
+
+			for _, env := range mergedEnvs {
+				if !expectedMap[env] {
+					t.Fatalf("Unexpected env var found: %s", env)
+				}
+			}
+		})
 	}
 }
 

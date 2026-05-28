@@ -7,7 +7,7 @@ import (
 	"os/exec"
 
 	"golang.org/x/sys/windows"
-	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 )
 
 func kill(pid int) error {

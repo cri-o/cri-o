@@ -3,6 +3,7 @@ package interceptors
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,7 +63,15 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		operationStart := time.Now()
 		operation := filepath.Base(info.FullMethod)
 		newCtx, span := opentelemetry.Tracer().Start(AddRequestNameAndID(ctx, info.FullMethod), info.FullMethod)
-		log.Debugf(newCtx, "Request: %T: %+v", req, req)
+
+		// List* RPCs can return large payloads; use compact format to avoid
+		// enormous log messages that cause gRPC timeouts (see issue #9894).
+		isList := strings.HasPrefix(operation, "List")
+		if isList {
+			log.Debugf(newCtx, "Request: %#v", req)
+		} else {
+			log.Debugf(newCtx, "Request: %T: %+v", req, req)
+		}
 
 		resp, err := handler(newCtx, req)
 		// record the operation
@@ -70,10 +79,13 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		metrics.Instance().MetricOperationsLatencySet(operation, operationStart)
 		metrics.Instance().MetricOperationsLatencyTotalObserve(operation, operationStart)
 
-		if err != nil {
+		switch {
+		case err != nil:
 			log.Debugf(newCtx, "Response error: %+v", err)
 			metrics.Instance().MetricOperationsErrorsInc(operation)
-		} else {
+		case isList:
+			log.Debugf(newCtx, "Response: %#v", resp)
+		default:
 			log.Debugf(newCtx, "Response: %T: %+v", resp, resp)
 		}
 

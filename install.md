@@ -55,8 +55,9 @@ For more information, please follow the instructions in the [CRI-O packaging rep
 
 ## Install CRI-O on Flatcar with Sysexts
 
-Installing CRI-O on Flatcar Container Linux with support for systemd extensions (sysexts),
-enabling a supported installation method for environments that utilize Flatcar.
+Installing CRI-O on Flatcar Container Linux with support for systemd
+extensions (sysexts), enabling a supported installation method for
+environments that utilize Flatcar.
 
 See the [Flatcar documentation](https://flatcar.github.io/sysext-bakery/#ready-to-use-system-extensions-for-flatcar-and-other-distros)
 for more information on how to install.
@@ -356,8 +357,9 @@ officially provided [nix](https://nixos.org/nix) package and the derivation of
 it [within this repository](../nix). The builds are completely reproducible and
 will create a `x86_64`/`amd64` or `aarch64`/`arm64`, `ppc64le` or `s390x`
 stripped ELF binary for [glibc](https://www.gnu.org/software/libc) or [musl
-libc (for `s390x`)](https://www.musl-libc.org/). These binaries are integration tested
-(for `amd64` and `arm64`) as well and support the following features:
+libc (for `s390x`)](https://www.musl-libc.org/). These binaries are
+integration tested (for `amd64` and `arm64`) as well and support the
+following features:
 
 - apparmor
 - btrfs

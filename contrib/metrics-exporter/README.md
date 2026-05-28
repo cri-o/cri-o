@@ -1,6 +1,7 @@
 # CRI-O - Metrics Export
 
-Containerfile for metrics export can be found [here](Containerfile)
+The [Containerfile](Containerfile) contains the metrics export build
+definition.
 
 Test locally
 

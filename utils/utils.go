@@ -18,8 +18,8 @@ import (
 	"github.com/moby/sys/user"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 )
 
 // StatusToExitCode converts wait status code to an exit code.

@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/storage/pkg/pools"
 	"golang.org/x/sys/unix"
-	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 
 	"github.com/cri-o/cri-o/utils"
 )

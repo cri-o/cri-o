@@ -13,8 +13,8 @@ import (
 
 	"github.com/docker/go-units"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/lib/stats"

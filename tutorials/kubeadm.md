@@ -1,9 +1,9 @@
 # Running CRI-O with kubeadm
 
 This tutorial assumes you've already installed and setup CRI-O.
-If you have not, start [here](/install.md).
+If you have not, start with the [CRI-O installation guide](/install.md).
 It also assumes you've set up your system to use kubeadm.
-If you haven't done so, [here is a good tutorial](https://www.mirantis.com/blog/how-install-kubernetes-kubeadm/)
+If you haven't done so, follow the [kubeadm installation tutorial](https://www.mirantis.com/blog/how-install-kubernetes-kubeadm/).
 
 ## Configuring CNI
 
@@ -13,10 +13,10 @@ CNI plugin you choose.
 
 <!-- markdownlint-disable MD013 -->
 
-| CNI Plugin              | CIDR          | Notes                                                                                                                                             |
-| ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bridge plugin (default) | 10.85.0.0/16  | The default bridge plugin is defined [here](/contrib/cni/10-crio-bridge.conflist). This is only suitable when your cluster has a **single node**. |
-| Flannel                 | 10.244.0.0/16 | This is a good choice for clusters with multiple nodes.                                                                                           |
+| CNI Plugin              | CIDR          | Notes                                                                                                                                                               |
+| ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bridge plugin (default) | 10.85.0.0/16  | The default bridge plugin is defined in the [bridge conflist](/contrib/cni/10-crio-bridge.conflist). This is only suitable when your cluster has a **single node**. |
+| Flannel                 | 10.244.0.0/16 | This is a good choice for clusters with multiple nodes.                                                                                                             |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -29,7 +29,8 @@ Kubernetes documentation. Each plugin will define its own default CIDR.
 
 Given you've set CIDR, and assuming you've set the `cgroup_driver` in your CRI-O
 configuration as `systemd` (which is the default value), all you need to do is
-start crio (as defined [here](/install.md)), and run:
+start crio (as defined in the [installation guide](/install.md)),
+and run:
 `kubeadm init --pod-network-cidr=$CIDR --cri-socket=unix:///var/run/crio/crio.sock`
 
 ## Running kubeadm in an off line network
