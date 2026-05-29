@@ -92,9 +92,12 @@ func (*GomaxprocsHooks) PostStop(context.Context, *oci.Container, *sandbox.Sandb
 // calculateGOMAXPROCS derives the GOMAXPROCS value from CPU shares and a floor.
 // Kubelet sets shares = cpu_request_in_millicores * 1024 / 1000.
 // We reverse that with ceil(shares / 1024) to get the CPU count.
+// We then double that CPU count, as having GOMAXPROCS double the actual requested number reduces the likelihood
+// the go runtime will throttle itself in cases where there is excess CPU capacity (which is the intended result
+// of a cpu request).
 // The floor is used when the calculated value is lower.
 func calculateGOMAXPROCS(shares, fallbackMaxProcs int64) int64 {
-	return max(max((shares+1023)/1024, 1), fallbackMaxProcs)
+	return max(max((shares*2+1023)/1024, 1), fallbackMaxProcs)
 }
 
 // injectGOMAXPROCS sets the GOMAXPROCS environment variable to the given value.
