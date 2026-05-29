@@ -66,9 +66,15 @@ const (
 	UsernsMode = "userns-mode.crio.io"
 
 	// CPULoadBalancing indicates that load balancing should be disabled for CPUs used by the container.
+	// A container name can optionally be appended to target a specific container. The container specific annotation
+	// takes precedence if both are present.
+	// Example: cpu-load-balancing.crio.io/containerA.
 	CPULoadBalancing = "cpu-load-balancing.crio.io"
 
 	// CPUQuota indicates that CPU quota should be disabled for CPUs used by the container.
+	// A container name can optionally be appended to target a specific container. The container specific annotation
+	// takes precedence if both are present.
+	// Example: cpu-quota.crio.io/containerA.
 	CPUQuota = "cpu-quota.crio.io"
 
 	// CPUCStates indicates that c-states should be enabled or disabled for CPUs used by the container.
@@ -87,6 +93,9 @@ const (
 	// Set to "disable" to turn off IRQ balancing on all container CPUs.
 	// Set to "housekeeping" to preserve interrupts on the first CPU core and its siblings, but to turn off on all other
 	// container CPUs.
+	// A container name can optionally be appended to target a specific container. The container specific annotation
+	// takes precedence if both are present.
+	// Example: irq-load-balancing.crio.io/containerA.
 	IRQLoadBalancing = "irq-load-balancing.crio.io"
 
 	// OCISeccompBPFHook is the annotation used by the OCI seccomp BPF hook for tracing container syscalls.
