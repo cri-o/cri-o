@@ -147,7 +147,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-command -r -d 'Path 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-image -r -d 'Image which contains the pause executable.'
 complete -c crio -n '__fish_crio_no_subcommand' -l pause-image-auth-file -r -d 'Path to a config file containing credentials for --pause-image.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pids-limit -r -d 'Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag \'--pod-pids-limit\' should be used instead.'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l pinned-images -r -d 'A list of images that will be excluded from the kubelet\'s garbage collection.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l pinned-images -r -d 'A list of images and OCI artifacts that will be excluded from the kubelet\'s garbage collection.'
 complete -c crio -n '__fish_crio_no_subcommand' -l pinns-path -r -d 'The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty.'
 complete -c crio -n '__fish_crio_no_subcommand' -l privileged-seccomp-profile -r -d 'Enable a seccomp profile for privileged containers from the local path.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l profile -d 'Enable pprof remote profiler on 127.0.0.1:6060.'
