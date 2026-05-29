@@ -83,7 +83,7 @@ function get_gomaxprocs() {
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	[[ $(get_gomaxprocs "$ctr_id") == "GOMAXPROCS=8" ]]
+	[[ $(get_gomaxprocs "$ctr_id") == "GOMAXPROCS=16" ]]
 }
 
 # Verify GOMAXPROCS is injected for best-effort pods (no shares).
