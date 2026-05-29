@@ -21,27 +21,32 @@ import (
 	"go.podman.io/image/v5/pkg/compression"
 )
 
-type instanceCopyKind int
+type instanceOpKind int
 
 const (
-	instanceCopyCopy instanceCopyKind = iota
-	instanceCopyClone
+	instanceOpCopy instanceOpKind = iota
+	instanceOpClone
+	instanceOpDelete
 )
 
-type instanceCopy struct {
-	op           instanceCopyKind
+type instanceOp struct {
+	op           instanceOpKind
 	sourceDigest digest.Digest
 
 	// Fields which can be used by callers when operation
-	// is `instanceCopyCopy`
+	// is `instanceOpCopy`
 	copyForceCompressionFormat bool
 
 	// Fields which can be used by callers when operation
-	// is `instanceCopyClone`
+	// is `instanceOpClone`
 	cloneArtifactType       string
 	cloneCompressionVariant OptionCompressionVariant
 	clonePlatform           *imgspecv1.Platform
 	cloneAnnotations        map[string]string
+
+	// Fields which can be used by callers when operation
+	// is `instanceOpDelete`
+	deleteIndex int
 }
 
 // internal type only to make imgspecv1.Platform comparable
@@ -60,8 +65,9 @@ func platformV1ToPlatformComparable(platform *imgspecv1.Platform) platformCompar
 	}
 	osFeatures := slices.Clone(platform.OSFeatures)
 	sort.Strings(osFeatures)
-	return platformComparable{architecture: platform.Architecture,
-		os: platform.OS,
+	return platformComparable{
+		architecture: platform.Architecture,
+		os:           platform.OS,
 		// This is strictly speaking ambiguous, fields of OSFeatures can contain a ','. Probably good enough for now.
 		osFeatures: strings.Join(osFeatures, ","),
 		osVersion:  platform.OSVersion,
@@ -98,41 +104,64 @@ func validateCompressionVariantExists(input []OptionCompressionVariant) error {
 	return nil
 }
 
-// prepareInstanceCopies prepares a list of instances which needs to copied to the manifest list.
-func prepareInstanceCopies(list internalManifest.List, instanceDigests []digest.Digest, options *Options) ([]instanceCopy, error) {
-	res := []instanceCopy{}
+// prepareInstanceOps prepares a list of operations to perform on instances (copy, clone, or delete).
+// It returns a unified list of all operations and the count of copy/clone operations (excluding deletes).
+func prepareInstanceOps(list internalManifest.List, instanceDigests []digest.Digest, options *Options, cannotModifyManifestListReason string) ([]instanceOp, int, error) {
+	res := []instanceOp{}
+	deleteOps := []instanceOp{}
 	if options.ImageListSelection == CopySpecificImages && len(options.EnsureCompressionVariantsExist) > 0 {
 		// List can already contain compressed instance for a compression selected in `EnsureCompressionVariantsExist`
-		// It’s unclear what it means when `CopySpecificImages` includes an instance in options.Instances,
+		// It's unclear what it means when `CopySpecificImages` includes an instance in options.Instances,
 		// EnsureCompressionVariantsExist asks for an instance with some compression,
 		// an instance with that compression already exists, but is not included in options.Instances.
 		// We might define the semantics and implement this in the future.
-		return res, fmt.Errorf("EnsureCompressionVariantsExist is not implemented for CopySpecificImages")
+		return res, -1, fmt.Errorf("EnsureCompressionVariantsExist is not implemented for CopySpecificImages")
 	}
 	err := validateCompressionVariantExists(options.EnsureCompressionVariantsExist)
 	if err != nil {
-		return res, err
+		return res, -1, err
 	}
 	compressionsByPlatform, err := platformCompressionMap(list, instanceDigests)
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
+
+	// Determine which specific images to copy (combining digest-based and platform-based selection)
+	var specificImages *set.Set[digest.Digest]
+	if options.ImageListSelection == CopySpecificImages {
+		specificImages, err = determineSpecificImages(options, list)
+		if err != nil {
+			return nil, -1, err
+		}
+	}
+
 	for i, instanceDigest := range instanceDigests {
 		if options.ImageListSelection == CopySpecificImages &&
-			!slices.Contains(options.Instances, instanceDigest) {
-			logrus.Debugf("Skipping instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
+			!specificImages.Contains(instanceDigest) {
+			if options.SparseManifestListAction == StripSparseManifestList {
+				if cannotModifyManifestListReason != "" {
+					return nil, -1, fmt.Errorf("we should delete instance %s from manifest list, but we cannot: %s", instanceDigest, cannotModifyManifestListReason)
+				}
+				logrus.Debugf("deleting instance %s from destination’s manifest (%d/%d)", instanceDigest, i+1, len(instanceDigests))
+				deleteOps = append(deleteOps, instanceOp{
+					op:          instanceOpDelete,
+					deleteIndex: i,
+				})
+			} else {
+				logrus.Debugf("skipping instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
+			}
 			continue
 		}
 		instanceDetails, err := list.Instance(instanceDigest)
 		if err != nil {
-			return res, fmt.Errorf("getting details for instance %s: %w", instanceDigest, err)
+			return res, -1, fmt.Errorf("getting details for instance %s: %w", instanceDigest, err)
 		}
 		forceCompressionFormat, err := shouldRequireCompressionFormatMatch(options)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
-		res = append(res, instanceCopy{
-			op:                         instanceCopyCopy,
+		res = append(res, instanceOp{
+			op:                         instanceOpCopy,
 			sourceDigest:               instanceDigest,
 			copyForceCompressionFormat: forceCompressionFormat,
 		})
@@ -140,20 +169,69 @@ func prepareInstanceCopies(list internalManifest.List, instanceDigests []digest.
 		compressionList := compressionsByPlatform[platform]
 		for _, compressionVariant := range options.EnsureCompressionVariantsExist {
 			if !compressionList.Contains(compressionVariant.Algorithm.Name()) {
-				res = append(res, instanceCopy{
-					op:                      instanceCopyClone,
+				res = append(res, instanceOp{
+					op:                      instanceOpClone,
 					sourceDigest:            instanceDigest,
 					cloneArtifactType:       instanceDetails.ReadOnly.ArtifactType,
 					cloneCompressionVariant: compressionVariant,
 					clonePlatform:           instanceDetails.ReadOnly.Platform,
 					cloneAnnotations:        maps.Clone(instanceDetails.ReadOnly.Annotations),
 				})
-				// add current compression to the list so that we don’t create duplicate clones
 				compressionList.Add(compressionVariant.Algorithm.Name())
 			}
 		}
 	}
-	return res, nil
+
+	// Add delete operations in reverse order (highest to lowest index) to avoid shifting
+	slices.Reverse(deleteOps)
+	copyLen := len(res) // Count copy/clone operations before appending deletes
+
+	if len(instanceDigests) > 0 && copyLen == 0 && len(deleteOps) == len(instanceDigests) {
+		return nil, -1, fmt.Errorf("requested operation filtered out all platforms and would create an empty image")
+	}
+
+	res = append(res, deleteOps...)
+
+	return res, copyLen, nil
+}
+
+// determineSpecificImages returns a set of images to copy based on the
+// Instances and InstancePlatforms fields of the passed-in options structure
+func determineSpecificImages(options *Options, updatedList internalManifest.List) (*set.Set[digest.Digest], error) {
+	specificImages := set.NewWithValues(options.Instances...)
+
+	if len(options.InstancePlatforms) > 0 {
+		// Find ALL instances matching each platform specification (OS and Architecture)
+		for _, filter := range options.InstancePlatforms {
+			matched := false
+			instanceDigests := updatedList.Instances()
+			for _, instanceDigest := range instanceDigests {
+				instanceDetails, err := updatedList.Instance(instanceDigest)
+				if err != nil {
+					return nil, fmt.Errorf("getting details for instance %s: %w", instanceDigest, err)
+				}
+
+				// Match the platform. We match nil platforms against empty filter values.
+				instanceOS := ""
+				instanceArch := ""
+				if instanceDetails.ReadOnly.Platform != nil {
+					instanceOS = instanceDetails.ReadOnly.Platform.OS
+					instanceArch = instanceDetails.ReadOnly.Platform.Architecture
+				}
+
+				if instanceOS == filter.OS && instanceArch == filter.Architecture {
+					specificImages.Add(instanceDigest)
+					matched = true
+				}
+			}
+
+			if !matched {
+				return nil, fmt.Errorf("no instances found for platform %s/%s", filter.OS, filter.Architecture)
+			}
+		}
+	}
+
+	return specificImages, nil
 }
 
 // copyMultipleImages copies some or all of an image list's instances, using
@@ -172,7 +250,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 
 	sigs, err := c.sourceSignatures(ctx, c.unparsedToplevel,
 		"Getting image list signatures",
-		"Checking if image list destination supports signatures")
+		"Checking if image list destination supports signatures", true)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +276,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	// Compare, and perhaps keep in sync with, the version in copySingleImage.
 	cannotModifyManifestListReason := ""
 	if len(sigs) > 0 {
-		cannotModifyManifestListReason = "Would invalidate signatures"
+		cannotModifyManifestListReason = "Would invalidate signatures; consider removing them from the multi-platform list"
 	}
 	if destIsDigestedReference {
 		cannotModifyManifestListReason = "Destination specifies a digest"
@@ -215,35 +293,38 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	case imgspecv1.MediaTypeImageManifest:
 		forceListMIMEType = imgspecv1.MediaTypeImageIndex
 	}
+	// FIXME: This does not take into account cannotModifyManifestListReason.
 	selectedListType, otherManifestMIMETypeCandidates, err := c.determineListConversion(manifestType, c.dest.SupportedManifestMIMETypes(), forceListMIMEType)
 	if err != nil {
 		return nil, fmt.Errorf("determining manifest list type to write to destination: %w", err)
 	}
 	if selectedListType != originalList.MIMEType() {
 		if cannotModifyManifestListReason != "" {
-			return nil, fmt.Errorf("Manifest list must be converted to type %q to be written to destination, but we cannot modify it: %q", selectedListType, cannotModifyManifestListReason)
+			return nil, fmt.Errorf("Manifest list must be converted to type %q to be written to destination, but we cannot modify it: %s", selectedListType, cannotModifyManifestListReason)
 		}
 	}
 
 	// Copy each image, or just the ones we want to copy, in turn.
 	instanceDigests := updatedList.Instances()
 	instanceEdits := []internalManifest.ListEdit{}
-	instanceCopyList, err := prepareInstanceCopies(updatedList, instanceDigests, c.options)
+	instanceOpList, copyLen, err := prepareInstanceOps(updatedList, instanceDigests, c.options, cannotModifyManifestListReason)
 	if err != nil {
 		return nil, fmt.Errorf("preparing instances for copy: %w", err)
 	}
-	c.Printf("Copying %d images generated from %d images in list\n", len(instanceCopyList), len(instanceDigests))
-	for i, instance := range instanceCopyList {
+	c.Printf("Copying %d images generated from %d images in list\n", copyLen, len(instanceDigests))
+	copyCount := 0 // Track copy/clone operations separately from delete operations
+	for i, instance := range instanceOpList {
 		// Update instances to be edited by their `ListOperation` and
 		// populate necessary fields.
 		switch instance.op {
-		case instanceCopyCopy:
-			logrus.Debugf("Copying instance %s (%d/%d)", instance.sourceDigest, i+1, len(instanceCopyList))
-			c.Printf("Copying image %s (%d/%d)\n", instance.sourceDigest, i+1, len(instanceCopyList))
-			unparsedInstance := image.UnparsedInstance(c.rawSource, &instanceCopyList[i].sourceDigest)
-			updated, err := c.copySingleImage(ctx, unparsedInstance, &instanceCopyList[i].sourceDigest, copySingleImageOptions{requireCompressionFormatMatch: instance.copyForceCompressionFormat})
+		case instanceOpCopy:
+			copyCount++
+			logrus.Debugf("Copying instance %s (%d/%d)", instance.sourceDigest, copyCount, copyLen)
+			c.Printf("Copying image %s (%d/%d)\n", instance.sourceDigest, copyCount, copyLen)
+			unparsedInstance := image.UnparsedInstance(c.rawSource, &instanceOpList[i].sourceDigest)
+			updated, err := c.copySingleImage(ctx, unparsedInstance, &instanceOpList[i].sourceDigest, copySingleImageOptions{requireCompressionFormatMatch: instance.copyForceCompressionFormat})
 			if err != nil {
-				return nil, fmt.Errorf("copying image %d/%d from manifest list: %w", i+1, len(instanceCopyList), err)
+				return nil, fmt.Errorf("copying image %d/%d from manifest list: %w", copyCount, copyLen, err)
 			}
 			// Record the result of a possible conversion here.
 			instanceEdits = append(instanceEdits, internalManifest.ListEdit{
@@ -252,17 +333,20 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 				UpdateDigest:                updated.manifestDigest,
 				UpdateSize:                  int64(len(updated.manifest)),
 				UpdateCompressionAlgorithms: updated.compressionAlgorithms,
-				UpdateMediaType:             updated.manifestMIMEType})
-		case instanceCopyClone:
-			logrus.Debugf("Replicating instance %s (%d/%d)", instance.sourceDigest, i+1, len(instanceCopyList))
-			c.Printf("Replicating image %s (%d/%d)\n", instance.sourceDigest, i+1, len(instanceCopyList))
-			unparsedInstance := image.UnparsedInstance(c.rawSource, &instanceCopyList[i].sourceDigest)
-			updated, err := c.copySingleImage(ctx, unparsedInstance, &instanceCopyList[i].sourceDigest, copySingleImageOptions{
+				UpdateMediaType:             updated.manifestMIMEType,
+			})
+		case instanceOpClone:
+			copyCount++
+			logrus.Debugf("Replicating instance %s (%d/%d)", instance.sourceDigest, copyCount, copyLen)
+			c.Printf("Replicating image %s (%d/%d)\n", instance.sourceDigest, copyCount, copyLen)
+			unparsedInstance := image.UnparsedInstance(c.rawSource, &instanceOpList[i].sourceDigest)
+			updated, err := c.copySingleImage(ctx, unparsedInstance, &instanceOpList[i].sourceDigest, copySingleImageOptions{
 				requireCompressionFormatMatch: true,
 				compressionFormat:             &instance.cloneCompressionVariant.Algorithm,
-				compressionLevel:              instance.cloneCompressionVariant.Level})
+				compressionLevel:              instance.cloneCompressionVariant.Level,
+			})
 			if err != nil {
-				return nil, fmt.Errorf("replicating image %d/%d from manifest list: %w", i+1, len(instanceCopyList), err)
+				return nil, fmt.Errorf("replicating image %d/%d from manifest list: %w", copyCount, copyLen, err)
 			}
 			// Record the result of a possible conversion here.
 			instanceEdits = append(instanceEdits, internalManifest.ListEdit{
@@ -275,13 +359,18 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 				AddAnnotations:           instance.cloneAnnotations,
 				AddCompressionAlgorithms: updated.compressionAlgorithms,
 			})
+		case instanceOpDelete:
+			instanceEdits = append(instanceEdits, internalManifest.ListEdit{
+				ListOperation: internalManifest.ListOpDelete,
+				DeleteIndex:   instance.deleteIndex,
+			})
 		default:
 			return nil, fmt.Errorf("copying image: invalid copy operation %d", instance.op)
 		}
 	}
 
-	// Now reset the digest/size/types of the manifests in the list to account for any conversions that we made.
-	if err = updatedList.EditInstances(instanceEdits); err != nil {
+	// Now reset the digest/size/types of the manifests in the list and remove deleted instances.
+	if err = updatedList.EditInstances(instanceEdits, cannotModifyManifestListReason != ""); err != nil {
 		return nil, fmt.Errorf("updating manifest list: %w", err)
 	}
 
@@ -315,7 +404,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 		// If we can't just use the original value, but we have to change it, flag an error.
 		if !bytes.Equal(attemptedManifestList, originalManifestList) {
 			if cannotModifyManifestListReason != "" {
-				return nil, fmt.Errorf("Manifest list must be converted to type %q to be written to destination, but we cannot modify it: %q", thisListType, cannotModifyManifestListReason)
+				return nil, fmt.Errorf("Manifest list was edited, but we cannot modify it: %q", cannotModifyManifestListReason)
 			}
 			logrus.Debugf("Manifest list has been updated")
 		} else {
