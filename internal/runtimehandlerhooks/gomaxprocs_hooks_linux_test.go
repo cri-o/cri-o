@@ -120,7 +120,7 @@ func TestCalculateGOMAXPROCS(t *testing.T) {
 			name:             "8 CPU request (shares=8192), floor=4 -> use calculated",
 			shares:           8192,
 			fallbackMaxProcs: 4,
-			expectedMaxProcs: 8,
+			expectedMaxProcs: 16,
 		},
 		{
 			name:             "1 CPU request (shares=1024), floor=4 -> use floor",
@@ -129,16 +129,16 @@ func TestCalculateGOMAXPROCS(t *testing.T) {
 			expectedMaxProcs: 4,
 		},
 		{
-			name:             "4 CPU request (shares=4096), floor=4 -> use floor (equal, not greater)",
+			name:             "4 CPU request (shares=4096), floor=4 -> use calculated (double is past floor)",
 			shares:           4096,
 			fallbackMaxProcs: 4,
-			expectedMaxProcs: 4,
+			expectedMaxProcs: 8,
 		},
 		{
 			name:             "16 CPU request (shares=16384), floor=4 -> use calculated",
 			shares:           16384,
 			fallbackMaxProcs: 4,
-			expectedMaxProcs: 16,
+			expectedMaxProcs: 32,
 		},
 		{
 			name:             "best-effort (shares=2), floor=4 -> use floor",
@@ -156,7 +156,7 @@ func TestCalculateGOMAXPROCS(t *testing.T) {
 			name:             "5 CPU request (shares=5120), floor=2 -> use calculated",
 			shares:           5120,
 			fallbackMaxProcs: 2,
-			expectedMaxProcs: 5,
+			expectedMaxProcs: 10,
 		},
 		{
 			name:             "250m request (shares=256), floor=1 -> use floor",
@@ -168,7 +168,7 @@ func TestCalculateGOMAXPROCS(t *testing.T) {
 			name:             "3 CPU request (shares=3072), floor=2 -> use calculated",
 			shares:           3072,
 			fallbackMaxProcs: 2,
-			expectedMaxProcs: 3,
+			expectedMaxProcs: 6,
 		},
 	}
 
