@@ -82,12 +82,16 @@ func (list *Schema2ListPublic) UpdateInstances(updates []ListUpdate) error {
 			UpdateDigest:    instance.Digest,
 			UpdateSize:      instance.Size,
 			UpdateMediaType: instance.MediaType,
-			ListOperation:   ListOpUpdate})
+			ListOperation:   ListOpUpdate,
+		})
 	}
-	return list.editInstances(editInstances)
+	return list.editInstances(editInstances, false)
 }
 
-func (list *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
+// editInstances edits information about the list's instances, based on instructions in editInstances.
+// If cannotModifyManifest, avoidable updates should be skipped.
+func (list *Schema2ListPublic) editInstances(editInstances []ListEdit, cannotModifyManifest bool) error {
+	_ = cannotModifyManifest // None of the edits we make are avoidable.
 	addedEntries := []Schema2ManifestDescriptor{}
 	for i, editInstance := range editInstances {
 		switch editInstance.ListOperation {
@@ -128,6 +132,11 @@ func (list *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
 				},
 				schema2PlatformSpecFromOCIPlatform(*editInstance.AddPlatform),
 			})
+		case ListOpDelete:
+			if editInstance.DeleteIndex < 0 || editInstance.DeleteIndex >= len(list.Manifests) {
+				return fmt.Errorf("Schema2List.EditInstances: invalid delete index %d (list has %d instances)", editInstance.DeleteIndex, len(list.Manifests))
+			}
+			list.Manifests = slices.Delete(list.Manifests, editInstance.DeleteIndex, editInstance.DeleteIndex+1)
 		default:
 			return fmt.Errorf("internal error: invalid operation: %d", editInstance.ListOperation)
 		}
@@ -140,8 +149,10 @@ func (list *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
 	return nil
 }
 
-func (list *Schema2List) EditInstances(editInstances []ListEdit) error {
-	return list.editInstances(editInstances)
+// EditInstances edits information about the list's instances, based on instructions in editInstances.
+// If cannotModifyManifest, avoidable updates should be skipped.
+func (list *Schema2List) EditInstances(editInstances []ListEdit, cannotModifyManifest bool) error {
+	return list.editInstances(editInstances, cannotModifyManifest)
 }
 
 func (list *Schema2ListPublic) ChooseInstanceByCompression(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error) {
