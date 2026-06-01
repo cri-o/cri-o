@@ -675,6 +675,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 		err := r.waitCtrTerminate(sig, stopCh, timeoutDuration)
 		if err == nil {
 			c.state.Finished = time.Now()
+			c.state.Status = ContainerStateStopped
 
 			return nil
 		}
@@ -695,6 +696,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	}
 
 	c.state.Finished = time.Now()
+	c.state.Status = ContainerStateStopped
 
 	return nil
 }
