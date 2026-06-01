@@ -44,6 +44,9 @@ const (
 	// ImageRef is the container image ref annotation.
 	ImageRef = "io.kubernetes.cri-o.ImageRef"
 
+	// ImageRepoDigests are the repo@digest values of the image, persisted for restore.
+	ImageRepoDigests = "io.kubernetes.cri-o.ImageRepoDigests"
+
 	// KubeName is the kubernetes name annotation.
 	KubeName = "io.kubernetes.cri-o.KubeName"
 
