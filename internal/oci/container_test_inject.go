@@ -7,6 +7,9 @@ package oci
 
 import (
 	"context"
+	"syscall"
+
+	task "github.com/containerd/containerd/api/runtime/task/v2"
 
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -73,4 +76,18 @@ func (r RuntimeVM) DeleteContainer(ctx context.Context, c *Container) error {
 
 func (r RuntimeVM) HasTask() bool {
 	return r.task != nil
+}
+
+func NewRuntimeVMWithTask(t task.TaskService) RuntimeVM {
+	return RuntimeVM{
+		runtimeVM: &runtimeVM{
+			task: t,
+			ctx:  context.Background(),
+			ctrs: make(map[string]containerInfo),
+		},
+	}
+}
+
+func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal) error {
+	return r.kill(ctrID, execID, signal)
 }

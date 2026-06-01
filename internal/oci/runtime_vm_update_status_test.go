@@ -4,14 +4,28 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
 
+	task "github.com/containerd/containerd/api/runtime/task/v2"
+	"github.com/containerd/ttrpc"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/protobuf/types/known/emptypb"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/oci"
 )
+
+type fakeTaskService struct {
+	task.TaskService
+
+	killErr error
+}
+
+func (f *fakeTaskService) Kill(_ context.Context, _ *task.KillRequest) (*emptypb.Empty, error) {
+	return nil, f.killErr
+}
 
 func newTestContainerWithBundle(bundlePath string) *oci.Container {
 	c, err := oci.NewContainer("test-ctr-id", "test-ctr", bundlePath, "",
@@ -154,5 +168,34 @@ var _ = t.Describe("RuntimeVM DeleteContainer after restore", func() {
 		Expect(string(c.State().Status)).To(Equal(oci.ContainerStateStopped))
 
 		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
+	})
+})
+
+var _ = t.Describe("RuntimeVM kill", func() {
+	It("should return nil when shim has already exited (ttrpc.ErrClosed) for stop signals", func() {
+		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
+		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+	})
+
+	It("should propagate ttrpc.ErrClosed for signal 0 so IsContainerAlive returns false", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{})
+
+		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
+		Expect(r.IsContainerAlive(c)).To(BeFalse())
+	})
+
+	It("should propagate errors that are not ttrpc.ErrClosed", func() {
+		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
+		rErr := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: context.DeadlineExceeded})
+
+		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(rErr.Kill("ctr-id", "", syscall.SIGTERM)).To(HaveOccurred())
+	})
+
+	It("should return nil when kill succeeds", func() {
+		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: nil})
+		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
 	})
 })
