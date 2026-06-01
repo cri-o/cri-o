@@ -1354,7 +1354,7 @@ func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal, all bool) 
 		ExecID: execID,
 		Signal: uint32(signal),
 		All:    all,
-	}); err != nil {
+	}); err != nil && (signal == 0 || !errors.Is(err, ttrpc.ErrClosed)) {
 		return errdefs.FromGRPC(err)
 	}
 
