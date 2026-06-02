@@ -22,6 +22,7 @@ with pkgs; buildGo126Module /* use go 1.26.3 */ {
     glibc
     glibc.static
   ] ++ [
+    btrfs-progs
     gpgme
     libapparmor
     libassuan
@@ -33,7 +34,7 @@ with pkgs; buildGo126Module /* use go 1.26.3 */ {
     export CFLAGS='-static -pthread'
     export LDFLAGS='-s -w -static-libgcc -static'
     export EXTRA_LDFLAGS='-s -w -linkmode external -extldflags "-static -lm"'
-    export BUILDTAGS='static netgo osusergo exclude_graphdriver_btrfs seccomp apparmor selinux'
+    export BUILDTAGS='static netgo osusergo seccomp apparmor selinux'
     export CGO_ENABLED=1
     export CGO_LDFLAGS='-lgpgme -lassuan -lgpg-error'
     export SOURCE_DATE_EPOCH=0

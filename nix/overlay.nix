@@ -18,6 +18,7 @@ self: super:
   });
   libassuan = (static super.libassuan);
   libgpg-error = (static super.libgpg-error);
+  btrfs-progs = (static super.btrfs-progs);
   libseccomp = (static super.libseccomp);
   gnupg = super.gnupg.override {
     libusb1 = null;
