@@ -118,7 +118,7 @@ func updateVersionAndCreatePR(
 
 	logrus.Infof("Updating version in spec file %s", utils.SpecFile)
 
-	if err := updateSpecFile(oldVersion, newVersion); err != nil {
+	if err := updateSpecFile(newVersion); err != nil {
 		return fmt.Errorf("unable to update spec file: %w", err)
 	}
 
@@ -184,15 +184,15 @@ func modifyVersionFile(filePath, oldVersion, newVersion string) error {
 	return nil
 }
 
-func updateSpecFile(oldVersion, newVersion string) error {
+func updateSpecFile(newVersion string) error {
 	content, err := os.ReadFile(utils.SpecFile)
 	if err != nil {
 		return fmt.Errorf("read file %s: %w", utils.SpecFile, err)
 	}
 
-	re := regexp.MustCompile(`(?m)^Version:\s+` + regexp.QuoteMeta(oldVersion) + `\s*$`)
+	re := regexp.MustCompile(`(?m)^Version:\s+\S+\s*$`)
 	if !re.Match(content) {
-		return fmt.Errorf("version string %q not found in %s", "Version: "+oldVersion, utils.SpecFile)
+		return fmt.Errorf("version string not found in %s", utils.SpecFile)
 	}
 
 	modifiedContent := re.ReplaceAll(content, []byte("Version: "+newVersion))
