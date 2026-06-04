@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 03 Jun 2026 17:12:20 UTC for commit [f098a7f][0]._
+_Generated on Thu, 04 Jun 2026 06:56:27 UTC for commit [1afe24f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f098a7f7736cf3837e8e3a57073aeb138ae3fdda
+[0]: https://github.com/cri-o/cri-o/commit/1afe24f8adeeee0207e7af4fa08199dfe7c977ad
 
 ## Outdated Dependencies
 
@@ -332,7 +332,7 @@ _Generated on Wed, 03 Jun 2026 17:12:20 UTC for commit [f098a7f][0]._
 | github.com/dimchansky/utfbom                                                | v1.1.1                                 |                                    | false  | true             |
 | github.com/disiqueira/gotree/v3                                             | v3.0.2                                 |                                    | false  | true             |
 | github.com/distribution/reference                                           | v0.6.0                                 |                                    | false  | true             |
-| github.com/docker/cli                                                       | v29.2.1+incompatible                   | v29.5.2+incompatible               | false  | true             |
+| github.com/docker/cli                                                       | v29.2.1+incompatible                   | v29.5.3+incompatible               | false  | true             |
 | github.com/docker/distribution                                              | v2.8.3+incompatible                    |                                    | true   | true             |
 | github.com/docker/docker                                                    | v28.5.2+incompatible                   |                                    | false  | true             |
 | github.com/docker/docker-credential-helpers                                 | v0.9.5                                 | v0.9.7                             | false  | true             |
@@ -421,7 +421,7 @@ _Generated on Wed, 03 Jun 2026 17:12:20 UTC for commit [f098a7f][0]._
 | github.com/google/go-intervals                                              | v0.0.2                                 |                                    | false  | true             |
 | github.com/google/go-querystring                                            | v1.2.0                                 |                                    | false  | true             |
 | github.com/google/gofuzz                                                    | v1.2.0                                 |                                    | false  | true             |
-| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936     | v0.0.0-20260507013755-92041b743c96 | false  | true             |
+| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936     | v0.0.0-20260604005048-7023385849c0 | false  | true             |
 | github.com/google/renameio                                                  | v1.0.1                                 |                                    | true   | true             |
 | github.com/google/s2a-go                                                    | v0.1.9                                 |                                    | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                                 |                                    | true   | true             |
@@ -624,7 +624,7 @@ _Generated on Wed, 03 Jun 2026 17:12:20 UTC for commit [f098a7f][0]._
 | github.com/spf13/cobra                                                      | v1.10.2                                |                                    | false  | true             |
 | github.com/spf13/pflag                                                      | v1.0.10                                |                                    | false  | true             |
 | github.com/spf13/viper                                                      | v1.21.0                                |                                    | false  | true             |
-| github.com/spiffe/go-spiffe/v2                                              | v2.6.0                                 |                                    | false  | true             |
+| github.com/spiffe/go-spiffe/v2                                              | v2.6.0                                 | v2.7.0                             | false  | true             |
 | github.com/stefanberger/go-pkcs11uri                                        | v0.0.0-20230803200340-78284954bff6     |                                    | false  | true             |
 | github.com/stretchr/objx                                                    | v0.5.2                                 | v0.5.3                             | false  | true             |
 | github.com/stretchr/testify                                                 | v1.11.1                                |                                    | true   | true             |
@@ -716,7 +716,7 @@ _Generated on Wed, 03 Jun 2026 17:12:20 UTC for commit [f098a7f][0]._
 | go.yaml.in/yaml/v3                                                          | v3.0.4                                 |                                    | false  | true             |
 | goa.design/goa/v3                                                           | v3.23.4                                | v3.28.0                            | false  | true             |
 | golang.org/x/crypto                                                         | v0.50.0                                | v0.52.0                            | false  | true             |
-| golang.org/x/exp                                                            | v0.0.0-20240719175910-8a7402abbf56     | v0.0.0-20260529124908-c761662dc8c9 | false  | true             |
+| golang.org/x/exp                                                            | v0.0.0-20240719175910-8a7402abbf56     | v0.0.0-20260603202125-055de637280b | false  | true             |
 | golang.org/x/mod                                                            | v0.35.0                                | v0.36.0                            | false  | true             |
 | golang.org/x/net                                                            | v0.53.0                                | v0.55.0                            | true   | true             |
 | golang.org/x/oauth2                                                         | v0.36.0                                |                                    | false  | true             |
@@ -756,7 +756,7 @@ _Generated on Wed, 03 Jun 2026 17:12:20 UTC for commit [f098a7f][0]._
 | k8s.io/cri-streaming                                                        | v0.36.0                                | v0.36.1                            | true   | true             |
 | k8s.io/gengo/v2                                                             | v2.0.0-20250604051438-85fd79dbfd9f     | v2.0.0-20260408192533-25e2208e0dc3 | false  | true             |
 | k8s.io/klog/v2                                                              | v2.140.0                               |                                    | true   | true             |
-| k8s.io/kube-openapi                                                         | v0.0.0-20260317180543-43fb72c5454a     | v0.0.0-20260520065146-aa012df4f4af | false  | true             |
+| k8s.io/kube-openapi                                                         | v0.0.0-20260317180543-43fb72c5454a     | v0.0.0-20260603220949-865597e52e25 | false  | true             |
 | k8s.io/kubelet                                                              | v0.36.0                                | v0.36.1                            | true   | true             |
 | k8s.io/streaming                                                            | v0.37.0-alpha.0                        |                                    | false  | true             |
 | k8s.io/utils                                                                | v0.0.0-20260210185600-b8788abfbbc2     | v0.0.0-20260507154919-ff6756f316d2 | true   | true             |
