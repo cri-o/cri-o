@@ -372,7 +372,8 @@ func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbo
 		}
 	}
 
-	if sb.UsernsMode() == "" && s.defaultIDMappings == nil {
+	// UsernsMode() is empty but UserNsPath() is set when the cri-o restarts and container is killed
+	if sb.UsernsMode() == "" && sb.UserNsPath() == "" && s.defaultIDMappings == nil {
 		return nil, nil
 	}
 
@@ -380,9 +381,39 @@ func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbo
 		return nil, errors.New("infra container not found")
 	}
 
-	uids, gids, err := unshare.GetHostIDMappings(strconv.Itoa(ic.State().Pid))
-	if err != nil {
-		return nil, err
+	icPid, err := ic.Pid()
+
+	var (
+		uids, gids []spec.LinuxIDMapping
+	)
+
+	// Treat PID errors the same as PID 0 - both indicate we should read from config.json
+	if err != nil || icPid == 0 {
+		// read the UID/GID mappings from the infra container's saved config.json
+		configPath := filepath.Join(ic.Dir(), "config.json")
+
+		configData, readErr := os.ReadFile(configPath)
+		if readErr != nil {
+			return nil, fmt.Errorf("cannot read infra container config.json: %w", readErr)
+		}
+
+		var containerConfig spec.Spec
+		if parseErr := json.Unmarshal(configData, &containerConfig); parseErr != nil {
+			return nil, fmt.Errorf("cannot parse infra container config.json: %w", parseErr)
+		}
+
+		if containerConfig.Linux == nil ||
+			(len(containerConfig.Linux.UIDMappings) == 0 && len(containerConfig.Linux.GIDMappings) == 0) {
+			return nil, nil
+		}
+
+		uids = containerConfig.Linux.UIDMappings
+		gids = containerConfig.Linux.GIDMappings
+	} else {
+		uids, gids, err = unshare.GetHostIDMappings(strconv.Itoa(icPid))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get ID mappings from infra container PID %d: %w", icPid, err)
+		}
 	}
 
 	mappings := convertToStorageIDMappings(uids, gids)
