@@ -53,7 +53,7 @@ func (c *ContainerServer) ContainerRestore(
 		return "", fmt.Errorf("failed to lookup sandbox %s: %w", ctr.Sandbox(), err)
 	}
 
-	imageService := c.StorageImageServer(sb.RuntimeHandler())
+	imageService := c.StorageImageServer(sb)
 
 	// During checkpointing the container is unmounted. This mounts the container again.
 	mountPoint, err := imageService.GetStore().Mount(ctr.ID(), ctrSpec.Config.Linux.MountLabel)

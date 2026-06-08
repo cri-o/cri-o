@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"reflect"
 
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -14,21 +15,19 @@ import (
 type RuntimeServiceManager struct {
 	serverConfig     *config.Config
 	runtimeService   RuntimeServer
-	runtimeServiceRP RuntimeServer
+	imageServiceMgr  *ImageServiceManager
+	ctx              context.Context
+	storageTransport StorageTransport
 }
 
-func (r *RuntimeServiceManager) GetRuntimeService(runtimeHandler string) RuntimeServer {
-	isRuntimePullImage := false
+func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) RuntimeServer {
+	if sb != nil && !reflect.ValueOf(sb).IsNil() {
+		rt, ok := r.serverConfig.Runtimes[sb.RuntimeHandler()]
+		if ok && rt.RuntimePullImage {
+			is := r.imageServiceMgr.GetImageService(sb)
 
-	if runtimeHandler != "" {
-		r, ok := r.serverConfig.Runtimes[runtimeHandler]
-		if ok {
-			isRuntimePullImage = r.RuntimePullImage
+			return GetRuntimePulledRuntimeService(r.ctx, r.runtimeService, is, r.storageTransport)
 		}
-	}
-
-	if isRuntimePullImage {
-		return r.runtimeServiceRP
 	}
 
 	return r.runtimeService
@@ -42,22 +41,12 @@ func GetRuntimeServiceManager(ctx context.Context, imageServiceMgr *ImageService
 		return nil, errors.New("failed to assert runtimeService type")
 	}
 
-	imgSvcRP, ok := imageServiceMgr.imageServiceRP.(*runtimePulledImageService)
-	if !ok {
-		return nil, errors.New("failed to assert runtimePulledImageService type")
-	}
-
-	rs_rp := GetRuntimePulledRuntimeService(ctx, rs, imgSvcRP, storageTransport)
-
-	runtimeSvcRP, ok := rs_rp.(*runtimePulledRuntimeService)
-	if !ok {
-		return nil, errors.New("failed to assert runtimePulledRuntimeService type")
-	}
-
 	return &RuntimeServiceManager{
 		serverConfig:     serverConfig,
 		runtimeService:   runtimeSvc,
-		runtimeServiceRP: runtimeSvcRP,
+		imageServiceMgr:  imageServiceMgr,
+		ctx:              ctx,
+		storageTransport: storageTransport,
 	}, nil
 }
 

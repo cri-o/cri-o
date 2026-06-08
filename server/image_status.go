@@ -95,7 +95,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 // storageImageStatus calls ImageStatus for a k8s ImageSpec.
 // Returns (nil, nil) if image was not found.
 func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) (*pkgstorage.ImageResult, error) {
-	imageService := s.StorageImageServer(spec.GetRuntimeHandler())
+	imageService := s.StorageImageServer(nil)
 	if id := imageService.HeuristicallyTryResolvingStringAsIDPrefix(spec.GetImage()); id != nil {
 		status, err := imageService.ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {

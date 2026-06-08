@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	json "github.com/goccy/go-json"
@@ -24,7 +25,7 @@ type runtimePulledRuntimeService struct {
 	// for runtimes that handle image management.
 	runtimeServiceRP RuntimeServer
 
-	storageImageServer *runtimePulledImageService
+	storageImageServer ImageServer
 	ctx                context.Context
 }
 
@@ -58,7 +59,12 @@ func (r *runtimePulledRuntimeService) createContainerOrPodSandbox(containerID st
 	}
 
 	// Pull out a copy of the image's configuration.
-	imageConfig, err := r.storageImageServer.GetConfigForImage(r.ctx, template.userRequestedImage)
+	is, ok := r.storageImageServer.(*runtimePulledImageService)
+	if !ok {
+		return ContainerInfo{}, errors.New("internal error: RuntimeServiceVM bound to default image server")
+	}
+
+	imageConfig, err := is.GetConfigForImage(r.ctx, template.userRequestedImage)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
@@ -227,7 +233,7 @@ func (r *runtimePulledRuntimeService) GetRunDir(id string) (string, error) {
 // service to pull and manage images, and its store to manage containers based
 // on those images.
 // The provided ImageServer must be an instance of runtimePulledImageService.
-func GetRuntimePulledRuntimeService(ctx context.Context, runtimeService RuntimeServer, storageImageServer *runtimePulledImageService, storageTransport StorageTransport) RuntimeServer {
+func GetRuntimePulledRuntimeService(ctx context.Context, runtimeService RuntimeServer, storageImageServer ImageServer, storageTransport StorageTransport) RuntimeServer {
 	if storageTransport == nil {
 		storageTransport = nativeStorageTransport{}
 	}
