@@ -55,7 +55,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 				log.Warnf(ctx, "Failed to lookup sandbox %s: %v", c.Sandbox(), err2)
 			}
 
-			err2 = s.ContainerServer.StorageRuntimeServer(sb.RuntimeHandler()).DeleteContainer(ctx, c.ID())
+			err2 = s.ContainerServer.StorageRuntimeServer(sb).DeleteContainer(ctx, c.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}

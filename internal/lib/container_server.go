@@ -77,8 +77,8 @@ func (c *ContainerServer) Store() cstorage.Store {
 }
 
 // StorageImageServer returns the ImageServer for the ContainerServer.
-func (c *ContainerServer) StorageImageServer(runtimeHandler string) storage.ImageServer {
-	return c.storageImgSvcMgr.GetImageService(runtimeHandler)
+func (c *ContainerServer) StorageImageServer(sb *sandbox.Sandbox) storage.ImageServer {
+	return c.storageImgSvcMgr.GetImageService(sb)
 }
 
 // CtrIDIndex returns the TruncIndex for the ContainerServer.
@@ -97,8 +97,8 @@ func (c *ContainerServer) Config() *libconfig.Config {
 }
 
 // StorageRuntimeServer gets the runtime server for the ContainerServer.
-func (c *ContainerServer) StorageRuntimeServer(runtimeHandler string) storage.RuntimeServer {
-	return c.storageRuntimeSvcMgr.GetRuntimeService(runtimeHandler)
+func (c *ContainerServer) StorageRuntimeServer(sb storage.SandboxInfo) storage.RuntimeServer {
+	return c.storageRuntimeSvcMgr.GetRuntimeService(sb)
 }
 
 // StorageImageManager gets the ImageServiceManager for the ContainerServer.

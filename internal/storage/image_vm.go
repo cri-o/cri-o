@@ -53,7 +53,7 @@ type runtimePulledImageService struct {
 }
 
 // GetRuntimePulledImageService creates a new runtimePulledImageService instance.
-func GetRuntimePulledImageService(ctx context.Context, imageService *imageService) (ImageServer, error) {
+func GetRuntimePulledImageService(ctx context.Context, imageService *imageService) (*runtimePulledImageService, error) {
 	// Create a new OCI artifact store for pulling the artifact.
 	// We make the store point to a dedicated location to avoid any risk of
 	// mixing the pulled artifacts with regular container images.
