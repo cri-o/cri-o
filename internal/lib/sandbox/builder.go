@@ -36,6 +36,9 @@ type Builder interface {
 	// Name returns the id of the pod sandbox
 	Name() string
 
+	// RuntimeHandler returns the runtime handler for the pod sandbox.
+	RuntimeHandler() string
+
 	// InitInfraContainer initializes the sandbox's infra container
 	InitInfraContainer(*libconfig.Config, *storage.ContainerInfo, *idtools.IDMappings) error
 
@@ -346,6 +349,15 @@ func (b *sandboxBuilder) ID() string {
 // Name returns the name of the pod sandbox.
 func (b *sandboxBuilder) Name() string {
 	return b.sandboxRef.name
+}
+
+// RuntimeHandler returns the runtime handler for the pod sandbox.
+func (b *sandboxBuilder) RuntimeHandler() string {
+	if b.sandboxRef == nil || b.sandboxRef.criSandbox == nil {
+		return ""
+	}
+
+	return b.sandboxRef.runtimeHandler
 }
 
 func (b *sandboxBuilder) ResolvPath() string {

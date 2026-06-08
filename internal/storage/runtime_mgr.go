@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"reflect"
 
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -12,23 +13,21 @@ import (
 // It allows for easy switching between different runtime services using different
 // image service managers in the backend.
 type RuntimeServiceManager struct {
-	serverConfig     *config.Config
-	runtimeService   RuntimeServer
-	runtimeServiceRP RuntimeServer
+	serverConfig    *config.Config
+	runtimeService  RuntimeServer
+	imageServiceMgr *ImageServiceManager
+	ctx             context.Context
 }
 
-func (r *RuntimeServiceManager) GetRuntimeService(runtimeHandler string) RuntimeServer {
-	isRuntimePullImage := false
+func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) RuntimeServer {
+	v := reflect.ValueOf(sb)
+	if sb != nil && v.Kind() == reflect.Ptr && !v.IsNil() {
+		rt, ok := r.serverConfig.Runtimes[sb.RuntimeHandler()]
+		if ok && rt.RuntimePullImage {
+			is := r.imageServiceMgr.GetImageService(sb)
 
-	if runtimeHandler != "" {
-		r, ok := r.serverConfig.Runtimes[runtimeHandler]
-		if ok {
-			isRuntimePullImage = r.RuntimePullImage
+			return GetRuntimePulledRuntimeService(r.ctx, r.runtimeService, is)
 		}
-	}
-
-	if isRuntimePullImage {
-		return r.runtimeServiceRP
 	}
 
 	return r.runtimeService
@@ -42,22 +41,11 @@ func GetRuntimeServiceManager(ctx context.Context, imageServiceMgr *ImageService
 		return nil, errors.New("failed to assert runtimeService type")
 	}
 
-	imgSvcRP, ok := imageServiceMgr.imageServiceRP.(*runtimePulledImageService)
-	if !ok {
-		return nil, errors.New("failed to assert runtimePulledImageService type")
-	}
-
-	rs_rp := GetRuntimePulledRuntimeService(ctx, rs, imgSvcRP)
-
-	runtimeSvcRP, ok := rs_rp.(*runtimePulledRuntimeService)
-	if !ok {
-		return nil, errors.New("failed to assert runtimePulledRuntimeService type")
-	}
-
 	return &RuntimeServiceManager{
-		serverConfig:     serverConfig,
-		runtimeService:   runtimeSvc,
-		runtimeServiceRP: runtimeSvcRP,
+		serverConfig:    serverConfig,
+		runtimeService:  runtimeSvc,
+		imageServiceMgr: imageServiceMgr,
+		ctx:             ctx,
 	}, nil
 }
 

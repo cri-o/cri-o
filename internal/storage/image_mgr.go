@@ -3,35 +3,79 @@ package storage
 import (
 	"context"
 	"errors"
+	"reflect"
+	"sync"
 
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 )
+
+// SandboxInfo provides the minimal interface for accessing sandbox information
+// needed by the ImageServiceManager.
+type SandboxInfo interface {
+	RuntimeHandler() string
+	ID() string
+}
 
 // The ImageServiceManager object is responsible for maintaining different
 // implementations of the ImageServer interface.
 // It allows for easy switching between different image storage backends
 // depending on the configuration or environment.
 type ImageServiceManager struct {
-	serverConfig   *config.Config
-	imageService   ImageServer
-	imageServiceRP ImageServer
+	ctx          context.Context
+	serverConfig *config.Config
+	imageService ImageServer
+
+	// runtimePulledImageService instances mapped to the sandbox ID using them
+	imageServiceRP map[string]*runtimePulledImageService
+
+	// imageServiceRPLock protects concurrent access to imageServiceRP
+	imageServiceRPLock sync.RWMutex
 }
 
-func (i *ImageServiceManager) GetImageService(runtimeHandler string) ImageServer {
-	isRuntimePullImage := false
+func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
+	v := reflect.ValueOf(sb)
+	if sb != nil && v.Kind() == reflect.Ptr && !v.IsNil() {
+		r, ok := i.serverConfig.Runtimes[sb.RuntimeHandler()]
+		if ok && r.RuntimePullImage {
+			i.imageServiceRPLock.RLock()
+			is := i.imageServiceRP[sb.ID()]
+			i.imageServiceRPLock.RUnlock()
 
-	if runtimeHandler != "" {
-		r, ok := i.serverConfig.Runtimes[runtimeHandler]
-		if ok {
-			isRuntimePullImage = r.RuntimePullImage
+			if is == nil {
+				regularIS, ok := i.imageService.(*imageService)
+				if !ok {
+					log.Warnf(i.ctx, "Failed to get an imageService")
+
+					return i.imageService
+				}
+
+				var err error
+				is, err = GetRuntimePulledImageService(i.ctx, regularIS)
+				if err != nil {
+					// if we can't get the specific image server, return the default
+					log.Warnf(i.ctx, "Failed to get ImageServiceVM for sandbox %s: %v", sb.ID(), err)
+
+					return i.imageService
+				}
+
+				i.imageServiceRPLock.Lock()
+				// double-check that an instance was not created in parallel
+				if existing := i.imageServiceRP[sb.ID()]; existing != nil {
+					i.imageServiceRPLock.Unlock()
+
+					return existing
+				}
+
+				i.imageServiceRP[sb.ID()] = is
+				i.imageServiceRPLock.Unlock()
+			}
+
+			return is
 		}
-	}
-
-	if isRuntimePullImage {
-		return i.imageServiceRP
 	}
 
 	return i.imageService
@@ -41,11 +85,29 @@ func (i *ImageServiceManager) GetImageService(runtimeHandler string) ImageServer
 // This is needed as there is no way, most of the time, to know which runtime
 // is handling the image, and kubernetes expects the image to exist in a single
 // store anyway.
-func (i *ImageServiceManager) DeleteImage(systemContext *types.SystemContext, id StorageImageID) error {
+func (i *ImageServiceManager) DeleteImage(ctx context.Context, systemContext *types.SystemContext, id StorageImageID) error {
 	err := i.imageService.DeleteImage(systemContext, id)
-	errRP := i.imageServiceRP.DeleteImage(systemContext, id)
+	if err != nil {
+		log.Debugf(ctx, "Failed to delete image %s from main store: %v", id, err)
+	}
 
-	if err == nil || errRP == nil {
+	ok := (err == nil)
+
+	i.imageServiceRPLock.RLock()
+	defer i.imageServiceRPLock.RUnlock()
+
+	for index := range i.imageServiceRP {
+		e := i.imageServiceRP[index].DeleteImage(systemContext, id)
+		if e != nil {
+			log.Debugf(ctx, "Failed to delete image %s from runtime-pulled store %s: %v", id, index, e)
+		}
+
+		if !ok {
+			ok = (e == nil)
+		}
+	}
+
+	if ok {
 		// the image was successfully removed from one of the stores
 		// consider it a success.
 		return nil
@@ -67,20 +129,11 @@ func GetImageServiceManager(ctx context.Context, store storage.Store, storageTra
 		return nil, errors.New("failed to assert imageService type")
 	}
 
-	is_rp, err := GetRuntimePulledImageService(ctx, imgSvc)
-	if err != nil {
-		return nil, err
-	}
-
-	imgSvcRP, ok := is_rp.(*runtimePulledImageService)
-	if !ok {
-		return nil, errors.New("failed to assert runtimePulledImageService type")
-	}
-
 	return &ImageServiceManager{
+		ctx:            ctx,
 		serverConfig:   serverConfig,
 		imageService:   imgSvc,
-		imageServiceRP: imgSvcRP,
+		imageServiceRP: make(map[string]*runtimePulledImageService),
 	}, nil
 }
 

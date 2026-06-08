@@ -106,11 +106,11 @@ type Server struct {
 // pullArguments are used to identify a pullOperation via an input image name and
 // possibly specified credentials.
 type pullArguments struct {
-	image          string
-	sandboxCgroup  string
-	credentials    imageTypes.DockerAuthConfig
-	namespace      string
-	runtimeHandler string
+	image         string
+	sandboxCgroup string
+	credentials   imageTypes.DockerAuthConfig
+	namespace     string
+	sb            *sandbox.Sandbox
 }
 
 // pullOperation is used to synchronize parallel pull operations via the
@@ -174,7 +174,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	for i := range containers {
 		// use the default runtime service here, as ContainerMetadata is not
 		// treated differently for different runtimes.
-		metadata, err2 := s.ContainerServer.StorageRuntimeServer("").GetContainerMetadata(containers[i].ID)
+		metadata, err2 := s.ContainerServer.StorageRuntimeServer(nil).GetContainerMetadata(containers[i].ID)
 		if err2 != nil {
 			log.Warnf(ctx, "Error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
 
@@ -461,7 +461,7 @@ func New(
 		os.Unsetenv("DBUS_SESSION_BUS_ADDRESS")
 	}
 
-	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.AdditionalArtifactStores, config.SystemContext, containerServer.StorageImageServer("").PinnedImageRegexps(), false)
+	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.AdditionalArtifactStores, config.SystemContext, containerServer.StorageImageServer(nil).PinnedImageRegexps(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -643,7 +643,7 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// For this operation, we set the "runtime handler" parameter to "",
 			// so that the default ImageServer is used. There is no need to
 			// update pinned images for runtimes that manage the images themselves.
-			imageService := s.StorageImageServer("")
+			imageService := s.StorageImageServer(nil)
 			imageService.UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
 			s.artifactStore.SetPinnedImageRegexps(imageService.PinnedImageRegexps())
 			log.Infof(ctx, "Configuration reload completed")
@@ -736,7 +736,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage
 	// disk usage gets too high.
 	if shouldWipeImages {
 		for img := range imageMapToDelete {
-			if err := s.ContainerServer.StorageImageManager().DeleteImage(s.config.SystemContext, img); err != nil {
+			if err := s.ContainerServer.StorageImageManager().DeleteImage(ctx, s.config.SystemContext, img); err != nil {
 				log.Warnf(ctx, "Failed to remove image %s: %v", img, err)
 			}
 		}
