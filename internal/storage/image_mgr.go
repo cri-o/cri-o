@@ -46,6 +46,17 @@ func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
 			i.imageServiceRPLock.RUnlock()
 
 			if is == nil {
+				rootDir, err := i.imageService.GetStore().ContainerRunDirectory(sb.ID())
+				if err != nil {
+					// This will happen when the sandbox is being created.
+					// After that, we will get the proper information allowing
+					// to retrieve the sandbox and create the appropriate ImageServer
+					// for it.
+					log.Warnf(i.ctx, "Failed to retrieve root dir for sandbox %s: %v", sb.ID(), err)
+
+					return i.imageService
+				}
+
 				regularIS, ok := i.imageService.(*imageService)
 				if !ok {
 					log.Warnf(i.ctx, "Failed to get an imageService")
@@ -53,8 +64,7 @@ func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
 					return i.imageService
 				}
 
-				var err error
-				is, err = GetRuntimePulledImageService(i.ctx, regularIS)
+				is, err = GetRuntimePulledImageService(i.ctx, regularIS, rootDir)
 				if err != nil {
 					// if we can't get the specific image server, return the default
 					log.Warnf(i.ctx, "Failed to get ImageServiceVM for sandbox %s: %v", sb.ID(), err)
