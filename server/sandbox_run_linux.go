@@ -381,35 +381,28 @@ func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbo
 		return nil, errors.New("infra container not found")
 	}
 
-	icPid, err := ic.Pid()
+	if !ic.Spoofed() && s.defaultIDMappings == nil {
+		return nil, nil
+	}
 
-	var (
-		uids, gids []spec.LinuxIDMapping
-	)
+	var uids, gids []spec.LinuxIDMapping
 
-	// Treat PID errors the same as PID 0 - both indicate we should read from config.json
-	if err != nil || icPid == 0 {
-		// read the UID/GID mappings from the infra container's saved config.json
-		configPath := filepath.Join(ic.Dir(), "config.json")
+	// If infra container is spoofed (drop_infra_ctr=true), read mappings from namespace options
+	if ic.Spoofed() {
+		usernsOpts := sb.NamespaceOptions().GetUsernsOptions()
 
-		configData, readErr := os.ReadFile(configPath)
-		if readErr != nil {
-			return nil, fmt.Errorf("cannot read infra container config.json: %w", readErr)
-		}
+		uids = getOCIMappings(usernsOpts.GetUids())
+		gids = getOCIMappings(usernsOpts.GetGids())
 
-		var containerConfig spec.Spec
-		if parseErr := json.Unmarshal(configData, &containerConfig); parseErr != nil {
-			return nil, fmt.Errorf("cannot parse infra container config.json: %w", parseErr)
-		}
-
-		if containerConfig.Linux == nil ||
-			(len(containerConfig.Linux.UIDMappings) == 0 && len(containerConfig.Linux.GIDMappings) == 0) {
+		if len(uids) == 0 || len(gids) == 0 {
 			return nil, nil
 		}
-
-		uids = containerConfig.Linux.UIDMappings
-		gids = containerConfig.Linux.GIDMappings
 	} else {
+		icPid, err := ic.Pid()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get infra container PID: %w", err)
+		}
+
 		uids, gids, err = unshare.GetHostIDMappings(strconv.Itoa(icPid))
 		if err != nil {
 			return nil, fmt.Errorf("failed to get ID mappings from infra container PID %d: %w", icPid, err)
