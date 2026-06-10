@@ -104,20 +104,12 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 		defer span.End()
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return fmt.Errorf("create RPC connection: %w", err)
+		return fmt.Errorf("create RPC client: %w", err)
 	}
 
-	defer func() {
-		if err := conn.Close(); err != nil {
-			c.logger.Errorf("Unable to close connection: %v", err)
-		}
-	}()
-
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.AttachContainer(ctx, func(p proto.Conmon_attachContainer_Params) error {
+	future, free := rpcClient.AttachContainer(ctx, func(p proto.Conmon_attachContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -137,13 +129,20 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 
 		req.SetStopAfterStdinEof(cfg.StopAfterStdinEOF)
 
-		// TODO: add exec session
+		if cfg.ExecSession != "" {
+			if err := req.SetExecSessionId(cfg.ExecSession); err != nil {
+				return fmt.Errorf("set exec session ID: %w", err)
+			}
+		}
+
 		return nil
 	})
 	defer free()
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return fmt.Errorf("create result: %w", err)
 	}
 
@@ -494,16 +493,12 @@ func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindo
 		return errTerminalSizeNil
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return fmt.Errorf("create RPC connection: %w", err)
+		return fmt.Errorf("create RPC client: %w", err)
 	}
 
-	defer conn.Close()
-
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.SetWindowSizeContainer(ctx, func(p proto.Conmon_setWindowSizeContainer_Params) error {
+	future, free := rpcClient.SetWindowSizeContainer(ctx, func(p proto.Conmon_setWindowSizeContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -526,6 +521,8 @@ func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindo
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return fmt.Errorf("create result: %w", err)
 	}
 

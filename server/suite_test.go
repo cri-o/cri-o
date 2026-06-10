@@ -11,6 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	cstorage "go.podman.io/storage"
 	"go.uber.org/mock/gomock"
@@ -76,6 +77,11 @@ var _ = AfterSuite(func() {
 })
 
 var beforeEach = func() {
+	// Release any previously reserved SELinux labels so that
+	// tests calling LoadSandbox with the same manifest don't
+	// fail with "MCS label already exists".
+	selinux.ReleaseLabel("system_u:system_r:container_runtime_t:s0")
+
 	// Only log panics for now
 	logrus.SetLevel(logrus.PanicLevel)
 

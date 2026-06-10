@@ -53,6 +53,7 @@ var _ = AfterSuite(func() {
 
 func beforeEach() {
 	sut = defaultConfig()
+	sut.SystemContext.SystemRegistriesConfPath = t.MustTempFile("registries")
 }
 
 func defaultConfig() *config.Config {

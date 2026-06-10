@@ -873,7 +873,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		ProgressInterval: options.ProgressInterval,
 		Progress:         options.Progress,
 	})
-	if shouldTryArtifact(err) {
+	if shouldTryArtifact(err) && ctx.Err() == nil {
 		log.Infof(ctx, "Falling back to pull %s as an OCI artifact: %v", imageName, err)
 
 		// TODO: pinnedImageRegexps is nil here because the image lookup service

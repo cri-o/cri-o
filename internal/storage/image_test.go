@@ -304,7 +304,7 @@ var _ = t.Describe("Image", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 
-			errString := fmt.Sprintf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", testImageName, "/dev/null")
+			errString := fmt.Sprintf("short-name %q did not resolve to an alias and no containers-registries.conf(5) was found", testImageName)
 			Expect(err.Error()).To(Equal(errString))
 			Expect(refs).To(BeNil())
 		})
@@ -603,7 +603,10 @@ var _ = t.Describe("Image", func() {
 
 			// When
 			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
-				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+				SourceCtx: &types.SystemContext{
+					SignaturePolicyPath:      "../../test/policy.json",
+					SystemRegistriesConfPath: ctx.SystemRegistriesConfPath,
+				},
 			})
 
 			// Then
@@ -618,7 +621,10 @@ var _ = t.Describe("Image", func() {
 
 			// When
 			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
-				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+				SourceCtx: &types.SystemContext{
+					SignaturePolicyPath:      "../../test/policy.json",
+					SystemRegistriesConfPath: ctx.SystemRegistriesConfPath,
+				},
 			})
 
 			// Then
@@ -632,11 +638,14 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			ctx, cancel := context.WithCancel(context.Background())
+			goCtx, cancel := context.WithCancel(context.Background())
 			cancel()
 
-			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
-				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+			res, err := sut.PullImage(goCtx, imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{
+					SignaturePolicyPath:      "../../test/policy.json",
+					SystemRegistriesConfPath: ctx.SystemRegistriesConfPath,
+				},
 			})
 
 			// Then
@@ -651,11 +660,14 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			ctx, cancel := context.WithTimeout(context.Background(), 0)
+			goCtx, cancel := context.WithTimeout(context.Background(), 0)
 			defer cancel()
 
-			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
-				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+			res, err := sut.PullImage(goCtx, imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{
+					SignaturePolicyPath:      "../../test/policy.json",
+					SystemRegistriesConfPath: ctx.SystemRegistriesConfPath,
+				},
 			})
 
 			// Then

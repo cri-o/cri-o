@@ -33,7 +33,7 @@ const (
 	DockerV2ListMediaType = manifest.DockerV2ListMediaType
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for schema 2 foreign layers.
 	DockerV2Schema2ForeignLayerMediaType = manifest.DockerV2Schema2ForeignLayerMediaType
-	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for gzipped schema 2 foreign layers.
+	// DockerV2Schema2ForeignLayerMediaTypeGzip is the MIME type used for gzipped schema 2 foreign layers.
 	DockerV2Schema2ForeignLayerMediaTypeGzip = manifest.DockerV2Schema2ForeignLayerMediaTypeGzip
 )
 
@@ -111,6 +111,12 @@ func GuessMIMEType(manifestBlob []byte) string {
 // Digest returns the a digest of a docker manifest, with any necessary implied transformations like stripping v1s1 signatures.
 func Digest(manifestBlob []byte) (digest.Digest, error) {
 	return manifest.Digest(manifestBlob)
+}
+
+// DigestWithAlgorithm returns the digest of a docker manifest using the specified algorithm,
+// with any necessary implied transformations like stripping v1s1 signatures.
+func DigestWithAlgorithm(manifestBlob []byte, algo digest.Algorithm) (digest.Digest, error) {
+	return manifest.DigestWithAlgorithm(manifestBlob, algo)
 }
 
 // MatchesDigest returns true iff the manifest matches expectedDigest.

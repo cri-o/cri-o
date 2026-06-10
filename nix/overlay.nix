@@ -3,7 +3,7 @@ let
 in
 self: super:
 {
-  zlib = super.zlib.overrideAttrs (old: self.lib.optionalAttrs self.stdenv.hostPlatform.isS390 {
+zlib = super.zlib.overrideAttrs (old: self.lib.optionalAttrs self.stdenv.hostPlatform.isS390 {
     # Disable s390x vectorized CRC32 to fix cross-compilation.
     # zlib >= 1.3.2 crc32_vx.c requires -mvx but the build does not pass it.
     postPatch = (old.postPatch or "") + ''

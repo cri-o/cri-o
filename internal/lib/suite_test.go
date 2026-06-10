@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -128,6 +129,11 @@ func removeConfig() {
 }
 
 func beforeEach() {
+	// Release any previously reserved SELinux labels so that
+	// tests calling LoadSandbox with the same manifest don't
+	// fail with "MCS label already exists".
+	selinux.ReleaseLabel("system_u:system_r:container_runtime_t:s0")
+
 	// Remove old state files
 	removeState()
 	// Remove old config files

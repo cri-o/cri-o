@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
@@ -11,7 +13,11 @@ func KVMLabel(cLabel string) (string, error) {
 		return "", nil
 	}
 
-	processLabel, _ := selinux.KVMContainerLabels()
+	processLabel, err := selinux.KVMContainerLabel()
+	if err != nil {
+		return "", fmt.Errorf("get KVM container label: %w", err)
+	}
+
 	selinux.ReleaseLabel(processLabel)
 
 	return swapSELinuxLabel(cLabel, processLabel)
@@ -24,7 +30,11 @@ func InitLabel(cLabel string) (string, error) {
 		return "", nil
 	}
 
-	processLabel, _ := selinux.InitContainerLabels()
+	processLabel, err := selinux.InitContainerLabel()
+	if err != nil {
+		return "", fmt.Errorf("get init container label: %w", err)
+	}
+
 	selinux.ReleaseLabel(processLabel)
 
 	return swapSELinuxLabel(cLabel, processLabel)
