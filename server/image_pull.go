@@ -22,7 +22,6 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
 
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -47,6 +46,9 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 
 	pullArgs := pullArguments{image: image}
 
+	// set the default imageServer. It will be replaced later if required
+	pullArgs.imageServer = s.StorageImageServer(nil)
+
 	sc := req.GetSandboxConfig()
 	if sc != nil {
 		if sc.GetLinux() != nil {
@@ -67,7 +69,8 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 
 		podID, err := s.PodIDForName(name)
 		if err == nil {
-			pullArgs.sb, _ = s.LookupSandbox(podID)
+			sb, _ := s.LookupSandbox(podID) //nolint:errcheck // error intentionally ignored - fallback to default ImageServer
+			pullArgs.imageServer = s.StorageImageServer(sb)
 		}
 	}
 
@@ -197,7 +200,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		}
 	}
 
-	remoteCandidates, err := s.ContainerServer.StorageImageServer(pullArgs.sb).CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
+	remoteCandidates, err := pullArgs.imageServer.CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return "", err
 	}
@@ -206,12 +209,12 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
 
 	for _, remoteCandidateName := range remoteCandidates {
-		imageRef, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup, pullArgs.sb)
+		imageRef, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup, pullArgs.imageServer)
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
 
-			return s.resolveImageRefToID(ctx, imageRef, pullArgs.sb)
+			return s.resolveImageRefToID(ctx, imageRef, pullArgs.imageServer)
 		}
 
 		lastErr = err
@@ -312,7 +315,7 @@ func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.Sys
 	return cleanup, nil
 }
 
-func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string, sb *sandbox.Sandbox) (storage.RegistryImageReference, error) {
+func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string, is storage.ImageServer) (storage.RegistryImageReference, error) {
 	// Collect pull progress metrics
 	progress := make(chan imageTypes.ProgressProperties)
 	defer close(progress)
@@ -325,7 +328,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	pullCtx, cancel := context.WithCancel(ctx)
 	go consumeImagePullProgress(ctx, cancel, s.ContainerServer.Config().PullProgressTimeout, progress, remoteCandidateName)
 
-	repoDigest, err := s.ContainerServer.StorageImageServer(sb).PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
+	repoDigest, err := is.PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
@@ -352,9 +355,9 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 // container images the ID is looked up via ImageStatusByName. For OCI artifacts
 // (which are not stored in container storage) it falls back to the artifact
 // store.
-func (s *Server) resolveImageRefToID(ctx context.Context, imageRef storage.RegistryImageReference, sb *sandbox.Sandbox) (string, error) {
+func (s *Server) resolveImageRefToID(ctx context.Context, imageRef storage.RegistryImageReference, is storage.ImageServer) (string, error) {
 	// Try resolving as a regular container image first.
-	imageResult, err := s.ContainerServer.StorageImageServer(sb).ImageStatusByName(s.config.SystemContext, imageRef)
+	imageResult, err := is.ImageStatusByName(s.config.SystemContext, imageRef)
 	if err == nil {
 		return imageResult.ID.IDStringForOutOfProcessConsumptionOnly(), nil
 	}
