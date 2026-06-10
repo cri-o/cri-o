@@ -53,14 +53,14 @@ type runtimePulledImageService struct {
 }
 
 // GetRuntimePulledImageService creates a new runtimePulledImageService instance.
-func GetRuntimePulledImageService(ctx context.Context, imageService *imageService) (*runtimePulledImageService, error) {
+func GetRuntimePulledImageService(ctx context.Context, imageService *imageService, rootPath string) (*runtimePulledImageService, error) {
 	// Create a new OCI artifact store for pulling the artifact.
 	// We make the store point to a dedicated location to avoid any risk of
 	// mixing the pulled artifacts with regular container images.
 	// FIXME: using placeholder location. Proper location TBD
 	srcSystemContext := types.SystemContext{}
 
-	artifactStore, artifactErr := datastore.New("/var/lib/containers/storage-for-coco", &srcSystemContext, true)
+	artifactStore, artifactErr := datastore.New(rootPath, &srcSystemContext, true)
 	if artifactErr != nil {
 		return nil, fmt.Errorf("unable to create the ociartifact store err: %w", artifactErr)
 	}
