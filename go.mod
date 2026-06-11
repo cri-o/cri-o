@@ -29,6 +29,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.6.1
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/go-units v0.5.0
+	github.com/elastic/gmux v0.3.3
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-logr/logr v1.4.3
@@ -56,7 +57,6 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/seccomp/libseccomp-golang v0.11.1
 	github.com/sirupsen/logrus v1.9.4
-	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.11.1
 	github.com/uptrace/opentelemetry-go-extra/otellogrus v0.3.2
 	github.com/urfave/cli/v2 v2.27.7
