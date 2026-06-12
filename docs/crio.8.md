@@ -412,7 +412,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--pids-limit**="": Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead. (default: -1)
 
-**--pinned-images**="": A list of images that will be excluded from the kubelet's garbage collection.
+**--pinned-images**="": A list of images and OCI artifacts that will be excluded from the kubelet's garbage collection.
 
 **--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty.
 
