@@ -130,6 +130,7 @@ function check_networking() {
 }
 
 @test "Clean up network if pod sandbox fails after plugin success" {
+	# shellcheck disable=SC2030
 	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
 	CNI_TYPE="cni_plugin_helper.bash" setup_crio
 	echo "DEBUG_ARGS=malformed-result" > "$TESTDIR"/cni_plugin_helper_input.env
@@ -353,4 +354,145 @@ function check_networking() {
 	new_pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	output=$(crictl inspectp "$new_pod_id" | jq -r '.status.state')
 	[[ "$output" == "SANDBOX_READY" ]]
+}
+
+# Wait for a log message with a configurable timeout (default 15s).
+# The built-in wait_for_log has a fixed ~5s timeout which is too short
+# for CNI STATUS monitoring (5s poll interval means up to 10s for events).
+function wait_for_cni_log() {
+	local pattern="$1"
+	local max_wait="${2:-150}" # 150 * 0.1s = 15s default
+	local cnt=0
+	while ! grep -q "$pattern" "$CRIO_LOG" 2> /dev/null; do
+		if [[ $cnt -gt $max_wait ]]; then
+			echo "timed out waiting for: $pattern"
+			cat "$CRIO_LOG"
+			exit 1
+		fi
+		sleep 0.1
+		cnt=$((cnt + 1))
+	done
+}
+
+# Helper to write a CNI 1.1.0 conflist that enables STATUS support.
+# shellcheck disable=SC2031
+function prepare_network_conf_with_status() {
+	mkdir -p "$CRIO_CNI_CONFIG"
+	cat > "$CRIO_CNI_CONFIG/10-crio.conflist" <<- EOF
+		{
+		    "cniVersion": "1.1.0",
+		    "name": "$CNI_DEFAULT_NETWORK",
+		    "disableGC": true,
+		    "plugins": [
+		        {
+		            "cniVersion": "1.1.0",
+		            "name": "$CNI_DEFAULT_NETWORK",
+		            "type": "$CNI_TYPE",
+		            "bridge": "cni0",
+		            "isGateway": true,
+		            "ipMasq": true,
+		            "ipam": {
+		                "type": "host-local",
+		                "routes": [
+		                    { "dst": "$POD_IPV4_DEF_ROUTE" },
+		                    { "dst": "$POD_IPV6_DEF_ROUTE" }
+		                ],
+		                "ranges": [
+		                    [{ "subnet": "$POD_IPV4_CIDR" }],
+		                    [{ "subnet": "$POD_IPV6_CIDR" }]
+		                ]
+		            }
+		        }
+		    ]
+		}
+	EOF
+}
+
+@test "CNI status grace period tolerates transient failure" {
+	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
+	CNI_TYPE="cni_plugin_helper.bash"
+	setup_crio
+
+	# Use CNI 1.1.0 conflist to enable STATUS command
+	prepare_network_conf_with_status
+
+	# Set a grace period long enough to survive the transient failure
+	cat << EOF > "$CRIO_CONFIG_DIR/01-cni-grace.conf"
+[crio.network]
+cni_status_grace_period = "30s"
+EOF
+
+	echo "DEBUG_ARGS=" > "$TESTDIR"/cni_plugin_helper_input.env
+	start_crio_no_setup
+	check_images
+
+	wait_for_cni_log "Continuous CNI STATUS monitoring enabled"
+
+	# Trigger a transient CNI failure
+	touch "$TESTDIR/cni_plugin_status_failing"
+	wait_for_cni_log "CNI plugin status check failed, will report unhealthy after grace period"
+
+	# Remove the failure before grace period expires
+	rm -f "$TESTDIR/cni_plugin_status_failing"
+
+	# Allow a couple of poll cycles for the plugin to be re-checked
+	sleep 2
+
+	# Node should still be network-ready (grace period was not exceeded)
+	output=$(crictl info -o json | jq -r '.status.conditions[] | select(.type == "NetworkReady") | .status')
+	[[ "$output" == "true" ]]
+}
+
+@test "CNI status grace period reports unhealthy after expiry" {
+	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
+	CNI_TYPE="cni_plugin_helper.bash"
+	setup_crio
+
+	# Use CNI 1.1.0 conflist to enable STATUS command
+	prepare_network_conf_with_status
+
+	# Set a very short grace period so the test doesn't take long
+	cat << EOF > "$CRIO_CONFIG_DIR/01-cni-grace.conf"
+[crio.network]
+cni_status_grace_period = "1s"
+EOF
+
+	echo "DEBUG_ARGS=" > "$TESTDIR"/cni_plugin_helper_input.env
+	start_crio_no_setup
+	check_images
+
+	wait_for_cni_log "Continuous CNI STATUS monitoring enabled"
+
+	# Trigger a persistent CNI failure and wait for the grace period to expire.
+	# The monitor polls every 5s, so the "beyond grace period" log needs 2 polls
+	# (~10s): first poll sets the timer, second poll finds grace (1s) expired.
+	touch "$TESTDIR/cni_plugin_status_failing"
+	wait_for_cni_log "CNI plugin unhealthy beyond grace period"
+
+	# Node should report network not ready
+	output=$(crictl info -o json | jq -r '.status.conditions[] | select(.type == "NetworkReady") | .status')
+	[[ "$output" == "false" ]]
+}
+
+@test "CNI status monitoring disabled when grace period is zero" {
+	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
+	CNI_TYPE="cni_plugin_helper.bash"
+	setup_crio
+
+	# Use CNI 1.1.0 conflist to enable STATUS command
+	prepare_network_conf_with_status
+
+	# Default grace period is 0 -- monitoring should be disabled
+	echo "DEBUG_ARGS=" > "$TESTDIR"/cni_plugin_helper_input.env
+	start_crio_no_setup
+	check_images
+
+	wait_for_cni_log "Continuous CNI STATUS monitoring is disabled"
+
+	# Even with a failing plugin, node should still report ready
+	touch "$TESTDIR/cni_plugin_status_failing"
+	sleep 2
+
+	output=$(crictl info -o json | jq -r '.status.conditions[] | select(.type == "NetworkReady") | .status')
+	[[ "$output" == "true" ]]
 }

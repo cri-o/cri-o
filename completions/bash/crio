@@ -32,6 +32,7 @@ h
 --cni-config-dir
 --cni-default-network
 --cni-plugin-dir
+--cni-status-grace-period
 --collection-period
 --config
 --config-dir

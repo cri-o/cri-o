@@ -26,6 +26,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l clean-shutdown-file -r -d 'Lo
 complete -c crio -n '__fish_crio_no_subcommand' -l cni-config-dir -r -d 'CNI configuration files directory.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-default-network -r -d 'Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-plugin-dir -r -d 'CNI plugin binaries directory.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-status-grace-period -r -d 'Enable continuous CNI STATUS monitoring with the given grace period. When set to 0 (default), monitoring is disabled and plugin health is only determined at startup. When set to a positive duration (e.g. 1m), a background goroutine polls the plugin every 5s and waits for this grace period before marking the node not-ready.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l collection-period -r -d 'The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.'
 complete -c crio -n '__fish_crio_no_subcommand' -l config -s c -r -d 'Path to configuration file'
 complete -c crio -n '__fish_crio_no_subcommand' -l config-dir -s d -r -d 'Path to the configuration drop-in directory.
