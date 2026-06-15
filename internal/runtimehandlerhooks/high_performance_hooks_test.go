@@ -1058,37 +1058,11 @@ var _ = Describe("high_performance_hooks", func() {
 			err = os.WriteFile(irqBalanceConfigFile, []byte(formatIRQBalanceBannedCPUs(bannedCPUFlags)), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 
-			sbox := sandbox.NewBuilder()
-			createdAt := time.Now()
-			sbox.SetCreatedAt(createdAt)
-			sbox.SetID("sandboxID")
-			sbox.SetName("sandboxName")
-			sbox.SetLogDir("test")
-			sbox.SetShmPath("test")
-			sbox.SetNamespace("")
-			sbox.SetKubeName("")
-			sbox.SetMountLabel("test")
-			sbox.SetProcessLabel("test")
-			sbox.SetCgroupParent("")
-			sbox.SetRuntimeHandler(runtimeName)
-			sbox.SetResolvPath("")
-			sbox.SetHostname("")
-			sbox.SetPortMappings([]*hostport.PortMapping{})
-			sbox.SetHostNetwork(false)
-			sbox.SetUsernsMode("")
-			sbox.SetPodLinuxOverhead(nil)
-			sbox.SetPodLinuxResources(nil)
-			err = sbox.SetCRISandbox(
-				sbox.ID(),
-				map[string]string{},
-				sandboxAnnotations,
-				&types.PodSandboxMetadata{},
-			)
-			Expect(err).ToNot(HaveOccurred())
-			sbox.SetPrivileged(false)
-			sbox.SetHostNetwork(false)
-			sbox.SetCreatedAt(createdAt)
-			sb, err = sbox.GetSandbox()
+			sb, err = sandbox.New("sandboxID", "", "", "", "",
+				make(map[string]string), sandboxAnnotations, "", "",
+				&types.PodSandboxMetadata{}, "", "", false, runtimeName, "", "",
+				[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
+
 			Expect(err).ToNot(HaveOccurred())
 		})
 
