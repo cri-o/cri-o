@@ -851,6 +851,13 @@ func (h *HighPerformanceHooks) handleIRQBalanceRestart(ctx context.Context, cNam
 	// quick succession and the parameter must be reconfigured for this to work correctly.
 	// See:
 	// https://github.com/cri-o/cri-o/pull/8834/commits/b96928dcbb7956e0ebde42238e88955831411216
+	//
+	// Note on restart coalescing: systemd coalesces restart requests that arrive close together
+	// in time — for example, deploying 10 pods simultaneously typically results in only 4-5
+	// counted restarts rather than 10. Coalescing also occurs on pod deletion, often at an even
+	// higher rate since pods are removed faster than they are created. As a result, starting or
+	// deleting N > StartLimitBurst pods within StartLimitIntervalUSec does not necessarily
+	// trigger start-limit-hit.
 	if !serviceManager.IsServiceEnabled(irqBalancedName) || !fileExists(h.irqBalanceConfigFile) {
 		return false
 	}
