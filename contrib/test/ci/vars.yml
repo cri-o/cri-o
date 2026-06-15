@@ -48,6 +48,8 @@ kata_version: "3.31.0"
 # https://github.com/kata-containers/kata-containers/attestations/28048664/download
 kata_amd64_checksum: "sha256:68c2786a0b97023f62f3eca02dc868b78a794e5469d4ddd6cc9e0bd4a7212b0b"
 int_test_timeout: "{{ 120 * 60 }}"
+podvm_image: "quay.io/confidential-containers/podvm-generic-ubuntu-amd64:v0.18.0"
+caa_image: "quay.io/confidential-containers/cloud-api-adaptor:v0.18.0-dev"
 
 kata_skip_files:
   - "apparmor.bats"
