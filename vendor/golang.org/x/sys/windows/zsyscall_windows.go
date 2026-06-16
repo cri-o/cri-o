@@ -182,13 +182,21 @@ var (
 	procDwmGetWindowAttribute                                = moddwmapi.NewProc("DwmGetWindowAttribute")
 	procDwmSetWindowAttribute                                = moddwmapi.NewProc("DwmSetWindowAttribute")
 	procCancelMibChangeNotify2                               = modiphlpapi.NewProc("CancelMibChangeNotify2")
+	procFreeMibTable                                         = modiphlpapi.NewProc("FreeMibTable")
 	procGetAdaptersAddresses                                 = modiphlpapi.NewProc("GetAdaptersAddresses")
 	procGetAdaptersInfo                                      = modiphlpapi.NewProc("GetAdaptersInfo")
 	procGetBestInterfaceEx                                   = modiphlpapi.NewProc("GetBestInterfaceEx")
 	procGetIfEntry                                           = modiphlpapi.NewProc("GetIfEntry")
 	procGetIfEntry2Ex                                        = modiphlpapi.NewProc("GetIfEntry2Ex")
+	procGetIfTable2Ex                                        = modiphlpapi.NewProc("GetIfTable2Ex")
+	procGetIpForwardEntry2                                   = modiphlpapi.NewProc("GetIpForwardEntry2")
+	procGetIpForwardTable2                                   = modiphlpapi.NewProc("GetIpForwardTable2")
+	procGetIpInterfaceEntry                                  = modiphlpapi.NewProc("GetIpInterfaceEntry")
+	procGetIpInterfaceTable                                  = modiphlpapi.NewProc("GetIpInterfaceTable")
 	procGetUnicastIpAddressEntry                             = modiphlpapi.NewProc("GetUnicastIpAddressEntry")
+	procGetUnicastIpAddressTable                             = modiphlpapi.NewProc("GetUnicastIpAddressTable")
 	procNotifyIpInterfaceChange                              = modiphlpapi.NewProc("NotifyIpInterfaceChange")
+	procNotifyRouteChange2                                   = modiphlpapi.NewProc("NotifyRouteChange2")
 	procNotifyUnicastIpAddressChange                         = modiphlpapi.NewProc("NotifyUnicastIpAddressChange")
 	procAddDllDirectory                                      = modkernel32.NewProc("AddDllDirectory")
 	procAssignProcessToJobObject                             = modkernel32.NewProc("AssignProcessToJobObject")
@@ -238,6 +246,7 @@ var (
 	procFindResourceW                                        = modkernel32.NewProc("FindResourceW")
 	procFindVolumeClose                                      = modkernel32.NewProc("FindVolumeClose")
 	procFindVolumeMountPointClose                            = modkernel32.NewProc("FindVolumeMountPointClose")
+	procFlushConsoleInputBuffer                              = modkernel32.NewProc("FlushConsoleInputBuffer")
 	procFlushFileBuffers                                     = modkernel32.NewProc("FlushFileBuffers")
 	procFlushViewOfFile                                      = modkernel32.NewProc("FlushViewOfFile")
 	procFormatMessageW                                       = modkernel32.NewProc("FormatMessageW")
@@ -284,6 +293,7 @@ var (
 	procGetNamedPipeHandleStateW                             = modkernel32.NewProc("GetNamedPipeHandleStateW")
 	procGetNamedPipeInfo                                     = modkernel32.NewProc("GetNamedPipeInfo")
 	procGetNamedPipeServerProcessId                          = modkernel32.NewProc("GetNamedPipeServerProcessId")
+	procGetNumberOfConsoleInputEvents                        = modkernel32.NewProc("GetNumberOfConsoleInputEvents")
 	procGetOverlappedResult                                  = modkernel32.NewProc("GetOverlappedResult")
 	procGetPriorityClass                                     = modkernel32.NewProc("GetPriorityClass")
 	procGetProcAddress                                       = modkernel32.NewProc("GetProcAddress")
@@ -314,6 +324,7 @@ var (
 	procGetVolumePathNamesForVolumeNameW                     = modkernel32.NewProc("GetVolumePathNamesForVolumeNameW")
 	procGetWindowsDirectoryW                                 = modkernel32.NewProc("GetWindowsDirectoryW")
 	procInitializeProcThreadAttributeList                    = modkernel32.NewProc("InitializeProcThreadAttributeList")
+	procIsProcessorFeaturePresent                            = modkernel32.NewProc("IsProcessorFeaturePresent")
 	procIsWow64Process                                       = modkernel32.NewProc("IsWow64Process")
 	procIsWow64Process2                                      = modkernel32.NewProc("IsWow64Process2")
 	procLoadLibraryExW                                       = modkernel32.NewProc("LoadLibraryExW")
@@ -417,8 +428,11 @@ var (
 	procNetUserGetInfo                                       = modnetapi32.NewProc("NetUserGetInfo")
 	procNtCreateFile                                         = modntdll.NewProc("NtCreateFile")
 	procNtCreateNamedPipeFile                                = modntdll.NewProc("NtCreateNamedPipeFile")
+	procNtQueryEaFile                                        = modntdll.NewProc("NtQueryEaFile")
+	procNtQueryInformationFile                               = modntdll.NewProc("NtQueryInformationFile")
 	procNtQueryInformationProcess                            = modntdll.NewProc("NtQueryInformationProcess")
 	procNtQuerySystemInformation                             = modntdll.NewProc("NtQuerySystemInformation")
+	procNtSetEaFile                                          = modntdll.NewProc("NtSetEaFile")
 	procNtSetInformationFile                                 = modntdll.NewProc("NtSetInformationFile")
 	procNtSetInformationProcess                              = modntdll.NewProc("NtSetInformationProcess")
 	procNtSetSystemInformation                               = modntdll.NewProc("NtSetSystemInformation")
@@ -1622,6 +1636,11 @@ func CancelMibChangeNotify2(notificationHandle Handle) (errcode error) {
 	return
 }
 
+func FreeMibTable(memory unsafe.Pointer) {
+	syscall.SyscallN(procFreeMibTable.Addr(), uintptr(memory))
+	return
+}
+
 func GetAdaptersAddresses(family uint32, flags uint32, reserved uintptr, adapterAddresses *IpAdapterAddresses, sizePointer *uint32) (errcode error) {
 	r0, _, _ := syscall.SyscallN(procGetAdaptersAddresses.Addr(), uintptr(family), uintptr(flags), uintptr(reserved), uintptr(unsafe.Pointer(adapterAddresses)), uintptr(unsafe.Pointer(sizePointer)))
 	if r0 != 0 {
@@ -1662,8 +1681,56 @@ func GetIfEntry2Ex(level uint32, row *MibIfRow2) (errcode error) {
 	return
 }
 
+func GetIfTable2Ex(level uint32, table **MibIfTable2) (errcode error) {
+	r0, _, _ := syscall.SyscallN(procGetIfTable2Ex.Addr(), uintptr(level), uintptr(unsafe.Pointer(table)))
+	if r0 != 0 {
+		errcode = syscall.Errno(r0)
+	}
+	return
+}
+
+func GetIpForwardEntry2(row *MibIpForwardRow2) (errcode error) {
+	r0, _, _ := syscall.SyscallN(procGetIpForwardEntry2.Addr(), uintptr(unsafe.Pointer(row)))
+	if r0 != 0 {
+		errcode = syscall.Errno(r0)
+	}
+	return
+}
+
+func GetIpForwardTable2(family uint16, table **MibIpForwardTable2) (errcode error) {
+	r0, _, _ := syscall.SyscallN(procGetIpForwardTable2.Addr(), uintptr(family), uintptr(unsafe.Pointer(table)))
+	if r0 != 0 {
+		errcode = syscall.Errno(r0)
+	}
+	return
+}
+
+func GetIpInterfaceEntry(row *MibIpInterfaceRow) (errcode error) {
+	r0, _, _ := syscall.SyscallN(procGetIpInterfaceEntry.Addr(), uintptr(unsafe.Pointer(row)))
+	if r0 != 0 {
+		errcode = syscall.Errno(r0)
+	}
+	return
+}
+
+func GetIpInterfaceTable(family uint16, table **MibIpInterfaceTable) (errcode error) {
+	r0, _, _ := syscall.SyscallN(procGetIpInterfaceTable.Addr(), uintptr(family), uintptr(unsafe.Pointer(table)))
+	if r0 != 0 {
+		errcode = syscall.Errno(r0)
+	}
+	return
+}
+
 func GetUnicastIpAddressEntry(row *MibUnicastIpAddressRow) (errcode error) {
 	r0, _, _ := syscall.SyscallN(procGetUnicastIpAddressEntry.Addr(), uintptr(unsafe.Pointer(row)))
+	if r0 != 0 {
+		errcode = syscall.Errno(r0)
+	}
+	return
+}
+
+func GetUnicastIpAddressTable(family uint16, table **MibUnicastIpAddressTable) (errcode error) {
+	r0, _, _ := syscall.SyscallN(procGetUnicastIpAddressTable.Addr(), uintptr(family), uintptr(unsafe.Pointer(table)))
 	if r0 != 0 {
 		errcode = syscall.Errno(r0)
 	}
@@ -1676,6 +1743,18 @@ func NotifyIpInterfaceChange(family uint16, callback uintptr, callerContext unsa
 		_p0 = 1
 	}
 	r0, _, _ := syscall.SyscallN(procNotifyIpInterfaceChange.Addr(), uintptr(family), uintptr(callback), uintptr(callerContext), uintptr(_p0), uintptr(unsafe.Pointer(notificationHandle)))
+	if r0 != 0 {
+		errcode = syscall.Errno(r0)
+	}
+	return
+}
+
+func NotifyRouteChange2(family uint16, callback uintptr, callerContext unsafe.Pointer, initialNotification bool, notificationHandle *Handle) (errcode error) {
+	var _p0 uint32
+	if initialNotification {
+		_p0 = 1
+	}
+	r0, _, _ := syscall.SyscallN(procNotifyRouteChange2.Addr(), uintptr(family), uintptr(callback), uintptr(callerContext), uintptr(_p0), uintptr(unsafe.Pointer(notificationHandle)))
 	if r0 != 0 {
 		errcode = syscall.Errno(r0)
 	}
@@ -2111,6 +2190,14 @@ func FindVolumeMountPointClose(findVolumeMountPoint Handle) (err error) {
 	return
 }
 
+func FlushConsoleInputBuffer(console Handle) (err error) {
+	r1, _, e1 := syscall.SyscallN(procFlushConsoleInputBuffer.Addr(), uintptr(console))
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
 func FlushFileBuffers(handle Handle) (err error) {
 	r1, _, e1 := syscall.SyscallN(procFlushFileBuffers.Addr(), uintptr(handle))
 	if r1 == 0 {
@@ -2481,6 +2568,14 @@ func GetNamedPipeServerProcessId(pipe Handle, serverProcessID *uint32) (err erro
 	return
 }
 
+func GetNumberOfConsoleInputEvents(console Handle, numevents *uint32) (err error) {
+	r1, _, e1 := syscall.SyscallN(procGetNumberOfConsoleInputEvents.Addr(), uintptr(console), uintptr(unsafe.Pointer(numevents)))
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
 func GetOverlappedResult(handle Handle, overlapped *Overlapped, done *uint32, wait bool) (err error) {
 	var _p0 uint32
 	if wait {
@@ -2728,6 +2823,12 @@ func initializeProcThreadAttributeList(attrlist *ProcThreadAttributeList, attrco
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
+	return
+}
+
+func IsProcessorFeaturePresent(ProcessorFeature uint32) (ret bool) {
+	r0, _, _ := syscall.SyscallN(procIsProcessorFeaturePresent.Addr(), uintptr(ProcessorFeature))
+	ret = r0 != 0
 	return
 }
 
@@ -3642,6 +3743,30 @@ func NtCreateNamedPipeFile(pipe *Handle, access uint32, oa *OBJECT_ATTRIBUTES, i
 	return
 }
 
+func NtQueryEaFile(handle Handle, iosb *IO_STATUS_BLOCK, outBuffer *byte, outBufferLen uint32, returnSingleEntry bool, eaList *byte, eaListLen uint32, eaIndex *uint32, restartScan bool) (ntstatus error) {
+	var _p0 uint32
+	if returnSingleEntry {
+		_p0 = 1
+	}
+	var _p1 uint32
+	if restartScan {
+		_p1 = 1
+	}
+	r0, _, _ := syscall.SyscallN(procNtQueryEaFile.Addr(), uintptr(handle), uintptr(unsafe.Pointer(iosb)), uintptr(unsafe.Pointer(outBuffer)), uintptr(outBufferLen), uintptr(_p0), uintptr(unsafe.Pointer(eaList)), uintptr(eaListLen), uintptr(unsafe.Pointer(eaIndex)), uintptr(_p1))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
+	return
+}
+
+func NtQueryInformationFile(handle Handle, iosb *IO_STATUS_BLOCK, outBuffer *byte, outBufferLen uint32, class uint32) (ntstatus error) {
+	r0, _, _ := syscall.SyscallN(procNtQueryInformationFile.Addr(), uintptr(handle), uintptr(unsafe.Pointer(iosb)), uintptr(unsafe.Pointer(outBuffer)), uintptr(outBufferLen), uintptr(class))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
+	return
+}
+
 func NtQueryInformationProcess(proc Handle, procInfoClass int32, procInfo unsafe.Pointer, procInfoLen uint32, retLen *uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procNtQueryInformationProcess.Addr(), uintptr(proc), uintptr(procInfoClass), uintptr(procInfo), uintptr(procInfoLen), uintptr(unsafe.Pointer(retLen)))
 	if r0 != 0 {
@@ -3652,6 +3777,14 @@ func NtQueryInformationProcess(proc Handle, procInfoClass int32, procInfo unsafe
 
 func NtQuerySystemInformation(sysInfoClass int32, sysInfo unsafe.Pointer, sysInfoLen uint32, retLen *uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procNtQuerySystemInformation.Addr(), uintptr(sysInfoClass), uintptr(sysInfo), uintptr(sysInfoLen), uintptr(unsafe.Pointer(retLen)))
+	if r0 != 0 {
+		ntstatus = NTStatus(r0)
+	}
+	return
+}
+
+func NtSetEaFile(handle Handle, iosb *IO_STATUS_BLOCK, inBuffer *byte, inBufferLen uint32) (ntstatus error) {
+	r0, _, _ := syscall.SyscallN(procNtSetEaFile.Addr(), uintptr(handle), uintptr(unsafe.Pointer(iosb)), uintptr(unsafe.Pointer(inBuffer)), uintptr(inBufferLen))
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
