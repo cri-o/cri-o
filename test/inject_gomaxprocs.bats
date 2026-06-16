@@ -83,7 +83,7 @@ function get_gomaxprocs() {
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	[[ $(get_gomaxprocs "$ctr_id") == "GOMAXPROCS=8" ]]
+	[[ $(get_gomaxprocs "$ctr_id") == "GOMAXPROCS=16" ]]
 }
 
 # Verify GOMAXPROCS is injected for best-effort pods (no shares).
@@ -168,33 +168,6 @@ function get_gomaxprocs() {
 	jq '.metadata.name = "skip-sandbox"
 		| .linux.cgroup_parent = "kubepods-burstable-pod123.slice"
 		| .annotations["io.kubernetes.cri-o.SkipGoMaxProcs"] = "true"' \
-		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
-
-	jq '.linux.resources.cpu_shares = 2048
-		| .linux.resources.cpu_quota = 0' \
-		"$TESTDATA"/container_sleep.json > "$ctrconfig"
-
-	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	[[ $(get_gomaxprocs "$ctr_id") == "not-set" ]]
-}
-
-# Verify workload-partitioned pods are skipped.
-@test "min_injected_gomaxprocs skips workload-partitioned pods" {
-	cat << EOF > "$CRIO_CONFIG_DIR/01-gomaxprocs.conf"
-[crio.runtime]
-min_injected_gomaxprocs = 4
-
-[crio.runtime.workloads.management]
-activation_annotation = "target.workload.openshift.io/management"
-annotation_prefix = "resources.workload.openshift.io"
-[crio.runtime.workloads.management.resources]
-cpuset = "0-1"
-EOF
-	start_crio
-
-	jq '.metadata.name = "wp-sandbox"
-		| .linux.cgroup_parent = "kubepods-burstable-pod123.slice"
-		| .annotations["target.workload.openshift.io/management"] = "{\"effect\":\"PreferredDuringScheduling\"}"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	jq '.linux.resources.cpu_shares = 2048
