@@ -338,3 +338,24 @@ func (s *Store) PullConfig(ctx context.Context, nameOrDigest string, opts *PullO
 
 	return sourcedImage.OCIConfig(ctx)
 }
+
+// ImageSource returns an ImageSource for the image identified by nameOrDigest.
+// The caller is responsible for closing the returned ImageSource.
+func (s *Store) ImageSource(ctx context.Context, nameOrDigest string) (types.ImageSource, error) {
+	artifact, nameIsDigest, err := s.getByNameOrDigest(ctx, nameOrDigest)
+	if err != nil {
+		return nil, fmt.Errorf("get artifact by name or digest: %w", err)
+	}
+
+	if nameIsDigest {
+		nameOrDigest = artifact.Reference()
+	}
+
+	// get the ImageSource for the image
+	imageReference, err := s.impl.LayoutNewReference(artifact.RootPath(), nameOrDigest)
+	if err != nil {
+		return nil, fmt.Errorf("create new reference: %w", err)
+	}
+
+	return s.impl.NewImageSource(ctx, imageReference, s.systemContext)
+}
