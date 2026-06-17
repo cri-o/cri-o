@@ -961,8 +961,7 @@ const templateStringCrioRuntimeDecryptionKeysPath = `# decryption_keys_path is t
 
 `
 
-const templateStringCrioRuntimeAdditionalArtifactStores = `# A list of additional read-only OCI artifact store paths
-# (experimental, subject to change).
+const templateStringCrioRuntimeAdditionalArtifactStores = `# A list of additional read-only OCI artifact store paths.
 # CRI-O expects an "artifacts/" subdirectory within each configured path.
 # All entries must be absolute paths. Artifacts in these stores take priority
 # over the main store. Tag re-pointing is not supported for artifacts in
