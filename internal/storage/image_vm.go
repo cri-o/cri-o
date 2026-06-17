@@ -9,7 +9,11 @@ import (
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
+	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/docker/reference"
+	cimage "go.podman.io/image/v5/image"
+	"go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
 
@@ -348,10 +352,90 @@ func (i *runtimePulledImageService) PinnedImageRegexps() []*regexp.Regexp {
 // - userSpecifiedImage: a RegistryImageReference that expresses users’ _intended_ image.
 // - imageID: A StorageImageID of the image.
 func (i *runtimePulledImageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error {
-	log.Debugf(i.ctx, "runtimePulledImageService.IsRunningImageAllowed() start")
-	defer log.Debugf(i.ctx, "runtimePulledImageService.IsRunningImageAllowed() end")
+	policy, err := signature.DefaultPolicy(systemContext)
+	if err != nil {
+		return fmt.Errorf("get default policy: %w", err)
+	}
 
-	return i.storageImageServer.IsRunningImageAllowed(ctx, systemContext, userSpecifiedImage, imageID)
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return fmt.Errorf("create policy context: %w", err)
+	}
+
+	defer func() {
+		if err := policyContext.Destroy(); err != nil {
+			log.Errorf(ctx, "Error destroying policy: %+v", err)
+		}
+	}()
+
+	if err := i.checkSignature(ctx, systemContext, policyContext, userSpecifiedImage, imageID); err != nil {
+		return fmt.Errorf("checking signature of %q: %w", userSpecifiedImage, err)
+	}
+
+	log.Debugf(ctx, "Is allowed to run config image %s (policy path: %q)", userSpecifiedImage, systemContext.SignaturePolicyPath)
+
+	return nil
+}
+
+// checkSignature verifies the image signature against the artifact store.
+// Unlike imageService.checkSignature, this reads the image from the OCI layout
+// in the artifact store rather than from local containers/storage.
+func (i *runtimePulledImageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error {
+	userSpecifiedImageRef, err := docker.NewReference(userSpecifiedImage.Raw())
+	if err != nil {
+		return fmt.Errorf("creating docker:// reference for %q: %w", userSpecifiedImage.Raw().String(), err)
+	}
+
+	// imageID is authoritative, but it may be a deduplicated image with several manifests,
+	// and only one of them might be signed with the signatures required by policy.
+	//
+	// Here we could, possibly:
+	// - if userSpecifiedImage is a repo@digest, resolve up that image, CHECK THAT IT MATCHES storageID, and use that
+	//   reference (to use certainly the right digest)
+	// - if userSpecifiedImage is a repo:tag, resolve up that image, CHECK THAT IT MATCHES storageID, and use that
+	//   reference (assuming some future c/storage that can map repo:tag to the right digest)
+	// Failing that (e.g. if a subsequent pull moved the tag, or if the image was untagged), try with the raw imageID.
+	storageSource, err := i.store.ImageSource(ctx, imageID.IDStringForOutOfProcessConsumptionOnly())
+	if err != nil {
+		return fmt.Errorf("creating image source for artifact store image: %w", err)
+	}
+	defer storageSource.Close()
+
+	unparsedToplevel := cimage.UnparsedInstance(storageSource, nil)
+
+	topManifest, topMIMEType, err := unparsedToplevel.Manifest(ctx)
+	if err != nil {
+		return fmt.Errorf("get top level manifest: %w", err)
+	}
+
+	unparsedInstance := unparsedToplevel
+
+	if manifest.MIMETypeIsMultiImage(topMIMEType) {
+		manifestList, err := manifest.ListFromBlob(topManifest, topMIMEType)
+		if err != nil {
+			return fmt.Errorf("parsing list manifest: %w", err)
+		}
+
+		instanceDigest, err := manifestList.ChooseInstance(sys)
+		if err != nil {
+			return fmt.Errorf("choosing instance: %w", err)
+		}
+
+		unparsedInstance = cimage.UnparsedInstance(storageSource, &instanceDigest)
+	}
+
+	mixedUnparsedInstance := cimage.UnparsedInstanceWithReference(unparsedInstance, userSpecifiedImageRef)
+
+	allowed, err := policyContext.IsRunningImageAllowed(ctx, mixedUnparsedInstance)
+	if err != nil {
+		return fmt.Errorf("verifying signatures: %w", WrapSignatureCRIErrorIfNeeded(err))
+	}
+
+	if !allowed {
+		panic("Internal inconsistency: IsRunningImageAllowed returned !allowed and no error when checking image signature")
+	}
+
+	return nil
 }
 
 // GetConfigForImage returns the OCI config for the given image reference.
