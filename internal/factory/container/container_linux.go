@@ -21,13 +21,13 @@ func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 	}
 
 	for _, r := range labelOptions {
-		k := strings.Split(r, ":")[0]
+		k, _, _ := strings.Cut(r, ":")
 		labels[k] = r
 	}
 
 	if selinuxConfig != nil {
 		for _, r := range utils.GetLabelOptions(selinuxConfig) {
-			k := strings.Split(r, ":")[0]
+			k, _, _ := strings.Cut(r, ":")
 			labels[k] = r
 		}
 	}

@@ -1525,7 +1525,7 @@ func getPodQuotaV2(mng cgroups.Manager) (string, error) {
 	}
 	// in v2, the quota file contains both quota and period
 	// example: max 100000
-	cpuQuota := strings.Split(strings.TrimSuffix(cpuQuotaAndPeriod, "\n"), " ")[0]
+	cpuQuota, _, _ := strings.Cut(strings.TrimSuffix(cpuQuotaAndPeriod, "\n"), " ")
 
 	return cpuQuota, nil
 }
