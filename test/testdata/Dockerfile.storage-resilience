@@ -1,0 +1,3 @@
+FROM alpine:3.19
+RUN echo "layer-one" > /layer-one.txt
+RUN echo "layer-two" > /layer-two.txt
