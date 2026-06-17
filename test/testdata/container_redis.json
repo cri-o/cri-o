@@ -11,27 +11,27 @@
   "envs": [
     {
       "key": "PATH",
-      "value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      "value": "L3Vzci9sb2NhbC9zYmluOi91c3IvbG9jYWwvYmluOi91c3Ivc2JpbjovdXNyL2Jpbjovc2JpbjovYmlu"
     },
     {
       "key": "TERM",
-      "value": "xterm"
+      "value": "eHRlcm0="
     },
     {
       "key": "GLIBC_TUNABLES",
-      "value": "glibc.pthread.rseq=0"
+      "value": "Z2xpYmMucHRocmVhZC5yc2VxPTA="
     },
     {
       "key": "REDIS_VERSION",
-      "value": "6.0.18"
+      "value": "Ni4wLjE4"
     },
     {
       "key": "REDIS_DOWNLOAD_URL",
-      "value": "http://download.redis.io/releases/redis-6.0.18.tar.gz"
+      "value": "aHR0cDovL2Rvd25sb2FkLnJlZGlzLmlvL3JlbGVhc2VzL3JlZGlzLTYuMC4xOC50YXIuZ3o="
     },
     {
       "key": "REDIS_DOWNLOAD_SHA1",
-      "value": "d7b4f2a97fcab96727284092b0a4aa854af47d570803fa0e7a0345359743836e"
+      "value": "ZDdiNGYyYTk3ZmNhYjk2NzI3Mjg0MDkyYjBhNGFhODU0YWY0N2Q1NzA4MDNmYTBlN2EwMzQ1MzU5NzQzODM2ZQ=="
     }
   ],
   "labels": {
