@@ -970,14 +970,14 @@ func removeDupStorageOpts(storageOpts []string) []string {
 	var resOpts []string
 
 	opts := make(map[string]bool)
-	for i := len(storageOpts) - 1; i >= 0; i-- {
-		if ok := opts[storageOpts[i]]; ok {
+	for _, storageOpt := range slices.Backward(storageOpts) {
+		if ok := opts[storageOpt]; ok {
 			continue
 		}
 
-		opts[storageOpts[i]] = true
+		opts[storageOpt] = true
 
-		resOpts = append(resOpts, storageOpts[i])
+		resOpts = append(resOpts, storageOpt)
 	}
 
 	for i, j := 0, len(resOpts)-1; i < j; i, j = i+1, j-1 {
