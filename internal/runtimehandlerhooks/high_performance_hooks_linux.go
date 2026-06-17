@@ -780,8 +780,8 @@ func fullCPUSet() (cpuset.CPUSet, error) {
 // the container. Some other entity (kubelet, external service) must ensure this is the case for all
 // other cgroups that intersect (at minimum: all parent cgroups of this cgroup).
 func disableCPULoadBalancingV1(containerManagers []cgroups.Manager) error {
-	for i := len(containerManagers) - 1; i >= 0; i-- {
-		cpusetPath := containerManagers[i].Path("cpuset")
+	for _, containerManager := range slices.Backward(containerManagers) {
+		cpusetPath := containerManager.Path("cpuset")
 		if err := cgroups.WriteFile(cpusetPath, "cpuset.sched_load_balance", "0"); err != nil {
 			return err
 		}
