@@ -25,6 +25,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -375,8 +376,8 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			Image:             m.GetImage(),
 		})
 
-		uidMappings := getOCIMappings(m.GetUidMappings())
-		gidMappings := getOCIMappings(m.GetGidMappings())
+		uidMappings := lib.ConvertCRIToOCIMappings(m.GetUidMappings())
+		gidMappings := lib.ConvertCRIToOCIMappings(m.GetGidMappings())
 
 		if (uidMappings != nil || gidMappings != nil) && !idMapSupport {
 			return nil, nil, nil, errors.New("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
@@ -470,8 +471,8 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 			Source:      path.SourcePath,
 			Destination: dest,
 			Options:     options,
-			UIDMappings: getOCIMappings(m.GetUidMappings()),
-			GIDMappings: getOCIMappings(m.GetGidMappings()),
+			UIDMappings: lib.ConvertCRIToOCIMappings(m.GetUidMappings()),
+			GIDMappings: lib.ConvertCRIToOCIMappings(m.GetGidMappings()),
 		})
 	}
 
@@ -574,8 +575,8 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 		Options: []string{
 			"lowerdir=" + mountPoint + ":" + imageVolumesPath,
 		},
-		UIDMappings: getOCIMappings(m.GetUidMappings()),
-		GIDMappings: getOCIMappings(m.GetGidMappings()),
+		UIDMappings: lib.ConvertCRIToOCIMappings(m.GetUidMappings()),
+		GIDMappings: lib.ConvertCRIToOCIMappings(m.GetGidMappings()),
 	})
 	log.Debugf(ctx, "Added overlay mount from %s to %s", mountPoint, imageVolumesPath)
 
@@ -624,23 +625,6 @@ func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mou
 	}
 
 	return imageVolumesPath, nil
-}
-
-func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
-	if len(m) == 0 {
-		return nil
-	}
-
-	ids := make([]rspec.LinuxIDMapping, 0, len(m))
-	for _, m := range m {
-		ids = append(ids, rspec.LinuxIDMapping{
-			ContainerID: m.GetContainerId(),
-			HostID:      m.GetHostId(),
-			Size:        m.GetLength(),
-		})
-	}
-
-	return ids
 }
 
 // mountExists returns true if dest exists in the list of mounts.
