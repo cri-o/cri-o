@@ -1138,8 +1138,8 @@ github.com/opencontainers/runtime-tools v0.9.1-0.20241001195557-6c9570a1678f h1:
 github.com/opencontainers/runtime-tools v0.9.1-0.20241001195557-6c9570a1678f/go.mod h1:oIH6VwKkaDOO+SIYZpdwrC/0wKYqrfO6E1sG1j3UVws=
 github.com/opencontainers/selinux v1.11.1 h1:nHFvthhM0qY8/m+vfhJylliSshm8G1jJ2jDMcgULaH8=
 github.com/opencontainers/selinux v1.11.1/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
-github.com/openshift-sustaining/go-jose/v4 v4.0.5-cve-2026-34986 h1:W2jJPN5+0v59eQRk1LTtsYWtULrBJ7Fs1hQGyMIjypg=
-github.com/openshift-sustaining/go-jose/v4 v4.0.5-cve-2026-34986/go.mod h1:s3P1lRrkT8igV8D9OjyL4WRyHvjB6a4JSllnOrmmBOA=
+github.com/openshift-sustaining/go-jose/v4 v4.0.5-sec.1 h1:e5fhaiwNKCf0edjBn1UUp2wNKiSuTebuOF7bcpR9K4M=
+github.com/openshift-sustaining/go-jose/v4 v4.0.5-sec.1/go.mod h1:s3P1lRrkT8igV8D9OjyL4WRyHvjB6a4JSllnOrmmBOA=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f h1:/UDgs8FGMqwnHagNDPGOlts35QkhAZ8by3DR7nMih7M=
 github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
