@@ -57,10 +57,12 @@ dependencies:
         match: conmon
 
   - name: cri-tools
-    version: master
+    version: v1.36.0
     refPaths:
       - path: contrib/test/ci/vars.yml
         match: cri_tools_git_version
+      - path: scripts/versions
+        match: cri-tools
 
   - name: buildah
     version: v1.38.0
