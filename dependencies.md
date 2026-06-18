@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 18 Jun 2026 14:29:41 UTC for commit [414c6b9][0]._
+_Generated on Thu, 18 Jun 2026 19:31:46 UTC for commit [5c6f14f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/414c6b9d27190e25a28462ea84106d0723ba99e1
+[0]: https://github.com/cri-o/cri-o/commit/5c6f14f102f612817729f783385d175ec0084fc1
 
 ## Outdated Dependencies
 
@@ -52,7 +52,7 @@ _Generated on Thu, 18 Jun 2026 14:29:41 UTC for commit [414c6b9][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.2                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.17.17                           | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.67                            | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.70                            | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.14.0                            | false  | true             |
@@ -726,7 +726,7 @@ _Generated on Thu, 18 Jun 2026 14:29:41 UTC for commit [414c6b9][0]._
 | golang.org/x/oauth2                                                         | v0.36.0                                |                                    | false  | true             |
 | golang.org/x/sync                                                           | v0.20.0                                | v0.21.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.43.0                                | v0.46.0                            | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20260409153401-be6f6cb8b1fa     | v0.0.0-20260617140237-9b6dc03d9327 | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20260409153401-be6f6cb8b1fa     | v0.0.0-20260618151639-a6991f1c6803 | false  | true             |
 | golang.org/x/term                                                           | v0.42.0                                | v0.44.0                            | false  | true             |
 | golang.org/x/text                                                           | v0.36.0                                | v0.38.0                            | false  | true             |
 | golang.org/x/time                                                           | v0.14.0                                | v0.15.0                            | false  | true             |
@@ -736,9 +736,9 @@ _Generated on Thu, 18 Jun 2026 14:29:41 UTC for commit [414c6b9][0]._
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1     | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.17.0                                |                                    | false  | true             |
 | google.golang.org/api                                                       | v0.269.0                               | v0.285.0                           | false  | true             |
-| google.golang.org/genproto                                                  | v0.0.0-20251202230838-ff82c1b0f217     | v0.0.0-20260615183401-62b3387ff324 | false  | true             |
-| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260401024825-9d38bb4040a9     | v0.0.0-20260615183401-62b3387ff324 | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260406210006-6f92a3bedf2d     | v0.0.0-20260615183401-62b3387ff324 | false  | true             |
+| google.golang.org/genproto                                                  | v0.0.0-20251202230838-ff82c1b0f217     | v0.0.0-20260618152121-87f3d3e198d3 | false  | true             |
+| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260401024825-9d38bb4040a9     | v0.0.0-20260618152121-87f3d3e198d3 | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260406210006-6f92a3bedf2d     | v0.0.0-20260618152121-87f3d3e198d3 | false  | true             |
 | google.golang.org/grpc                                                      | v1.80.0                                | v1.81.1                            | true   | true             |
 | google.golang.org/protobuf                                                  | v1.36.12-0.20260120151049-f2248ac996af |                                    | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                 | v2.4.0                             | false  | true             |
