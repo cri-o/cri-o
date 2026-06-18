@@ -20,7 +20,7 @@
   include_tasks: "build/libpathrs.yml"
   when: ansible_distribution in ['Fedora']
 
-- name: clone build and install runc
+- name: install runc
   include_tasks: "build/runc.yml"
 
 - name: clone build and install crun
