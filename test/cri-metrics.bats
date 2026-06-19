@@ -270,6 +270,10 @@ EOF
 }
 
 @test "container disk metrics" {
+	if [[ "$(stat -f -c %T "$TESTDIR")" == "tmpfs" ]]; then
+		skip "disk metrics inode/usage tracking unreliable on tmpfs"
+	fi
+
 	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]
