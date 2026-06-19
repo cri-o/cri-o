@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"maps"
 	"strings"
 	"syscall"
 	"time"
@@ -1212,6 +1213,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		}
 
 		state := *c.state
+		state.Annotations = maps.Clone(state.Annotations)
 		if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
 			return &state, false, fmt.Errorf("failed to decode container status for %s: %w", c.ID(), err)
 		}
