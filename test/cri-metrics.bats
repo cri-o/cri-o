@@ -369,6 +369,10 @@ EOF
 }
 
 @test "container disk io metrics" {
+	if [[ "$(stat -f -c %T "$TESTDIR")" == "tmpfs" ]]; then
+		skip "disk IO metrics require block-device-backed storage"
+	fi
+
 	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]
