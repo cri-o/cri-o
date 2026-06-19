@@ -94,7 +94,7 @@
       - glibc-static
       # required to test the crun-wasm workflow.
       - crun-wasm
-      # required for building libpathrs from source.
+      # required for crun-wasm and other Rust-based tools.
       - rust
       - cargo
       - cargo-c
