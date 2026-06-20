@@ -114,7 +114,13 @@ EOF
 	fi
 
 	metrics_memory_working_set=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_working_set_bytes") | .value.value | tonumber')
-	[[ $metrics_memory_working_set == $((cgroup_memory_usage - cgroup_memory_inactive_file)) ]]
+	# The metrics endpoint and the cgroup files are sampled at slightly
+	# different times, so the working set (memory.current - inactive_file) can
+	# drift by a small amount between the two reads. Allow a 16 KiB tolerance
+	# instead of requiring an exact match to avoid flaky failures.
+	cgroup_memory_working_set=$((cgroup_memory_usage - cgroup_memory_inactive_file))
+	working_set_diff=$((metrics_memory_working_set - cgroup_memory_working_set))
+	[[ ${working_set_diff#-} -le 16384 ]]
 
 	# assert container_memory_rss == cgroup memory.stat:total_rss(cgroup v1) or memory.stat:anon(cgroup v2)
 	if is_cgroup_v2; then
