@@ -231,6 +231,10 @@ One example would be allowing ping inside of containers. On systems that support
   ]
 ```
 
+**default_unprivileged_port_start**=false
+When true, sets `net.ipv4.ip_unprivileged_port_start=0` by default for pods that do not use the host network namespace and do not set the sysctl themselves, allowing non-root processes to bind to privileged ports.
+This can still be overridden per pod via **securityContext.sysctls** or **default_sysctls**.
+
 **allowed_devices**=[]
 List of devices on the host that a user can specify with the "io.kubernetes.cri-o.Devices" allowed annotation.
 

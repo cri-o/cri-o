@@ -46,6 +46,7 @@ crio
 [--default-sysctls]=[value]
 [--default-transport]=[value]
 [--default-ulimits]=[value]
+[--default-unprivileged-port-start]
 [--device-ownership-from-security-context]
 [--disable-hostport-mapping]
 [--drop-infra-ctr]
@@ -252,6 +253,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is. (default: "docker://")
 
 **--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard).
+
+**--default-unprivileged-port-start**: Sets net.ipv4.ip_unprivileged_port_start=0 by default for pods that do not use the host network namespace and do not set the sysctl themselves, allowing non-root processes to bind to privileged ports.
 
 **--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup.
 

@@ -906,6 +906,22 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.G
 		sysctlsToReturn[key] = value
 	}
 
+	// When opted in via default_unprivileged_port_start, default
+	// net.ipv4.ip_unprivileged_port_start to 0 so non-root processes inside
+	// the container can bind to any port. Only applied when the pod has its
+	// own network namespace and the value has not already been set.
+	const (
+		unprivilegedPortStartKey     = "net.ipv4.ip_unprivileged_port_start"
+		unprivilegedPortStartDefault = "0"
+	)
+
+	_, alreadySet := sysctlsToReturn[unprivilegedPortStartKey]
+
+	if s.config.DefaultUnprivilegedPortStart && !hostNetwork && !alreadySet {
+		g.AddLinuxSysctl(unprivilegedPortStartKey, unprivilegedPortStartDefault)
+		sysctlsToReturn[unprivilegedPortStartKey] = unprivilegedPortStartDefault
+	}
+
 	return configurePingGroupRangeGivenIDMappings(ctx, g, sandboxIDMappings, sysctlsToReturn)
 }
 

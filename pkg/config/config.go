@@ -412,6 +412,15 @@ type RuntimeConfig struct {
 	// Sysctls to add to all containers.
 	DefaultSysctls []string `toml:"default_sysctls"`
 
+	// DefaultUnprivilegedPortStart, when enabled, sets
+	// net.ipv4.ip_unprivileged_port_start=0 by default for containers that do
+	// not use the host network namespace, allowing non-root processes to bind
+	// to privileged ports. This is opt-in because it relaxes a security
+	// boundary and changes a Kubernetes-conformant sysctl default. It can
+	// still be overridden per pod via securityContext.sysctls or
+	// default_sysctls.
+	DefaultUnprivilegedPortStart bool `toml:"default_unprivileged_port_start"`
+
 	// DefaultUlimits specifies the default ulimits to apply to containers
 	DefaultUlimits []string `toml:"default_ulimits"`
 

@@ -448,6 +448,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.DropInfraCtr, c.DropInfraCtr),
 		},
 		{
+			templateString: templateStringCrioRuntimeDefaultUnprivilegedPortStart,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DefaultUnprivilegedPortStart, c.DefaultUnprivilegedPortStart),
+		},
+		{
 			templateString: templateStringCrioRuntimeInfraCtrCpuset,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.InfraCtrCPUSet, c.InfraCtrCPUSet),
@@ -1244,6 +1249,15 @@ const templateStringCrioRuntimeDropInfraCtr = `# drop_infra_ctr determines wheth
 # a kernel separating runtime (like kata).
 # It requires manage_ns_lifecycle to be true.
 {{ $.Comment }}drop_infra_ctr = {{ .DropInfraCtr }}
+
+`
+
+const templateStringCrioRuntimeDefaultUnprivilegedPortStart = `# default_unprivileged_port_start, when true, sets
+# net.ipv4.ip_unprivileged_port_start=0 by default for pods that do not use
+# the host network namespace and do not set the sysctl themselves, allowing
+# non-root processes to bind to privileged ports. This can still be
+# overridden per pod via securityContext.sysctls or default_sysctls.
+{{ $.Comment }}default_unprivileged_port_start = {{ .DefaultUnprivilegedPortStart }}
 
 `
 
