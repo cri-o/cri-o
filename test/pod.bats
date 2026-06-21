@@ -292,6 +292,110 @@ EOF
 	[[ "$output" != *"net.ipv4.ip_forward = 0"* ]]
 }
 
+@test "non-root process can bind to privileged port with default ip_unprivileged_port_start" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	start_crio
+
+	# Run container as non-root user (nobody, uid 65534)
+	jq '.linux.security_context.run_as_user = {"value": 65534}' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	# Non-root process should be able to bind to a privileged port
+	# because ip_unprivileged_port_start=0 is set by default
+	crictl exec --sync "$ctr_id" ncat -l 80 --idle-timeout 1 --recv-only
+}
+
+@test "non-root process cannot bind to privileged port when ip_unprivileged_port_start is 1024" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	start_crio
+
+	# Explicitly set ip_unprivileged_port_start=1024 to simulate pre-feature behavior
+	jq '.linux.sysctls = {"net.ipv4.ip_unprivileged_port_start": "1024"}' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	jq '.linux.security_context.run_as_user = {"value": 65534}' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
+	crictl start "$ctr_id"
+
+	# Non-root process should NOT be able to bind to a privileged port
+	# because user explicitly set ip_unprivileged_port_start=1024
+	run crictl exec --sync "$ctr_id" ncat -l 80 --idle-timeout 1 --recv-only
+	[ "$status" -ne 0 ]
+}
+
+@test "non-root process can bind to privileged port with ip_unprivileged_port_start in userns" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	start_crio
+
+	jq '.linux.security_context.namespace_options.userns_options = {
+			"mode": 0,
+			"uids": [{"host_id": 100000, "container_id": 0, "length": 65536}],
+			"gids": [{"host_id": 100000, "container_id": 0, "length": 65536}]
+		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	# Run as a non-zero uid inside the container (non-root even inside the userns)
+	jq '.linux.security_context.run_as_user = {"value": 1000}' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
+	crictl start "$ctr_id"
+
+	# Non-root process should be able to bind to a privileged port in userns
+	# because ip_unprivileged_port_start=0 is also applied in userns pods
+	crictl exec --sync "$ctr_id" ncat -l 80 --idle-timeout 1 --recv-only
+}
+
+@test "do not set net.ipv4.ip_unprivileged_port_start when pod uses host network" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+
+	host_value=$(sysctl -n net.ipv4.ip_unprivileged_port_start)
+
+	start_crio
+
+	jq '.linux.security_context.namespace_options.network = 2' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" sysctl net.ipv4.ip_unprivileged_port_start)
+	[[ "$output" == *"net.ipv4.ip_unprivileged_port_start = $host_value"* ]]
+}
+
+@test "respect user-supplied net.ipv4.ip_unprivileged_port_start" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	start_crio
+
+	jq '.linux.sysctls = {"net.ipv4.ip_unprivileged_port_start": "512"}' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" sysctl net.ipv4.ip_unprivileged_port_start)
+	[[ "$output" == *"net.ipv4.ip_unprivileged_port_start = 512"* ]]
+}
+
 @test "pod stop idempotent" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
