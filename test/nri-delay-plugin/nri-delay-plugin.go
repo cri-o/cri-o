@@ -1,0 +1,104 @@
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+	"time"
+
+	"github.com/containerd/nri/pkg/api"
+	"github.com/containerd/nri/pkg/stub"
+)
+
+const (
+	pluginName = "delay-plugin"
+	// delayAnnotation is the pod annotation key used to configure the delay duration.
+	// Format: time.Duration string (e.g., "10s", "5s", "500ms")
+	// Default: 10s if annotation is not present or invalid.
+	delayAnnotation = "nri-delay-plugin/delay"
+	defaultDelay    = 10 * time.Second
+)
+
+type plugin struct {
+	stub stub.Stub
+}
+
+//nolint:unparam // Interface method - error return required by NRI plugin interface
+func (p *plugin) Configure(_ context.Context, config, runtime, version string) (stub.EventMask, error) {
+	log.Printf("Configure: config=%s, runtime=%s, version=%s", config, runtime, version)
+
+	return api.MustParseEventMask("RunPodSandbox"), nil
+}
+
+//nolint:unparam // Interface method - return types required by NRI plugin interface
+func (p *plugin) Synchronize(_ context.Context, pods []*api.PodSandbox, containers []*api.Container) ([]*api.ContainerUpdate, error) {
+	log.Printf("Synchronize: %d pods, %d containers", len(pods), len(containers))
+
+	return nil, nil
+}
+
+func (p *plugin) RunPodSandbox(ctx context.Context, pod *api.PodSandbox) error {
+	// Check for custom delay in pod annotations
+	delay := defaultDelay
+
+	if pod.GetAnnotations() != nil {
+		if delayStr, ok := pod.GetAnnotations()[delayAnnotation]; ok {
+			if d, err := time.ParseDuration(delayStr); err == nil && d > 0 {
+				delay = d
+				log.Printf("RunPodSandbox: using custom delay from annotation: %s", delay)
+			} else {
+				log.Printf("RunPodSandbox: invalid delay annotation '%s', using default: %s", delayStr, delay)
+			}
+		}
+	}
+
+	log.Printf("RunPodSandbox: pod=%s/%s - DELAYING %s", pod.GetNamespace(), pod.GetName(), delay)
+
+	// Context-aware sleep to respect cancellation
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		log.Printf("RunPodSandbox: pod=%s/%s - DELAY COMPLETE", pod.GetNamespace(), pod.GetName())
+
+		return nil
+	case <-ctx.Done():
+		log.Printf("RunPodSandbox: pod=%s/%s - DELAY CANCELLED", pod.GetNamespace(), pod.GetName())
+
+		return ctx.Err()
+	}
+}
+
+func (p *plugin) Shutdown(ctx context.Context) {
+	log.Println("Shutdown")
+}
+
+func main() {
+	var (
+		err error
+		p   plugin
+	)
+
+	// Log to stderr so CRI-O captures it in its logs
+	log.SetOutput(os.Stderr)
+	log.SetPrefix("[nri-delay-plugin] ")
+
+	log.Printf("Starting NRI delay plugin %s", pluginName)
+
+	p.stub, err = stub.New(&p,
+		stub.WithPluginName(pluginName),
+	)
+	if err != nil {
+		log.Fatalf("failed to create plugin stub: %v", err)
+	}
+
+	log.Printf("Plugin stub created successfully")
+
+	err = p.stub.Run(context.Background())
+	if err != nil {
+		log.Fatalf("plugin exited with error: %v", err)
+	}
+
+	log.Printf("Plugin exiting normally")
+}

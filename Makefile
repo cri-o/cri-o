@@ -189,7 +189,8 @@ test-binaries: \
 	test/checkseccomp/checkseccomp \
 	test/checkcriu/checkcriu \
 	test/updateunified/updateunified \
-	test/nri/nri.test
+	test/nri/nri.test \
+	test/nri-delay-plugin/nri-delay-plugin
 
 bin/pinns: ## Build pinns.
 	$(MAKE) -C pinns
@@ -208,6 +209,9 @@ test/updateunified/updateunified: $(GO_FILES) ## Build the updateunified test bi
 
 test/nri/nri.test: $(wildcard test/nri/*.go) ## Build the NRI test binary.
 	$(GO_TEST) $(GCFLAGS) $(GO_LDFLAGS) --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
+
+test/nri-delay-plugin/nri-delay-plugin: $(wildcard test/nri-delay-plugin/*.go) ## Build the NRI delay plugin binary.
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -o $@ ./test/nri-delay-plugin
 
 bin/crio: $(GO_FILES) ## Build the CRI-O main binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" $(GO_BUILDFLAGS) -o $@ ./cmd/crio
@@ -425,6 +429,7 @@ clean: ## Clean the repository.
 	rm -f test/checkcriu/checkcriu
 	rm -f test/updateunified/updateunified
 	rm -f test/nri/nri.test
+	rm -f test/nri-delay-plugin/nri-delay-plugin
 	rm -rf ${BUILD_PATH}
 
 .PHONY: nixpkgs

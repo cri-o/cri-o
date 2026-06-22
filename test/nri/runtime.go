@@ -17,7 +17,6 @@ import (
 const (
 	ciImage        = "quay.io/crio/fedora-crio-ci:latest"
 	connectTimeout = 3 * time.Second
-	requestTimeout = 10 * time.Second
 	pullimgTimeout = 300 * time.Second
 )
 
@@ -39,6 +38,10 @@ type imageRefs struct {
 }
 
 var (
+	// requestTimeout can be overridden for tests that need longer timeouts
+	// (e.g., tests with NRI plugin delays).
+	requestTimeout = 10 * time.Second
+
 	crioSocket = flag.String("crio-socket", "", "cri-o socket to use")
 	nriSocket  = flag.String("nri-socket", "", "NRI socket to use")
 	cgroupMgr  = flag.String("cgroup-manager", "systemd", "cgroup manager used by cri-o")
