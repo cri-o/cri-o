@@ -53,6 +53,7 @@ jobs:
             test/copyimg/copyimg
             test/updateunified/updateunified
             test/nri/nri.test
+            test/nri-delay-plugin/nri-delay-plugin
 
   integration:
     needs: test-binaries
