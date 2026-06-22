@@ -71,10 +71,12 @@ dependencies:
         match: buildah
 
   - name: runc
-    version: main
+    version: v1.4.3
     refPaths:
       - path: scripts/versions
         match: runc
+      - path: contrib/test/ci/vars.yml
+        match: runc_git_version
 
   - name: libpathrs
     version: 0.2.4
