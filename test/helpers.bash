@@ -148,9 +148,15 @@ function setup_crio() {
         apparmor="$1"
     fi
 
-    for img in "${IMAGES[@]}"; do
-        setup_img "$img"
-    done
+    # Pre-load images into CRI-O storage from .artifacts/ if available
+    # In CI with local registry, skip this - images will be pulled on-demand from localhost:5000
+    if [ -d "$ARTIFACTS_PATH" ] && [ -n "$(ls -A "$ARTIFACTS_PATH" 2>/dev/null)" ]; then
+        for img in "${IMAGES[@]}"; do
+            setup_img "$img"
+        done
+    else
+        echo "# Skipping image pre-load - using registry mirror" >&3
+    fi
 
     # Prepare the CNI configuration files, we're running with non host
     # networking by default
