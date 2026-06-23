@@ -169,21 +169,24 @@ mirror_image() {
     local image_ref
     local local_image
 
-    # With [[registry.mirror]] configuration, the mirror receives the FULL image path
-    # registry.k8s.io/e2e-test-images/busybox:1.29-2 -> localhost:5000/registry.k8s.io/e2e-test-images/busybox:1.29-2
-    # This is different from prefix-based mirroring which strips the prefix
+    # With [[registry.mirror]] configuration, the mirror STRIPS the registry prefix
+    # quay.io/crio/fedora-crio-ci:latest -> localhost:5000/crio/fedora-crio-ci:latest
+    # registry.k8s.io/pause:3.10.1 -> localhost:5000/pause:3.10.1
+    # This matches what copyimg used to provide (registry-stripped paths)
 
     if [[ "${remote_image}" =~ @ ]]; then
         # Digest-based image
         repo_path="${remote_image%%@*}"  # Remove digest
+        repo_path="${repo_path#*/}"      # Strip registry prefix (everything before first /)
 
         local digest="${remote_image##*@}"
         image_ref="sha256-${digest##*:}"
         image_ref="${image_ref:0:20}"  # Truncate to reasonable length
         local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
     else
-        # Tagged image - keep full path including registry
-        local_image="${REGISTRY_HOST}/${remote_image}"
+        # Tagged image - strip registry prefix (everything before first /)
+        repo_path="${remote_image#*/}"
+        local_image="${REGISTRY_HOST}/${repo_path}"
     fi
 
     log_info "Mirroring ${remote_image} -> ${local_image}"
