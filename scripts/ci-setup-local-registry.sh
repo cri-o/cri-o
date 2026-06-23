@@ -46,6 +46,7 @@ IMAGES=(
     "registry.k8s.io/e2e-test-images/busybox:1.29-2"
     "registry.k8s.io/e2e-test-images/nginx:1.14-2"
     "registry.k8s.io/e2e-test-images/httpd:2.4.39-4"
+    "registry.k8s.io/e2e-test-images/nonewprivs:1.3"
 )
 
 # OCI artifacts and special images that may not work with podman pull
