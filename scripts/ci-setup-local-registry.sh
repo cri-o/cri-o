@@ -18,7 +18,7 @@ MAX_RETRIES="${MAX_RETRIES:-3}"
 RETRY_DELAY="${RETRY_DELAY:-5}"
 
 # Complete list of all images used in tests
-# This includes images from common.sh and all BATS tests that pull images
+# This includes images from common.sh, BATS tests, and critest
 IMAGES=(
     # Core images from test/common.sh (pre-loaded by test_runner.sh)
     "registry.k8s.io/pause:3.10.1"
@@ -30,6 +30,15 @@ IMAGES=(
     "quay.io/crio/artifact:v1"
     "quay.io/saschagrunert/hello-world:latest"
     "quay.io/fedora/fedora:latest"
+
+    # critest images (gcr.io/k8s-staging-cri-tools)
+    "gcr.io/k8s-staging-cri-tools/test-image-predefined-group:latest"
+    "gcr.io/k8s-staging-cri-tools/hostnet-nginx-arm64:latest"
+    "gcr.io/k8s-staging-cri-tools/test-image-tags:1"
+    "gcr.io/k8s-staging-cri-tools/test-image-tags:2"
+    "gcr.io/k8s-staging-cri-tools/test-image-latest:latest"
+    "gcr.io/k8s-staging-cri-tools/test-image-digest@sha256:9d242c6ffa4b72cfc037d88f975969defe6ba3f1e6aca35fea7497207a1210ab"
+    "k8s.gcr.io/pause:3.10.1"
 )
 
 # OCI artifacts and special images that may not work with podman pull
@@ -244,7 +253,7 @@ mirror_all_images() {
 
 # Configure registries.conf to use local registry
 configure_registries() {
-    local registries_conf="${TEST_DIR}/registries.conf"
+    local registries_conf="/etc/containers/registries.conf"
 
     log_info "Configuring registry mirror in ${registries_conf}"
 
@@ -262,6 +271,16 @@ insecure = true
 
 [[registry]]
 prefix = "registry.k8s.io"
+location = "${REGISTRY_HOST}"
+insecure = true
+
+[[registry]]
+prefix = "gcr.io"
+location = "${REGISTRY_HOST}"
+insecure = true
+
+[[registry]]
+prefix = "k8s.gcr.io"
 location = "${REGISTRY_HOST}"
 insecure = true
 EOF

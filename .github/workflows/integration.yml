@@ -224,18 +224,18 @@ jobs:
             test/updateunified/updateunified \
             test/nri/nri.test
       - run: scripts/github-actions-packages
-      - run: scripts/github-actions-setup
-      - name: Switch to runc instead of crun
-        if: ${{ matrix.run.defaultRuntime == 'runc' }}
-        run: |
-          sudo ln -sf $(command -v runc) $(command -v crun)
-          crun --version
       - name: Setup local registry for faster tests
         run: sudo -E scripts/ci-setup-local-registry.sh
         env:
           REGISTRY_PORT: 5000
           MAX_RETRIES: 3
           RETRY_DELAY: 5
+      - run: scripts/github-actions-setup
+      - name: Switch to runc instead of crun
+        if: ${{ matrix.run.defaultRuntime == 'runc' }}
+        run: |
+          sudo ln -sf $(command -v runc) $(command -v crun)
+          crun --version
       - name: Run the test suite
         run: sudo -E test/test_runner.sh
         env:
