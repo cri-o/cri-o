@@ -331,9 +331,7 @@ function start_crio_with_stopped_pod() {
 }
 
 @test "clean up image if corrupted on server restore" {
-	# Start CRI-O to ensure images are in storage, then stop it
-	start_crio
-	stop_crio
+	setup_crio
 	touch "$CONTAINER_CLEAN_SHUTDOWN_FILE.supported"
 
 	# Remove random layer from the storage directory.
