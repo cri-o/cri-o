@@ -203,16 +203,25 @@ function setup_crio() {
 function check_images() {
     local img json list
 
-    # check that images are there
+    # check that images are there, pull if missing
     json=$(crictl images -o json)
     [ -n "$json" ]
     list=$(jq -r '.images[] | .repoTags[]' <<<"$json")
     for img in "${IMAGES[@]}"; do
         if [[ "$list" != *"$img"* ]]; then
-            echo "Image $img is not present but it should!" >&2
-            exit 1
+            # Image not present - pull it (will use local registry mirror in CI)
+            echo "# Pulling missing image: $img" >&3
+            crictl pull "$img" >&3 2>&3 || {
+                echo "Image $img is not present and failed to pull!" >&2
+                exit 1
+            }
         fi
     done
+
+    # Refresh the image list after pulling
+    json=$(crictl images -o json)
+    [ -n "$json" ]
+    list=$(jq -r '.images[] | .repoTags[]' <<<"$json")
 
     # these two variables are used by a few tests
     eval "$(jq -r '.images[] |
