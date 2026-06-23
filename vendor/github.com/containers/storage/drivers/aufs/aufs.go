@@ -680,6 +680,12 @@ func (a *Driver) Cleanup() error {
 	return mountpk.Unmount(a.root)
 }
 
+// SyncMode returns the sync mode configured for the driver.
+// Btrfs does not support sync mode configuration, always returns SyncModeNone.
+func (d *Driver) SyncMode() graphdriver.SyncMode {
+	return graphdriver.SyncModeNone
+}
+
 func (a *Driver) aufsMount(ro []string, rw, target string, options graphdriver.MountOpts) (err error) {
 	defer func() {
 		if err != nil {

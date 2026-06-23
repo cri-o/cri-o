@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/system"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"github.com/vbatts/tar-split/tar/storage"
@@ -25,6 +26,51 @@ const (
 	// FsMagicUnsupported is a predefined constant value other than a valid filesystem id.
 	FsMagicUnsupported = FsMagic(0x00000000)
 )
+
+// SyncMode defines when filesystem synchronization occurs during layer creation.
+type SyncMode int
+
+const (
+	// SyncModeNone - no synchronization
+	SyncModeNone SyncMode = iota
+	// SyncModeFilesystem - use syncfs() before layer marked as present
+	SyncModeFilesystem
+)
+
+// String returns the string representation of the sync mode
+func (m SyncMode) String() string {
+	switch m {
+	case SyncModeNone:
+		return "none"
+	case SyncModeFilesystem:
+		return "filesystem"
+	default:
+		return "unknown"
+	}
+}
+
+// ParseSyncMode converts a string to SyncMode
+func ParseSyncMode(s string) (SyncMode, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "", "none":
+		return SyncModeNone, nil
+	case "filesystem":
+		return SyncModeFilesystem, nil
+	default:
+		return SyncModeNone, fmt.Errorf("invalid sync mode: %s", s)
+	}
+}
+
+// Sync applies the sync mode to the given path.
+// Returns nil if mode is SyncModeNone or if sync succeeds.
+func (m SyncMode) Sync(path string) error {
+	if m == SyncModeFilesystem {
+		if err := system.Syncfs(path); err != nil {
+			return fmt.Errorf("syncing file system for %q: %w", path, err)
+		}
+	}
+	return nil
+}
 
 var (
 	// All registered drivers
@@ -159,6 +205,8 @@ type ProtoDriver interface {
 	AdditionalImageStores() []string
 	// Dedup performs deduplication of the driver's storage.
 	Dedup(DedupArgs) (DedupResult, error)
+	// SyncMode returns the sync mode configured for the driver.
+	SyncMode() SyncMode
 }
 
 // DiffDriver is the interface to use to implement graph diffs
