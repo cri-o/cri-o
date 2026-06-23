@@ -24,7 +24,9 @@ function run_crio_check() {
 }
 
 @test "storage directory check should find errors" {
-	setup_crio
+	# Start CRI-O to ensure images are in storage, then stop it
+	start_crio
+	stop_crio
 
 	# Remove random layer from the storage directory.
 	remove_random_storage_layer
@@ -33,7 +35,9 @@ function run_crio_check() {
 }
 
 @test "storage directory check should repair errors" {
-	setup_crio
+	# Start CRI-O to ensure images are in storage, then stop it
+	start_crio
+	stop_crio
 
 	# Remove random layer from the storage directory.
 	remove_random_storage_layer

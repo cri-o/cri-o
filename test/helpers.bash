@@ -240,6 +240,7 @@ function start_crio_no_setup() {
         &>"$CRIO_LOG" &
     CRIO_PID=$!
     wait_until_reachable
+    check_images
 }
 
 # Start crio.
@@ -247,7 +248,7 @@ function start_crio_no_setup() {
 function start_crio() {
     setup_crio "$@"
     start_crio_no_setup
-    check_images
+    # check_images is now called by start_crio_no_setup
 }
 
 # Check if journald is supported by runtime.

@@ -40,6 +40,9 @@ IMAGES=(
     "gcr.io/k8s-staging-cri-tools/test-image-latest:latest"
     "gcr.io/k8s-staging-cri-tools/test-image-tag:test"
     "gcr.io/k8s-staging-cri-tools/test-image-digest@sha256:9d242c6ffa4b72cfc037d88f975969defe6ba3f1e6aca35fea7497207a1210ab"
+    "gcr.io/k8s-staging-cri-tools/test-image-1:latest"
+    "gcr.io/k8s-staging-cri-tools/test-image-2:latest"
+    "gcr.io/k8s-staging-cri-tools/test-image-3:latest"
     "k8s.gcr.io/pause:3.10.1"
 
     # registry.k8s.io e2e test images
