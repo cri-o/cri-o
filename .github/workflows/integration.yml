@@ -230,6 +230,12 @@ jobs:
         run: |
           sudo ln -sf $(command -v runc) $(command -v crun)
           crun --version
+      - name: Setup local registry for faster tests
+        run: sudo -E scripts/ci-setup-local-registry.sh
+        env:
+          REGISTRY_PORT: 5000
+          MAX_RETRIES: 3
+          RETRY_DELAY: 5
       - name: Run the test suite
         run: sudo -E test/test_runner.sh
         env:
@@ -238,6 +244,9 @@ jobs:
           RUNTIME_TYPE: ${{ matrix.run.runtimeType }}
           TEST_USERNS: ${{ matrix.run.userns }}
           CONTAINER_DEFAULT_RUNTIME: ${{ matrix.run.defaultRuntime }}
+      - name: Verify local registry usage
+        if: always()
+        run: sudo -E scripts/verify-local-registry-usage.sh
       # Codecov
       - run: |
           sudo chown -R $(id -u):$(id -g) build
