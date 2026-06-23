@@ -148,20 +148,16 @@ function setup_crio() {
         apparmor="$1"
     fi
 
-    # Pre-load images into CRI-O storage
-    # If .artifacts/ is available, use copyimg (legacy mode)
-    # Otherwise, start CRI-O temporarily and pull from local registry
+    # Pre-load images into CRI-O storage from .artifacts/ if available
+    # In CI with local registry, skip this - images will be pulled on-demand from localhost:5000
     if [ -d "$ARTIFACTS_PATH" ] && [ -n "$(ls -A "$ARTIFACTS_PATH" 2>/dev/null)" ]; then
         for img in "${IMAGES[@]}"; do
             setup_img "$img"
         done
     else
-        echo "# Pre-loading images from registry mirror" >&3
-        # Temporarily start CRI-O to pull images, then stop it
-        # This ensures images are in storage before tests run
-        SETUP_CRIO_PRELOAD=true start_crio_no_setup
-        check_images
-        stop_crio
+        echo "# Skipping image pre-load - using registry mirror" >&3
+        # Set flag so start_crio_no_setup knows to pull images if needed
+        SETUP_CRIO_CALLED=true
     fi
 
     # Prepare the CNI configuration files, we're running with non host
@@ -246,6 +242,13 @@ function start_crio_no_setup() {
         &>"$CRIO_LOG" &
     CRIO_PID=$!
     wait_until_reachable
+
+    # When using local registry AND setup_crio was called, pull images
+    # This ensures images are available for tests that use setup_crio + start_crio_no_setup pattern
+    if [[ "${SETUP_CRIO_CALLED:-false}" == "true" ]]; then
+        check_images
+        unset SETUP_CRIO_CALLED
+    fi
 }
 
 # Start crio.
