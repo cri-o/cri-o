@@ -107,11 +107,12 @@ setup_registry() {
         ((pull_attempt++))
     done
 
-    # Create registry container
+    # Create registry container with host network to avoid CNI conflicts with CRI-O
     if ! podman run -d \
         --restart=always \
-        -p "${REGISTRY_PORT}:5000" \
+        --network=host \
         --name "${REGISTRY_NAME}" \
+        -e REGISTRY_HTTP_ADDR=0.0.0.0:${REGISTRY_PORT} \
         docker.io/library/registry:2; then
         log_error "Failed to create registry container"
         podman logs "${REGISTRY_NAME}" 2>/dev/null || true
@@ -168,11 +169,9 @@ mirror_image() {
     local image_ref
     local local_image
 
-    # Strip the registry prefix to match how registries.conf mirroring works
-    # Examples:
-    #   quay.io/crio/fedora-crio-ci:latest -> fedora-crio-ci:latest (strip "quay.io/crio/")
-    #   registry.k8s.io/e2e-test-images/busybox:1.29-2 -> e2e-test-images/busybox:1.29-2 (strip "registry.k8s.io/")
-    #   gcr.io/k8s-staging-cri-tools/test-image-tags:1 -> k8s-staging-cri-tools/test-image-tags:1 (strip "gcr.io/")
+    # With [[registry.mirror]] configuration, the mirror receives the FULL image path
+    # registry.k8s.io/e2e-test-images/busybox:1.29-2 -> localhost:5000/registry.k8s.io/e2e-test-images/busybox:1.29-2
+    # This is different from prefix-based mirroring which strips the prefix
 
     if [[ "${remote_image}" =~ @ ]]; then
         # Digest-based image
@@ -181,39 +180,12 @@ mirror_image() {
         local digest="${remote_image##*@}"
         image_ref="sha256-${digest##*:}"
         image_ref="${image_ref:0:20}"  # Truncate to reasonable length
+        local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
     else
-        # Tagged image
-        repo_path="${remote_image%:*}"   # Remove tag
-        image_ref="${remote_image##*:}"  # Extract tag
+        # Tagged image - keep full path including registry
+        local_image="${REGISTRY_HOST}/${remote_image}"
     fi
 
-    # Strip prefix based on source registry
-    case "${repo_path}" in
-        quay.io/crio/*)
-            repo_path="${repo_path#quay.io/crio/}"
-            ;;
-        quay.io/saschagrunert/*)
-            repo_path="${repo_path#quay.io/saschagrunert/}"
-            ;;
-        quay.io/fedora/*)
-            repo_path="${repo_path#quay.io/fedora/}"
-            ;;
-        registry.k8s.io/*)
-            repo_path="${repo_path#registry.k8s.io/}"
-            ;;
-        gcr.io/*)
-            repo_path="${repo_path#gcr.io/}"
-            ;;
-        k8s.gcr.io/*)
-            repo_path="${repo_path#k8s.gcr.io/}"
-            ;;
-        *)
-            # Fallback: just strip registry hostname
-            repo_path="${repo_path#*/}"
-            ;;
-    esac
-
-    local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
     log_info "Mirroring ${remote_image} -> ${local_image}"
 
     # Pull from remote with retry
@@ -297,50 +269,46 @@ configure_registries() {
     # Backup original
     cp "${registries_conf}" "${registries_conf}.ci-backup"
 
-    # Add mirror configuration
-    # Use [[registry.mirror]] instead of prefix-based matching for better compatibility
+    # Add mirror configuration with fallback
+    # Using [[registry.mirror]] syntax allows fallback to original registry if image not in mirror
     cat >> "${registries_conf}" <<EOF
 
 # CI local registry mirror (added by ci-setup-local-registry.sh)
-# Mirror for quay.io/crio images
-[[registry]]
-prefix = "quay.io/crio"
-location = "${REGISTRY_HOST}"
-insecure = true
+# Mirrors with fallback - tries localhost:5000 first, falls back to original registry if not found
 
-# Mirror for gcr.io (including k8s-staging-cri-tools)
+# Mirror for registry.k8s.io (Kubernetes images)
 [[registry]]
-prefix = "gcr.io"
-location = "${REGISTRY_HOST}"
-insecure = true
+location = "registry.k8s.io"
+  [[registry.mirror]]
+  location = "${REGISTRY_HOST}"
+  insecure = true
 
-# Mirror for k8s.gcr.io (legacy k8s registry)
+# Mirror for gcr.io (Google Container Registry)
 [[registry]]
-prefix = "k8s.gcr.io"
-location = "${REGISTRY_HOST}"
-insecure = true
+location = "gcr.io"
+  [[registry.mirror]]
+  location = "${REGISTRY_HOST}"
+  insecure = true
 
-# Mirror for registry.k8s.io (current k8s registry)
+# Mirror for k8s.gcr.io (legacy Kubernetes registry)
 [[registry]]
-prefix = "registry.k8s.io"
-location = "${REGISTRY_HOST}"
-insecure = true
+location = "k8s.gcr.io"
+  [[registry.mirror]]
+  location = "${REGISTRY_HOST}"
+  insecure = true
 
-# Mirror for quay.io/saschagrunert and quay.io/fedora
+# Mirror for quay.io (all quay.io images)
 [[registry]]
-prefix = "quay.io/saschagrunert"
-location = "${REGISTRY_HOST}"
-insecure = true
-
-[[registry]]
-prefix = "quay.io/fedora"
-location = "${REGISTRY_HOST}"
-insecure = true
+location = "quay.io"
+  [[registry.mirror]]
+  location = "${REGISTRY_HOST}"
+  insecure = true
 EOF
 
-    log_info "Registry configuration updated"
+    log_info "Registry configuration updated with fallback mirrors"
+    log_info "Images will try localhost:5000 first, then fall back to original registry"
     log_info "Registry mirror configuration:"
-    tail -10 "${registries_conf}" || true
+    tail -15 "${registries_conf}" || true
 }
 
 # Main execution
