@@ -167,27 +167,52 @@ mirror_image() {
     local image_ref
     local local_image
 
-    # Strip registry hostname but keep full repository path
-    # registry.k8s.io/e2e-test-images/busybox:1.29-2 -> e2e-test-images/busybox:1.29-2
-    # gcr.io/k8s-staging-cri-tools/test-image-tags:1 -> k8s-staging-cri-tools/test-image-tags:1
+    # Strip the registry prefix to match how registries.conf mirroring works
+    # Examples:
+    #   quay.io/crio/fedora-crio-ci:latest -> fedora-crio-ci:latest (strip "quay.io/crio/")
+    #   registry.k8s.io/e2e-test-images/busybox:1.29-2 -> e2e-test-images/busybox:1.29-2 (strip "registry.k8s.io/")
+    #   gcr.io/k8s-staging-cri-tools/test-image-tags:1 -> k8s-staging-cri-tools/test-image-tags:1 (strip "gcr.io/")
+
     if [[ "${remote_image}" =~ @ ]]; then
-        # Digest-based image: registry.k8s.io/foo/bar@sha256:abc
+        # Digest-based image
         repo_path="${remote_image%%@*}"  # Remove digest
-        repo_path="${repo_path#*/}"      # Remove registry hostname
 
         local digest="${remote_image##*@}"
         image_ref="sha256-${digest##*:}"
         image_ref="${image_ref:0:20}"  # Truncate to reasonable length
-        local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
     else
-        # Tagged image: registry.k8s.io/foo/bar:tag
+        # Tagged image
         repo_path="${remote_image%:*}"   # Remove tag
-        repo_path="${repo_path#*/}"      # Remove registry hostname
-
         image_ref="${remote_image##*:}"  # Extract tag
-        local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
     fi
 
+    # Strip prefix based on source registry
+    case "${repo_path}" in
+        quay.io/crio/*)
+            repo_path="${repo_path#quay.io/crio/}"
+            ;;
+        quay.io/saschagrunert/*)
+            repo_path="${repo_path#quay.io/saschagrunert/}"
+            ;;
+        quay.io/fedora/*)
+            repo_path="${repo_path#quay.io/fedora/}"
+            ;;
+        registry.k8s.io/*)
+            repo_path="${repo_path#registry.k8s.io/}"
+            ;;
+        gcr.io/*)
+            repo_path="${repo_path#gcr.io/}"
+            ;;
+        k8s.gcr.io/*)
+            repo_path="${repo_path#k8s.gcr.io/}"
+            ;;
+        *)
+            # Fallback: just strip registry hostname
+            repo_path="${repo_path#*/}"
+            ;;
+    esac
+
+    local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
     log_info "Mirroring ${remote_image} -> ${local_image}"
 
     # Pull from remote with retry
