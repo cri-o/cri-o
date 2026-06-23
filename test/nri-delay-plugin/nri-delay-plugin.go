@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -16,7 +17,9 @@ const (
 	// Format: time.Duration string (e.g., "10s", "5s", "500ms")
 	// Default: 10s if annotation is not present or invalid.
 	delayAnnotation = "nri-delay-plugin/delay"
-	defaultDelay    = 10 * time.Second
+	// logFileAnnotation is the pod annotation key for specifying log file path.
+	logFileAnnotation = "nri-delay-plugin/log-file"
+	defaultDelay      = 10 * time.Second
 )
 
 type plugin struct {
@@ -38,16 +41,42 @@ func (p *plugin) Synchronize(_ context.Context, pods []*api.PodSandbox, containe
 }
 
 func (p *plugin) RunPodSandbox(ctx context.Context, pod *api.PodSandbox) error {
-	// Check for custom delay in pod annotations
+	// Check for custom delay and log file in pod annotations
 	delay := defaultDelay
 
 	if pod.GetAnnotations() != nil {
+		// Check for custom delay
 		if delayStr, ok := pod.GetAnnotations()[delayAnnotation]; ok {
 			if d, err := time.ParseDuration(delayStr); err == nil && d > 0 {
 				delay = d
 				log.Printf("RunPodSandbox: using custom delay from annotation: %s", delay)
 			} else {
 				log.Printf("RunPodSandbox: invalid delay annotation '%s', using default: %s", delayStr, delay)
+			}
+		}
+
+		// Check for log file path
+		if logPath, ok := pod.GetAnnotations()[logFileAnnotation]; ok && logPath != "" {
+			if logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err == nil {
+				defer logFile.Close()
+
+				// Write pod ID and timing info to log file
+				fmt.Fprintf(logFile, "pod_id=%s\n", pod.GetId())
+
+				if err := logFile.Sync(); err != nil {
+					log.Printf("Warning: failed to sync log file: %v", err)
+				}
+
+				fmt.Fprintf(logFile, "delay_start=%d\n", time.Now().Unix())
+
+				defer func() {
+					fmt.Fprintf(logFile, "delay_end=%d\n", time.Now().Unix())
+					fmt.Fprintf(logFile, "delay_duration=%d\n", int(delay.Seconds()))
+
+					if err := logFile.Sync(); err != nil {
+						log.Printf("Warning: failed to sync log file: %v", err)
+					}
+				}()
 			}
 		}
 	}

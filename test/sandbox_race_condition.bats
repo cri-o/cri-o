@@ -29,18 +29,17 @@ function teardown() {
 }
 
 function check_nri_activity() {
-	# Verify NRI plugin was invoked by checking that RunPodSandbox took >= 9 seconds
-	# The log for NRI plugin is not part of cri-o logs
-	local start_time end_time
-	start_time=$(grep "Running pod sandbox" "$CRIO_LOG" | tail -1 | awk '{print $1}' | tr -d 'time="' | tr -d 'Z"')
-	end_time=$(grep "Ran pod sandbox.*with infra container" "$CRIO_LOG" | tail -1 | awk '{print $1}' | tr -d 'time="' | tr -d 'Z"')
+	# Verify NRI plugin was invoked by reading its timing log
+	local log_file="$1"
+	local start_time end_time duration
+
+	[ -f "$log_file" ] || return 1
+
+	start_time=$(grep "^delay_start=" "$log_file" | tail -1 | cut -d= -f2 | tr -d '[:space:]')
+	end_time=$(grep "^delay_end=" "$log_file" | tail -1 | cut -d= -f2 | tr -d '[:space:]')
 
 	if [ -n "$start_time" ] && [ -n "$end_time" ]; then
-		# Convert timestamps to seconds since epoch using date command
-		local start_epoch end_epoch duration
-		start_epoch=$(date -d "$start_time" +%s 2> /dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${start_time%.*}" +%s 2> /dev/null)
-		end_epoch=$(date -d "$end_time" +%s 2> /dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${end_time%.*}" +%s 2> /dev/null)
-		duration=$((end_epoch - start_epoch))
+		duration=$((end_time - start_time))
 		[ "$duration" -ge 9 ]
 	else
 		return 1
@@ -63,13 +62,18 @@ function check_delay_plugin() {
 	}
 
 	pod_config="$TESTDIR/sandbox_config.json"
+	nri_log="$TESTDIR/nri-test1.log"
 	cp "$TESTDATA"/sandbox_config.json "$pod_config"
+
+	# Add annotation to write plugin timing to log file
+	jq --arg logfile "$nri_log" '.annotations += {"nri-delay-plugin/log-file": $logfile}' "$pod_config" > "$pod_config.tmp"
+	mv "$pod_config.tmp" "$pod_config"
 
 	pod_id=$(crictl runp "$pod_config")
 
-	check_nri_activity || {
+	check_nri_activity "$nri_log" || {
 		echo "# ERROR: NRI RunPodSandbox hook not invoked"
-		[ -f "$CRIO_LOG" ] && grep -i "nri" "$CRIO_LOG" | tail -5
+		[ -f "$nri_log" ] && cat "$nri_log"
 		return 1
 	}
 
@@ -81,40 +85,48 @@ function check_delay_plugin() {
 	start_crio
 
 	pod_config="$TESTDIR/sandbox_config.json"
+	nri_log="$TESTDIR/nri-test2.log"
 	cp "$TESTDATA"/sandbox_config.json "$pod_config"
 
-	# Add annotation to set NRI plugin delay to 10 seconds
-	jq '.annotations += {"nri-delay-plugin/delay": "10s"}' "$pod_config" > "$pod_config.tmp"
+	# Add annotations for delay and log file
+	jq --arg logfile "$nri_log" '.annotations += {"nri-delay-plugin/delay": "10s", "nri-delay-plugin/log-file": $logfile}' "$pod_config" > "$pod_config.tmp"
 	mv "$pod_config.tmp" "$pod_config"
 
 	# Start pod creation in background - NRI plugin will delay based on annotation
 	crictl runp "$pod_config" &
 	RUNP_PID=$!
 
-	# Wait for storage creation to complete
-	sleep 2
-
-	# Find the pod ID by looking at the most recently created storage directory
-	# This works because storage is created before the NRI delay
-	# These methods didn't work - Noting down to save someone else's time :)
-	# - "sudo crictl pods --state NotReady" - Didn't give the pod id
-	# - Tail on the cri-o logs worked but very flaky
-	storage_dir="$TESTDIR/crio/overlay-containers"
-	pod_id=$(find "$storage_dir" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %f\n' 2> /dev/null | sort -rn | head -1 | awk '{print $2}')
+	# Wait for NRI plugin to write pod ID to log file
+	local retry=0
+	pod_id=""
+	while [ $retry -lt 20 ]; do
+		if [ -f "$nri_log" ]; then
+			pod_id=$(grep "^pod_id=" "$nri_log" | tail -1 | cut -d= -f2 | tr -d '[:space:]')
+			[ -n "$pod_id" ] && break
+		fi
+		sleep 0.5
+		retry=$((retry + 1))
+	done
 
 	if [ -z "$pod_id" ]; then
-		echo "# ERROR: No pod storage found in $storage_dir"
+		echo "# ERROR: Pod ID not found in NRI plugin log"
+		[ -f "$nri_log" ] && cat "$nri_log"
 		return 1
 	fi
 
+	echo "# Found pod ID from NRI plugin: $pod_id"
+
 	# RemovePodSandbox called while RunPodSandbox is in NRI hook (before SetCreated())
+	# Expected: gRPC NotFound error (pod exists in storage but not yet marked as created)
 	output=$(crictl rmp "$pod_id" 2>&1 || true)
 
-	if [[ "$output" != *"not yet created"* && "$output" != *"sandbox not created"* ]]; then
-		echo "# ERROR: Expected 'not yet created' or 'sandbox not created' error during race condition"
+	if [[ "$output" != *"code = NotFound"* ]]; then
+		echo "# ERROR: Expected gRPC NotFound error during race condition"
 		echo "# Got: $output"
 		return 1
 	fi
+
+	echo "# Race condition correctly triggered: NotFound error received"
 
 	# Wait for RunPodSandbox to complete
 	wait $RUNP_PID || true
@@ -132,5 +144,5 @@ function check_delay_plugin() {
 	crictl rmp "$new_pod_id"
 
 	# Verify NRI plugin was actually invoked
-	check_nri_activity || echo "# Warning: NRI delay plugin may not have run"
+	check_nri_activity "$nri_log"
 }

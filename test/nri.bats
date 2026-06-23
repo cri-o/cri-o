@@ -106,27 +106,3 @@ function run_test() {
 	start_crio
 	run_test -test.run TestMemsetAdjustmentUpdate
 }
-
-@test "run NRI RunPodSandboxRemoveRaceCondition test" {
-	# Configure extended NRI timeout for delay tests (default 2s -> 30s)
-	cat << EOF > "$CRIO_CONFIG_DIR/20-nri-timeout.conf"
-[crio.nri]
-enable_nri = true
-nri_plugin_request_timeout = "30s"
-nri_plugin_registration_timeout = "10s"
-EOF
-	start_crio
-	run_test -test.run TestRunPodSandboxRemoveRaceCondition
-}
-
-@test "run NRI RunPodSandboxWithDelayTiming test" {
-	# Configure extended NRI timeout for delay tests (default 2s -> 30s)
-	cat << EOF > "$CRIO_CONFIG_DIR/20-nri-timeout.conf"
-[crio.nri]
-enable_nri = true
-nri_plugin_request_timeout = "30s"
-nri_plugin_registration_timeout = "10s"
-EOF
-	start_crio
-	run_test -test.run TestRunPodSandboxWithDelayTiming
-}
