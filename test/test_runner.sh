@@ -24,10 +24,12 @@ if [[ "$TEST_USERNS" == "1" ]]; then
 fi
 
 # Preload images.
-(
-    . common.sh
-    get_images
-)
+# NOTE: Disabled - copyimg is no longer needed since CI uses local registry
+# The local registry pre-loads all test images before tests start
+# (
+#     . common.sh
+#     get_images
+# )
 
 function execute() {
     echo >&2 ++ "$@"
