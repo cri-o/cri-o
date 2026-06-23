@@ -34,11 +34,18 @@ IMAGES=(
     # critest images (gcr.io/k8s-staging-cri-tools)
     "gcr.io/k8s-staging-cri-tools/test-image-predefined-group:latest"
     "gcr.io/k8s-staging-cri-tools/hostnet-nginx-arm64:latest"
+    "gcr.io/k8s-staging-cri-tools/hostnet-nginx-amd64:latest"
     "gcr.io/k8s-staging-cri-tools/test-image-tags:1"
     "gcr.io/k8s-staging-cri-tools/test-image-tags:2"
     "gcr.io/k8s-staging-cri-tools/test-image-latest:latest"
+    "gcr.io/k8s-staging-cri-tools/test-image-tag:test"
     "gcr.io/k8s-staging-cri-tools/test-image-digest@sha256:9d242c6ffa4b72cfc037d88f975969defe6ba3f1e6aca35fea7497207a1210ab"
     "k8s.gcr.io/pause:3.10.1"
+
+    # registry.k8s.io e2e test images
+    "registry.k8s.io/e2e-test-images/busybox:1.29-2"
+    "registry.k8s.io/e2e-test-images/nginx:1.14-2"
+    "registry.k8s.io/e2e-test-images/httpd:2.4.39-4"
 )
 
 # OCI artifacts and special images that may not work with podman pull
@@ -156,25 +163,29 @@ pull_image_with_retry() {
 # Pull and mirror a single image
 mirror_image() {
     local remote_image="$1"
-    local image_name
+    local repo_path
     local image_ref
     local local_image
 
-    # Extract image name (everything after last /)
-    image_name=$(basename "${remote_image%%@*}" | sed 's/:.*$//')
-
-    # Determine tag - use digest as tag if it's a digest-based image
+    # Strip registry hostname but keep full repository path
+    # registry.k8s.io/e2e-test-images/busybox:1.29-2 -> e2e-test-images/busybox:1.29-2
+    # gcr.io/k8s-staging-cri-tools/test-image-tags:1 -> k8s-staging-cri-tools/test-image-tags:1
     if [[ "${remote_image}" =~ @ ]]; then
-        # Digest-based: convert to tagged for local registry
-        # quay.io/nginx@sha256:abc -> localhost:5000/nginx:sha256-abc
+        # Digest-based image: registry.k8s.io/foo/bar@sha256:abc
+        repo_path="${remote_image%%@*}"  # Remove digest
+        repo_path="${repo_path#*/}"      # Remove registry hostname
+
         local digest="${remote_image##*@}"
         image_ref="sha256-${digest##*:}"
         image_ref="${image_ref:0:20}"  # Truncate to reasonable length
-        local_image="${REGISTRY_HOST}/${image_name}:${image_ref}"
+        local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
     else
-        # Tagged image
-        image_ref="${remote_image##*:}"
-        local_image="${REGISTRY_HOST}/${image_name}:${image_ref}"
+        # Tagged image: registry.k8s.io/foo/bar:tag
+        repo_path="${remote_image%:*}"   # Remove tag
+        repo_path="${repo_path#*/}"      # Remove registry hostname
+
+        image_ref="${remote_image##*:}"  # Extract tag
+        local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
     fi
 
     log_info "Mirroring ${remote_image} -> ${local_image}"
@@ -261,33 +272,49 @@ configure_registries() {
     cp "${registries_conf}" "${registries_conf}.ci-backup"
 
     # Add mirror configuration
+    # Use [[registry.mirror]] instead of prefix-based matching for better compatibility
     cat >> "${registries_conf}" <<EOF
 
 # CI local registry mirror (added by ci-setup-local-registry.sh)
+# Mirror for quay.io/crio images
 [[registry]]
 prefix = "quay.io/crio"
 location = "${REGISTRY_HOST}"
 insecure = true
 
-[[registry]]
-prefix = "registry.k8s.io"
-location = "${REGISTRY_HOST}"
-insecure = true
-
+# Mirror for gcr.io (including k8s-staging-cri-tools)
 [[registry]]
 prefix = "gcr.io"
 location = "${REGISTRY_HOST}"
 insecure = true
 
+# Mirror for k8s.gcr.io (legacy k8s registry)
 [[registry]]
 prefix = "k8s.gcr.io"
+location = "${REGISTRY_HOST}"
+insecure = true
+
+# Mirror for registry.k8s.io (current k8s registry)
+[[registry]]
+prefix = "registry.k8s.io"
+location = "${REGISTRY_HOST}"
+insecure = true
+
+# Mirror for quay.io/saschagrunert and quay.io/fedora
+[[registry]]
+prefix = "quay.io/saschagrunert"
+location = "${REGISTRY_HOST}"
+insecure = true
+
+[[registry]]
+prefix = "quay.io/fedora"
 location = "${REGISTRY_HOST}"
 insecure = true
 EOF
 
     log_info "Registry configuration updated"
     log_info "Registry mirror configuration:"
-    grep -A2 "CI local registry mirror" "${registries_conf}" || true
+    tail -10 "${registries_conf}" || true
 }
 
 # Main execution
