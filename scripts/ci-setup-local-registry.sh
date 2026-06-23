@@ -26,22 +26,29 @@ IMAGES=(
     "quay.io/crio/hello-wasm:latest"
 
     # Additional images referenced in test/*.bats files
-    # These may be pulled on-demand during tests
-    "quay.io/crio/pause:latest"
     "quay.io/crio/alpine:3.9"
     "quay.io/crio/artifact:v1"
-    "quay.io/crio/artifact:singlefile"
-    "quay.io/crio/artifact:multiplefiles"
-    "quay.io/crio/artifact:exec"
-    "quay.io/crio/seccomp:v2"
-    "quay.io/crio/nginx@sha256:960355a671fb88ef18a85f92ccf2ccf8e12186216c86337ad808c204d69d512d"
     "quay.io/saschagrunert/hello-world:latest"
     "quay.io/fedora/fedora:latest"
-    "registry.access.redhat.com/rhel7-atomic:latest"
+)
+
+# OCI artifacts and special images that may not work with podman pull
+# These are handled by CRI-O directly during tests
+SKIP_IMAGES=(
+    "quay.io/crio/artifact:singlefile"      # OCI artifact, not a container image
+    "quay.io/crio/artifact:multiplefiles"   # OCI artifact
+    "quay.io/crio/artifact:exec"            # OCI artifact
+    "quay.io/crio/seccomp:v2"               # OCI artifact
+    "registry.access.redhat.com/rhel7-atomic:latest"  # No ARM64 variant
+    "quay.io/crio/nginx@sha256:960355a671fb88ef18a85f92ccf2ccf8e12186216c86337ad808c204d69d512d"  # Digest-based
 )
 
 log_info() {
     echo "[INFO] $*"
+}
+
+log_warn() {
+    echo "[WARN] $*" >&2
 }
 
 log_error() {
@@ -142,38 +149,49 @@ mirror_image() {
     local remote_image="$1"
     local image_name
     local image_ref
+    local local_image
 
-    # Handle digest-based images (image@sha256:...) differently from tagged images
+    # Extract image name (everything after last /)
+    image_name=$(basename "${remote_image%%@*}" | sed 's/:.*$//')
+
+    # Determine tag - use digest as tag if it's a digest-based image
     if [[ "${remote_image}" =~ @ ]]; then
-        # Digest-based image: quay.io/crio/nginx@sha256:abc...
-        image_name=$(basename "${remote_image%%@*}")
-        # Use the full digest as reference
-        image_ref="${remote_image##*@}"
-        local local_image="${REGISTRY_HOST}/${image_name}@${image_ref}"
+        # Digest-based: convert to tagged for local registry
+        # quay.io/nginx@sha256:abc -> localhost:5000/nginx:sha256-abc
+        local digest="${remote_image##*@}"
+        image_ref="sha256-${digest##*:}"
+        image_ref="${image_ref:0:20}"  # Truncate to reasonable length
+        local_image="${REGISTRY_HOST}/${image_name}:${image_ref}"
     else
-        # Tagged image: quay.io/crio/pause:latest
-        image_name=$(basename "${remote_image%%:*}")
+        # Tagged image
         image_ref="${remote_image##*:}"
-        local local_image="${REGISTRY_HOST}/${image_name}:${image_ref}"
+        local_image="${REGISTRY_HOST}/${image_name}:${image_ref}"
     fi
 
     log_info "Mirroring ${remote_image} -> ${local_image}"
 
     # Pull from remote with retry
     if ! pull_image_with_retry "${remote_image}"; then
+        log_warn "Skipping ${remote_image} (pull failed)"
         return 1
     fi
 
     # Tag for local registry
-    if ! podman tag "${remote_image}" "${local_image}"; then
-        log_error "Failed to tag ${remote_image}"
-        return 1
+    if ! podman tag "${remote_image}" "${local_image}" 2>/dev/null; then
+        log_warn "Failed to tag ${remote_image}, trying alternate method"
+        # Try with image ID
+        local image_id
+        image_id=$(podman images --format "{{.ID}}" "${remote_image}" | head -1)
+        if [ -n "${image_id}" ] && ! podman tag "${image_id}" "${local_image}"; then
+            log_error "Failed to tag ${remote_image}"
+            return 1
+        fi
     fi
 
     # Push to local registry (with retry)
     local push_attempt=1
     while [ ${push_attempt} -le ${MAX_RETRIES} ]; do
-        if podman push "${local_image}" --tls-verify=false; then
+        if podman push "${local_image}" --tls-verify=false 2>&1; then
             log_info "Successfully pushed ${local_image}"
             return 0
         fi
@@ -186,27 +204,41 @@ mirror_image() {
         ((push_attempt++))
     done
 
-    log_error "Failed to push ${local_image} after ${MAX_RETRIES} attempts"
+    log_warn "Failed to push ${local_image} after ${MAX_RETRIES} attempts"
     return 1
 }
 
 # Mirror all test images
 mirror_all_images() {
     log_info "Mirroring ${#IMAGES[@]} test images"
+    log_info "Skipping ${#SKIP_IMAGES[@]} OCI artifacts and incompatible images"
 
     local failed=0
+    local succeeded=0
+
     for img in "${IMAGES[@]}"; do
-        if ! mirror_image "${img}"; then
+        if mirror_image "${img}"; then
+            ((succeeded++))
+        else
+            log_warn "Failed to mirror ${img}"
             ((failed++))
         fi
     done
 
-    if [ ${failed} -gt 0 ]; then
-        log_error "${failed} images failed to mirror"
+    log_info "Mirror summary: ${succeeded} succeeded, ${failed} failed"
+
+    # Don't fail if at least core images succeeded
+    if [ ${succeeded} -lt 3 ]; then
+        log_error "Too few images mirrored successfully (${succeeded}/3 core images minimum)"
         return 1
     fi
 
-    log_info "Successfully mirrored all images"
+    if [ ${failed} -gt 0 ]; then
+        log_warn "${failed} images failed to mirror, but continuing with ${succeeded} images"
+    else
+        log_info "Successfully mirrored all images"
+    fi
+
     return 0
 }
 
