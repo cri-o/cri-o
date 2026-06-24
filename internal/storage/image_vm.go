@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/common/libimage"
 	"go.podman.io/image/v5/docker"
@@ -45,11 +46,9 @@ type runtimePulledImageService struct {
 	// interface for runtimes that need it.
 	storageImageServer *imageService
 
-	// FIXME: we're currently storing the StorageImageId and ImageResult in memory.
-	// We should find a way to persist this information in the storage, so that
-	// it can survive a restart of CRI-O.
-
-	// list of known RegistryImageReference with associated ImageResult and StorageID
+	// list of known RegistryImageReference with associated ImageResult and StorageID.
+	// Populated on startup from the artifact store (see loadKnownImagesFromStore) and
+	// kept up to date by PullImage / DeleteImage / UntagImage.
 	knownImages map[RegistryImageReference]cachedImageRefs
 
 	// knownImagesLock protects concurrent access to knownImages
@@ -68,12 +67,16 @@ func GetRuntimePulledImageService(ctx context.Context, imageService *imageServic
 		return nil, fmt.Errorf("unable to create the ociartifact store err: %w", artifactErr)
 	}
 
-	return &runtimePulledImageService{
+	svc := &runtimePulledImageService{
 		ctx:                ctx,
 		store:              artifactStore,
 		storageImageServer: imageService,
 		knownImages:        make(map[RegistryImageReference]cachedImageRefs),
-	}, nil
+	}
+
+	svc.loadKnownImagesFromStore(ctx)
+
+	return svc, nil
 }
 
 // ListImages returns list of known images.
@@ -184,60 +187,113 @@ func (i *runtimePulledImageService) PullImage(ctx context.Context, imageName Reg
 
 	imageRef := references.RegistryImageReferenceFromRaw(canonicalRef)
 
-	// create the StorageImageID from the manifest digest
-	ID := newExactStorageImageID(artifactManifestDigest.Encoded())
-
-	// Get the OCIConfig
-	ociConfig, err := i.store.PullConfig(ctx, artifactManifestDigest.Encoded(), &datastore.PullOptions{})
+	entry, err := i.buildCachedImageRefs(ctx, *artifactManifestDigest, imageName, imageName.StringForOutOfProcessConsumptionOnly())
 	if err != nil {
-		return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: pull config err: %w", err)
+		return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: %w", err)
 	}
 
-	// Generate an ImageResult with the available information, so that it can be
-	// returned by ImageStatus when asked with the same reference.
-	// Note that this structure is incomplete, since we're not actually pulling
-	// the image.
-	var (
-		repoTags    []string
-		repoDigests = make([]string, 0, 1)
-	)
-
-	if tagged, ok := imageRef.Raw().(reference.NamedTagged); ok {
-		repoTags = append(repoTags, tagged.String())
-	}
-
-	repoDigests = append(repoDigests, artifactManifestDigest.String())
-
-	imageResult := &ImageResult{
-		ID: ID,
-		// reuse the imageName here: this is the name that the runtime
-		// will use to pull the image on its side. It is useless to give it any
-		// already resolved name, as it will need to do the resolution on its side.
-		SomeNameOfThisImage: &imageName,
-		RepoTags:            repoTags,
-		RepoDigests:         repoDigests,
-		Digest:              *artifactManifestDigest,
-		OCIConfig:           ociConfig,
-		// Following fields are not available at this stage, and will be left
-		// empty, or with default value
-		Size:         nil,
-		User:         "",
-		PreviousName: "",
-		Labels:       nil,
-		Annotations:  nil,
-		Pinned:       false,
-		MountPoint:   "",
-	}
-
-	// Store the generated ImageResult and StorageImageID in a cache of known images
 	i.knownImagesLock.Lock()
-	i.knownImages[imageRef] = cachedImageRefs{
-		imageResult: *imageResult,
-		imageName:   imageName.StringForOutOfProcessConsumptionOnly(),
-	}
+	i.knownImages[imageRef] = *entry
 	i.knownImagesLock.Unlock()
 
 	return imageRef, nil
+}
+
+// buildCachedImageRefs constructs a cachedImageRefs for an artifact by fetching
+// its OCI config from the artifact store and building an ImageResult.
+//
+// pullRef is used as SomeNameOfThisImage — for a freshly pulled image this is
+// the original pull reference; when restoring from disk it is the tagged
+// reference stored in the artifact (best approximation of the original name).
+// originalNameStr is stored separately for heuristic name matching.
+//
+// Note: the resulting ImageResult is intentionally incomplete because CRI-O
+// does not pull the image data itself for this runtime type.
+func (i *runtimePulledImageService) buildCachedImageRefs(
+	ctx context.Context,
+	artifactManifestDigest digest.Digest,
+	pullRef RegistryImageReference,
+	originalNameStr string,
+) (*cachedImageRefs, error) {
+	ociConfig, err := i.store.PullConfig(ctx, artifactManifestDigest.Encoded(), &datastore.PullOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("pull config: %w", err)
+	}
+
+	var repoTags []string
+	if tagged, ok := pullRef.Raw().(reference.NamedTagged); ok {
+		repoTags = append(repoTags, tagged.String())
+	}
+
+	id := newExactStorageImageID(artifactManifestDigest.Encoded())
+	ref := pullRef
+
+	return &cachedImageRefs{
+		imageResult: ImageResult{
+			ID:                  id,
+			SomeNameOfThisImage: &ref,
+			RepoTags:            repoTags,
+			RepoDigests:         []string{artifactManifestDigest.String()},
+			Digest:              artifactManifestDigest,
+			OCIConfig:           ociConfig,
+		},
+		imageName: originalNameStr,
+	}, nil
+}
+
+// loadKnownImagesFromStore populates knownImages from artifacts already present
+// on disk. Called once at startup to restore the cache after a process restart.
+// Failures for individual artifacts are logged and skipped so that a single
+// corrupted entry does not prevent the service from starting.
+func (i *runtimePulledImageService) loadKnownImagesFromStore(ctx context.Context) {
+	artifacts, err := i.store.List(ctx)
+	if err != nil {
+		log.Warnf(ctx, "Unable to restore image cache from store: %v", err)
+
+		return
+	}
+
+	restoredCount := 0
+
+	for _, artifact := range artifacts {
+		imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(artifact.CanonicalName())
+		if err != nil {
+			log.Warnf(ctx, "Skipping artifact %q: could not parse canonical reference: %v",
+				artifact.Digest(), err)
+
+			continue
+		}
+
+		pullRefStr := artifact.Reference()
+
+		pullRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(pullRefStr)
+		if err != nil {
+			// The tagged reference failed to parse (e.g. "unknown" placeholder);
+			// fall back to the canonical digest reference.
+			log.Warnf(ctx, "Artifact %q has unparsable pull reference %q, using canonical: %v",
+				artifact.Digest(), pullRefStr, err)
+
+			pullRef = imageRef
+			pullRefStr = imageRef.StringForOutOfProcessConsumptionOnly()
+		}
+
+		entry, err := i.buildCachedImageRefs(ctx, artifact.Digest(), pullRef, pullRefStr)
+		if err != nil {
+			log.Warnf(ctx, "Skipping artifact %q: could not build cache entry: %v",
+				artifact.Digest(), err)
+
+			continue
+		}
+
+		i.knownImagesLock.Lock()
+		i.knownImages[imageRef] = *entry
+		i.knownImagesLock.Unlock()
+
+		restoredCount++
+	}
+
+	log.Infof(ctx, "RuntimePulledImageService: restored %d/%d image(s) from artifact store into cache",
+		restoredCount, len(artifacts))
 }
 
 // DeleteImage deletes a storage image (impacting all its tags).
