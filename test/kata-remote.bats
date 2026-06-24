@@ -97,3 +97,69 @@ function teardown() {
 	# Verify pod is gone
 	run ! crictl inspectp "$pod_id"
 }
+
+@test "runtime_pull_image: image cache is restored after CRI-O restart" {
+	# Skip in non-kata environments where kata binaries aren't installed.
+	if [[ $RUNTIME_TYPE != vm ]]; then
+		skip "Not running with kata"
+	fi
+
+	# Verify the cloud API adaptor (peerpod backend) is running
+	output=$(sudo podman inspect --format '{{.State.Status}}' caa 2> /dev/null || true)
+	[[ "$output" == "running" ]]
+
+	setup_crio
+
+	cat > "$CRIO_CONFIG_DIR/50-kata.conf" <<- EOF
+		[crio.runtime.runtimes.kata-remote]
+		  runtime_path = "/opt/kata/bin/containerd-shim-kata-v2"
+		  runtime_root = "/run/vc"
+		  runtime_type = "vm"
+		  privileged_without_host_devices = true
+		  runtime_config_path = "/opt/kata/share/defaults/kata-containers/configuration-remote.toml"
+		  runtime_pull_image = true
+		  container_create_timeout = 600
+	EOF
+
+	local kata_remote_cfg="/opt/kata/share/defaults/kata-containers/configuration-remote.toml"
+	if [[ -f "$kata_remote_cfg" ]]; then
+		sudo sed -i 's/^create_container_timeout\s*=.*/create_container_timeout = 300/' "$kata_remote_cfg"
+	fi
+
+	start_crio_no_setup
+	wait_for_log "kata-remote"
+
+	local runtimeclass=kata-remote
+	local test_image="quay.io/crio/fedora-crio-ci:latest"
+
+	# Create a pod using the kata-remote runtime (which has runtime_pull_image=true).
+	pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime="$runtimeclass" "$TESTDATA"/sandbox_config.json)
+	[[ -n "$pod_id" ]]
+
+	# Create container with image pull
+	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	[[ -n "$ctr_id" ]]
+
+	# Start container and stop it
+	# This is a workaround for a kata-side problem with deleting a container
+	# that was not started.
+	# To be fixed on the kata side.
+	crictl start "$ctr_id"
+	crictl stop "$ctr_id"
+
+	# Remove the container but keep the pod so its run directory (which holds the
+	# artifact store) is preserved across the restart.
+	crictl rm "$ctr_id"
+
+	# Restart CRI-O. The pod state and artifact store on disk survive the restart,
+	# but the known images cache is gone.
+	restart_crio
+
+	# After restart, attempt to create a container WITHOUT --with-pull.
+	# The image information should be loaded from the artifact store, and the
+	# container creation should succeed.
+	crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json
+
+	# Verify via the CRI-O log that we actually restored the previously pulled image.
+	wait_for_log "runtimePulledImageService: restored 1"
+}
