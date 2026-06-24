@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
+	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
