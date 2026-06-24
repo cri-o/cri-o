@@ -104,11 +104,10 @@ func TestContainerStateToDiskRace(t *testing.T) {
 	wg.Wait()
 }
 
-// TestContainerStateStructCopyRace demonstrates that the struct
-// assignment *c.state = *state in UpdateContainerStatus
-// (runtime_oci.go:1232, 1252) races with concurrent readers.
-// The struct copy is not atomic — a reader can observe a
-// partially-written struct with fields from both old and new states.
+// TestContainerStateStructCopyRace verifies that State() returns an
+// independent snapshot, so the struct assignment *c.state = *state
+// in UpdateContainerStatus (runtime_oci.go:1232, 1252) does not
+// race with concurrent readers.
 //
 // Run with: go test -race -tags test -run TestContainerStateStructCopyRace ./internal/oci/
 func TestContainerStateStructCopyRace(t *testing.T) {
@@ -128,7 +127,8 @@ func TestContainerStateStructCopyRace(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	// Reader: ContainerStateToDisk encoding the state
+	// Reader: ContainerStateToDisk encoding the state.
+	// State() returns a copy, so encoding is safe.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -138,17 +138,16 @@ func TestContainerStateStructCopyRace(t *testing.T) {
 	}()
 
 	// Writer: UpdateContainerStatus doing *c.state = *newState
-	// (runtime_oci.go:1232)
+	// under opLock (runtime_oci.go:1232).
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 200; i++ {
-			newState := oci.ContainerState{}
+			newState := &oci.ContainerState{}
 			newState.Annotations = map[string]string{
 				fmt.Sprintf("key-%d", i): fmt.Sprintf("value-%d", i),
 			}
-			// This is what runtime_oci.go:1232 does: *c.state = *state
-			*ctr.StateNoLock() = newState
+			ctr.SetStateLocked(newState)
 		}
 	}()
 
