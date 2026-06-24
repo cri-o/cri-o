@@ -12,11 +12,11 @@ import (
 	"slices"
 	"sync"
 
-	json "github.com/goccy/go-json"
-	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/seccomp"
 	imagetypes "go.podman.io/image/v5/types"
+	json "github.com/json-iterator/go"
+	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -199,11 +199,11 @@ func (c *Config) LoadDefaultProfile() error {
 	c.profile = DefaultProfile()
 
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		profileBytes, err := json.Marshal(c.profile)
+		profileString, err := json.MarshalToString(c.profile)
 		if err != nil {
-			return fmt.Errorf("marshal default seccomp profile: %w", err)
+			return fmt.Errorf("marshal default seccomp profile to string: %w", err)
 		}
-		logrus.Tracef("Default seccomp profile content: %s", string(profileBytes))
+		logrus.Tracef("Default seccomp profile content: %s", profileString)
 	}
 
 	return nil
