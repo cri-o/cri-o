@@ -59,7 +59,7 @@ type runtimeVM struct {
 	pullImage  bool
 	ctx        context.Context
 	client     *ttrpc.Client
-	task       task.TaskService
+	task       task.TTRPCTaskService
 	handler    *config.RuntimeHandler
 
 	ctrs map[string]containerInfo
@@ -321,7 +321,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 
 	// Update the runtime structure
 	r.client = cl
-	r.task = task.NewTaskClient(cl)
+	r.task = task.NewTTRPCTaskClient(cl)
 
 	return nil
 }
@@ -841,7 +841,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 		options := ttrpc.WithOnClose(func() { conn.Close() })
 		cl := ttrpc.NewClient(conn, options)
 		r.client = cl
-		r.task = task.NewTaskClient(cl)
+		r.task = task.NewTTRPCTaskClient(cl)
 	}
 
 	response, err := r.task.State(r.ctx, &task.StateRequest{

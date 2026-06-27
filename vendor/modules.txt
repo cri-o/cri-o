@@ -92,6 +92,9 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v1.5.0
 ## explicit; go 1.24.6
 github.com/checkpoint-restore/checkpointctl/lib
+# github.com/checkpoint-restore/go-criu/v7 v7.2.0
+## explicit; go 1.20
+github.com/checkpoint-restore/go-criu/v7/stats
 # github.com/checkpoint-restore/go-criu/v8 v8.2.0
 ## explicit; go 1.24.0
 github.com/checkpoint-restore/go-criu/v8
@@ -158,8 +161,8 @@ github.com/containerd/containerd/runtime/v2/shim
 github.com/containerd/containerd/sys
 github.com/containerd/containerd/sys/reaper
 github.com/containerd/containerd/version
-# github.com/containerd/containerd/api v1.10.0
-## explicit; go 1.23.0
+# github.com/containerd/containerd/api v1.11.0
+## explicit; go 1.24.0
 github.com/containerd/containerd/api/runtime/task/v2
 github.com/containerd/containerd/api/services/ttrpc/events/v1
 github.com/containerd/containerd/api/types
@@ -232,8 +235,8 @@ github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.7.3
-## explicit; go 1.25
+# github.com/containers/conmon-rs v0.8.0
+## explicit; go 1.26.0
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
 # github.com/containers/kubensmnt v1.2.0
@@ -671,9 +674,9 @@ github.com/mattn/go-sqlite3
 # github.com/miekg/pkcs11 v1.1.1
 ## explicit; go 1.12
 github.com/miekg/pkcs11
-# github.com/mistifyio/go-zfs/v4 v4.0.0
+# github.com/mistifyio/go-zfs/v3 v3.1.0
 ## explicit; go 1.14
-github.com/mistifyio/go-zfs/v4
+github.com/mistifyio/go-zfs/v3
 # github.com/moby/docker-image-spec v1.3.1
 ## explicit; go 1.18
 github.com/moby/docker-image-spec/specs-go/v1
@@ -1054,8 +1057,8 @@ go.opentelemetry.io/proto/otlp/collector/trace/v1
 go.opentelemetry.io/proto/otlp/common/v1
 go.opentelemetry.io/proto/otlp/resource/v1
 go.opentelemetry.io/proto/otlp/trace/v1
-# go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39
-## explicit; go 1.24.6
+# go.podman.io/common v0.67.0
+## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
 go.podman.io/common/libimage
@@ -1068,6 +1071,7 @@ go.podman.io/common/pkg/apparmor
 go.podman.io/common/pkg/apparmor/internal/supported
 go.podman.io/common/pkg/capabilities
 go.podman.io/common/pkg/cgroups
+go.podman.io/common/pkg/cgroupv2
 go.podman.io/common/pkg/config
 go.podman.io/common/pkg/crutils
 go.podman.io/common/pkg/detach
@@ -1077,6 +1081,7 @@ go.podman.io/common/pkg/hooks
 go.podman.io/common/pkg/hooks/0.1.0
 go.podman.io/common/pkg/hooks/1.0.0
 go.podman.io/common/pkg/libartifact
+go.podman.io/common/pkg/libartifact/store
 go.podman.io/common/pkg/libartifact/types
 go.podman.io/common/pkg/manifests
 go.podman.io/common/pkg/resize
@@ -1090,7 +1095,7 @@ go.podman.io/common/pkg/timetype
 go.podman.io/common/pkg/timezone
 go.podman.io/common/pkg/umask
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.38.0
+# go.podman.io/image/v5 v5.39.1
 ## explicit; go 1.24.0
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -1157,7 +1162,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.61.1-0.20251212224252-b0f86df5a665
+# go.podman.io/storage v1.62.0
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers

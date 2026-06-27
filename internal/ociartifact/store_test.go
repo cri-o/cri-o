@@ -363,7 +363,6 @@ var _ = t.Describe("Store", func() {
 		makeLibArtifact := func(name string) *libartifact.Artifact {
 			return &libartifact.Artifact{
 				Name:     name,
-				Digest:   testDigest,
 				Manifest: &manifest.OCI1{},
 			}
 		}
@@ -461,12 +460,15 @@ var _ = t.Describe("Store", func() {
 
 		It("should pin artifact matching by canonical name", func() {
 			// Given
+			art := makeLibArtifact("docker.io/library/nginx:latest")
+			dgst, err := art.GetDigest()
+			Expect(err).NotTo(HaveOccurred())
 			store.SetPinnedImageRegexps([]*regexp.Regexp{
-				regexp.MustCompile(testDigest),
+				regexp.MustCompile(regexp.QuoteMeta(dgst.String())),
 			})
 			storeMock.EXPECT().
 				List(gomock.Any()).
-				Return(libartifact.ArtifactList{makeLibArtifact("docker.io/library/nginx:latest")}, nil)
+				Return(libartifact.ArtifactList{art}, nil)
 
 			// When
 			arts, err := store.List(context.Background())

@@ -80,7 +80,7 @@ type Init func(context.Context, string, Publisher, func()) (Shim, error)
 // Shim server interface
 // TODO(2.0): Remove unified shim interface
 type Shim interface {
-	shimapi.TaskService
+	shimapi.TTRPCTaskService
 	Cleanup(ctx context.Context) (*shimapi.DeleteResponse, error)
 	StartShim(ctx context.Context, opts StartOpts) (string, error)
 }
@@ -125,11 +125,11 @@ type ttrpcServerOptioner interface {
 }
 
 type taskService struct {
-	shimapi.TaskService
+	shimapi.TTRPCTaskService
 }
 
 func (t taskService) RegisterTTRPC(server *ttrpc.Server) error {
-	shimapi.RegisterTaskService(server, t.TaskService)
+	shimapi.RegisterTTRPCTaskService(server, t.TTRPCTaskService)
 	return nil
 }
 
