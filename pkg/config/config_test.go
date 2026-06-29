@@ -248,6 +248,53 @@ var _ = t.Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("should succeed with empty additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should succeed with valid absolute paths in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/mnt/nfs/store1", "/opt/artifacts"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should fail with relative path in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"./relative/path"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("additional_artifact_stores entry must be absolute"))
+			Expect(err.Error()).To(ContainSubstring("./relative/path"))
+		})
+
+		It("should fail with mix of absolute and relative paths in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/valid/store", "relative/path"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("relative/path"))
+		})
+
 		It("should succeed during runtime", func() {
 			// Given
 			sut = runtimeValidConfig()

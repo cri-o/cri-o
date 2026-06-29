@@ -20,3 +20,18 @@ func (s *Store) SetFakeImpl(impl Impl) {
 type FakeLibartifactStore struct {
 	*ociartifactmock.MockLibartifactStore
 }
+
+type FakeAdditionalStore struct {
+	Path  string
+	Store LibartifactStore
+}
+
+func (s *Store) SetFakeAdditionalStores(stores ...FakeAdditionalStore) {
+	s.additionalStores = nil
+	for _, fas := range stores {
+		s.additionalStores = append(s.additionalStores, additionalStore{
+			path:  fas.Path,
+			store: fas.Store,
+		})
+	}
+}

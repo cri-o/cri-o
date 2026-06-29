@@ -129,12 +129,17 @@ func (s *Store) Pull(
 		artRef, err := libart.NewArtifactStorageReference(strRef)
 		if err == nil {
 			for _, add := range s.additionalStores {
-				if art, err := add.store.Inspect(ctx, artRef); err == nil {
+				art, inspErr := add.store.Inspect(ctx, artRef)
+				if inspErr == nil {
 					log.Infof(ctx, "Artifact %s already exists in additional store %s, skipping pull", strRef, add.path)
 					// Force-pinned: additional stores are read-only and not subject to GC.
 					dgst := s.newArtifact(art, add.path, true).Digest()
 
 					return &dgst, nil
+				}
+
+				if !errors.Is(inspErr, ErrNotFound) {
+					log.Warnf(ctx, "Failed to inspect artifact in additional store %q, pulling into main store: %v", add.path, inspErr)
 				}
 			}
 		}

@@ -127,6 +127,51 @@ EOF
 	grep -q "already exists in additional store" "$CRIO_LOG"
 }
 
+@test "should support multiple additional stores in config" {
+	ADDITIONAL_STORE1="$TESTDIR/additional-store1"
+	ADDITIONAL_STORE2="$TESTDIR/additional-store2"
+	mkdir -p "$ADDITIONAL_STORE1/artifacts" "$ADDITIONAL_STORE2/artifacts"
+
+	cat << EOF > "$CRIO_CONFIG_DIR/99-artifact.conf"
+[crio.runtime]
+additional_artifact_stores = [
+    "$ADDITIONAL_STORE1",
+    "$ADDITIONAL_STORE2"
+]
+EOF
+
+	start_crio
+
+	run -0 "${CRIO_BINARY_PATH}" status --socket="${CRIO_SOCKET}" config
+	[[ "$output" == *"$ADDITIONAL_STORE1"* ]]
+	[[ "$output" == *"$ADDITIONAL_STORE2"* ]]
+}
+
+@test "should deduplicate when same artifact exists in additional and main store" {
+	ADDITIONAL_STORE="$TESTDIR/additional-store"
+	mkdir -p "$ADDITIONAL_STORE"
+
+	cat << EOF > "$CRIO_CONFIG_DIR/99-artifact.conf"
+[crio.runtime]
+additional_artifact_stores = [
+    "$ADDITIONAL_STORE"
+]
+EOF
+
+	start_crio
+
+	# Pull artifact into main store
+	crictl pull "$ARTIFACT_IMAGE"
+
+	# Copy to additional store (artifact now exists in both)
+	local main_store="$TESTDIR/crio/artifacts"
+	cp -a "$main_store" "$ADDITIONAL_STORE/"
+
+	# Listing should show the artifact exactly once
+	count=$(crictl images 2> /dev/null | grep -cE "$ARTIFACT_REPO.*singlefile" || true)
+	[[ "$count" -eq 1 ]]
+}
+
 @test "should mount artifact from additional store" {
 	ADDITIONAL_STORE="$TESTDIR/additional-store"
 	mkdir -p "$ADDITIONAL_STORE"
