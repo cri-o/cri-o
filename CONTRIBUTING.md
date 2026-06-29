@@ -12,6 +12,7 @@ that we follow.
   - [Dependency management](#dependency-management)
   - [Sign your PRs](#sign-your-prs)
 - [Communications](#communications)
+
 <!-- /toc -->
 
 ## Reporting Issues

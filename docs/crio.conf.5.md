@@ -237,7 +237,7 @@ List of devices on the host that a user can specify with the "io.kubernetes.cri-
 **additional_devices**=[]
 List of additional devices. Specified as "<device-on-host>:<device-on-container>:<permissions>", for example: "--additional-devices=/dev/sdc:/dev/xvdc:rwm". If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
 
-**hooks_dir**=["*path*", ...]
+**hooks_dir**=["_path_", ...]
 Each `*.json` file in the path configures a hook for CRI-O containers. For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`. CRI-O currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
 
 Paths listed later in the array have higher precedence (`oci-hooks(5)` discusses directory precedence).
