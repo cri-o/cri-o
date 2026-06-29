@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 29 Jun 2026 17:12:44 UTC for commit [be815a6][0]._
+_Generated on Mon, 29 Jun 2026 21:13:37 UTC for commit [ec15c52][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/be815a60b3e1854a0ccd110e977c87cfd89dbf0e
+[0]: https://github.com/cri-o/cri-o/commit/ec15c528e4c25dfbf6e52498c8bda3187b62392b
 
 ## Outdated Dependencies
 
@@ -17,7 +17,7 @@ _Generated on Mon, 29 Jun 2026 17:12:44 UTC for commit [be815a6][0]._
 | github.com/cyphar/filepath-securejoin                                       | v0.6.1                                | v0.7.0                             | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                | v5.3.0                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                               | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260629145443-b5c61229c016 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260629183715-9686d62cb4dc | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                | v0.4.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.3                               | v2.32.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.40.0                               | v1.42.1                            | true   | true             |
@@ -239,21 +239,21 @@ _Generated on Mon, 29 Jun 2026 17:12:44 UTC for commit [be815a6][0]._
 | github.com/avast/retry-go/v4                                                | v4.7.0                                 |                                    | false  | true             |
 | github.com/aws/aws-sdk-go                                                   | v1.55.7                                | v1.55.8                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                | v1.41.1                                | v1.42.0                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                         | v1.32.7                                | v1.32.25                           | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                    | v1.19.7                                | v1.19.24                           | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                         | v1.32.7                                | v1.32.26                           | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                    | v1.19.7                                | v1.19.25                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                               | v1.18.17                               | v1.18.29                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                         | v1.4.17                                | v1.4.29                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                          | v2.7.17                                | v2.7.29                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                   | v1.8.4                                 | v1.8.6                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ecr                                    | v1.45.1                                | v1.58.4                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ecrpublic                              | v1.33.2                                | v1.39.6                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ecr                                    | v1.45.1                                | v1.58.5                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ecrpublic                              | v1.33.2                                | v1.39.7                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding               | v1.13.4                                | v1.13.12                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                 | v1.13.17                               | v1.13.29                           | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/kms                                    | v1.49.1                                | v1.53.4                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/signin                                 | v1.0.5                                 | v1.2.0                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sso                                    | v1.30.9                                | v1.31.3                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ssooidc                                | v1.35.13                               | v1.36.6                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sts                                    | v1.41.6                                | v1.43.3                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/kms                                    | v1.49.1                                | v1.53.5                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/signin                                 | v1.0.5                                 | v1.2.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sso                                    | v1.30.9                                | v1.31.4                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ssooidc                                | v1.35.13                               | v1.36.7                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sts                                    | v1.41.6                                | v1.43.4                            | false  | true             |
 | github.com/aws/smithy-go                                                    | v1.24.0                                | v1.27.3                            | false  | true             |
 | github.com/awslabs/amazon-ecr-credential-helper/ecr-login                   | v0.10.1                                | v0.12.0                            | false  | true             |
 | github.com/beorn7/perks                                                     | v1.0.1                                 |                                    | false  | true             |
@@ -379,25 +379,25 @@ _Generated on Mon, 29 Jun 2026 17:12:44 UTC for commit [be815a6][0]._
 | github.com/go-logr/zapr                                                     | v1.3.0                                 |                                    | false  | true             |
 | github.com/go-openapi/analysis                                              | v0.24.3                                | v0.25.3                            | false  | true             |
 | github.com/go-openapi/errors                                                | v0.22.7                                | v0.22.8                            | false  | true             |
-| github.com/go-openapi/jsonpointer                                           | v0.22.5                                | v0.23.2                            | false  | true             |
+| github.com/go-openapi/jsonpointer                                           | v0.22.5                                | v0.24.0                            | false  | true             |
 | github.com/go-openapi/jsonreference                                         | v0.21.5                                | v0.21.6                            | false  | true             |
 | github.com/go-openapi/loads                                                 | v0.23.3                                | v0.24.0                            | false  | true             |
 | github.com/go-openapi/runtime                                               | v0.29.3                                | v0.32.4                            | false  | true             |
 | github.com/go-openapi/spec                                                  | v0.22.4                                | v0.22.6                            | false  | true             |
 | github.com/go-openapi/strfmt                                                | v0.26.0                                | v0.26.4                            | false  | true             |
-| github.com/go-openapi/swag                                                  | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/cmdutils                                         | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/conv                                             | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/fileutils                                        | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/jsonname                                         | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/jsonutils                                        | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/jsonutils/fixtures_test                          | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/loading                                          | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/mangling                                         | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/netutils                                         | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/stringutils                                      | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/typeutils                                        | v0.25.5                                | v0.26.1                            | false  | true             |
-| github.com/go-openapi/swag/yamlutils                                        | v0.25.5                                | v0.26.1                            | false  | true             |
+| github.com/go-openapi/swag                                                  | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/cmdutils                                         | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/conv                                             | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/fileutils                                        | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/jsonname                                         | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/jsonutils                                        | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/jsonutils/fixtures_test                          | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/loading                                          | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/mangling                                         | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/netutils                                         | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/stringutils                                      | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/typeutils                                        | v0.25.5                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/swag/yamlutils                                        | v0.25.5                                | v0.27.0                            | false  | true             |
 | github.com/go-openapi/testify/enable/yaml/v2                                | v2.4.1                                 | v2.6.0                             | false  | true             |
 | github.com/go-openapi/testify/v2                                            | v2.4.1                                 | v2.6.0                             | false  | true             |
 | github.com/go-openapi/validate                                              | v0.25.2                                | v0.26.0                            | false  | true             |
@@ -472,7 +472,7 @@ _Generated on Mon, 29 Jun 2026 17:12:44 UTC for commit [be815a6][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260629145443-b5c61229c016 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260629183715-9686d62cb4dc | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
