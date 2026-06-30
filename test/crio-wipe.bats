@@ -3,6 +3,10 @@
 # this test suite tests crio wipe running with combinations of cri-o and
 # podman.
 
+# These tests share the global /run/crio/crio-wipe-done marker, so they must
+# not run concurrently with each other or other tests.
+# bats file_tags=crio:serial
+
 load helpers
 PODMAN_BINARY=${PODMAN_BINARY:-$(command -v podman || true)}
 
