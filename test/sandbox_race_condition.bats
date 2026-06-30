@@ -1,8 +1,6 @@
 #!/usr/bin/env bats
 # vim:set ft=bash :
 
-# Test for race condition between RunPodSandbox and RemovePodSandbox
-
 load helpers
 
 function setup() {
@@ -14,7 +12,6 @@ function setup() {
 	cp "$NRI_DELAY_PLUGIN_BINARY" "$NRI_PLUGIN_DIR/90-delay-plugin"
 	chmod +x "$NRI_PLUGIN_DIR/90-delay-plugin"
 
-	# Configure NRI with extended timeout and plugin directory
 	cat << EOF > "$CRIO_CONFIG_DIR/20-nri-timeout.conf"
 [crio.nri]
 enable_nri = true
@@ -29,7 +26,6 @@ function teardown() {
 }
 
 function check_nri_activity() {
-	# Verify NRI plugin was invoked by reading its timing log
 	local log_file="$1"
 	local start_time end_time duration
 
@@ -54,7 +50,6 @@ function check_delay_plugin() {
 	start_crio
 	sleep 2
 
-	# Verify plugin was registered
 	check_delay_plugin || {
 		echo "# ERROR: NRI delay plugin not found in logs"
 		[ -f "$CRIO_LOG" ] && grep -i "plugin\|nri" "$CRIO_LOG" | tail -10
@@ -65,7 +60,6 @@ function check_delay_plugin() {
 	nri_log="$TESTDIR/nri-test1.log"
 	cp "$TESTDATA"/sandbox_config.json "$pod_config"
 
-	# Add annotation to write plugin timing to log file
 	jq --arg logfile "$nri_log" '.annotations += {"nri-delay-plugin/log-file": $logfile}' "$pod_config" > "$pod_config.tmp"
 	mv "$pod_config.tmp" "$pod_config"
 
@@ -81,22 +75,21 @@ function check_delay_plugin() {
 	crictl rmp "$pod_id"
 }
 
-@test "pod remove during sandbox creation with NRI delay" {
+@test "crictl rmp during sandbox creation returns NotFound via PodSandboxStatus" {
 	start_crio
 
-	pod_config="$TESTDIR/sandbox_config.json"
-	nri_log="$TESTDIR/nri-test2.log"
-	cp "$TESTDATA"/sandbox_config.json "$pod_config"
+	pod_config="$TESTDIR/sandbox_config_crictl.json"
+	nri_log="$TESTDIR/nri-test-crictl.log"
 
-	# Add annotations for delay and log file
+	cp "$TESTDATA"/sandbox_config.json "$pod_config"
+	jq '.metadata.name = "test-pod-crictl" | .metadata.uid = "test-uid-crictl"' "$pod_config" > "$pod_config.tmp"
+	mv "$pod_config.tmp" "$pod_config"
 	jq --arg logfile "$nri_log" '.annotations += {"nri-delay-plugin/delay": "10s", "nri-delay-plugin/log-file": $logfile}' "$pod_config" > "$pod_config.tmp"
 	mv "$pod_config.tmp" "$pod_config"
 
-	# Start pod creation in background - NRI plugin will delay based on annotation
 	crictl runp "$pod_config" &
 	RUNP_PID=$!
 
-	# Wait for NRI plugin to write pod ID to log file
 	local retry=0
 	pod_id=""
 	while [ $retry -lt 20 ]; do
@@ -109,40 +102,93 @@ function check_delay_plugin() {
 	done
 
 	if [ -z "$pod_id" ]; then
-		echo "# ERROR: Pod ID not found in NRI plugin log"
-		[ -f "$nri_log" ] && cat "$nri_log"
+		echo "# ERROR: Pod ID not found in NRI log file: $nri_log"
+		[ -f "$nri_log" ] && echo "# NRI log contents:" && cat "$nri_log" || echo "# NRI log does not exist"
+		wait $RUNP_PID || true
 		return 1
 	fi
 
-	echo "# Found pod ID from NRI plugin: $pod_id"
+	echo "# Found pod ID: $pod_id"
 
-	# RemovePodSandbox called while RunPodSandbox is in NRI hook (before SetCreated())
-	# Expected: gRPC NotFound error (pod exists in storage but not yet marked as created)
 	output=$(crictl rmp "$pod_id" 2>&1 || true)
+	if [[ "$output" != *"code = NotFound"* ]] || [[ "$output" != *"sandbox not created"* ]]; then
+		echo "# ERROR: crictl rmp should return NotFound via PodSandboxStatus, got: $output"
+		wait $RUNP_PID || true
+		return 1
+	fi
+	echo "# crictl rmp correctly returned NotFound via PodSandboxStatus"
 
-	if [[ "$output" != *"code = NotFound"* ]]; then
-		echo "# ERROR: Expected gRPC NotFound error during race condition"
-		echo "# Got: $output"
+	wait $RUNP_PID || {
+		echo "# ERROR: RunPodSandbox failed"
+		return 1
+	}
+
+	crictl pods -q | grep -q "$pod_id" || {
+		echo "# ERROR: Pod missing"
+		return 1
+	}
+
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+
+	check_nri_activity "$nri_log"
+}
+
+@test "direct gRPC RemovePodSandbox during sandbox creation returns NotFound" {
+	start_crio
+
+	pod_config="$TESTDIR/sandbox_config_grpc.json"
+	nri_log="$TESTDIR/nri-test-grpc.log"
+
+	cp "$TESTDATA"/sandbox_config.json "$pod_config"
+	jq '.metadata.name = "test-pod-grpc" | .metadata.uid = "test-uid-grpc"' "$pod_config" > "$pod_config.tmp"
+	mv "$pod_config.tmp" "$pod_config"
+	jq --arg logfile "$nri_log" '.annotations += {"nri-delay-plugin/delay": "10s", "nri-delay-plugin/log-file": $logfile}' "$pod_config" > "$pod_config.tmp"
+	mv "$pod_config.tmp" "$pod_config"
+
+	crictl runp "$pod_config" &
+	RUNP_PID=$!
+
+	local retry=0
+	pod_id=""
+	while [ $retry -lt 20 ]; do
+		if [ -f "$nri_log" ]; then
+			pod_id=$(grep "^pod_id=" "$nri_log" | tail -1 | cut -d= -f2 | tr -d '[:space:]')
+			[ -n "$pod_id" ] && break
+		fi
+		sleep 0.5
+		retry=$((retry + 1))
+	done
+
+	if [ -z "$pod_id" ]; then
+		echo "# ERROR: Pod ID not found in NRI log file: $nri_log"
+		[ -f "$nri_log" ] && echo "# NRI log contents:" && cat "$nri_log" || echo "# NRI log does not exist"
+		wait $RUNP_PID || true
 		return 1
 	fi
 
-	echo "# Race condition correctly triggered: NotFound error received"
+	echo "# Found pod ID: $pod_id"
 
-	# Wait for RunPodSandbox to complete
-	wait $RUNP_PID || true
-
-	# Test idempotent removal
-	if crictl pods -q | grep -q "$pod_id"; then
-		crictl stopp "$pod_id"
-		crictl rmp "$pod_id"
-		crictl rmp "$pod_id" || true # Second remove should be idempotent
+	output=$("$CRIOGRPCCALLER_BINARY" remove-pod-sandbox "$CRIO_SOCKET" "$pod_id" 2>&1 || true)
+	if [[ "$output" != *"NotFound"* ]] || [[ "$output" != *"not yet created"* ]]; then
+		echo "# ERROR: Direct RemovePodSandbox should return NotFound, got: $output"
+		wait $RUNP_PID || true
+		return 1
 	fi
+	echo "# Direct RemovePodSandbox correctly returned NotFound"
 
-	# Verify we can create a new pod after the race condition
-	new_pod_id=$(crictl runp "$pod_config")
-	crictl stopp "$new_pod_id"
-	crictl rmp "$new_pod_id"
+	wait $RUNP_PID || {
+		echo "# ERROR: RunPodSandbox failed"
+		return 1
+	}
 
-	# Verify NRI plugin was actually invoked
+	crictl pods -q | grep -q "$pod_id" || {
+		echo "# ERROR: Pod missing"
+		return 1
+	}
+
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+
 	check_nri_activity "$nri_log"
 }

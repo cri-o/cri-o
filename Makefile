@@ -188,7 +188,7 @@ test-binaries: \
 	test/copyimg/copyimg \
 	test/checkseccomp/checkseccomp \
 	test/checkcriu/checkcriu \
-	test/updateunified/updateunified \
+	test/criogrpccaller/criogrpccaller \
 	test/nri/nri.test \
 	test/nri-delay-plugin/nri-delay-plugin
 
@@ -204,8 +204,8 @@ test/checkseccomp/checkseccomp: $(GO_FILES) ## Build the checkseccomp test binar
 test/checkcriu/checkcriu: $(GO_FILES) ## Build the checkcriu test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkcriu
 
-test/updateunified/updateunified: $(GO_FILES) ## Build the updateunified test binary.
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/updateunified
+test/criogrpccaller/criogrpccaller: $(GO_FILES) ## Build the criogrpccaller test binary.
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/criogrpccaller
 
 test/nri/nri.test: $(wildcard test/nri/*.go) ## Build the NRI test binary.
 	$(GO_TEST) $(GCFLAGS) $(GO_LDFLAGS) --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
@@ -427,7 +427,7 @@ clean: ## Clean the repository.
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -f test/checkcriu/checkcriu
-	rm -f test/updateunified/updateunified
+	rm -f test/criogrpccaller/criogrpccaller
 	rm -f test/nri/nri.test
 	rm -f test/nri-delay-plugin/nri-delay-plugin
 	rm -rf ${BUILD_PATH}

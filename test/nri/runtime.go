@@ -37,11 +37,11 @@ type imageRefs struct {
 	busyboxName string
 }
 
-var (
-	// requestTimeout can be overridden for tests that need longer timeouts
-	// (e.g., tests with NRI plugin delays).
+const (
 	requestTimeout = 10 * time.Second
+)
 
+var (
 	crioSocket = flag.String("crio-socket", "", "cri-o socket to use")
 	nriSocket  = flag.String("nri-socket", "", "NRI socket to use")
 	cgroupMgr  = flag.String("cgroup-manager", "systemd", "cgroup manager used by cri-o")
