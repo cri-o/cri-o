@@ -27,11 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-
-	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/release-utils/env"
 	"sigs.k8s.io/release-utils/helpers"
@@ -220,8 +218,13 @@ func NewWithToken(token string) (*GitHub, error) {
 
 	logrus.Debugf("Using %s GitHub client", state)
 
+	ghclient, err := github.NewClient(github.WithHTTPClient(client))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github client: %w", err)
+	}
+
 	return &GitHub{
-		client:  &githubClient{github.NewClient(client)},
+		client:  &githubClient{ghclient},
 		options: DefaultOptions(),
 	}, nil
 }
@@ -251,8 +254,13 @@ func NewWithTokenWithClient(token string, httpClient *http.Client) (*GitHub, err
 
 	logrus.Debugf("Using %s GitHub client", state)
 
+	ghclient, err := github.NewClient(github.WithHTTPClient(client))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github client: %w", err)
+	}
+
 	return &GitHub{
-		client:  &githubClient{github.NewClient(client)},
+		client:  &githubClient{ghclient},
 		options: DefaultOptions(),
 	}, nil
 }
@@ -277,7 +285,10 @@ func NewEnterpriseWithToken(baseURL, uploadURL, token string) (*GitHub, error) {
 
 	logrus.Debugf("Using %s Enterprise GitHub client", state)
 
-	ghclient, err := github.NewClient(client).WithEnterpriseURLs(baseURL, uploadURL)
+	ghclient, err := github.NewClient(
+		github.WithHTTPClient(client),
+		github.WithEnterpriseURLs(baseURL, uploadURL),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to new github client: %w", err)
 	}
@@ -437,7 +448,7 @@ func (g *githubClient) CreatePullRequest(
 		Head:                &headBranchName,
 		Base:                &baseBranchName,
 		Body:                &body,
-		MaintainerCanModify: github.Ptr(true),
+		MaintainerCanModify: new(true),
 		Draft:               &draft,
 	}
 
@@ -1139,9 +1150,9 @@ func (u *UpdateReleasePageOptions) toRepositoryRelease() *github.RepositoryRelea
 
 	if u.Latest != nil {
 		if *u.Latest {
-			request.MakeLatest = ptr.To("true")
+			request.MakeLatest = new("true")
 		} else {
-			request.MakeLatest = ptr.To("false")
+			request.MakeLatest = new("false")
 		}
 	}
 
@@ -1354,8 +1365,8 @@ func (g *GitHub) ListComments(
 	since *time.Time,
 ) ([]*github.IssueComment, error) {
 	options := &github.IssueListCommentsOptions{
-		Sort:        github.Ptr(string(sort)),
-		Direction:   github.Ptr(string(direction)),
+		Sort:        new(string(sort)),
+		Direction:   new(string(direction)),
 		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
 	}
 
