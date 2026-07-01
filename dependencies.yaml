@@ -73,10 +73,12 @@ dependencies:
         match: build-libpathrs.sh
 
   - name: runc
-    version: main
+    version: v1.4.3
     refPaths:
       - path: scripts/versions
         match: runc
+      - path: contrib/test/ci/vars.yml
+        match: runc_git_version
 
   - name: bats
     version: v1.12.0
