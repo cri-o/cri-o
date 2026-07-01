@@ -479,7 +479,7 @@ func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd, env []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -487,7 +487,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		return nil
 	}
 
-	processFile, err := prepareProcessExec(c, cmd, tty)
+	processFile, err := prepareProcessExec(c, cmd, env, tty)
 	if err != nil {
 		return err
 	}
@@ -590,7 +590,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
+func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command, env []string, timeout int64) (*types.ExecSyncResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -669,7 +669,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		args = append(args, "-s")
 	}
 
-	processFile, err := prepareProcessExec(c, command, c.terminal)
+	processFile, err := prepareProcessExec(c, command, env, c.terminal)
 	if err != nil {
 		return nil, &ExecSyncError{
 			ExitCode: -1,
@@ -1548,7 +1548,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible for removing the returned file, if prepareProcessExec succeeds.
-func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile string, retErr error) {
+func prepareProcessExec(c *Container, cmd, env []string, tty bool) (processFile string, retErr error) {
 	f, err := os.CreateTemp("", "exec-process-")
 	if err != nil {
 		return "", err
@@ -1567,6 +1567,8 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	// process spec
 	pspec := *c.Spec().Process
 	pspec.Args = cmd
+
+	pspec.Env = mergeProcessEnvOverlay(c.Spec().Process.Env, env)
 	// We need to default this to false else it will inherit terminal as true
 	// from the container.
 	pspec.Terminal = false
@@ -1847,7 +1849,7 @@ func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
 	return nil
 }
 
-func (r *runtimeOCI) ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error) {
+func (r *runtimeOCI) ServeExecContainer(_ context.Context, _ *Container, _, _ []string, _, _, _, _ bool) (string, error) {
 	return "", nil
 }
 
