@@ -254,6 +254,28 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	return nil
 }
 
+// ParseShimAddress extracts the shim's ttrpc address from its "start" stdout
+// output. It mirrors containerd's own parseStartResponse:
+// https://github.com/containerd/containerd/blob/v1.7.31/runtime/v2/shim.go#L211
+//
+// Modern shims (the containerd v2 shim API, including gVisor's
+// containerd-shim-runsc-v1) emit a JSON BootstrapParams object; legacy shims
+// emit just the address string. If the output does not unmarshal into a
+// versioned (>= 2) BootstrapParams object, it is treated as a raw address.
+func ParseShimAddress(out []byte) (string, error) {
+	var params client.BootstrapParams
+	if err := json.Unmarshal(out, &params); err != nil || params.Version < 2 {
+		// Legacy shim: the raw output is the ttrpc address.
+		return strings.TrimSpace(string(out)), nil
+	}
+
+	if params.Version > 2 {
+		return "", fmt.Errorf("unsupported shim version (%d): %w", params.Version, errdefs.ErrNotImplemented)
+	}
+
+	return params.Address, nil
+}
+
 func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error {
 	log.Debugf(ctx, "RuntimeVM.startRuntimeDaemon() start")
 	defer log.Debugf(ctx, "RuntimeVM.startRuntimeDaemon() end")
@@ -301,14 +323,22 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 		}
 	}()
 
-	// Start the server
-	out, err := cmd.CombinedOutput()
+	// Capture stderr separately so that anything the shim writes
+	// there cannot corrupt the BootstrapParams JSON (or raw address)
+	// it emits on stdout, which we can parse below.
+	var stderr bytes.Buffer
+
+	cmd.Stderr = &stderr
+
+	out, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("%s: %w", string(out), err)
+		return fmt.Errorf("%s: %w", stderr.String(), err)
 	}
 
-	// Retrieve the address from the output
-	address := strings.TrimSpace(string(out))
+	address, err := ParseShimAddress(out)
+	if err != nil {
+		return fmt.Errorf("parsing shim address: %w", err)
+	}
 
 	// Now the RPC server is running, let's connect to it
 	conn, err := client.Connect(address, client.AnonDialer)

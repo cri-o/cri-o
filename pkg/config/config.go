@@ -70,7 +70,7 @@ const (
 	RuntimeTypePod                = "pod"
 	defaultCtrStopTimeout         = 30 // seconds
 	defaultNamespacesDir          = "/var/run"
-	RuntimeTypeVMBinaryPattern    = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
+	RuntimeTypeVMBinaryPattern    = "^containerd-shim-[a-zA-Z0-9\\-\\+]+$"
 	tasksetBinary                 = "taskset"
 	MonitorExecCgroupDefault      = ""
 	MonitorExecCgroupContainer    = "container"

@@ -357,7 +357,11 @@ Path to the OCI compatible runtime used for this runtime handler.
 Root directory used to store runtime data
 
 **runtime_type**="oci"
-Type of the runtime used for this runtime handler. "oci", "vm"
+Type of the runtime used for this runtime handler. Valid values are:
+
+- `"oci"` (default): Standard OCI runtime (e.g. runc, crun). The `runtime_path` should point to the OCI runtime binary.
+- `"vm"`: VM-isolation shim using the containerd shimv2/ttrpc protocol. The `runtime_path` must be a `containerd-shim-*` binary. This runtime type is exercised in CI with [Kata Containers](https://github.com/kata-containers/kata-containers) (`containerd-shim-kata-v2`). Other shimv2 shims implement the same protocol and may work — for example [gVisor](https://github.com/google/gvisor)'s `containerd-shim-runsc-v1` — but are not currently covered by CI.
+- `"pod"`: Pod-level runtime using [conmon-rs](https://github.com/containers/conmon-rs) instead of conmon. conmon-rs operates at pod granularity.
 
 **inherit_default_runtime**=false
 Override the runtime path, runtime config path, runtime root and runtime type from the default runtime on load.
