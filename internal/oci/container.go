@@ -94,6 +94,11 @@ type Container struct {
 	// When set, the exec process will spawn on this cgroup.
 	// If this is used, InfraCtrCPUSet will be ignored for the exec operation.
 	execCgroupPath string
+	// eventMu serializes CRI event emission so that handleExit cannot
+	// emit CONTAINER_STOPPED_EVENT before CONTAINER_STARTED_EVENT.
+	// Held by StartContainer across the runtime start + STARTED event,
+	// and by handleExit around the STOPPED event.
+	eventMu sync.Mutex
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -211,6 +216,7 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 	state := &ContainerState{}
 	state.Created = created
 	state.Started = created
+
 	c := &Container{
 		criContainer: &types.Container{
 			Id:           id,
@@ -729,6 +735,18 @@ func (c *Container) SetAsDoneStopping() {
 	c.stopWatchers = make([]chan struct{}, 0)
 	close(c.stopTimeoutChan)
 	c.stopLock.Unlock()
+}
+
+// LockEventOrder acquires the event-ordering mutex.
+// It is held by StartContainer across the runtime start + STARTED event
+// emission, ensuring handleExit cannot emit STOPPED before STARTED.
+func (c *Container) LockEventOrder() {
+	c.eventMu.Lock()
+}
+
+// UnlockEventOrder releases the event-ordering mutex.
+func (c *Container) UnlockEventOrder() {
+	c.eventMu.Unlock()
 }
 
 func (c *Container) AddManagedPIDNamespace(ns nsmgr.Namespace) {

@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -63,7 +64,13 @@ var _ = t.Describe("ContainerEvents", func() {
 				client2.EXPECT().Send(&events[i]).Return(nil)
 			}
 
+			var wg sync.WaitGroup
+			wg.Add(2)
+
 			recv := func(ces types.RuntimeService_GetContainerEventsServer) {
+				defer GinkgoRecover()
+				defer wg.Done()
+
 				err := sut.GetContainerEvents(nil, ces)
 				Expect(err).ToNot(HaveOccurred())
 			}
@@ -79,6 +86,8 @@ var _ = t.Describe("ContainerEvents", func() {
 			for _, event := range events {
 				sut.ContainerEventsChan <- event
 			}
+
+			wg.Wait()
 		})
 	})
 })

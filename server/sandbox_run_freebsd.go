@@ -539,6 +539,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_CREATED_EVENT)
+	container.LockEventOrder()
+	defer container.UnlockEventOrder()
 	if err := s.ContainerServer.Runtime().StartContainer(ctx, container); err != nil {
 		return nil, err
 	}
