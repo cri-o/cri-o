@@ -15,7 +15,7 @@ import (
 	"time"
 
 	encconfig "github.com/containers/ocicrypt/config"
-	json "github.com/goccy/go-json"
+	json "github.com/json-iterator/go"
 	"github.com/moby/sys/mountinfo"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -707,11 +707,14 @@ func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOu
 		outputWritten <- struct{}{}
 	}()
 
-	encoder := json.NewEncoder(dest)
+	stream := json.NewStream(json.ConfigDefault, dest, 4096)
 	for item := range items {
-		if err := encoder.Encode(item); err != nil {
+		stream.WriteVal(item)
+		stream.WriteRaw("\n")
+
+		if err := stream.Flush(); err != nil {
 			fmt.Fprintf(os.Stderr, "%v", err)
-			//nolint:gocritic // "exitAfterDefer: os.Exit will exit, and `defer func(){...}(...)` will not run"
+			//nolint:gocritic // “exitAfterDefer: os.Exit will exit, and `defer func(){...}(...)` will not run”
 			// If we fail writing output, outputWritten can never really be set, and it is no longer relevant.
 			// Just abort.
 			os.Exit(1)
