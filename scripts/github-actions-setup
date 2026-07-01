@@ -96,7 +96,7 @@ install_critools() {
         kubernetes-sigs \
         cri-tools \
         "${VERSIONS["cri-tools"]}" \
-        sudo -E PATH="$PATH" make BINDIR=/usr/bin install
+        sudo -E PATH="$PATH" GOTOOLCHAIN=auto make BINDIR=/usr/bin install
 
     sudo critest --version
     sudo crictl --version
@@ -162,13 +162,10 @@ install_libpathrs() {
 }
 
 install_runc() {
-    git clone https://github.com/opencontainers/runc
-    pushd runc
-    git checkout "${VERSIONS["runc"]}"
-    make
-    sudo install -D -m0755 runc /usr/sbin/runc
-    popd
-    rm -rf runc
+    curl_retry "https://github.com/opencontainers/runc/releases/download/${VERSIONS["runc"]}/runc.$GOARCH" \
+        -o /usr/sbin/runc
+    echo "${RUNC_CHECKSUMS[$GOARCH]}  /usr/sbin/runc" | sha256sum -c --strict -
+    sudo chmod +x /usr/sbin/runc
     runc --version
 }
 
