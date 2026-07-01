@@ -213,8 +213,10 @@ func (r *runtimePod) CheckpointContainer(
 	c *Container,
 	specgen *rspec.Spec,
 	leaveRunning bool,
+	workPath string,
+	imagePath string,
 ) error {
-	return r.oci.CheckpointContainer(ctx, c, specgen, leaveRunning)
+	return r.oci.CheckpointContainer(ctx, c, specgen, leaveRunning, workPath, imagePath)
 }
 
 func (r *runtimePod) RestoreContainer(

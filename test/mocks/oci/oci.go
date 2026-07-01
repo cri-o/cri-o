@@ -76,17 +76,17 @@ func (mr *MockRuntimeImplMockRecorder) CgroupStats(arg0, arg1, arg2 any) *gomock
 }
 
 // CheckpointContainer mocks base method.
-func (m *MockRuntimeImpl) CheckpointContainer(arg0 context.Context, arg1 *oci.Container, arg2 *specs.Spec, arg3 bool) error {
+func (m *MockRuntimeImpl) CheckpointContainer(arg0 context.Context, arg1 *oci.Container, arg2 *specs.Spec, arg3 bool, arg4, arg5 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckpointContainer", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "CheckpointContainer", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CheckpointContainer indicates an expected call of CheckpointContainer.
-func (mr *MockRuntimeImplMockRecorder) CheckpointContainer(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) CheckpointContainer(arg0, arg1, arg2, arg3, arg4, arg5 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckpointContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).CheckpointContainer), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckpointContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).CheckpointContainer), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // CreateContainer mocks base method.
