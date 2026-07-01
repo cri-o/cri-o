@@ -101,7 +101,7 @@ runtime_path = "$RUNTIME_BINARY_PATH"
 EOF
 
 	reload_crio
-	wait_for_log '"updating runtime configuration"'
+	wait_for_log '"Configuration reload completed"'
 
 	# Check that the new default runtime metric is present
 	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep "^container_runtime_crio_default_runtime{runtime=\"new\"}")
