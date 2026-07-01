@@ -57,6 +57,8 @@ dependencies:
     refPaths:
       - path: contrib/test/ci/vars.yml
         match: cri_tools_git_version
+      - path: scripts/versions
+        match: cri-tools
 
   - name: buildah
     version: v1.38.0
@@ -73,10 +75,12 @@ dependencies:
         match: build-libpathrs.sh
 
   - name: runc
-    version: v1.4.2
+    version: v1.4.3
     refPaths:
       - path: scripts/versions
         match: runc
+      - path: contrib/test/ci/vars.yml
+        match: runc_git_version
 
   - name: bats
     version: v1.11.1
