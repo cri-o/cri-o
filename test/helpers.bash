@@ -686,8 +686,8 @@ function has_criu() {
         skip "Cannot run CRIU tests in user namespace."
     fi
 
-    if [[ "$CONTAINER_DEFAULT_RUNTIME" != "runc" ]]; then
-        skip "Checkpoint/Restore with pods only works in runc."
+    if [[ "$CONTAINER_DEFAULT_RUNTIME" != "runc" ]] && [[ "$CONTAINER_DEFAULT_RUNTIME" != "crun" ]]; then
+        skip "Checkpoint/Restore with pods only works with runc or crun."
     fi
 
     if ! "$CHECKCRIU_BINARY"; then
