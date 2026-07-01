@@ -1566,7 +1566,7 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	// It's important to make a spec copy here to not overwrite the initial
 	// process spec
 	pspec := *c.Spec().Process
-	pspec.Args = cmd
+	pspec.Args = NormalizeExecCmdArgs(cmd)
 	// We need to default this to false else it will inherit terminal as true
 	// from the container.
 	pspec.Terminal = false
