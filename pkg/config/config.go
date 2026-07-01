@@ -716,6 +716,15 @@ type NetworkConfig struct {
 	// PluginDirs is where CNI plugin binaries are stored.
 	PluginDirs []string `toml:"plugin_dirs"`
 
+	// CNIStatusGracePeriod controls continuous CNI STATUS monitoring.
+	// When set to 0 (default), monitoring is disabled and plugin health is
+	// only determined at startup; runtime failures will not be detected.
+	// When set to a positive duration, a background goroutine polls the
+	// plugin every 5 seconds and waits for this grace period before marking
+	// the node not-ready, tolerating brief CNI disruptions during plugin
+	// upgrades (e.g. OVN-K daemonset rollout).
+	CNIStatusGracePeriod time.Duration `toml:"cni_status_grace_period"`
+
 	// cniManager manages the internal ocicni plugin
 	cniManager *cnimgr.CNIManager
 }
@@ -1880,6 +1889,10 @@ func (c *ImageConfig) ParsePauseImage() (references.RegistryImageReference, erro
 // execution checks. It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *NetworkConfig) Validate(onExecution bool) error {
+	if c.CNIStatusGracePeriod < 0 {
+		return fmt.Errorf("invalid cni_status_grace_period: must not be negative, got %v", c.CNIStatusGracePeriod)
+	}
+
 	if onExecution {
 		err := utils.IsDirectory(c.NetworkDir)
 		if err != nil {
@@ -1915,7 +1928,7 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 
 		// Init CNI plugin
 		cniManager, err := cnimgr.New(
-			c.CNIDefaultNetwork, c.NetworkDir, c.PluginDirs...,
+			c.CNIDefaultNetwork, c.NetworkDir, c.CNIStatusGracePeriod, c.PluginDirs...,
 		)
 		if err != nil {
 			return fmt.Errorf("initialize CNI plugin: %w", err)

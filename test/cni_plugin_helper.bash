@@ -4,7 +4,17 @@
 # capabilities
 
 if [[ "${CNI_COMMAND}" == "VERSION" ]]; then
-    echo '{"cniVersion": "0.3.1", "supportedVersions": ["0.4.0","0.3.1"]}'
+    echo '{"cniVersion": "1.1.0", "supportedVersions": ["0.3.1","0.4.0","1.0.0","1.1.0"]}'
+    exit 0
+fi
+
+TEST_DIR=%TEST_DIR%
+
+if [[ "${CNI_COMMAND}" == "STATUS" ]]; then
+    if [[ -f "$TEST_DIR/cni_plugin_status_failing" ]]; then
+        echo '{"code": 100, "msg": "plugin unhealthy"}' >&2
+        exit 1
+    fi
     exit 0
 fi
 ￼
@@ -34,8 +44,6 @@ elif [[ -z "${K8S_POD_NAME}" ]]; then
 elif [[ -z "${K8S_POD_UID}" ]]; then
     exit 1
 fi
-
-TEST_DIR=%TEST_DIR%
 
 cat <<EOT >"$TEST_DIR/plugin_test_args.out"
 FOUND_CNI_CONTAINERID="${CNI_CONTAINERID}"

@@ -28,6 +28,7 @@ crio
 [--cni-config-dir]=[value]
 [--cni-default-network]=[value]
 [--cni-plugin-dir]=[value]
+[--cni-status-grace-period]=[value]
 [--collection-period]=[value]
 [--config-dir|-d]=[value]
 [--config|-c]=[value]
@@ -206,6 +207,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--cni-default-network**="": Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.
 
 **--cni-plugin-dir**="": CNI plugin binaries directory.
+
+**--cni-status-grace-period**="": Enable continuous CNI STATUS monitoring with the given grace period. When set to 0 (default), monitoring is disabled and plugin health is only determined at startup. When set to a positive duration (e.g. 1m), a background goroutine polls the plugin every 5s and waits for this grace period before marking the node not-ready. (default: 0s)
 
 **--collection-period**="": The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead. (default: 0)
 
