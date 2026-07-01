@@ -17,7 +17,6 @@ import (
 const (
 	ciImage        = "quay.io/crio/fedora-crio-ci:latest"
 	connectTimeout = 3 * time.Second
-	requestTimeout = 10 * time.Second
 	pullimgTimeout = 300 * time.Second
 )
 
@@ -37,6 +36,10 @@ type imageRefs struct {
 	busybox     string
 	busyboxName string
 }
+
+const (
+	requestTimeout = 10 * time.Second
+)
 
 var (
 	crioSocket = flag.String("crio-socket", "", "cri-o socket to use")

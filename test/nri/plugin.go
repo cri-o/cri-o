@@ -192,7 +192,7 @@ func (p *plugin) Synchronize(_ context.Context, pods []*api.PodSandbox, ctrs []*
 	return nil, nil
 }
 
-func (p *plugin) RunPodSandbox(_ context.Context, pod *api.PodSandbox) error {
+func (p *plugin) RunPodSandbox(ctx context.Context, pod *api.PodSandbox) error {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil
 	}

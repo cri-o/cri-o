@@ -14,6 +14,7 @@
 /test/checkcriu/checkcriu
 /test/copyimg/copyimg
 /test/updateunified/updateunified
+/test/nri-delay-plugin/nri-delay-plugin
 /build
 coverprofile
 .gdb_history
