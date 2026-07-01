@@ -172,6 +172,10 @@ func NewNotifier(
 
 	action, ok := v2.GetAnnotationValue(annotationMap, v2.SeccompNotifierAction)
 	if !ok {
+		if err := listener.Close(); err != nil {
+			log.Errorf(ctx, "Unable to close seccomp listener: %v", err)
+		}
+
 		return nil, fmt.Errorf("%s annotation not set on container", v2.SeccompNotifierAction)
 	}
 

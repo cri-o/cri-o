@@ -93,7 +93,9 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 			ctr := s.GetContainer(ctx, id)
 
 			if ctr == nil {
-				log.Infof(ctx, "Seccomp blocked syscall '%s' in container %s", syscall, id)
+				log.Warnf(ctx, "Seccomp blocked syscall '%s' in container %s", syscall, id)
+				// The container name is unavailable, but the metric should still be emitted.
+				metrics.Instance().MetricContainersSeccompNotifierCountTotalInc(id, syscall)
 
 				continue
 			}
