@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -12,9 +15,56 @@ import (
 	"go.podman.io/image/v5/types"
 	sstorage "go.podman.io/storage"
 	"go.podman.io/storage/pkg/reexec"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/cri-o/cri-o/internal/log"
 )
+
+// isRemoteSource checks if the image reference is from a remote source
+// that requires network access (and thus might benefit from retries).
+func isRemoteSource(ref string) bool {
+	// Remote transports that require network access
+	remoteTransports := []string{"docker://", "docker-archive:", "docker-daemon:"}
+	for _, transport := range remoteTransports {
+		if strings.HasPrefix(ref, transport) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// copyImageWithRetry attempts to copy an image with exponential backoff retry.
+func copyImageWithRetry(ctx context.Context, policyContext *signature.PolicyContext, dest, src types.ImageReference, options *copy.Options, retryAttempts int) error {
+	backoff := wait.Backoff{
+		Duration: 2 * time.Second,
+		Factor:   2.0,
+		Steps:    retryAttempts,
+	}
+
+	var lastErr error
+
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		_, err := copy.Image(ctx, policyContext, dest, src, options)
+		if err != nil {
+			lastErr = err
+			logrus.Warnf("Image copy attempt failed (retrying): %v", err)
+
+			return false, nil
+		}
+
+		return true, nil
+	})
+	if err != nil {
+		if lastErr != nil {
+			return lastErr
+		}
+
+		return err
+	}
+
+	return nil
+}
 
 func main() {
 	if reexec.Init() {
@@ -69,6 +119,11 @@ func main() {
 			Name:  "export-to",
 			Usage: "export target",
 		},
+		&cli.IntFlag{
+			Name:  "retry-attempts",
+			Usage: "number of retry attempts for image pull with exponential backoff (0 to disable, default: 3)",
+			Value: 3,
+		},
 	}
 
 	app.Action = func(c *cli.Context) error {
@@ -88,6 +143,7 @@ func main() {
 		addName := c.String("add-name")
 		importFrom := c.String("import-from")
 		exportTo := c.String("export-to")
+		retryAttempts := c.Int("retry-attempts")
 
 		ctx := c.Context
 
@@ -177,7 +233,14 @@ func main() {
 
 		if imageName != "" {
 			if importFrom != "" {
-				_, err = copy.Image(ctx, policyContext, ref, importRef, options)
+				// Use retry logic only when pulling from remote sources and retry is enabled (retryAttempts > 0)
+				if retryAttempts > 0 && isRemoteSource(importFrom) {
+					logrus.Infof("Pulling image with retry enabled (max attempts: %d)", retryAttempts)
+					err = copyImageWithRetry(ctx, policyContext, ref, importRef, options, retryAttempts)
+				} else {
+					_, err = copy.Image(ctx, policyContext, ref, importRef, options)
+				}
+
 				if err != nil {
 					log.Fatalf(ctx, "Error importing %s: %v", importFrom, err)
 				}
@@ -202,7 +265,14 @@ func main() {
 				}
 			}
 		} else if importFrom != "" && exportTo != "" {
-			_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
+			// Use retry logic only when pulling from remote sources and retry is enabled (retryAttempts > 0)
+			if retryAttempts > 0 && isRemoteSource(importFrom) {
+				logrus.Infof("Pulling image with retry enabled (max attempts: %d)", retryAttempts)
+				err = copyImageWithRetry(ctx, policyContext, exportRef, importRef, options, retryAttempts)
+			} else {
+				_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
+			}
+
 			if err != nil {
 				log.Fatalf(ctx, "Error copying %s to %s: %v", importFrom, exportTo, err)
 			}
