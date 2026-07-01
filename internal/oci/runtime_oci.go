@@ -1335,8 +1335,8 @@ func (r *runtimeOCI) CgroupStats(ctx context.Context, c *Container, cgroup strin
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
 
 	return r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
 }
@@ -1346,8 +1346,8 @@ func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string)
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
 
 	// Get disk usage from the container's mount point
 	mountPoint := c.MountPoint()
