@@ -257,3 +257,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+// CVE-2026-34986: Fix go-jose DoS vulnerability
+// Indirect dependency via containerd brings in vulnerable v3.0.4
+replace github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5

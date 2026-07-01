@@ -1809,3 +1809,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.1.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
