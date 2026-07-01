@@ -81,7 +81,7 @@ func (c *ContainerServer) ContainerCheckpoint(
 			}
 		}
 		// container state needs to be written _after_ unpausing
-		if err = c.ContainerStateToDisk(ctx, ctr); err != nil {
+		if err = c.ContainerStateToDiskWithUpdate(ctx, ctr); err != nil {
 			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 		}
 	}()
