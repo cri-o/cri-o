@@ -170,6 +170,15 @@ func NewNotifier(
 		return nil, fmt.Errorf("listen for seccomp socket: %w", err)
 	}
 
+	action, ok := v2.GetAnnotationValue(annotationMap, v2.SeccompNotifierAction)
+	if !ok {
+		if err := listener.Close(); err != nil {
+			log.Errorf(ctx, "Unable to close seccomp listener: %v", err)
+		}
+
+		return nil, fmt.Errorf("%s annotation not set on container", v2.SeccompNotifierAction)
+	}
+
 	go func() {
 		for {
 			conn, err := listener.Accept()
@@ -208,11 +217,6 @@ func NewNotifier(
 		}
 	}()
 
-	action, ok := v2.GetAnnotationValue(annotationMap, v2.SeccompNotifierAction)
-	if !ok {
-		return nil, fmt.Errorf("%s annotation not set on container", v2.SeccompNotifierAction)
-	}
-
 	return &Notifier{
 		listener:       listener,
 		syscalls:       sync.Map{},
@@ -222,7 +226,26 @@ func NewNotifier(
 	}, nil
 }
 
+type notifierHandler struct {
+	notifReceive func(libseccomp.ScmpFd) (*libseccomp.ScmpNotifReq, error)
+	notifIDValid func(libseccomp.ScmpFd, uint64) error
+	notifRespond func(libseccomp.ScmpFd, *libseccomp.ScmpNotifResp) error
+}
+
 func handler(
+	ctx context.Context,
+	containerID string,
+	msgChan chan Notification,
+	fd libseccomp.ScmpFd,
+) {
+	notifierHandler{
+		notifReceive: libseccomp.NotifReceive,
+		notifIDValid: libseccomp.NotifIDValid,
+		notifRespond: libseccomp.NotifRespond,
+	}.handle(ctx, containerID, msgChan, fd)
+}
+
+func (h notifierHandler) handle(
 	ctx context.Context,
 	containerID string,
 	msgChan chan Notification,
@@ -230,8 +253,12 @@ func handler(
 ) {
 	defer unix.Close(int(fd))
 	for {
-		req, err := libseccomp.NotifReceive(fd)
+		req, err := h.notifReceive(fd)
 		if err != nil {
+			if errors.Is(err, unix.EBADF) || errors.Is(err, unix.ECANCELED) || errors.Is(err, unix.ENOENT) {
+				log.Infof(ctx, "Stopping notifier for container %s", containerID)
+				return
+			}
 			log.Errorf(ctx, "Unable to receive notification: %v", err)
 			continue
 		}
@@ -257,18 +284,15 @@ func handler(
 		}
 
 		// TOCTOU check
-		if err := libseccomp.NotifIDValid(fd, req.ID); err != nil {
+		if err := h.notifIDValid(fd, req.ID); err != nil {
 			log.Errorf(ctx, "TOCTOU check failed: req.ID is no longer valid: %v", err)
 			continue
 		}
 
-		if err = libseccomp.NotifRespond(fd, resp); err != nil {
+		if err = h.notifRespond(fd, resp); err != nil {
 			log.Errorf(ctx, "Unable to send notification response: %v", err)
 			continue
 		}
-
-		// We only catch the first syscall
-		break
 	}
 }
 
