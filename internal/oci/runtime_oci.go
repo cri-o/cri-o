@@ -581,8 +581,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		return copyError
 	}
 
-	var exitErr *exec.ExitError
-	if errors.As(cmdErr, &exitErr) {
+	if exitErr, ok := errors.AsType[*exec.ExitError](cmdErr); ok {
 		return &utilexec.ExitErrorWrapper{ExitError: exitErr}
 	}
 
@@ -822,8 +821,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	if waitErr != nil {
 		// if we aren't a ExitError, some I/O problems probably occurred
-		var exitErr *exec.ExitError
-		if !errors.As(waitErr, &exitErr) {
+		if _, ok := errors.AsType[*exec.ExitError](waitErr); !ok { //nolint:errcheck // We only check error type here.
 			return nil, &ExecSyncError{
 				Stdout:   stdoutBuf,
 				Stderr:   stderrBuf,
@@ -1452,8 +1450,7 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 			return nil
 		}
 
-		var detachErr utils.DetachError
-		if errors.As(err, &detachErr) {
+		if _, ok := errors.AsType[utils.DetachError](err); ok { //nolint:errcheck // We only check error type here.
 			return nil
 		}
 
