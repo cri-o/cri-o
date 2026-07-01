@@ -134,9 +134,10 @@ function get_gomaxprocs() {
 
 	create_burstable_sandbox
 
-	jq '.linux.resources.cpu_shares = 2048
+	jq --arg gmp "$(printf %s 16 | base64 -w0)" \
+		'.linux.resources.cpu_shares = 2048
 		| .linux.resources.cpu_quota = 0
-		| .envs = [{"key": "GOMAXPROCS", "value": "16"}]' \
+		| .envs = [{"key": "GOMAXPROCS", "value": $gmp}]' \
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
