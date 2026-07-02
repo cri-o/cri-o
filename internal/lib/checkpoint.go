@@ -115,7 +115,14 @@ func (c *ContainerServer) ContainerCheckpoint(
 	}
 
 	if !opts.KeepRunning {
-		if err := c.storageRuntimeServer.StopContainer(ctx, ctr.ID()); err != nil {
+		sb, err := c.LookupSandbox(ctr.Sandbox())
+		if err != nil {
+			// don't abort in case of error - we can use the default runtime
+			// handler here (sb == nil), to at least try and stop the container.
+			log.Warnf(ctx, "Failed to lookup sandbox %s for checkpoint cleanup: %v", ctr.Sandbox(), err)
+		}
+
+		if err := c.StorageRuntimeServer(sb).StopContainer(ctx, ctr.ID()); err != nil {
 			return "", fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 		}
 	}
@@ -309,7 +316,12 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		return fmt.Errorf("error exporting root file-system diff for %q: %w", id, err)
 	}
 
-	mountPoint, err := c.StorageImageServer().GetStore().Mount(id, specgen.Linux.MountLabel)
+	sb, err := c.LookupSandbox(ctr.Sandbox())
+	if err != nil {
+		return fmt.Errorf("failed to lookup sandbox %s: %w", ctr.Sandbox(), err)
+	}
+
+	mountPoint, err := c.StorageImageServer(sb).GetStore().Mount(id, specgen.Linux.MountLabel)
 	if err != nil {
 		return fmt.Errorf("not able to get mountpoint for container %q: %w", id, err)
 	}
