@@ -9,6 +9,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v8/stats"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/crutils"
@@ -153,20 +154,7 @@ func (c *ContainerServer) ContainerRestore(
 			}
 
 			for _, e := range externalBindMounts {
-				if func() bool {
-					for _, m := range ctrSpec.Config.Mounts {
-						if (m.Destination == e.Destination) && (m.Source != e.Source) {
-							// If the source differs this means that the external mount
-							// source has already been fixed up earlier by the restore
-							// code and no need to deal with it here.
-							// Good example is the /etc/resolv.conf bind mount is now
-							// pointing to the new /etc/resolv.conf of the new pod.
-							return true
-						}
-					}
-
-					return false
-				}() {
+				if !shouldRecreateExternalBindMount(ctrSpec.Config.Mounts, e) {
 					continue
 				}
 
@@ -346,6 +334,31 @@ func (c *ContainerServer) ContainerRestore(
 	}
 
 	return ctr.ID(), nil
+}
+
+// shouldRecreateExternalBindMount reports whether the missing source of an
+// external bind mount recorded in a checkpoint archive may be recreated on the
+// host. Only sources whose destination is declared by the restored container
+// spec (and whose source has not already been remapped) are recreated. A
+// checkpoint archive is attacker influenced, so without this a crafted
+// bind.mounts entry could make CRI-O create an arbitrary host path with
+// attacker chosen mode bits. CRImportCheckpoint enforces the same rule for the
+// spec mounts.
+func shouldRecreateExternalBindMount(mounts []rspec.Mount, e ExternalBindMount) bool {
+	for _, m := range mounts {
+		if m.Destination != e.Destination {
+			continue
+		}
+
+		// A matching destination whose source was already fixed up earlier by
+		// the restore code (e.g. /etc/resolv.conf now points at the new pod's
+		// file) needs no recreation here.
+		return m.Source == e.Source
+	}
+
+	// The checkpoint lists a bind mount the restored container never declared;
+	// do not touch the host for it.
+	return false
 }
 
 func (c *ContainerServer) restoreFileSystemChanges(ctr *oci.Container, mountPoint string) error {
