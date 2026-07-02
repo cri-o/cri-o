@@ -121,7 +121,15 @@ EOF
 	fi
 
 	metrics_memory_working_set=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_working_set_bytes") | .value.value | tonumber')
-	cgroup_memory_working_set=$((cgroup_memory_usage - cgroup_memory_inactive_file))
+	# Mirror the production clamp in computeMemoryMetricValues: usage and
+	# inactive_file are read separately, so the raw subtraction can transiently
+	# go negative while the exported metric is clamped to zero. Clamp here too
+	# so the comparison stays within tolerance.
+	if [[ $cgroup_memory_usage -lt $cgroup_memory_inactive_file ]]; then
+		cgroup_memory_working_set=0
+	else
+		cgroup_memory_working_set=$((cgroup_memory_usage - cgroup_memory_inactive_file))
+	fi
 	working_set_diff=$((metrics_memory_working_set - cgroup_memory_working_set))
 	[[ ${working_set_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
 
