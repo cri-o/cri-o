@@ -1197,7 +1197,11 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			// Wait for it to appear before defaulting to exit code 255.
 			// This prevents a race where fast-exiting containers
 			// get a spurious exit code 255.
+			// Release opLock before waiting to avoid blocking other operations.
+			c.opLock.Unlock()
 			waitErr := waitForExitFile(c)
+			c.opLock.Lock()
+
 			if waitErr != nil {
 				log.Errorf(ctx, "Failed to update container status from exit file for %s: %v", c.ID(), waitErr)
 				c.state.Finished = time.Now()
@@ -1286,20 +1290,44 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 func waitForExitFile(c *Container) error {
 	exitFilePath := c.exitFilePath()
 
-	return kwait.ExponentialBackoff(
-		kwait.Backoff{
-			Duration: 500 * time.Millisecond,
-			Factor:   1.2,
-			Steps:    6,
-		},
-		func() (bool, error) {
-			_, err := os.Stat(exitFilePath)
-			if err != nil {
-				return false, nil
-			}
+	if _, err := os.Stat(exitFilePath); err == nil {
+		return nil
+	}
 
-			return true, nil
-		})
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+	defer watcher.Close()
+
+	exitDir := filepath.Dir(exitFilePath)
+	if err := watcher.Add(exitDir); err != nil {
+		return err
+	}
+
+	timeout := time.After(5 * time.Second)
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return kwait.ErrWaitTimeout
+			}
+			if event.Name == exitFilePath && (event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write) {
+				return nil
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return kwait.ErrWaitTimeout
+			}
+			return err
+		case <-timeout:
+			if _, err := os.Stat(exitFilePath); err == nil {
+				return nil
+			}
+			return kwait.ErrWaitTimeout
+		}
+	}
 }
 
 // PauseContainer pauses a container.
