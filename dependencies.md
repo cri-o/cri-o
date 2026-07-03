@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 02 Jul 2026 22:34:29 UTC for commit [843bd56][0]._
+_Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/843bd56d977a86faffb248d9872bd14bff48eb4c
+[0]: https://github.com/cri-o/cri-o/commit/bc5121bce8ba720cc775b950e0547d1b9e6d4aab
 
 ## Outdated Dependencies
 
@@ -12,7 +12,6 @@ _Generated on Thu, 02 Jul 2026 22:34:29 UTC for commit [843bd56][0]._
 | github.com/containerd/containerd                                            | v1.7.31                               | v1.7.33                            | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                               | v1.11.1                            | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.7.3                                | v0.8.0                             | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                | v1.3.0                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.6.1                                | v0.7.0                             | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                | v5.3.0                             | true   | true             |
@@ -316,7 +315,7 @@ _Generated on Thu, 02 Jul 2026 22:34:29 UTC for commit [843bd56][0]._
 | github.com/containernetworking/cni                                          | v1.3.0                                 |                                    | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.9.1                                 |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                   | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.7.3                                 | v0.8.0                             | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.8.1-0.20260702110516-b5ec72de6187   |                                    | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                 | v1.3.0                             | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01     |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.3.0                                 |                                    | true   | true             |
