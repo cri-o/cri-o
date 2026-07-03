@@ -42,7 +42,6 @@ var (
 	errInvalidValue           = errors.New("invalid value")
 	errRunDirNotCreated       = errors.New("could not create RunDir")
 	errTimeoutWaitForPid      = errors.New("timed out waiting for server PID to disappear")
-	errUndefinedCgroupManager = errors.New("undefined cgroup manager")
 )
 
 // ConmonClient is the main client structure of this package.
@@ -55,6 +54,9 @@ type ConmonClient struct {
 	tracer         trace.Tracer
 	serverVersion  semver.Version
 	cgroupManager  CgroupManager
+	connMu         sync.Mutex
+	conn           *rpc.Conn
+	rpcClient      proto.Conmon
 }
 
 // ConmonServerConfig is the configuration for the conmon server instance.
@@ -410,22 +412,6 @@ func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, ar
 		args = append(args, "--log-driver", string(config.LogDriver))
 	}
 
-	const cgroupManagerFlag = "--cgroup-manager"
-
-	switch config.CgroupManager {
-	case CgroupManagerSystemd:
-		args = append(args, cgroupManagerFlag, "systemd")
-
-	case CgroupManagerCgroupfs:
-		args = append(args, cgroupManagerFlag, "cgroupfs")
-
-	case CgroupManagerPerCommand:
-		// nothing to do, will use the cgroup manager specified per command
-
-	default:
-		return "", args, errUndefinedCgroupManager
-	}
-
 	if config.Tracing != nil && config.Tracing.Enabled {
 		c.tracingEnabled = true
 
@@ -516,13 +502,34 @@ func defaultContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), defaultTimeout)
 }
 
-func (c *ConmonClient) newRPCConn() (*rpc.Conn, error) {
-	socketConn, err := DialLongSocket("unix", c.socket())
-	if err != nil {
-		return nil, fmt.Errorf("dial long socket: %w", err)
+func (c *ConmonClient) client(ctx context.Context) (proto.Conmon, error) {
+	c.connMu.Lock()
+	defer c.connMu.Unlock()
+
+	if c.conn != nil {
+		return c.rpcClient, nil
 	}
 
-	return rpc.NewConn(rpc.NewStreamTransport(socketConn), nil), nil
+	socketConn, err := DialLongSocket("unix", c.socket())
+	if err != nil {
+		return proto.Conmon{}, fmt.Errorf("dial long socket: %w", err)
+	}
+
+	c.conn = rpc.NewConn(rpc.NewStreamTransport(socketConn), nil)
+	c.rpcClient = proto.Conmon(c.conn.Bootstrap(ctx))
+
+	return c.rpcClient, nil
+}
+
+func (c *ConmonClient) resetConn() {
+	c.connMu.Lock()
+	defer c.connMu.Unlock()
+
+	if c.conn != nil {
+		c.conn.Close()
+		c.conn = nil
+		c.rpcClient = proto.Conmon{}
+	}
 }
 
 // DialLongSocket is a wrapper around net.DialUnix.
@@ -603,16 +610,12 @@ func (c *ConmonClient) Version(
 		defer span.End()
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("create RPC connection: %w", err)
+		return nil, fmt.Errorf("create RPC client: %w", err)
 	}
 
-	defer conn.Close()
-
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.Version(ctx, func(p proto.Conmon_version_Params) error {
+	future, free := rpcClient.Version(ctx, func(p proto.Conmon_version_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -635,6 +638,8 @@ func (c *ConmonClient) Version(
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return nil, fmt.Errorf("create result: %w", err)
 	}
 
@@ -813,16 +818,12 @@ func (c *ConmonClient) CreateContainer(
 		defer span.End()
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("create RPC connection: %w", err)
+		return nil, fmt.Errorf("create RPC client: %w", err)
 	}
 
-	defer conn.Close()
-
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.CreateContainer(ctx, func(p proto.Conmon_createContainer_Params) error {
+	future, free := rpcClient.CreateContainer(ctx, func(p proto.Conmon_createContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -887,6 +888,8 @@ func (c *ConmonClient) CreateContainer(
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return nil, fmt.Errorf("create result: %w", err)
 	}
 
@@ -947,15 +950,12 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 		defer span.End()
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("create RPC connection: %w", err)
+		return nil, fmt.Errorf("create RPC client: %w", err)
 	}
-	defer conn.Close()
 
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.ExecSyncContainer(ctx, func(p proto.Conmon_execSyncContainer_Params) error {
+	future, free := rpcClient.ExecSyncContainer(ctx, func(p proto.Conmon_execSyncContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -989,6 +989,8 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return nil, fmt.Errorf("create result: %w", err)
 	}
 
@@ -1027,15 +1029,13 @@ func (c *ConmonClient) initLogDrivers(req *proto.Conmon_CreateContainerRequest, 
 
 	for i, logDriver := range logDrivers {
 		n := newLogDrivers.At(i)
-		if logDriver.Type == LogDriverTypeContainerRuntimeInterface {
+
+		switch logDriver.Type {
+		case LogDriverTypeContainerRuntimeInterface:
 			n.SetType(proto.Conmon_LogDriver_Type_containerRuntimeInterface)
-		}
-
-		if logDriver.Type == LogDriverTypeJSONLogger {
+		case LogDriverTypeJSONLogger:
 			n.SetType(proto.Conmon_LogDriver_Type_json)
-		}
-
-		if logDriver.Type == LogDriverTypeJournald {
+		case LogDriverTypeJournald:
 			n.SetType(proto.Conmon_LogDriver_Type_journald)
 		}
 
@@ -1067,6 +1067,8 @@ func (c *ConmonClient) Shutdown() error {
 
 		return true
 	})
+
+	c.resetConn()
 
 	pid := int(c.serverPID)
 	if err := syscall.Kill(pid, syscall.SIGINT); err != nil {
@@ -1117,16 +1119,12 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 		defer span.End()
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return fmt.Errorf("create RPC connection: %w", err)
+		return fmt.Errorf("create RPC client: %w", err)
 	}
 
-	defer conn.Close()
-
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.ReopenLogContainer(ctx, func(p proto.Conmon_reopenLogContainer_Params) error {
+	future, free := rpcClient.ReopenLogContainer(ctx, func(p proto.Conmon_reopenLogContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -1146,6 +1144,8 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return fmt.Errorf("create result: %w", err)
 	}
 
@@ -1160,24 +1160,6 @@ type RequestWithMetadata interface {
 	NewMetadata(n int32) (proto.Conmon_TextTextMapEntry_List, error)
 }
 
-type RequestWithMetadataOld interface {
-	RequestWithMetadata
-	SetMetadataOld(v []byte) error
-}
-
-var (
-	_ RequestWithMetadataOld = nil
-	// verify that all existing messages are compatible with old conmon-rs servers
-	// (new messages don't need to support the old encoding).
-	_ = proto.Conmon_VersionRequest{}
-	_ = proto.Conmon_CreateContainerRequest{}
-	_ = proto.Conmon_ExecSyncContainerRequest{}
-	_ = proto.Conmon_AttachRequest{}
-	_ = proto.Conmon_ReopenLogRequest{}
-	_ = proto.Conmon_SetWindowSizeRequest{}
-	_ = proto.Conmon_CreateNamespacesRequest{}
-)
-
 // setMetadata sets the tracing metadata properties on the request.
 func (c *ConmonClient) setMetadata(ctx context.Context, req RequestWithMetadata) error {
 	if !c.tracingEnabled {
@@ -1185,27 +1167,18 @@ func (c *ConmonClient) setMetadata(ctx context.Context, req RequestWithMetadata)
 	}
 
 	span := trace.SpanFromContext(ctx)
+
+	if !span.SpanContext().HasSpanID() {
+		return stringStringMapToMapEntryList(nil, req.NewMetadata)
+	}
+
 	m := make(map[string]string)
 
-	if span.SpanContext().HasSpanID() {
-		c.logger.Tracef("Injecting tracing span ID %v", span.SpanContext().SpanID())
-		otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(m))
-	}
+	c.logger.Tracef("Injecting tracing span ID %v", span.SpanContext().SpanID())
+	otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(m))
 
 	if err := stringStringMapToMapEntryList(m, req.NewMetadata); err != nil {
-		return fmt.Errorf("set metadata2: %w", err)
-	}
-
-	// support old conmon-rs servers with json encoded metadata field
-	if req, ok := req.(RequestWithMetadataOld); ok {
-		metadataBytes, err := json.Marshal(m)
-		if err != nil {
-			return fmt.Errorf("marshal metadata: %w", err)
-		}
-
-		if err := req.SetMetadataOld(metadataBytes); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
-		}
+		return fmt.Errorf("set metadata: %w", err)
 	}
 
 	return nil
@@ -1261,24 +1234,12 @@ func (c *ConmonClient) CreateNamespaces(
 		defer span.End()
 	}
 
-	// Feature not supported pre v0.5.0
-	const minMinor = 5
-
-	minVersion := semver.Version{Minor: minMinor}
-	if c.serverVersion.LT(minVersion) {
-		return nil, fmt.Errorf("requires at least %v: %w", minVersion, ErrUnsupported)
-	}
-
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("create RPC connection: %w", err)
+		return nil, fmt.Errorf("create RPC client: %w", err)
 	}
 
-	defer conn.Close()
-
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.CreateNamespaces(ctx, func(p proto.Conmon_createNamespaces_Params) error {
+	future, free := rpcClient.CreateNamespaces(ctx, func(p proto.Conmon_createNamespaces_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -1354,6 +1315,8 @@ func (c *ConmonClient) CreateNamespaces(
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return nil, fmt.Errorf("create result: %w", err)
 	}
 
@@ -1367,7 +1330,7 @@ func (c *ConmonClient) CreateNamespaces(
 		return nil, fmt.Errorf("set path: %w", err)
 	}
 
-	namespacesResponse := []*NamespacesResponse{}
+	namespacesResponse := make([]*NamespacesResponse, 0, namespaces.Len())
 
 	for i := range namespaces.Len() {
 		namespace := namespaces.At(i)
@@ -1409,7 +1372,8 @@ func (c *ConmonClient) CreateNamespaces(
 	}, nil
 }
 
-func mappingsToSlice(mappings []idtools.IDMap) (res []string) {
+func mappingsToSlice(mappings []idtools.IDMap) []string {
+	res := make([]string, 0, len(mappings))
 	for _, m := range mappings {
 		res = append(res, fmt.Sprintf("%d %d %d", m.ContainerID, m.HostID, m.Size))
 	}
@@ -1460,15 +1424,12 @@ func (c *ConmonClient) ServeExecContainer(
 		defer span.End()
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("create RPC connection: %w", err)
+		return nil, fmt.Errorf("create RPC client: %w", err)
 	}
-	defer conn.Close()
 
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.ServeExecContainer(ctx, func(p proto.Conmon_serveExecContainer_Params) error {
+	future, free := rpcClient.ServeExecContainer(ctx, func(p proto.Conmon_serveExecContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -1499,6 +1460,8 @@ func (c *ConmonClient) ServeExecContainer(
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return nil, fmt.Errorf("create result: %w", err)
 	}
 
@@ -1552,15 +1515,12 @@ func (c *ConmonClient) ServeAttachContainer(
 		defer span.End()
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("create RPC connection: %w", err)
+		return nil, fmt.Errorf("create RPC client: %w", err)
 	}
-	defer conn.Close()
 
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.ServeAttachContainer(ctx, func(p proto.Conmon_serveAttachContainer_Params) error {
+	future, free := rpcClient.ServeAttachContainer(ctx, func(p proto.Conmon_serveAttachContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -1584,6 +1544,8 @@ func (c *ConmonClient) ServeAttachContainer(
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return nil, fmt.Errorf("create result: %w", err)
 	}
 
@@ -1622,15 +1584,12 @@ func (c *ConmonClient) ServePortForwardContainer(
 		defer span.End()
 	}
 
-	conn, err := c.newRPCConn()
+	rpcClient, err := c.client(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("create RPC connection: %w", err)
+		return nil, fmt.Errorf("create RPC client: %w", err)
 	}
-	defer conn.Close()
 
-	client := proto.Conmon(conn.Bootstrap(ctx))
-
-	future, free := client.ServePortForwardContainer(ctx, func(p proto.Conmon_servePortForwardContainer_Params) error {
+	future, free := rpcClient.ServePortForwardContainer(ctx, func(p proto.Conmon_servePortForwardContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
@@ -1650,6 +1609,8 @@ func (c *ConmonClient) ServePortForwardContainer(
 
 	result, err := future.Struct()
 	if err != nil {
+		c.resetConn()
+
 		return nil, fmt.Errorf("create result: %w", err)
 	}
 
