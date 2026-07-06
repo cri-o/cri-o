@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
+_Generated on Mon, 06 Jul 2026 17:39:54 UTC for commit [9192366][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bc5121bce8ba720cc775b950e0547d1b9e6d4aab
+[0]: https://github.com/cri-o/cri-o/commit/91923662fddc6635eedc35439a2fe87fb9864896
 
 ## Outdated Dependencies
 
@@ -12,11 +12,12 @@ _Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 | github.com/containerd/containerd                                            | v1.7.31                               | v1.7.33                            | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                               | v1.11.1                            | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.8.1-0.20260702110516-b5ec72de6187  | v1.0.1                             | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                | v1.3.0                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.6.1                                | v0.7.0                             | true   | true             |
-| github.com/go-chi/chi/v5                                                    | v5.2.5                                | v5.3.0                             | true   | true             |
+| github.com/go-chi/chi/v5                                                    | v5.2.5                                | v5.3.1                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                               | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260702205621-4742609fb2e4 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260706124442-068bd806d36a | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                | v0.4.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.3                               | v2.32.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.40.0                               | v1.42.1                            | true   | true             |
@@ -315,7 +316,7 @@ _Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 | github.com/containernetworking/cni                                          | v1.3.0                                 |                                    | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.9.1                                 |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                   | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.8.1-0.20260702110516-b5ec72de6187   |                                    | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.8.1-0.20260702110516-b5ec72de6187   | v1.0.1                             | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                 | v1.3.0                             | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01     |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.3.0                                 |                                    | true   | true             |
@@ -342,7 +343,7 @@ _Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 | github.com/docker/docker                                                    | v28.5.2+incompatible                   |                                    | false  | true             |
 | github.com/docker/docker-credential-helpers                                 | v0.9.5                                 | v0.9.8                             | false  | true             |
 | github.com/docker/go-connections                                            | v0.6.0                                 | v0.7.0                             | false  | true             |
-| github.com/docker/go-events                                                 | v0.0.0-20190806004212-e31b211e4f1c     | v0.0.0-20260608200158-dbf6103125a4 | false  | true             |
+| github.com/docker/go-events                                                 | v0.0.0-20190806004212-e31b211e4f1c     | v0.0.0-20260706171732-9180b3777ac8 | false  | true             |
 | github.com/docker/go-metrics                                                | v0.0.1                                 |                                    | false  | true             |
 | github.com/docker/go-units                                                  | v0.5.0                                 |                                    | true   | true             |
 | github.com/docker/libtrust                                                  | v0.0.0-20160708172513-aabc10ec26b7     |                                    | false  | true             |
@@ -363,7 +364,7 @@ _Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 | github.com/gkampitakis/go-diff                                              | v1.3.2                                 |                                    | false  | true             |
 | github.com/gkampitakis/go-snaps                                             | v0.5.15                                | v0.5.22                            | false  | true             |
 | github.com/gliderlabs/ssh                                                   | v0.3.8                                 |                                    | false  | true             |
-| github.com/go-chi/chi/v5                                                    | v5.2.5                                 | v5.3.0                             | true   | true             |
+| github.com/go-chi/chi/v5                                                    | v5.2.5                                 | v5.3.1                             | true   | true             |
 | github.com/go-git/gcfg                                                      | v1.5.1-0.20230307220236-3a3c6141e376   |                                    | false  | true             |
 | github.com/go-git/go-billy/v5                                               | v5.8.0                                 | v5.9.0                             | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                        | v4.3.2-0.20231010084843-55a94097c399   |                                    | false  | true             |
@@ -471,7 +472,7 @@ _Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260702205621-4742609fb2e4 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260706124442-068bd806d36a | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
@@ -567,7 +568,7 @@ _Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 | github.com/pborman/getopt                                                   | v0.0.0-20170112200414-7148bc3a4c30     | v1.1.0                             | false  | true             |
 | github.com/pborman/uuid                                                     | v1.2.1                                 |                                    | false  | true             |
 | github.com/pelletier/go-toml                                                | v1.9.5                                 |                                    | false  | true             |
-| github.com/pelletier/go-toml/v2                                             | v2.2.4                                 | v2.4.2                             | false  | true             |
+| github.com/pelletier/go-toml/v2                                             | v2.2.4                                 | v2.4.3                             | false  | true             |
 | github.com/peterbourgon/diskv                                               | v2.0.1+incompatible                    |                                    | false  | true             |
 | github.com/philhofer/fwd                                                    | v1.1.2                                 | v1.2.0                             | false  | true             |
 | github.com/pierrec/lz4/v4                                                   | v4.1.21                                | v4.1.27                            | false  | true             |
@@ -611,7 +612,7 @@ _Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 | github.com/sigstore/rekor                                                   | v1.5.1                                 | v1.5.3                             | false  | true             |
 | github.com/sigstore/rekor-tiles/v2                                          | v2.0.1                                 | v2.3.0                             | false  | true             |
 | github.com/sigstore/sigstore                                                | v1.10.4                                | v1.10.8                            | false  | true             |
-| github.com/sigstore/sigstore-go                                             | v1.1.4                                 | v1.2.1                             | false  | true             |
+| github.com/sigstore/sigstore-go                                             | v1.1.4                                 | v1.2.2                             | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/aws                          | v1.10.3                                | v1.10.8                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/azure                        | v1.10.3                                | v1.10.8                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/gcp                          | v1.10.3                                | v1.10.8                            | false  | true             |
@@ -729,7 +730,7 @@ _Generated on Fri, 03 Jul 2026 13:20:58 UTC for commit [bc5121b][0]._
 | golang.org/x/sys                                                            | v0.43.0                                | v0.46.0                            | true   | true             |
 | golang.org/x/telemetry                                                      | v0.0.0-20260409153401-be6f6cb8b1fa     | v0.0.0-20260626140120-b709645a9e92 | false  | true             |
 | golang.org/x/term                                                           | v0.42.0                                | v0.44.0                            | false  | true             |
-| golang.org/x/text                                                           | v0.36.0                                | v0.38.0                            | false  | true             |
+| golang.org/x/text                                                           | v0.36.0                                | v0.39.0                            | false  | true             |
 | golang.org/x/time                                                           | v0.14.0                                | v0.15.0                            | false  | true             |
 | golang.org/x/tools                                                          | v0.44.0                                | v0.47.0                            | false  | true             |
 | golang.org/x/tools/go/expect                                                | v0.1.0-deprecated                      | v0.1.1-deprecated                  | false  | true             |
