@@ -232,7 +232,7 @@ github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.8.1-0.20260702110516-b5ec72de6187
+# github.com/containers/conmon-rs v1.0.1
 ## explicit; go 1.26.3
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
