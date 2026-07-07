@@ -15,6 +15,7 @@ describes the CRI-O governance.
 | Peter Hunt        | [pehunt](https://github.com/pehunt)                 | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Fabiano Fidêncio  | [fidencio](https://github.com/fidencio)             | Approver      | [Intel](https://github.com/intel)         |
 | Sohan Kunkerkar   | [sohankunkerkar](https://github.com/sohankunkerkar) | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Ayato Tokubi      | [bitoku](https://github.com/bitoku)                 | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Skyler Clark      | [wgahnagl](https://github.com/wgahnagl)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
 | Qi Wang           | [QiWang19](https://github.com/QiWang19)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
 | Krisztian Litkey  | [klihub](https://github.com/klihub)                 | Reviewer      | [Intel](https://github.com/intel)         |
