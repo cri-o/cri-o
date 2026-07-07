@@ -19,7 +19,7 @@ require (
 	github.com/containernetworking/cni v1.3.0
 	github.com/containernetworking/plugins v1.9.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.8.1-0.20260702110516-b5ec72de6187
+	github.com/containers/conmon-rs v1.0.1
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.3.0
 	github.com/coreos/go-systemd/v22 v22.7.0

@@ -37,11 +37,11 @@ const (
 )
 
 var (
-	errRuntimeUnspecified     = errors.New("runtime must be specified")
-	errRunDirUnspecified      = errors.New("RunDir must be specified")
-	errInvalidValue           = errors.New("invalid value")
-	errRunDirNotCreated       = errors.New("could not create RunDir")
-	errTimeoutWaitForPid      = errors.New("timed out waiting for server PID to disappear")
+	errRuntimeUnspecified = errors.New("runtime must be specified")
+	errRunDirUnspecified  = errors.New("RunDir must be specified")
+	errInvalidValue       = errors.New("invalid value")
+	errRunDirNotCreated   = errors.New("could not create RunDir")
+	errTimeoutWaitForPid  = errors.New("timed out waiting for server PID to disappear")
 )
 
 // ConmonClient is the main client structure of this package.
