@@ -12,9 +12,11 @@ func NormalizeExecCmdArgs(args []string) []string {
 		// Preserve nil vs empty-slice identity for json.Marshal of the OCI process spec.
 		return args
 	}
+
 	out := make([]string, len(args))
 	for i, a := range args {
 		out[i] = strings.TrimLeft(a, "\n\r")
 	}
+
 	return out
 }

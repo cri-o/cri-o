@@ -16,6 +16,7 @@ var _ = t.Describe("NormalizeExecCmdArgs", func() {
 	})
 	It("preserves nil vs empty for a zero-length input", func() {
 		Expect(oci.NormalizeExecCmdArgs(nil)).To(BeNil())
+
 		empty := []string{}
 		Expect(oci.NormalizeExecCmdArgs(empty)).To(Equal(empty))
 	})
