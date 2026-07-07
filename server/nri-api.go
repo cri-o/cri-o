@@ -13,6 +13,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	cri "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
 	"github.com/cri-o/cri-o/internal/annotations"
@@ -668,11 +669,27 @@ func (c *criContainer) GetID() string {
 }
 
 func (c *criContainer) GetPodSandboxID() string {
-	return c.GetSpec().Annotations[annotations.SandboxID]
+	if id := c.GetSpec().Annotations[annotations.SandboxID]; id != "" {
+		return id
+	}
+
+	if c.ctr != nil {
+		return c.ctr.Sandbox()
+	}
+
+	return ""
 }
 
 func (c *criContainer) GetName() string {
-	return c.GetSpec().Annotations["io.kubernetes.container.name"]
+	if name := c.GetSpec().Annotations[kubeletTypes.KubernetesContainerNameLabel]; name != "" {
+		return name
+	}
+
+	if c.ctr != nil {
+		return c.ctr.Metadata().GetName()
+	}
+
+	return ""
 }
 
 func (c *criContainer) GetStatus() *nri.ContainerStatus {
