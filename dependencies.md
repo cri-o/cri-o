@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
+_Generated on Tue, 07 Jul 2026 22:24:43 UTC for commit [0752215][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/253a3628b252a88334c06504503cff05f564cb47
+[0]: https://github.com/cri-o/cri-o/commit/07522150d19520f89e86a6e66dfc1890a3b65af0
 
 ## Outdated Dependencies
 
@@ -12,7 +12,6 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | github.com/containerd/containerd                                            | v1.7.31                               | v1.7.33                            | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                               | v1.11.1                            | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.8.1-0.20260702110516-b5ec72de6187  | v1.0.1                             | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                | v1.3.0                             | true   | true             |
 | github.com/containers/ocicrypt                                              | v1.3.0                                | v1.3.1                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.6.1                                | v0.7.0                             | true   | true             |
@@ -55,7 +54,7 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.2                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.17.17                           | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.104                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.107                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.14.0                            | false  | true             |
@@ -69,7 +68,7 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | cloud.google.com/go/artifactregistry                                        | v1.17.2                                | v1.25.0                            | false  | true             |
 | cloud.google.com/go/asset                                                   | v1.22.0                                | v1.27.0                            | false  | true             |
 | cloud.google.com/go/assuredworkloads                                        | v1.13.0                                | v1.18.0                            | false  | true             |
-| cloud.google.com/go/auth                                                    | v0.18.2                                | v0.20.0                            | false  | true             |
+| cloud.google.com/go/auth                                                    | v0.18.2                                | v0.21.0                            | false  | true             |
 | cloud.google.com/go/auth/oauth2adapt                                        | v0.2.8                                 |                                    | false  | true             |
 | cloud.google.com/go/automl                                                  | v1.15.0                                | v1.20.0                            | false  | true             |
 | cloud.google.com/go/baremetalsolution                                       | v1.4.0                                 | v1.9.0                             | false  | true             |
@@ -143,7 +142,7 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | cloud.google.com/go/phishingprotection                                      | v0.9.7                                 | v0.13.0                            | false  | true             |
 | cloud.google.com/go/policytroubleshooter                                    | v1.11.7                                | v1.15.0                            | false  | true             |
 | cloud.google.com/go/privatecatalog                                          | v0.10.8                                | v0.15.0                            | false  | true             |
-| cloud.google.com/go/pubsub                                                  | v1.50.1                                | v1.50.2                            | false  | true             |
+| cloud.google.com/go/pubsub                                                  | v1.50.1                                | v1.50.3                            | false  | true             |
 | cloud.google.com/go/pubsub/v2                                               | v2.0.0                                 | v2.6.0                             | false  | true             |
 | cloud.google.com/go/pubsublite                                              | v1.8.2                                 | v1.9.0                             | false  | true             |
 | cloud.google.com/go/recaptchaenterprise/v2                                  | v2.20.5                                | v2.26.0                            | false  | true             |
@@ -317,7 +316,7 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | github.com/containernetworking/cni                                          | v1.3.0                                 |                                    | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.9.1                                 |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                   | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.8.1-0.20260702110516-b5ec72de6187   | v1.0.1                             | true   | true             |
+| github.com/containers/conmon-rs                                             | v1.0.1                                 |                                    | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.2.0                                 | v1.3.0                             | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01     |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.3.0                                 | v1.3.1                             | true   | true             |
@@ -380,8 +379,8 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | github.com/go-logr/zapr                                                     | v1.3.0                                 |                                    | false  | true             |
 | github.com/go-openapi/analysis                                              | v0.24.3                                | v0.25.3                            | false  | true             |
 | github.com/go-openapi/errors                                                | v0.22.7                                | v0.22.8                            | false  | true             |
-| github.com/go-openapi/jsonpointer                                           | v0.22.5                                | v0.24.0                            | false  | true             |
-| github.com/go-openapi/jsonreference                                         | v0.21.5                                | v0.21.6                            | false  | true             |
+| github.com/go-openapi/jsonpointer                                           | v0.22.5                                | v1.0.0                             | false  | true             |
+| github.com/go-openapi/jsonreference                                         | v0.21.5                                | v1.0.0                             | false  | true             |
 | github.com/go-openapi/loads                                                 | v0.23.3                                | v0.24.0                            | false  | true             |
 | github.com/go-openapi/runtime                                               | v0.29.3                                | v0.32.4                            | false  | true             |
 | github.com/go-openapi/spec                                                  | v0.22.4                                | v0.22.6                            | false  | true             |
@@ -433,7 +432,7 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | github.com/google/s2a-go                                                    | v0.1.9                                 |                                    | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                                 |                                    | true   | true             |
 | github.com/googleapis/enterprise-certificate-proxy                          | v0.3.12                                | v0.3.18                            | false  | true             |
-| github.com/googleapis/gax-go/v2                                             | v2.17.0                                | v2.22.0                            | false  | true             |
+| github.com/googleapis/gax-go/v2                                             | v2.17.0                                | v2.23.0                            | false  | true             |
 | github.com/gorilla/mux                                                      | v1.8.1                                 |                                    | false  | true             |
 | github.com/gorilla/websocket                                                | v1.5.4-0.20250319132907-e064f32e3674   |                                    | false  | true             |
 | github.com/grafana/regexp                                                   | v0.0.0-20240518133315-a468a5bfb3bc     | v0.0.0-20250905093917-f7b3be9d1853 | false  | true             |
@@ -494,7 +493,7 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | github.com/lestrrat-go/jwx/v3                                               | v3.0.10                                | v3.1.1                             | false  | true             |
 | github.com/lestrrat-go/option                                               | v1.0.1                                 |                                    | false  | true             |
 | github.com/lestrrat-go/option/v2                                            | v2.0.0                                 |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                              | v0.20251110.0                          | v0.20260630.0                      | false  | true             |
+| github.com/letsencrypt/boulder                                              | v0.20251110.0                          | v0.20260707.0                      | false  | true             |
 | github.com/lithammer/dedent                                                 | v1.1.0                                 |                                    | false  | true             |
 | github.com/magefile/mage                                                    | v1.16.1                                | v1.17.2                            | false  | true             |
 | github.com/magiconair/properties                                            | v1.8.10                                |                                    | false  | true             |
@@ -618,7 +617,7 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | github.com/sigstore/sigstore/pkg/signature/kms/azure                        | v1.10.3                                | v1.10.8                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/gcp                          | v1.10.3                                | v1.10.8                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/hashivault                   | v1.10.3                                | v1.10.8                            | false  | true             |
-| github.com/sigstore/timestamp-authority/v2                                  | v2.0.3                                 | v2.1.2                             | false  | true             |
+| github.com/sigstore/timestamp-authority/v2                                  | v2.0.3                                 | v2.1.3                             | false  | true             |
 | github.com/sirupsen/logrus                                                  | v1.9.4                                 |                                    | true   | true             |
 | github.com/skeema/knownhosts                                                | v1.3.2                                 |                                    | false  | true             |
 | github.com/skratchdot/open-golang                                           | v0.0.0-20200116055534-eef842397966     |                                    | false  | true             |
@@ -738,7 +737,7 @@ _Generated on Tue, 07 Jul 2026 10:22:58 UTC for commit [253a362][0]._
 | golang.org/x/tools/go/packages/packagestest                                 | v0.1.1-deprecated                      |                                    | false  | true             |
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1     | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.17.0                                |                                    | false  | true             |
-| google.golang.org/api                                                       | v0.269.0                               | v0.287.0                           | false  | true             |
+| google.golang.org/api                                                       | v0.269.0                               | v0.287.1                           | false  | true             |
 | google.golang.org/genproto                                                  | v0.0.0-20251202230838-ff82c1b0f217     | v0.0.0-20260706201446-f0a921348800 | false  | true             |
 | google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260401024825-9d38bb4040a9     | v0.0.0-20260706201446-f0a921348800 | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260406210006-6f92a3bedf2d     | v0.0.0-20260706201446-f0a921348800 | false  | true             |
