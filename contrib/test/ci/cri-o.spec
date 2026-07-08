@@ -48,7 +48,7 @@ Requires: runc > 1.0.0-57
 Obsoletes: ocid <= 0.3
 Provides: ocid = %{version}-%{release}
 Provides: %{service_name} = %{version}-%{release}
-Requires: containernetworking-plugins >= 0.7.5-1
+Recommends: containernetworking-plugins >= 0.7.5-1
 Requires: conmon
 
 %description
