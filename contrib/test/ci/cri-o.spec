@@ -45,7 +45,7 @@ BuildRequires: libseccomp-devel
 BuildRequires: pkgconfig(systemd)
 Requires(pre): container-selinux
 Requires: containers-common >= 1:0.1.24-3
-Requires: runc > 1.0.0-57
+Requires: crun >= 1.27
 Obsoletes: ocid <= 0.3
 Provides: ocid = %{version}-%{release}
 Provides: %{service_name} = %{version}-%{release}
