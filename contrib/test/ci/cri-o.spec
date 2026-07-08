@@ -86,7 +86,7 @@ make GO_MD2MAN=go-md2man docs
       --cgroup-manager "systemd" \
       --storage-driver "overlay" \
       --conmon "%{_bindir}/conmon" \
-      --cni-plugin-dir "%{_libexecdir}/cni" \
+      --cni-plugin-dir "/var/lib/cni/bin" \
       --storage-opt "overlay.override_kernel_check=1" \
       config > ./%{service_name}.conf
 
