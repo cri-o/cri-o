@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 07 Jul 2026 22:24:43 UTC for commit [0752215][0]._
+_Generated on Wed, 08 Jul 2026 06:09:12 UTC for commit [4260731][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/07522150d19520f89e86a6e66dfc1890a3b65af0
+[0]: https://github.com/cri-o/cri-o/commit/426073164797ede824c7495ba4d19c7cd9880190
 
 ## Outdated Dependencies
 
@@ -17,7 +17,7 @@ _Generated on Tue, 07 Jul 2026 22:24:43 UTC for commit [0752215][0]._
 | github.com/cyphar/filepath-securejoin                                       | v0.6.1                                | v0.7.0                             | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                | v5.3.1                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                               | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260706124442-068bd806d36a | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260708030814-7e987cd6c8f0 | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                | v0.4.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.3                               | v2.32.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.40.0                               | v1.42.1                            | true   | true             |
@@ -143,7 +143,7 @@ _Generated on Tue, 07 Jul 2026 22:24:43 UTC for commit [0752215][0]._
 | cloud.google.com/go/policytroubleshooter                                    | v1.11.7                                | v1.15.0                            | false  | true             |
 | cloud.google.com/go/privatecatalog                                          | v0.10.8                                | v0.15.0                            | false  | true             |
 | cloud.google.com/go/pubsub                                                  | v1.50.1                                | v1.50.3                            | false  | true             |
-| cloud.google.com/go/pubsub/v2                                               | v2.0.0                                 | v2.6.0                             | false  | true             |
+| cloud.google.com/go/pubsub/v2                                               | v2.0.0                                 | v2.6.1                             | false  | true             |
 | cloud.google.com/go/pubsublite                                              | v1.8.2                                 | v1.9.0                             | false  | true             |
 | cloud.google.com/go/recaptchaenterprise/v2                                  | v2.20.5                                | v2.26.0                            | false  | true             |
 | cloud.google.com/go/recommendationengine                                    | v0.9.7                                 | v0.14.0                            | false  | true             |
@@ -472,7 +472,7 @@ _Generated on Tue, 07 Jul 2026 22:24:43 UTC for commit [0752215][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | false  | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260706124442-068bd806d36a | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260708030814-7e987cd6c8f0 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
@@ -772,7 +772,7 @@ _Generated on Tue, 07 Jul 2026 22:24:43 UTC for commit [0752215][0]._
 | sigs.k8s.io/release-sdk                                                     | v0.12.6                                | v0.12.7                            | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.12.4                                |                                    | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                        | v4.2.3                                 | v4.7.0                             | false  | true             |
-| sigs.k8s.io/structured-merge-diff/v6                                        | v6.3.2                                 | v6.4.1                             | false  | true             |
+| sigs.k8s.io/structured-merge-diff/v6                                        | v6.3.2                                 | v6.4.2                             | false  | true             |
 | sigs.k8s.io/yaml                                                            | v1.6.0                                 |                                    | true   | true             |
 | tags.cncf.io/container-device-interface                                     | v1.1.0                                 |                                    | true   | true             |
 | tags.cncf.io/container-device-interface/specs-go                            | v1.1.0                                 |                                    | false  | true             |
