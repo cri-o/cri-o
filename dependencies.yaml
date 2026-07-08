@@ -70,6 +70,14 @@ dependencies:
       - path: scripts/versions
         match: buildah
 
+  - name: crun
+    version: 1.28
+    refPaths:
+      - path: scripts/versions
+        match: crun
+      - path: contrib/test/ci/vars.yml
+        match: crun_git_version
+
   - name: runc
     version: v1.5.0
     refPaths:
