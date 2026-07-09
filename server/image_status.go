@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	json "github.com/goccy/go-json"
+	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	istorage "go.podman.io/image/v5/storage"
 	"go.podman.io/storage"
