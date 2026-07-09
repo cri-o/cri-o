@@ -148,7 +148,9 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		}
 	}
 
-	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
+	containerName := c.CRIContainer().GetMetadata().GetName()
+
+	if requestedSharedCPUs(s.Annotations(), containerName) {
 		if exclusiveCPUSet.IsEmpty() {
 			return fmt.Errorf("no cpus found for container %q", c.Name())
 		}
@@ -175,7 +177,7 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		specgen.Config.Linux.Resources.CPU.Cpus = exclusiveCPUSet.Union(sharedCPUSet).String()
 	}
 
-	housekeepingSiblings, err := h.getHousekeepingCPUs(specgen.Config, s.Annotations())
+	housekeepingSiblings, err := h.getHousekeepingCPUs(specgen.Config, s.Annotations(), containerName)
 	if err != nil {
 		return err
 	}
@@ -241,7 +243,9 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 		return err
 	}
 
-	sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())
+	containerName := c.CRIContainer().GetMetadata().GetName()
+
+	sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), containerName)
 	if sharedCPUsRequested {
 		if containerManagers, err = setSharedCPUs(c, containerManagers, h.sharedCPUs); err != nil {
 			return fmt.Errorf("setSharedCPUs: failed to set shared CPUs for container %q; %w", c.Name(), err)
@@ -253,17 +257,19 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	}
 
 	// disable the CPU load balancing for the container CPUs
-	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations()) {
+	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations(), containerName) {
+		log.Infof(ctx, "Disable CPU load balancing for container %q", c.ID())
+
 		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, false, sharedCPUsRequested); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
 
 	// disable the IRQ smp load balancing for the container CPUs
-	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
+	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations(), containerName) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
 
-		housekeepingSiblings, err := h.getHousekeepingCPUs(&cSpec, s.Annotations())
+		housekeepingSiblings, err := h.getHousekeepingCPUs(&cSpec, s.Annotations(), containerName)
 		if err != nil {
 			return err
 		}
@@ -274,7 +280,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	}
 
 	// disable the CFS quota for the container CPUs
-	if shouldCPUQuotaBeDisabled(ctx, s.Annotations()) {
+	if shouldCPUQuotaBeDisabled(ctx, s.Annotations(), containerName) {
 		log.Infof(ctx, "Disable cpu cfs quota for container %q", c.ID())
 
 		if err := setCPUQuota(podManager, containerManagers); err != nil {
@@ -382,14 +388,16 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 		return nil
 	}
 
+	containerName := c.CRIContainer().GetMetadata().GetName()
+
 	// disable the CPU load balancing for the container CPUs
-	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations()) {
+	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations(), containerName) {
 		podManager, containerManagers, err := h.PodAndContainerCgroupManagers(s.CgroupParent(), c.ID())
 		if err != nil {
 			return err
 		}
 
-		sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())
+		sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), containerName)
 		if sharedCPUsRequested && node.CgroupIsV2() {
 			// Add the cgroup-child so that we can safely remove the isolated cpuset cgroup
 			// Otherwise cpuset may be kept isolated even after the cgroup is deleted.
@@ -437,9 +445,11 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 // If CPU load balancing is enabled, then *all* containers must run this PostStop hook.
 func (h *HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
 	cSpec := c.Spec()
+	containerName := c.CRIContainer().GetMetadata().GetName()
+
 	if shouldRunHooks(ctx, c.ID(), &cSpec, s) {
 		// enable the IRQ smp balancing for the container CPUs
-		if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
+		if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations(), containerName) {
 			if err := h.setIRQLoadBalancing(ctx, c, cpuset.CPUSet{}, true); err != nil {
 				return fmt.Errorf("set IRQ load balancing: %w", err)
 			}
@@ -456,32 +466,31 @@ func (h *HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s
 	return dh.PostStop(ctx, c, s)
 }
 
-func shouldCPULoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.CPULoadBalancing] == annotationTrue {
+func shouldCPULoadBalancingBeDisabled(ctx context.Context, annotations fields.Set, containerName string) bool {
+	value, _ := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, containerName)
+	if value == annotationTrue {
 		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPULoadBalancing))
 	}
 
-	return annotations[crioannotations.CPULoadBalancing] == annotationTrue ||
-		annotations[crioannotations.CPULoadBalancing] == annotationDisable
+	return value == annotationTrue || value == annotationDisable
 }
 
-func shouldCPUQuotaBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.CPUQuota] == annotationTrue {
+func shouldCPUQuotaBeDisabled(ctx context.Context, annotations fields.Set, containerName string) bool {
+	value, _ := getAnnotationValueForContainer(annotations, crioannotations.CPUQuota, containerName)
+	if value == annotationTrue {
 		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuota))
 	}
 
-	return annotations[crioannotations.CPUQuota] == annotationTrue ||
-		annotations[crioannotations.CPUQuota] == annotationDisable
+	return value == annotationTrue || value == annotationDisable
 }
 
-func shouldIRQLoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.IRQLoadBalancing] == annotationTrue {
+func shouldIRQLoadBalancingBeDisabled(ctx context.Context, annotations fields.Set, containerName string) bool {
+	value, _ := getAnnotationValueForContainer(annotations, crioannotations.IRQLoadBalancing, containerName)
+	if value == annotationTrue {
 		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.IRQLoadBalancing))
 	}
 
-	return annotations[crioannotations.IRQLoadBalancing] == annotationTrue ||
-		annotations[crioannotations.IRQLoadBalancing] == annotationDisable ||
-		annotations[crioannotations.IRQLoadBalancing] == annotationHousekeeping
+	return value == annotationTrue || value == annotationDisable || value == annotationHousekeeping
 }
 
 func shouldCStatesBeConfigured(annotations fields.Set) (present bool, value string) {
@@ -498,6 +507,19 @@ func shouldFreqGovernorBeConfigured(annotations fields.Set) (present bool, value
 
 func annotationValueDeprecationWarning(annotation string) string {
 	return fmt.Sprintf("The usage of the annotation %q with value %q will be deprecated under 1.21", annotation, "true")
+}
+
+func getAnnotationValueForContainer(annotations fields.Set, baseKey, containerName string) (string, bool) {
+	if containerName != "" {
+		containerKey := baseKey + "/" + containerName
+		if value, ok := annotations[containerKey]; ok {
+			return value, true
+		}
+	}
+
+	value, ok := annotations[baseKey]
+
+	return value, ok
 }
 
 func requestedSharedCPUs(annotations fields.Set, cName string) bool {
@@ -1536,15 +1558,17 @@ func injectCpusetEnv(specgen *generate.Generator, isolated, shared *cpuset.CPUSe
 }
 
 // isRequestedHousekeepingCPUs checks if sandbox annotation "irq-load-balancing.crio.io" equals "housekeeping".
-func isRequestedHousekeepingCPUs(annotations fields.Set) bool {
-	return annotations[crioannotations.IRQLoadBalancing] == annotationHousekeeping
+func isRequestedHousekeepingCPUs(annotations fields.Set, containerName string) bool {
+	value, _ := getAnnotationValueForContainer(annotations, crioannotations.IRQLoadBalancing, containerName)
+
+	return value == annotationHousekeeping
 }
 
 // getHousekeepingCPUs determines which CPUs should be preserved for housekeeping tasks.
 // When housekeeping mode is enabled, it returns the thread siblings of the first container CPU.
 // These CPUs will continue to handle interrupts while other container CPUs are isolated.
-func (h *HighPerformanceHooks) getHousekeepingCPUs(containerSpec *specs.Spec, annotations map[string]string) (cpuset.CPUSet, error) {
-	if !isRequestedHousekeepingCPUs(annotations) {
+func (h *HighPerformanceHooks) getHousekeepingCPUs(containerSpec *specs.Spec, annotations map[string]string, containerName string) (cpuset.CPUSet, error) {
+	if !isRequestedHousekeepingCPUs(annotations, containerName) {
 		return cpuset.CPUSet{}, nil
 	}
 
