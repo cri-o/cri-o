@@ -1055,6 +1055,38 @@ var _ = t.Describe("Container", func() {
 			}).To(Panic())
 		})
 	})
+
+	t.Describe("EventOrderMutex", func() {
+		It("should serialize LockEventOrder callers", func() {
+			done := make(chan struct{})
+
+			sut.LockEventOrder()
+
+			go func() {
+				sut.LockEventOrder()
+				sut.UnlockEventOrder()
+				close(done)
+			}()
+
+			Consistently(done, 100*time.Millisecond).ShouldNot(BeClosed())
+
+			sut.UnlockEventOrder()
+
+			Eventually(done, 100*time.Millisecond).Should(BeClosed())
+		})
+
+		It("should not block when mutex is not held", func() {
+			done := make(chan struct{})
+
+			go func() {
+				sut.LockEventOrder()
+				sut.UnlockEventOrder()
+				close(done)
+			}()
+
+			Eventually(done, 100*time.Millisecond).Should(BeClosed())
+		})
+	})
 })
 
 var _ = t.Describe("SpoofedContainer", func() {
