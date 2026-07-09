@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 09 Jul 2026 16:34:56 UTC for commit [6fd17a0][0]._
+_Generated on Thu, 09 Jul 2026 22:11:14 UTC for commit [2b4cad2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6fd17a02327bda2364252e14e245e037c2e2f775
+[0]: https://github.com/cri-o/cri-o/commit/2b4cad27cdb25221f76c1b632e900f747d522967
 
 ## Outdated Dependencies
 
@@ -55,7 +55,7 @@ _Generated on Thu, 09 Jul 2026 16:34:56 UTC for commit [6fd17a0][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.2                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.17.17                           | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.112                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.114                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.14.0                            | false  | true             |
@@ -75,7 +75,7 @@ _Generated on Thu, 09 Jul 2026 16:34:56 UTC for commit [6fd17a0][0]._
 | cloud.google.com/go/baremetalsolution                                       | v1.4.0                                 | v1.9.0                             | false  | true             |
 | cloud.google.com/go/batch                                                   | v1.13.0                                | v1.19.0                            | false  | true             |
 | cloud.google.com/go/beyondcorp                                              | v1.2.0                                 | v1.7.0                             | false  | true             |
-| cloud.google.com/go/bigquery                                                | v1.72.0                                | v1.77.0                            | false  | true             |
+| cloud.google.com/go/bigquery                                                | v1.72.0                                | v1.78.0                            | false  | true             |
 | cloud.google.com/go/bigtable                                                | v1.40.1                                | v1.50.0                            | false  | true             |
 | cloud.google.com/go/billing                                                 | v1.21.0                                | v1.26.0                            | false  | true             |
 | cloud.google.com/go/binaryauthorization                                     | v1.10.0                                | v1.15.0                            | false  | true             |
@@ -109,7 +109,7 @@ _Generated on Thu, 09 Jul 2026 16:34:56 UTC for commit [6fd17a0][0]._
 | cloud.google.com/go/essentialcontacts                                       | v1.7.7                                 | v1.12.0                            | false  | true             |
 | cloud.google.com/go/eventarc                                                | v1.17.0                                | v1.24.0                            | false  | true             |
 | cloud.google.com/go/filestore                                               | v1.10.3                                | v1.15.0                            | false  | true             |
-| cloud.google.com/go/firestore                                               | v1.20.0                                | v1.22.0                            | false  | true             |
+| cloud.google.com/go/firestore                                               | v1.20.0                                | v1.23.0                            | false  | true             |
 | cloud.google.com/go/functions                                               | v1.19.7                                | v1.24.0                            | false  | true             |
 | cloud.google.com/go/gkebackup                                               | v1.8.1                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/gkeconnect                                              | v0.12.5                                | v1.0.0                             | false  | true             |
@@ -428,7 +428,7 @@ _Generated on Thu, 09 Jul 2026 16:34:56 UTC for commit [6fd17a0][0]._
 | github.com/google/go-intervals                                              | v0.0.2                                 |                                    | false  | true             |
 | github.com/google/go-querystring                                            | v1.2.0                                 |                                    | false  | true             |
 | github.com/google/gofuzz                                                    | v1.2.0                                 |                                    | false  | true             |
-| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936     | v0.0.0-20260604005048-7023385849c0 | false  | true             |
+| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936     | v0.0.0-20260709213413-301c45cedc90 | false  | true             |
 | github.com/google/renameio                                                  | v1.0.1                                 |                                    | true   | true             |
 | github.com/google/s2a-go                                                    | v0.1.9                                 |                                    | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                                 |                                    | true   | true             |
@@ -723,7 +723,7 @@ _Generated on Thu, 09 Jul 2026 16:34:56 UTC for commit [6fd17a0][0]._
 | go.yaml.in/yaml/v3                                                          | v3.0.4                                 |                                    | false  | true             |
 | goa.design/goa/v3                                                           | v3.23.4                                | v3.28.0                            | false  | true             |
 | golang.org/x/crypto                                                         | v0.50.0                                | v0.54.0                            | false  | true             |
-| golang.org/x/exp                                                            | v0.0.0-20240719175910-8a7402abbf56     | v0.0.0-20260611194520-c48552f49976 | false  | true             |
+| golang.org/x/exp                                                            | v0.0.0-20240719175910-8a7402abbf56     | v0.0.0-20260709172345-9ea1abe57597 | false  | true             |
 | golang.org/x/mod                                                            | v0.35.0                                | v0.38.0                            | false  | true             |
 | golang.org/x/net                                                            | v0.53.0                                | v0.57.0                            | true   | true             |
 | golang.org/x/oauth2                                                         | v0.36.0                                |                                    | false  | true             |
@@ -738,7 +738,7 @@ _Generated on Thu, 09 Jul 2026 16:34:56 UTC for commit [6fd17a0][0]._
 | golang.org/x/tools/go/packages/packagestest                                 | v0.1.1-deprecated                      |                                    | false  | true             |
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1     | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.17.0                                |                                    | false  | true             |
-| google.golang.org/api                                                       | v0.269.0                               | v0.287.1                           | false  | true             |
+| google.golang.org/api                                                       | v0.269.0                               | v0.288.0                           | false  | true             |
 | google.golang.org/genproto                                                  | v0.0.0-20251202230838-ff82c1b0f217     | v0.0.0-20260706201446-f0a921348800 | false  | true             |
 | google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260401024825-9d38bb4040a9     | v0.0.0-20260706201446-f0a921348800 | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260406210006-6f92a3bedf2d     | v0.0.0-20260706201446-f0a921348800 | false  | true             |
