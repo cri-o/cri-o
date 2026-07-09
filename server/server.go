@@ -101,6 +101,9 @@ type Server struct {
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
 
 	artifactStore *ociartifact.Store
+
+	// dedupScheduler batches dedup requests to reduce lock contention
+	dedupScheduler *storage.DedupScheduler
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -334,6 +337,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.config.CNIManagerShutdown()
 	s.resourceStore.Close()
 
+	// Stop dedup scheduler if running
+	if s.dedupScheduler != nil {
+		s.dedupScheduler.Stop()
+	}
+
 	if err := s.ContainerServer.Shutdown(); err != nil {
 		return err
 	}
@@ -476,6 +484,7 @@ func New(
 		resourceStore:            resourcestore.New(),
 		hooksRetriever:           runtimehandlerhooks.NewHooksRetriever(ctx, config),
 		artifactStore:            artifactStore,
+		dedupScheduler:           storage.NewDedupScheduler(containerServer.StorageImageServer().GetStore(), config.DedupScheduleDelaySeconds),
 	}
 
 	if s.config.EnablePodEvents {
@@ -829,6 +838,14 @@ func (s *Server) MonitorsCloseChan() chan struct{} {
 
 // StartExitMonitor start a routine that monitors container exits
 // and updates the container status.
+// StartDedupScheduler starts the dedup scheduler consumer.
+func (s *Server) StartDedupScheduler(ctx context.Context) {
+	if s.dedupScheduler != nil {
+		log.Infof(ctx, "Starting dedup scheduler")
+		s.dedupScheduler.Start(ctx)
+	}
+}
+
 func (s *Server) StartExitMonitor(ctx context.Context) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {

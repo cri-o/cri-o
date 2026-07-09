@@ -478,6 +478,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.EnablePodEvents, c.EnablePodEvents),
 		},
 		{
+			templateString: templateStringCrioRuntimeEnableLayerDedup,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.EnableLayerDedup, c.EnableLayerDedup),
+		},
+		{
+			templateString: templateStringCrioRuntimeDedupScheduleDelaySeconds,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DedupScheduleDelaySeconds, c.DedupScheduleDelaySeconds),
+		},
+		{
 			templateString: templateStringCrioRuntimeDefaultRuntime,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.DefaultRuntime, c.DefaultRuntime),
@@ -1288,6 +1298,20 @@ const templateStringCrioRuntimeEnableCriuSupport = `# Globally enable/disable CR
 const templateStringCrioRuntimeEnablePodEvents = `# Enable/disable the generation of the container,
 # sandbox lifecycle events to be sent to the Kubelet to optimize the PLEG
 {{ $.Comment }}enable_pod_events = {{ .EnablePodEvents }}
+
+`
+
+const templateStringCrioRuntimeEnableLayerDedup = `# Enable/disable automatic layer deduplication after image pulls using reflinks.
+# Requires a filesystem that supports reflinks (XFS, BTRFS).
+{{ $.Comment }}enable_layer_dedup = {{ .EnableLayerDedup }}
+
+`
+
+const templateStringCrioRuntimeDedupScheduleDelaySeconds = `# Maximum time in seconds to wait for active image pulls to complete before
+# triggering deduplication. Only applies when enable_layer_dedup is true.
+# If 0 (default), dedup triggers immediately when active pulls drop to 0.
+# If > 0, dedup waits up to this duration for pulls to finish, allowing batching.
+{{ $.Comment }}dedup_schedule_delay_seconds = {{ .DedupScheduleDelaySeconds }}
 
 `
 

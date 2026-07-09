@@ -54,6 +54,7 @@ h
 --disable-hostport-mapping
 --drop-infra-ctr
 --enable-criu-support
+--enable-layer-dedup
 --enable-metrics
 --enable-nri
 --enable-pod-events

@@ -420,6 +420,10 @@ func main() {
 			crioServer.StartExitMonitor(ctx)
 		}()
 
+		if config.EnableLayerDedup {
+			crioServer.StartDedupScheduler(ctx)
+		}
+
 		hookSync := make(chan error, 2)
 		if crioServer.Hooks == nil {
 			hookSync <- err // so we don't block during cleanup
