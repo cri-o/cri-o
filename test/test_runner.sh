@@ -23,13 +23,16 @@ if [[ "$TEST_USERNS" == "1" ]]; then
     fi
 fi
 
+if [[ "${USE_LOCAL_REGISTRY:-}" == "1" ]]; then
+    echo "Using local registry mirror configuration"
+    export CONTAINER_REGISTRIES_CONF_DIR="$PWD/registries.conf.d"
+fi
+
 # Preload images.
-# NOTE: Disabled - copyimg is no longer needed since CI uses local registry
-# The local registry pre-loads all test images before tests start
-# (
-#     . common.sh
-#     get_images
-# )
+(
+    . common.sh
+    get_images
+)
 
 function execute() {
     echo >&2 ++ "$@"

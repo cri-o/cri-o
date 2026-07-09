@@ -23,20 +23,20 @@ log_error() {
 # Check if registry container exists
 if ! podman inspect "${REGISTRY_NAME}" &>/dev/null; then
     log_error "Local registry '${REGISTRY_NAME}' not found"
-    log_error "Did you run ci-setup-local-registry.sh before tests?"
+    log_error "Did you run setup-local-registry.sh before tests?"
     exit 1
 fi
 
 log_info "Checking local registry usage..."
 
-# Count GET requests from local registry
-pull_count=$(podman logs "${REGISTRY_NAME}" 2>&1 | grep -c "GET.*manifests" || echo "0")
-blob_count=$(podman logs "${REGISTRY_NAME}" 2>&1 | grep -c "GET.*blobs" || echo "0")
+# Count GET requests from local registry (filter to HTTP access log lines only)
+pull_count=$(podman logs "${REGISTRY_NAME}" 2>&1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+.*GET.*/manifests/' | grep -c '' || echo "0")
+blob_count=$(podman logs "${REGISTRY_NAME}" 2>&1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+.*GET.*/blobs/' | grep -c '' || echo "0")
 
 # Extract unique images pulled from local registry
 log_info ""
 log_info "Images pulled from local registry (localhost:${REGISTRY_PORT}):"
-local_images=$(podman logs "${REGISTRY_NAME}" 2>&1 | grep "GET.*manifests" | sed -E 's|.*GET /v2/([^/]+(/[^/]+)*)/manifests/.*|\1|' | sort -u || echo "")
+local_images=$(podman logs "${REGISTRY_NAME}" 2>&1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+.*GET.*/manifests/' | sed -E 's|.*GET /v2/([^/]+(/[^/]+)*)/manifests/.*|\1|' | sort -u || echo "")
 if [ -n "$local_images" ]; then
     echo "$local_images" | sed 's/^/  ✓ /'
     local_image_count=$(echo "$local_images" | wc -l)
@@ -96,7 +96,7 @@ if [ -n "$external_pulls" ]; then
     log_warn "These images fell back to external registries:"
     log_warn "  - Slower (network latency)"
     log_warn "  - Less reliable (network failures)"
-    log_warn "  - Should be added to ci-setup-local-registry.sh IMAGES array"
+    log_warn "  - Should be added to setup-local-registry.sh IMAGES array"
     log_warn ""
 else
     log_info "External registry fallbacks: 0"

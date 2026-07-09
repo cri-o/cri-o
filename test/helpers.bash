@@ -148,17 +148,9 @@ function setup_crio() {
         apparmor="$1"
     fi
 
-    # Pre-load images into CRI-O storage from .artifacts/ if available
-    # In CI with local registry, skip this - images will be pulled on-demand from localhost:5000
-    if [ -d "$ARTIFACTS_PATH" ] && [ -n "$(ls -A "$ARTIFACTS_PATH" 2>/dev/null)" ]; then
-        for img in "${IMAGES[@]}"; do
-            setup_img "$img"
-        done
-    else
-        echo "# Skipping image pre-load - using registry mirror" >&3
-        # Set flag so start_crio_no_setup knows to pull images if needed
-        SETUP_CRIO_CALLED=true
-    fi
+    for img in "${IMAGES[@]}"; do
+        setup_img "$img"
+    done
 
     # Prepare the CNI configuration files, we're running with non host
     # networking by default
@@ -205,25 +197,16 @@ function setup_crio() {
 function check_images() {
     local img json list
 
-    # check that images are there, pull if missing
+    # check that images are there
     json=$(crictl images -o json)
     [ -n "$json" ]
     list=$(jq -r '.images[] | .repoTags[]' <<<"$json")
     for img in "${IMAGES[@]}"; do
         if [[ "$list" != *"$img"* ]]; then
-            # Image not present - pull it (will use local registry mirror in CI)
-            echo "# Pulling missing image: $img" >&3
-            crictl pull "$img" >&3 2>&3 || {
-                echo "Image $img is not present and failed to pull!" >&2
-                exit 1
-            }
+            echo "Image $img is not present but it should!" >&2
+            exit 1
         fi
     done
-
-    # Refresh the image list after pulling
-    json=$(crictl images -o json)
-    [ -n "$json" ]
-    list=$(jq -r '.images[] | .repoTags[]' <<<"$json")
 
     # these two variables are used by a few tests
     eval "$(jq -r '.images[] |
@@ -242,13 +225,6 @@ function start_crio_no_setup() {
         &>"$CRIO_LOG" &
     CRIO_PID=$!
     wait_until_reachable
-
-    # When using local registry AND setup_crio was called, pull images
-    # This ensures images are available for tests that use setup_crio + start_crio_no_setup pattern
-    if [[ "${SETUP_CRIO_CALLED:-false}" == "true" ]]; then
-        check_images
-        unset SETUP_CRIO_CALLED
-    fi
 }
 
 # Start crio.
