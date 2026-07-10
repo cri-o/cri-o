@@ -1,37 +1,41 @@
 #!/usr/bin/env bash
-# CI script to setup local registry and pre-load test images
-# This runs before integration tests to reduce network dependencies
+#
+# Setup a local registry mirror for CRI-O integration tests.
+#
+# Starts a registry:2 container on localhost:5000 and copies all test images
+# into it using skopeo. The test runner (test_runner.sh) configures CRI-O to
+# use this registry as a mirror via CONTAINER_REGISTRIES_CONF_DIR, so that
+# tests pull from localhost instead of upstream registries.
+#
+# Mirror layout follows the [[registry.mirror]] convention: the upstream
+# registry prefix is stripped, so quay.io/crio/alpine:3.9 becomes
+# localhost:5000/crio/alpine:3.9.
+#
+# Usage: scripts/setup-local-registry.sh
+# Requires: podman, skopeo, curl
 
 set -euo pipefail
 
-SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-CRIO_ROOT="${SCRIPT_DIR}/.."
-TEST_DIR="${CRIO_ROOT}/test"
-
-# Registry configuration
 REGISTRY_NAME="crio-test-registry"
 REGISTRY_PORT="${REGISTRY_PORT:-5000}"
 REGISTRY_HOST="localhost:${REGISTRY_PORT}"
-
-# Retry configuration for image pulls
 MAX_RETRIES="${MAX_RETRIES:-3}"
 RETRY_DELAY="${RETRY_DELAY:-5}"
 
-# Complete list of all images used in tests
-# This includes images from common.sh, BATS tests, and critest
+# All images used in integration tests and critest
 IMAGES=(
-    # Core images from test/common.sh (pre-loaded by test_runner.sh)
+    # Core test images (common.sh / test_runner.sh)
     "registry.k8s.io/pause:3.10.1"
     "quay.io/crio/fedora-crio-ci:latest"
     "quay.io/crio/hello-wasm:latest"
 
-    # Additional images referenced in test/*.bats files
+    # BATS test images
     "quay.io/crio/alpine:3.9"
     "quay.io/crio/artifact:v1"
     "quay.io/saschagrunert/hello-world:latest"
     "quay.io/fedora/fedora:latest"
 
-    # critest images (gcr.io/k8s-staging-cri-tools)
+    # critest images
     "gcr.io/k8s-staging-cri-tools/test-image-predefined-group:latest"
     "gcr.io/k8s-staging-cri-tools/hostnet-nginx-arm64:latest"
     "gcr.io/k8s-staging-cri-tools/hostnet-nginx-amd64:latest"
@@ -39,7 +43,7 @@ IMAGES=(
     "gcr.io/k8s-staging-cri-tools/test-image-tags:2"
     "gcr.io/k8s-staging-cri-tools/test-image-latest:latest"
     "gcr.io/k8s-staging-cri-tools/test-image-tag:test"
-"gcr.io/k8s-staging-cri-tools/test-image-1:latest"
+    "gcr.io/k8s-staging-cri-tools/test-image-1:latest"
     "gcr.io/k8s-staging-cri-tools/test-image-2:latest"
     "gcr.io/k8s-staging-cri-tools/test-image-3:latest"
     "k8s.gcr.io/pause:3.10.1"
@@ -50,293 +54,111 @@ IMAGES=(
     "registry.k8s.io/e2e-test-images/httpd:2.4.39-4"
     "registry.k8s.io/e2e-test-images/nonewprivs:1.3"
 
-    # Other images
+    # Other
     "registry.access.redhat.com/rhel7-atomic:latest"
     "quay.io/crio/nginx@sha256:960355a671fb88ef18a85f92ccf2ccf8e12186216c86337ad808c204d69d512d"
-)
 
-# OCI artifacts (pulled via podman artifact)
-ARTIFACT_IMAGES=(
+    # OCI artifacts
     "quay.io/crio/artifact:singlefile"
     "quay.io/crio/artifact:multiplefiles"
     "quay.io/crio/artifact:exec"
     "quay.io/crio/seccomp:v2"
 )
 
-log_info() {
-    echo "[INFO] $*"
+# Retry a command up to MAX_RETRIES times
+retry() {
+    local attempt=1
+    while [ ${attempt} -le ${MAX_RETRIES} ]; do
+        if "$@"; then
+            return 0
+        fi
+        if [ ${attempt} -lt ${MAX_RETRIES} ]; then
+            echo "[WARN] Attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${RETRY_DELAY}s..." >&2
+            sleep "${RETRY_DELAY}"
+        fi
+        ((attempt++))
+    done
+    return 1
 }
 
-log_warn() {
-    echo "[WARN] $*" >&2
-}
+# Copy a single image into the local registry, preserving manifest lists
+mirror_image() {
+    local remote_image="$1"
+    local repo_path local_image
 
-log_error() {
-    echo "[ERROR] $*" >&2
-}
-
-# Check if podman is available
-check_podman() {
-    if ! command -v podman &> /dev/null; then
-        log_error "Podman not found. Falling back to standard image pull."
-        return 1
+    if [[ "${remote_image}" =~ @ ]]; then
+        repo_path="${remote_image%%@*}"
+        repo_path="${repo_path#*/}"
+        local digest="${remote_image##*@}"
+        local short_hash="sha256-${digest##*:}"
+        short_hash="${short_hash:0:20}"
+        local_image="${REGISTRY_HOST}/${repo_path}:${short_hash}"
+    else
+        repo_path="${remote_image#*/}"
+        local_image="${REGISTRY_HOST}/${repo_path}"
     fi
-    log_info "Using Podman: $(podman --version)"
-    return 0
+
+    echo "[INFO] Mirroring ${remote_image} -> ${local_image}"
+    retry skopeo copy --all "docker://${remote_image}" "docker://${local_image}" --dest-tls-verify=false
 }
 
-# Setup registry container
 setup_registry() {
-    log_info "Setting up local registry at ${REGISTRY_HOST}"
-
-    # Remove existing registry if present
+    echo "[INFO] Setting up local registry at ${REGISTRY_HOST}"
     podman rm -f "${REGISTRY_NAME}" 2>/dev/null || true
 
-    # Pull registry image with retry (in case of network issues)
-    local pull_attempt=1
-    while [ ${pull_attempt} -le ${MAX_RETRIES} ]; do
-        log_info "Pulling registry image (attempt ${pull_attempt}/${MAX_RETRIES})"
-        if podman pull docker.io/library/registry:2; then
-            break
-        fi
+    retry podman pull docker.io/library/registry:2
 
-        if [ ${pull_attempt} -ge ${MAX_RETRIES} ]; then
-            log_error "Failed to pull registry image after ${MAX_RETRIES} attempts"
-            return 1
-        fi
-
-        log_warn "Registry image pull failed, retrying in ${RETRY_DELAY} seconds..."
-        sleep "${RETRY_DELAY}"
-        ((pull_attempt++))
-    done
-
-    # Create registry container with host network to avoid CNI conflicts with CRI-O
-    if ! podman run -d \
+    podman run -d \
         --restart=always \
         --network=host \
         --name "${REGISTRY_NAME}" \
-        -e REGISTRY_HTTP_ADDR=0.0.0.0:${REGISTRY_PORT} \
-        docker.io/library/registry:2; then
-        log_error "Failed to create registry container"
-        podman logs "${REGISTRY_NAME}" 2>/dev/null || true
-        return 1
-    fi
+        -e "REGISTRY_HTTP_ADDR=0.0.0.0:${REGISTRY_PORT}" \
+        docker.io/library/registry:2
 
-    # Wait for registry to be ready
-    local max_wait=30
     local count=0
-    log_info "Waiting for registry to be ready..."
     while ! curl -sf "http://${REGISTRY_HOST}/v2/" >/dev/null 2>&1; do
-        if [ ${count} -ge ${max_wait} ]; then
-            log_error "Registry failed to start within ${max_wait} seconds"
-            podman logs "${REGISTRY_NAME}"
+        if [ ${count} -ge 30 ]; then
+            echo "[ERROR] Registry failed to start within 30 seconds" >&2
+            podman logs "${REGISTRY_NAME}" >&2
             return 1
         fi
         sleep 1
         ((count++))
     done
-
-    log_info "Registry ready at http://${REGISTRY_HOST}"
-    return 0
+    echo "[INFO] Registry ready at http://${REGISTRY_HOST}"
 }
 
-# Pull image with retry logic
-pull_image_with_retry() {
-    local image="$1"
-    local attempt=1
-
-    while [ ${attempt} -le ${MAX_RETRIES} ]; do
-        log_info "Pulling ${image} (attempt ${attempt}/${MAX_RETRIES})"
-
-        if podman pull "${image}"; then
-            log_info "Successfully pulled ${image}"
-            return 0
-        fi
-
-        if [ ${attempt} -lt ${MAX_RETRIES} ]; then
-            log_warn "Pull failed, retrying in ${RETRY_DELAY} seconds..."
-            sleep "${RETRY_DELAY}"
-        fi
-
-        ((attempt++))
-    done
-
-    log_error "Failed to pull ${image} after ${MAX_RETRIES} attempts"
-    return 1
-}
-
-# Pull and mirror a single image
-mirror_image() {
-    local remote_image="$1"
-    local repo_path
-    local image_ref
-    local local_image
-
-    # With [[registry.mirror]] configuration, the mirror STRIPS the registry prefix
-    # quay.io/crio/fedora-crio-ci:latest -> localhost:5000/crio/fedora-crio-ci:latest
-    # registry.k8s.io/pause:3.10.1 -> localhost:5000/pause:3.10.1
-    # This matches what copyimg used to provide (registry-stripped paths)
-
-    if [[ "${remote_image}" =~ @ ]]; then
-        # Digest-based image
-        repo_path="${remote_image%%@*}"  # Remove digest
-        repo_path="${repo_path#*/}"      # Strip registry prefix (everything before first /)
-
-        local digest="${remote_image##*@}"
-        image_ref="sha256-${digest##*:}"
-        image_ref="${image_ref:0:20}"  # Truncate to reasonable length
-        local_image="${REGISTRY_HOST}/${repo_path}:${image_ref}"
-    else
-        # Tagged image - strip registry prefix (everything before first /)
-        repo_path="${remote_image#*/}"
-        local_image="${REGISTRY_HOST}/${repo_path}"
-    fi
-
-    log_info "Mirroring ${remote_image} -> ${local_image}"
-
-    # Pull from remote with retry
-    if ! pull_image_with_retry "${remote_image}"; then
-        log_warn "Skipping ${remote_image} (pull failed)"
-        return 1
-    fi
-
-    # Tag for local registry
-    if ! podman tag "${remote_image}" "${local_image}" 2>/dev/null; then
-        log_warn "Failed to tag ${remote_image}, trying alternate method"
-        # Try with image ID
-        local image_id
-        image_id=$(podman images --format "{{.ID}}" "${remote_image}" | head -1)
-        if [ -n "${image_id}" ] && ! podman tag "${image_id}" "${local_image}"; then
-            log_error "Failed to tag ${remote_image}"
-            return 1
-        fi
-    fi
-
-    # Push to local registry (with retry)
-    local push_attempt=1
-    while [ ${push_attempt} -le ${MAX_RETRIES} ]; do
-        if podman push "${local_image}" --tls-verify=false 2>&1; then
-            log_info "Successfully pushed ${local_image}"
-            return 0
-        fi
-
-        if [ ${push_attempt} -lt ${MAX_RETRIES} ]; then
-            log_warn "Push failed, retrying in ${RETRY_DELAY} seconds..."
-            sleep "${RETRY_DELAY}"
-        fi
-
-        ((push_attempt++))
-    done
-
-    log_warn "Failed to push ${local_image} after ${MAX_RETRIES} attempts"
-    return 1
-}
-
-# Mirror a single OCI artifact via skopeo copy
-mirror_artifact() {
-    local remote_image="$1"
-    local repo_path="${remote_image#*/}"
-    local local_image="${REGISTRY_HOST}/${repo_path}"
-
-    log_info "Mirroring artifact ${remote_image} -> ${local_image}"
-
-    local attempt=1
-    while [ ${attempt} -le ${MAX_RETRIES} ]; do
-        log_info "Copying artifact ${remote_image} (attempt ${attempt}/${MAX_RETRIES})"
-        if skopeo copy --all "docker://${remote_image}" "docker://${local_image}" --dest-tls-verify=false; then
-            log_info "Successfully mirrored artifact ${local_image}"
-            return 0
-        fi
-
-        if [ ${attempt} -ge ${MAX_RETRIES} ]; then
-            log_error "Failed to mirror artifact ${remote_image} after ${MAX_RETRIES} attempts"
-            return 1
-        fi
-
-        log_warn "Artifact copy failed, retrying in ${RETRY_DELAY} seconds..."
-        sleep "${RETRY_DELAY}"
-        ((attempt++))
-    done
-
-    return 1
-}
-
-# Mirror all test images
 mirror_all_images() {
-    log_info "Mirroring ${#IMAGES[@]} test images and ${#ARTIFACT_IMAGES[@]} OCI artifacts"
-
-    local failed=0
-    local succeeded=0
+    echo "[INFO] Mirroring ${#IMAGES[@]} images"
+    local failed=0 succeeded=0
 
     for img in "${IMAGES[@]}"; do
         if mirror_image "${img}"; then
-            ((succeeded++))
+            ((succeeded++)) || true
         else
-            log_warn "Failed to mirror ${img}"
-            ((failed++))
+            echo "[WARN] Failed to mirror ${img}" >&2
+            ((failed++)) || true
         fi
     done
 
-    for img in "${ARTIFACT_IMAGES[@]}"; do
-        if mirror_artifact "${img}"; then
-            ((succeeded++))
-        else
-            log_warn "Failed to mirror artifact ${img}"
-            ((failed++))
-        fi
-    done
-
-    log_info "Mirror summary: ${succeeded} succeeded, ${failed} failed"
-
-    # Don't fail if at least core images succeeded
+    echo "[INFO] Mirror summary: ${succeeded} succeeded, ${failed} failed"
     if [ ${succeeded} -lt 3 ]; then
-        log_error "Too few images mirrored successfully (${succeeded}/3 core images minimum)"
+        echo "[ERROR] Too few images mirrored (need at least 3 core images)" >&2
         return 1
     fi
-
-    if [ ${failed} -gt 0 ]; then
-        log_warn "${failed} images failed to mirror, but continuing with ${succeeded} images"
-    else
-        log_info "Successfully mirrored all images"
-    fi
-
-    return 0
 }
-# Main execution
-main() {
-    log_info "Starting CI local registry setup"
 
-    if ! check_podman; then
-        log_info "Skipping local registry setup (podman not available)"
+main() {
+    if ! command -v podman &>/dev/null; then
+        echo "[INFO] Podman not found, skipping local registry setup"
         exit 0
     fi
 
-    if ! setup_registry; then
-        log_error "Failed to setup registry"
-        exit 1
-    fi
+    setup_registry
+    mirror_all_images
 
-    if ! mirror_all_images; then
-        log_error "Failed to mirror images"
-        podman rm -f "${REGISTRY_NAME}" 2>/dev/null || true
-        exit 1
-    fi
-
-    # Verify registry and list images
-    log_info "Verifying local registry contents..."
-    local image_count
-    image_count=$(curl -sf "http://${REGISTRY_HOST}/v2/_catalog" | grep -o '"repositories":\[.*\]' | grep -o ',' | wc -l)
-    ((image_count++)) || true
-
-    log_info "========================================"
-    log_info "LOCAL REGISTRY SETUP COMPLETE"
-    log_info "========================================"
-    log_info "Registry URL: http://${REGISTRY_HOST}"
-    log_info "Images pre-loaded: ${#IMAGES[@]}"
-    log_info "Images in registry: ${image_count}"
-    log_info "Registry catalog:"
-    curl -sf "http://${REGISTRY_HOST}/v2/_catalog" 2>/dev/null || echo "  (catalog unavailable)"
-    log_info "========================================"
+    echo "[INFO] Local registry setup complete"
+    curl -sf "http://${REGISTRY_HOST}/v2/_catalog" 2>/dev/null || true
 }
 
 main "$@"
