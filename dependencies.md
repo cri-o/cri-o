@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 09 Jul 2026 22:11:14 UTC for commit [2b4cad2][0]._
+_Generated on Fri, 10 Jul 2026 00:06:10 UTC for commit [b2039b1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2b4cad27cdb25221f76c1b632e900f747d522967
+[0]: https://github.com/cri-o/cri-o/commit/b2039b156443514014caa6a24c066fc768682ca2
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|---------------------------------------|------------------------------------|--------|------------------|
 | github.com/checkpoint-restore/go-criu/v8                                    | v8.2.0                                | v8.4.0                             | true   | true             |
-| github.com/containerd/containerd                                            | v1.7.31                               | v1.7.33                            | true   | true             |
+| github.com/containerd/containerd                                            | v1.7.31                               | v1.7.34                            | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                               | v1.11.1                            | true   | true             |
 | github.com/containerd/ttrpc                                                 | v1.2.8                                | v1.2.9                             | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
@@ -55,7 +55,7 @@ _Generated on Thu, 09 Jul 2026 22:11:14 UTC for commit [2b4cad2][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.2                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.17.17                           | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.114                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.116                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.14.0                            | false  | true             |
@@ -295,7 +295,7 @@ _Generated on Thu, 09 Jul 2026 22:11:14 UTC for commit [2b4cad2][0]._
 | github.com/containerd/cgroups                                               | v1.1.0                                 |                                    | true   | true             |
 | github.com/containerd/cgroups/v3                                            | v3.0.3                                 | v3.1.3                             | false  | true             |
 | github.com/containerd/console                                               | v1.0.5                                 |                                    | false  | true             |
-| github.com/containerd/containerd                                            | v1.7.31                                | v1.7.33                            | true   | true             |
+| github.com/containerd/containerd                                            | v1.7.31                                | v1.7.34                            | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                                | v1.11.1                            | true   | true             |
 | github.com/containerd/continuity                                            | v0.4.4                                 | v0.5.0                             | false  | true             |
 | github.com/containerd/cri-containerd                                        | v1.19.0                                |                                    | false  | true             |
@@ -428,7 +428,7 @@ _Generated on Thu, 09 Jul 2026 22:11:14 UTC for commit [2b4cad2][0]._
 | github.com/google/go-intervals                                              | v0.0.2                                 |                                    | false  | true             |
 | github.com/google/go-querystring                                            | v1.2.0                                 |                                    | false  | true             |
 | github.com/google/gofuzz                                                    | v1.2.0                                 |                                    | false  | true             |
-| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936     | v0.0.0-20260709213413-301c45cedc90 | false  | true             |
+| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936     | v0.0.0-20260709232956-b9395ee17fa0 | false  | true             |
 | github.com/google/renameio                                                  | v1.0.1                                 |                                    | true   | true             |
 | github.com/google/s2a-go                                                    | v0.1.9                                 |                                    | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                                 |                                    | true   | true             |
