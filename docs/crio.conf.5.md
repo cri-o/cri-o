@@ -563,7 +563,7 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 **enable_metrics**=false
 Globally enable or disable metrics support.
 
-**metrics_collectors**=["image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage"]
+**metrics_collectors**=["image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime"]
 Specify enabled metrics collectors. Per default all metrics are enabled.
 
 **metrics_host**="127.0.0.1"
