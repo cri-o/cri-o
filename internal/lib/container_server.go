@@ -901,6 +901,8 @@ func (c *ContainerServer) RemoveSandbox(ctx context.Context, id string) error {
 
 	c.RemoveStatsForSandbox(sb)
 	c.state.sandboxes.Delete(id)
+	c.storageImgSvcMgr.RemoveImageService(id)
+	c.storageRuntimeSvcMgr.RemoveRuntimeService(id)
 
 	return nil
 }

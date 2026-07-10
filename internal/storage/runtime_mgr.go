@@ -92,3 +92,11 @@ func GetRuntimeServiceManager(ctx context.Context, imageServiceMgr *ImageService
 func (m *RuntimeServiceManager) SetStorageRuntimeServer(server RuntimeServer) {
 	m.runtimeService = server
 }
+
+// RemoveRuntimeService removes the cached runtimePulledRuntimeService for the
+// given sandbox ID, freeing the associated in-memory state.
+func (m *RuntimeServiceManager) RemoveRuntimeService(sandboxID string) {
+	m.runtimeServiceRPLock.Lock()
+	delete(m.runtimeServiceRP, sandboxID)
+	m.runtimeServiceRPLock.Unlock()
+}
