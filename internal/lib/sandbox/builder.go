@@ -320,16 +320,22 @@ func (b *sandboxBuilder) GenerateNameAndID() error {
 
 	id := stringid.GenerateNonCryptoID()
 	b.SetID(id)
-	name := strings.Join([]string{
-		"k8s",
-		b.config.GetMetadata().GetName(),
-		b.config.GetMetadata().GetNamespace(),
-		b.config.GetMetadata().GetUid(),
-		strconv.FormatUint(uint64(b.config.GetMetadata().GetAttempt()), 10),
-	}, "_")
-	b.SetName(name)
+	b.SetName(PodName(b.config.GetMetadata()))
 
 	return nil
+}
+
+// PodName returns the canonical name for a pod sandbox derived from its
+// metadata. The same format is used when looking up sandboxes by name during
+// image pulls; see server/image_pull.go.
+func PodName(meta *types.PodSandboxMetadata) string {
+	return strings.Join([]string{
+		"k8s",
+		meta.GetName(),
+		meta.GetNamespace(),
+		meta.GetUid(),
+		strconv.FormatUint(uint64(meta.GetAttempt()), 10),
+	}, "_")
 }
 
 // Config returns the sandbox configuration.

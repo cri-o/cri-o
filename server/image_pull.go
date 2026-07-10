@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -22,6 +21,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
 
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -55,20 +55,17 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 			pullArgs.sandboxCgroup = sc.GetLinux().GetCgroupParent()
 		}
 
+		var name string
+
 		if sc.GetMetadata() != nil {
 			pullArgs.namespace = sc.GetMetadata().GetNamespace()
+			name = libsandbox.PodName(sc.GetMetadata())
 		}
 
-		name := strings.Join([]string{
-			"k8s",
-			sc.GetMetadata().GetName(),
-			sc.GetMetadata().GetNamespace(),
-			sc.GetMetadata().GetUid(),
-			strconv.FormatUint(uint64(sc.GetMetadata().GetAttempt()), 10),
-		}, "_")
-
 		podID, err := s.PodIDForName(name)
-		if err == nil {
+		if err != nil {
+			log.Debugf(ctx, "PodIDForName(%s) failed during image pull, falling back to host image store: %v", name, err)
+		} else {
 			sb, _ := s.LookupSandbox(podID) //nolint:errcheck // error intentionally ignored - fallback to default ImageServer
 			pullArgs.imageServer = s.StorageImageServer(sb)
 		}
