@@ -150,3 +150,11 @@ func GetImageServiceManager(ctx context.Context, store storage.Store, storageTra
 func (m *ImageServiceManager) SetStorageImageServer(server ImageServer) {
 	m.imageService = server
 }
+
+// RemoveImageService removes the cached runtimePulledImageService for the
+// given sandbox ID, freeing the associated in-memory state.
+func (m *ImageServiceManager) RemoveImageService(sandboxID string) {
+	m.imageServiceRPLock.Lock()
+	delete(m.imageServiceRP, sandboxID)
+	m.imageServiceRPLock.Unlock()
+}
