@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 10 Jul 2026 00:06:10 UTC for commit [b2039b1][0]._
+_Generated on Fri, 10 Jul 2026 08:14:53 UTC for commit [cec23f3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b2039b156443514014caa6a24c066fc768682ca2
+[0]: https://github.com/cri-o/cri-o/commit/cec23f3b627a3ac71617ca26458184fe6e45a6ba
 
 ## Outdated Dependencies
 
@@ -262,7 +262,7 @@ _Generated on Fri, 10 Jul 2026 00:06:10 UTC for commit [b2039b1][0]._
 | github.com/blang/semver/v4                                                  | v4.0.0                                 |                                    | true   | true             |
 | github.com/brianvoe/gofakeit/v7                                             | v7.12.1                                | v7.15.0                            | false  | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                 | v1.2.0                             | false  | true             |
-| github.com/buildkite/agent/v3                                               | v3.104.0                               | v3.131.0                           | false  | true             |
+| github.com/buildkite/agent/v3                                               | v3.104.0                               | v3.132.0                           | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.15.0                                | v0.17.1                            | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                 |                                    | false  | true             |
 | github.com/buildkite/roko                                                   | v1.4.0                                 |                                    | false  | true             |
@@ -504,7 +504,7 @@ _Generated on Fri, 10 Jul 2026 00:06:10 UTC for commit [b2039b1][0]._
 | github.com/mattn/go-colorable                                               | v0.1.14                                | v0.1.15                            | false  | true             |
 | github.com/mattn/go-isatty                                                  | v0.0.20                                | v0.0.22                            | false  | true             |
 | github.com/mattn/go-runewidth                                               | v0.0.19                                | v0.0.24                            | false  | true             |
-| github.com/mattn/go-shellwords                                              | v1.0.12                                | v1.0.13                            | false  | true             |
+| github.com/mattn/go-shellwords                                              | v1.0.12                                | v1.0.14                            | false  | true             |
 | github.com/mattn/go-sqlite3                                                 | v1.14.33                               | v1.14.47                           | false  | true             |
 | github.com/matttproud/golang_protobuf_extensions                            | v1.0.4                                 |                                    | false  | true             |
 | github.com/matttproud/golang_protobuf_extensions/v2                         | v2.0.0                                 |                                    | false  | true             |
