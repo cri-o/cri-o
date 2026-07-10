@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 10 Jul 2026 12:38:51 UTC for commit [28950e1][0]._
+_Generated on Fri, 10 Jul 2026 16:29:05 UTC for commit [d3a6941][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/28950e15f11735c970f284a57cef72889e4c613f
+[0]: https://github.com/cri-o/cri-o/commit/d3a694135aa9efcac70bcec306a2fcfcf3f2836b
 
 ## Outdated Dependencies
 
@@ -203,7 +203,7 @@ _Generated on Fri, 10 Jul 2026 12:38:51 UTC for commit [28950e1][0]._
 | github.com/Azure/go-autorest/tracing                                        | v0.6.1                                 |                                    | false  | true             |
 | github.com/AzureAD/microsoft-authentication-library-for-go                  | v1.6.0                                 | v1.7.2                             | false  | true             |
 | github.com/BurntSushi/toml                                                  | v1.6.0                                 |                                    | true   | true             |
-| github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp    | v1.31.0                                | v1.33.0                            | false  | true             |
+| github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp    | v1.31.0                                | v1.34.0                            | false  | true             |
 | github.com/Masterminds/goutils                                              | v1.1.1                                 |                                    | false  | true             |
 | github.com/Masterminds/semver/v3                                            | v3.4.0                                 | v3.5.0                             | false  | true             |
 | github.com/Masterminds/sprig/v3                                             | v3.3.0                                 |                                    | false  | true             |
@@ -729,7 +729,7 @@ _Generated on Fri, 10 Jul 2026 12:38:51 UTC for commit [28950e1][0]._
 | golang.org/x/oauth2                                                         | v0.36.0                                |                                    | false  | true             |
 | golang.org/x/sync                                                           | v0.20.0                                | v0.22.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.43.0                                | v0.47.0                            | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20260409153401-be6f6cb8b1fa     | v0.0.0-20260708182218-49f421fb7959 | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20260409153401-be6f6cb8b1fa     | v0.0.0-20260710144111-c498c084c142 | false  | true             |
 | golang.org/x/term                                                           | v0.42.0                                | v0.45.0                            | false  | true             |
 | golang.org/x/text                                                           | v0.36.0                                | v0.40.0                            | false  | true             |
 | golang.org/x/time                                                           | v0.14.0                                | v0.15.0                            | false  | true             |
