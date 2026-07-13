@@ -338,15 +338,16 @@ func (c *ContainerServer) ContainerRestore(
 
 // shouldRecreateExternalBindMount reports whether the missing source of an
 // external bind mount recorded in a checkpoint archive may be recreated on the
-// host. Only sources whose destination is declared by the restored container
-// spec (and whose source has not already been remapped) are recreated. A
-// checkpoint archive is attacker influenced, so without this a crafted
-// bind.mounts entry could make CRI-O create an arbitrary host path with
-// attacker chosen mode bits. CRImportCheckpoint enforces the same rule for the
-// spec mounts.
+// host. Only sources whose destination is declared as a bind mount by the
+// restored container spec (and whose source has not already been remapped) are
+// recreated. A checkpoint archive is attacker influenced, so without this a
+// crafted bind.mounts entry could make CRI-O create an arbitrary host path
+// with attacker chosen mode bits. CRImportCheckpoint enforces the same rule
+// for the spec mounts, and checkpointing only records bind mounts in
+// bind.mounts.
 func shouldRecreateExternalBindMount(mounts []rspec.Mount, e ExternalBindMount) bool {
 	for _, m := range mounts {
-		if m.Destination != e.Destination {
+		if m.Type != bindMount || m.Destination != e.Destination {
 			continue
 		}
 
