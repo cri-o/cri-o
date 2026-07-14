@@ -21,11 +21,12 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 		return errors.New("dbus manager is nil")
 	}
 
-	defaultProperties := []systemdDbus.Property{
+	defaultProperties := make([]systemdDbus.Property, 0, 3+len(properties))
+	defaultProperties = append(defaultProperties,
 		newProp("PIDs", []uint32{uint32(pid)}),
 		newProp("Delegate", true),
 		newProp("DefaultDependencies", false),
-	}
+	)
 
 	properties = append(defaultProperties, properties...)
 	if slice != "" {

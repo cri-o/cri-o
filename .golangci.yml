@@ -43,7 +43,7 @@ linters:
     - godot
     - goheader
     - gomoddirectives
-    - gomodguard
+    - gomodguard_v2
     - goprintffuncname
     - gosmopolitan
     - govet
@@ -72,6 +72,7 @@ linters:
     - reassign
     - recvcheck
     - revive
+    - sloglint
     - rowserrcheck
     - spancheck
     - staticcheck
@@ -86,8 +87,10 @@ linters:
     - usestdlibvars
     - usetesting
     - wastedassign
+    - whitespace
     - wsl_v5
     - zerologlint
+    # - clickhouselint
     # - containedctx
     # - contextcheck
     # - cyclop
@@ -117,13 +120,11 @@ linters:
     # - noinlineerr
     # - nonamedreturns
     # - paralleltest
-    # - sloglint
     # - sqlclosecheck
     # - tagliatelle
     # - testpackage
     # - thelper
     # - varnamelen
-    # - whitespace
     # - wrapcheck
   settings:
     errcheck:
@@ -131,6 +132,15 @@ linters:
       check-blank: true
     goconst:
       min-occurrences: 6
+      ignore-string-values:
+        - bind
+        - tmpfs
+        - cgroup
+        - nodev
+        - nosuid
+        - noexec
+        - rbind
+        - /sys
     gocritic:
       enable-all: true
     gocyclo:
@@ -152,6 +162,10 @@ linters:
     presets:
       - comments
       - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - goconst
 formatters:
   enable:
     - gci
