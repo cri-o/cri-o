@@ -223,6 +223,7 @@ jobs:
             test/checkseccomp/checkseccomp \
             test/copyimg/copyimg \
             test/criogrpccaller/criogrpccaller \
+            test/nri-delay-plugin/nri-delay-plugin \
             test/nri/nri.test
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
