@@ -85,6 +85,40 @@ func TestMetricLabelCardinality(t *testing.T) {
 	}
 }
 
+// TestContainerMemoryMetricValues verifies that generateContainerMemoryMetrics
+// reads the expected cgroup stat keys and reports their raw byte values,
+// covering the active_anon, inactive_anon and anon_thp metrics.
+func TestContainerMemoryMetricValues(t *testing.T) {
+	t.Parallel()
+
+	ctr := newTestContainer(t)
+	memStats := testMemoryStats()
+
+	values := make(map[string]uint64)
+	for _, m := range generateContainerMemoryMetrics(ctr, &memStats) {
+		values[m.GetName()] = m.GetValue().GetValue()
+	}
+
+	want := map[string]uint64{
+		"container_memory_total_active_anon_bytes":   memStats.Stats["active_anon"],
+		"container_memory_total_inactive_anon_bytes": memStats.Stats["inactive_anon"],
+		"container_memory_anon_hugepages_bytes":      memStats.Stats["anon_thp"],
+	}
+
+	for name, wantValue := range want {
+		got, ok := values[name]
+		if !ok {
+			t.Errorf("metric %q not generated", name)
+
+			continue
+		}
+
+		if got != wantValue {
+			t.Errorf("metric %q: got value %d, want %d", name, got, wantValue)
+		}
+	}
+}
+
 // descriptorLabelCounts builds a lookup from metric name to expected label count.
 func descriptorLabelCounts() map[string]int {
 	m := make(map[string]int)
