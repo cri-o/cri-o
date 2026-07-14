@@ -87,8 +87,8 @@ install_conmon() {
 }
 
 install_conmonrs() {
-    curl_retry https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
-        sudo -E PATH="$PATH" bash -s -- -a "$GOARCH" -o /usr/bin/conmonrs
+    curl_retry https://raw.githubusercontent.com/containers/conmon-rs/v0.8.0/scripts/get |
+        sudo -E PATH="$PATH" bash -s -- -l v0.8.0 -a "$GOARCH" -o /usr/bin/conmonrs
 }
 
 install_critools() {
