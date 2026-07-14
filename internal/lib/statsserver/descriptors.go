@@ -151,6 +151,21 @@ var (
 		Help:      "Current working set in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
+	containerMemoryTotalActiveAnon = &types.MetricDescriptor{
+		Name:      "container_memory_total_active_anon_bytes",
+		Help:      "Current total active anonymous in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryTotalInactiveAnon = &types.MetricDescriptor{
+		Name:      "container_memory_total_inactive_anon_bytes",
+		Help:      "Current total inactive anonymous in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryAnonHugepages = &types.MetricDescriptor{
+		Name:      "container_memory_anon_hugepages_bytes",
+		Help:      "Amount of memory backed by transparent hugepages in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
 	containerMemoryFailuresTotal = &types.MetricDescriptor{
 		Name:      "container_memory_failures_total",
 		Help:      "Cumulative count of memory allocation failures.",
