@@ -48,7 +48,13 @@ function check_delay_plugin() {
 
 @test "verify NRI delay plugin is loaded and invoked" {
 	start_crio
-	sleep 2
+
+	local retry=0
+	while [ $retry -lt 10 ]; do
+		check_delay_plugin && break
+		sleep 1
+		retry=$((retry + 1))
+	done
 
 	check_delay_plugin || {
 		echo "# ERROR: NRI delay plugin not found in logs"
