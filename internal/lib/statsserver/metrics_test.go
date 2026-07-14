@@ -165,6 +165,9 @@ func testMemoryStats() cgroups.MemoryStats {
 			"total_mapped_file":   32 * 1024,
 			"pgfault":             100,
 			"pgmajfault":          5,
+			"active_anon":         256 * 1024,
+			"inactive_anon":       16 * 1024,
+			"anon_thp":            128 * 1024,
 		},
 		PSI: &cgroups.PSIStats{
 			Full: cgroups.PSIData{Total: 500000},
