@@ -20,7 +20,7 @@ import (
 	criu "github.com/checkpoint-restore/go-criu/v8/utils"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/fsnotify/fsnotify"
-	json "github.com/goccy/go-json"
+	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/crutils"
