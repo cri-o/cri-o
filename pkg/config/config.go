@@ -156,6 +156,10 @@ const (
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
 	DefaultLogSizeMax = -1
+
+	// DefaultNofileUlimit is the default nofile ulimit for containers.
+	// Soft limit (65536) avoids EMFILE for high-connection workloads; hard limit (524288) matches systemd v240+.
+	DefaultNofileUlimit = "nofile=65536:524288"
 )
 
 const (
@@ -1149,6 +1153,7 @@ func DefaultRuntimeConfig(cgroupManager cgmgr.CgroupManager) *RuntimeConfig {
 		LogSizeMax:                  DefaultLogSizeMax,
 		CtrStopTimeout:              defaultCtrStopTimeout,
 		DefaultCapabilities:         capabilities.Default(),
+		DefaultUlimits:              []string{DefaultNofileUlimit},
 		LogLevel:                    "info",
 		HooksDir:                    []string{hooks.DefaultDir},
 		CDISpecDirs:                 cdi.DefaultSpecDirs,

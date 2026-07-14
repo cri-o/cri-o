@@ -143,6 +143,35 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("should have default nofile ulimit configured", func() {
+			// Given
+			c, err := config.DefaultConfig()
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			err = c.Validate(false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(c.DefaultUlimits).To(ContainElement(config.DefaultNofileUlimit))
+
+			ulimits := c.Ulimits()
+			Expect(ulimits).ToNot(BeEmpty())
+
+			found := false
+
+			for _, u := range ulimits {
+				if u.Name == "RLIMIT_NOFILE" {
+					Expect(u.Soft).To(Equal(uint64(65536)))
+					Expect(u.Hard).To(Equal(uint64(524288)))
+
+					found = true
+				}
+			}
+
+			Expect(found).To(BeTrue())
+		})
 	})
 
 	t.Describe("ValidateAPIConfig", func() {

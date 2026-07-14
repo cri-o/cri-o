@@ -251,7 +251,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-transport**="": A prefix to prepend to image names that cannot be pulled as-is. (default: "docker://")
 
-**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard).
+**--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard). (default: "nofile=65536:524288")
 
 **--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup.
 
