@@ -11,6 +11,12 @@ function teardown() {
 	cleanup_test
 }
 
+function process_is_dead_or_zombie() {
+	local stat
+	stat=$(ps -p "$1" -o stat= 2> /dev/null) || return 0
+	[[ "$stat" == Z* ]]
+}
+
 # list_all_children lists children of a process recursively
 function list_all_children {
 	children=$(pgrep -P "$1")
@@ -1301,12 +1307,9 @@ function assert_log_linking() {
 
 	EXPECTED_EXIT_STATUS=137 wait_until_exit "$ctr_id"
 
-	# make sure crio syncs state
+	# After kill -9, children get reparented to PID 1; wait for systemd to reap them.
 	for process in ${processes}; do
-		# Ignore Z state (zombies) as the process has just been killed and reparented. Systemd will get to it.
-		# `pgrep` doesn't have a good mechanism for ignoring Z state, but including all others, so:
-		# shellcheck disable=SC2143
-		[ -z "$(ps -p "$process" o pid=,stat= | grep -v ' Z')" ]
+		retry 10 1 process_is_dead_or_zombie "$process"
 	done
 }
 
