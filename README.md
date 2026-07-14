@@ -46,6 +46,7 @@
 - [Governance](#governance)
 - [AI Assistants](#ai-assistants)
 - [License Scan](#license-scan)
+
 <!-- /toc -->
 
 ## Compatibility matrix: CRI-O ⬄ Kubernetes

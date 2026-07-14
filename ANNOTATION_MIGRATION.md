@@ -191,8 +191,7 @@ metadata:
 # Old (deprecated) - for a specific container
 metadata:
   annotations:
-    seccomp-profile.kubernetes.cri-o.io/my-container:
-      "runtime/default"
+    seccomp-profile.kubernetes.cri-o.io/my-container: "runtime/default"
 
 # New (recommended) - for a specific container
 metadata:
