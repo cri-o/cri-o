@@ -2,7 +2,7 @@
 , pkgs
 , gitCommit ? "unknown"
 }:
-with pkgs; buildGo126Module /* use go 1.26.3 */ {
+with pkgs; buildGo126Module /* use go 1.26.4 */ {
   name = "cri-o";
   src = nix-gitignore.gitignoreSourcePure [ ../.gitignore ] ./..;
   vendorHash = null;
