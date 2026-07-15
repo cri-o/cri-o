@@ -128,6 +128,34 @@ func (i *ImageServiceManager) DeleteImage(ctx context.Context, systemContext *ty
 	return err
 }
 
+// IDPrefixMatch pairs a resolved image ID with the ImageServer that holds it.
+type IDPrefixMatch struct {
+	ID     *StorageImageID
+	Server ImageServer
+}
+
+// HeuristicallyTryResolvingStringAsIDPrefix calls the same function on each
+// image store and returns all matches, each paired with the ImageServer it was
+// found in, allowing direct calls to the right store.
+func (i *ImageServiceManager) HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput string) []IDPrefixMatch {
+	var matches []IDPrefixMatch
+
+	if id := i.imageService.HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput); id != nil {
+		matches = append(matches, IDPrefixMatch{ID: id, Server: i.imageService})
+	}
+
+	i.imageServiceRPLock.RLock()
+	defer i.imageServiceRPLock.RUnlock()
+
+	for index := range i.imageServiceRP {
+		if id := i.imageServiceRP[index].HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput); id != nil {
+			matches = append(matches, IDPrefixMatch{ID: id, Server: i.imageServiceRP[index]})
+		}
+	}
+
+	return matches
+}
+
 func GetImageServiceManager(ctx context.Context, store storage.Store, storageTransport StorageTransport, serverConfig *config.Config) (*ImageServiceManager, error) {
 	is, err := GetImageService(ctx, store, storageTransport, serverConfig)
 	if err != nil {

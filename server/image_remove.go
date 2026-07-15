@@ -40,22 +40,26 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	imageService := s.StorageImageServer(nil)
+	imageManager := s.StorageImageManager()
 
-	if id := imageService.HeuristicallyTryResolvingStringAsIDPrefix(imageRef); id != nil {
-		if err := s.volumeInUse(id.IDStringForOutOfProcessConsumptionOnly()); err != nil {
-			return err
+	if matches := imageManager.HeuristicallyTryResolvingStringAsIDPrefix(imageRef); len(matches) > 0 {
+		for _, match := range matches {
+			if err := s.volumeInUse(match.ID.IDStringForOutOfProcessConsumptionOnly()); err != nil {
+				return err
+			}
 		}
 
-		if err := imageService.DeleteImage(s.config.SystemContext, *id); err != nil {
-			if errors.Is(err, storagetypes.ErrImageUnknown) || errors.Is(err, storagetypes.ErrNotAnImage) {
-				// The RemoveImage RPC is idempotent, and must not return an
-				// error if the image has already been removed. Ref:
-				// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
-				return nil
-			}
+		for _, match := range matches {
+			if err := match.Server.DeleteImage(s.config.SystemContext, *match.ID); err != nil {
+				if errors.Is(err, storagetypes.ErrImageUnknown) || errors.Is(err, storagetypes.ErrNotAnImage) {
+					// The RemoveImage RPC is idempotent, and must not return an
+					// error if the image has already been removed. Ref:
+					// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
+					continue
+				}
 
-			return fmt.Errorf("delete image: %w", err)
+				return fmt.Errorf("delete image: %w", err)
+			}
 		}
 
 		return nil
@@ -65,6 +69,11 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		deleted   bool
 		statusErr error
 	)
+
+	// Proceed with the default store for name-based search.
+	// Runtime-pulled images being deleted along with the pod that uses them,
+	// we only try to clean the default store here.
+	imageService := s.StorageImageServer(nil)
 
 	potentialMatches, err := imageService.CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
 	if err != nil {
