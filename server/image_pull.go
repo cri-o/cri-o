@@ -62,12 +62,33 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 			name = libsandbox.PodName(sc.GetMetadata())
 		}
 
+		var sbErr error
+
 		podID, err := s.PodIDForName(name)
 		if err != nil {
 			log.Debugf(ctx, "PodIDForName(%s) failed during image pull, falling back to host image store: %v", name, err)
 		} else {
-			sb, _ := s.LookupSandbox(podID) //nolint:errcheck // error intentionally ignored - fallback to default ImageServer
+			var sb *libsandbox.Sandbox
+
+			sb, sbErr = s.LookupSandbox(podID)
+			if sbErr != nil {
+				log.Debugf(ctx, "Failed to retrieve sandbox for image %s (podID: %s): %v", name, podID, sbErr)
+			}
+
 			pullArgs.imageServer = s.StorageImageServer(sb)
+		}
+
+		// Double-check the runtime handler from the image spec.
+		// Warn if we use the default ImageServer when we should have a runtimePulled one.
+		r, ok := s.config.Runtimes[img.GetRuntimeHandler()]
+		if ok && r.RuntimePullImage && (err != nil || sbErr != nil) {
+			log.Debugf(ctx, "Runtime handler for image %s is configured for runtime pull, but couldn't get the proper ImageServer", name)
+
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, sbErr
 		}
 	}
 
