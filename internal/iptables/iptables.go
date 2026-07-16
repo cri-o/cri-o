@@ -267,8 +267,7 @@ func (runner *runner) EnsureChain(table Table, chain Chain) (bool, error) {
 
 	out, err := runner.run(opCreateChain, fullArgs)
 	if err != nil {
-		var ee utilexec.ExitError
-		if errors.As(err, &ee) {
+		if ee, ok := errors.AsType[utilexec.ExitError](err); ok {
 			if ee.Exited() && ee.ExitStatus() == 1 {
 				return true, nil
 			}
@@ -592,8 +591,7 @@ func (runner *runner) checkRuleUsingCheck(args []string) (bool, error) {
 		return true, nil
 	}
 
-	var ee utilexec.ExitError
-	if errors.As(err, &ee) {
+	if ee, ok := errors.AsType[utilexec.ExitError](err); ok {
 		// iptables uses exit(1) to indicate a failure of the operation,
 		// as compared to a malformed commandline, for example.
 		if ee.Exited() && ee.ExitStatus() == 1 {
@@ -847,8 +845,7 @@ const iptablesStatusResourceProblem = 4
 // problem" and was unable to attempt the request. In particular, this will be true if it
 // times out trying to get the iptables lock.
 func isResourceError(err error) bool {
-	var ee utilexec.ExitError
-	if errors.As(err, &ee) {
+	if ee, ok := errors.AsType[utilexec.ExitError](err); ok {
 		return ee.ExitStatus() == iptablesStatusResourceProblem
 	}
 
