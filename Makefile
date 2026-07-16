@@ -50,7 +50,7 @@ GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
-GOLANGCI_LINT_VERSION := v2.10.1
+GOLANGCI_LINT_VERSION := v2.12.2
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
 GOSEC := ${BUILD_BIN_PATH}/gosec
@@ -166,9 +166,9 @@ $(MDTOC): $(BUILD_BIN_PATH)
 
 $(GOLANGCI_LINT):
 	export VERSION=$(GOLANGCI_LINT_VERSION) \
-		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
+		URL=https://golangci-lint.run \
 		BINDIR=${BUILD_BIN_PATH} && \
-	curl -sSfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
+	curl -sSfL $$URL/install.sh | sh -s $$VERSION
 
 $(SHELLCHECK): $(BUILD_BIN_PATH)
 	URL=https://github.com/koalaman/shellcheck/releases/download/$(SHELLCHECK_VERSION)/shellcheck-$(SHELLCHECK_VERSION).linux.x86_64.tar.xz \
