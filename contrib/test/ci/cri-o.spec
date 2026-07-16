@@ -44,11 +44,11 @@ BuildRequires: libseccomp-devel
 BuildRequires: pkgconfig(systemd)
 Requires(pre): container-selinux
 Requires: containers-common >= 1:0.1.24-3
-Requires: runc > 1.0.0-57
+Requires: crun >= 1.27
 Obsoletes: ocid <= 0.3
 Provides: ocid = %{version}-%{release}
 Provides: %{service_name} = %{version}-%{release}
-Requires: containernetworking-plugins >= 0.7.5-1
+Recommends: containernetworking-plugins >= 0.7.5-1
 Requires: conmon
 
 %description
@@ -86,7 +86,7 @@ make GO_MD2MAN=go-md2man docs
       --cgroup-manager "systemd" \
       --storage-driver "overlay" \
       --conmon "%{_bindir}/conmon" \
-      --cni-plugin-dir "%{_libexecdir}/cni" \
+      --cni-plugin-dir "/var/lib/cni/bin" \
       --storage-opt "overlay.override_kernel_check=1" \
       config > ./%{service_name}.conf
 
