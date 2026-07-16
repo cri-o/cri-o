@@ -1310,9 +1310,20 @@ function assert_log_linking() {
 	done
 }
 
-@test "ctr HOME env newline invalid" {
+@test "ctr HOME env escaped newline valid" {
 	start_crio
-	jq ' .envs = [{"key": "HOME=", "value": "/root:/sbin/nologin\\ntest::0:0::/:/bin/bash"}]' \
+	jq ' .envs = [{"key": "HOME", "value": "/root:/sbin/nologin\\ntest::0:0::/:/bin/bash"}]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+
+	crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
+}
+
+@test "ctr HOME env actual newline byte invalid" {
+	start_crio
+	# Use printf to embed an actual newline byte (0x0a) into the HOME value.
+	local payload
+	payload=$(printf '/root\nmalicious::0:0::/:/bin/bash')
+	jq --arg home "$payload" ' .envs = [{"key": "HOME", "value": $home}]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
 
 	run ! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
