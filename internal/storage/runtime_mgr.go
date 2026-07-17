@@ -26,50 +26,52 @@ type RuntimeServiceManager struct {
 
 func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) RuntimeServer {
 	v := reflect.ValueOf(sb)
-	if sb != nil && v.Kind() == reflect.Ptr && !v.IsNil() {
-		rt, ok := r.serverConfig.Runtimes[sb.RuntimeHandler()]
-		if ok && rt.RuntimePullImage {
-			id := sb.ID()
-
-			r.runtimeServiceRPLock.RLock()
-			rs := r.runtimeServiceRP[id]
-			r.runtimeServiceRPLock.RUnlock()
-
-			if rs == nil {
-				is := r.imageServiceMgr.GetImageService(sb)
-
-				// GetRuntimeService() is called first at sandbox creation,
-				// at a time where the sandbox creation is not complete, and we
-				// don't have a root dir to work with.
-				// The ImageServer we get in this case is the default one, which
-				// can be used for this early sandbox creation step, but should
-				// not be cached.
-				// The next call will get the proper runtimePulledImageService
-				// that we can use to create and cache our runtimePulledRuntimeService.
-				_, ok := is.(*runtimePulledImageService)
-				if !ok {
-					return r.runtimeService
-				}
-
-				rs = GetRuntimePulledRuntimeService(r.ctx, r.runtimeService, is)
-
-				r.runtimeServiceRPLock.Lock()
-				// double-check that an instance was not created in parallel
-				if existing := r.runtimeServiceRP[id]; existing != nil {
-					r.runtimeServiceRPLock.Unlock()
-
-					return existing
-				}
-
-				r.runtimeServiceRP[id] = rs
-				r.runtimeServiceRPLock.Unlock()
-			}
-
-			return rs
-		}
+	if sb == nil || v.Kind() != reflect.Pointer || v.IsNil() {
+		return r.runtimeService
 	}
 
-	return r.runtimeService
+	rt, ok := r.serverConfig.Runtimes[sb.RuntimeHandler()]
+	if !ok || !rt.RuntimePullImage {
+		return r.runtimeService
+	}
+
+	id := sb.ID()
+
+	r.runtimeServiceRPLock.RLock()
+	rs := r.runtimeServiceRP[id]
+	r.runtimeServiceRPLock.RUnlock()
+
+	if rs != nil {
+		return rs
+	}
+
+	is := r.imageServiceMgr.GetImageService(sb)
+
+	// GetRuntimeService() is called first at sandbox creation,
+	// at a time where the sandbox creation is not complete, and we
+	// don't have a root dir to work with.
+	// The ImageServer we get in this case is the default one, which
+	// can be used for this early sandbox creation step, but should
+	// not be cached.
+	// The next call will get the proper runtimePulledImageService
+	// that we can use to create and cache our runtimePulledRuntimeService.
+	if _, ok = is.(*runtimePulledImageService); !ok {
+		return r.runtimeService
+	}
+
+	rs = GetRuntimePulledRuntimeService(r.ctx, r.runtimeService, is)
+
+	r.runtimeServiceRPLock.Lock()
+	defer r.runtimeServiceRPLock.Unlock()
+
+	// double-check that an instance was not created in parallel
+	if existing := r.runtimeServiceRP[id]; existing != nil {
+		return existing
+	}
+
+	r.runtimeServiceRP[id] = rs
+
+	return rs
 }
 
 func GetRuntimeServiceManager(ctx context.Context, imageServiceMgr *ImageServiceManager, storageTransport StorageTransport, serverConfig *config.Config) (*RuntimeServiceManager, error) {
