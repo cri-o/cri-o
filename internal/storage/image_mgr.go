@@ -38,57 +38,60 @@ type ImageServiceManager struct {
 
 func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
 	v := reflect.ValueOf(sb)
-	if sb != nil && v.Kind() == reflect.Ptr && !v.IsNil() {
-		r, ok := i.serverConfig.Runtimes[sb.RuntimeHandler()]
-		if ok && r.RuntimePullImage {
-			i.imageServiceRPLock.RLock()
-			is := i.imageServiceRP[sb.ID()]
-			i.imageServiceRPLock.RUnlock()
-
-			if is == nil {
-				rootDir, err := i.imageService.GetStore().ContainerRunDirectory(sb.ID())
-				if err != nil {
-					// This will happen when the sandbox is being created.
-					// After that, we will get the proper information allowing
-					// to retrieve the sandbox and create the appropriate ImageServer
-					// for it.
-					log.Warnf(i.ctx, "Failed to retrieve root dir for sandbox %s: %v", sb.ID(), err)
-
-					return i.imageService
-				}
-
-				regularIS, ok := i.imageService.(*imageService)
-				if !ok {
-					log.Warnf(i.ctx, "Failed to get an imageService")
-
-					return i.imageService
-				}
-
-				is, err = GetRuntimePulledImageService(i.ctx, regularIS, rootDir)
-				if err != nil {
-					// if we can't get the specific image server, return the default
-					log.Warnf(i.ctx, "Failed to get ImageServiceVM for sandbox %s: %v", sb.ID(), err)
-
-					return i.imageService
-				}
-
-				i.imageServiceRPLock.Lock()
-				// double-check that an instance was not created in parallel
-				if existing := i.imageServiceRP[sb.ID()]; existing != nil {
-					i.imageServiceRPLock.Unlock()
-
-					return existing
-				}
-
-				i.imageServiceRP[sb.ID()] = is
-				i.imageServiceRPLock.Unlock()
-			}
-
-			return is
-		}
+	if sb == nil || v.Kind() != reflect.Pointer || v.IsNil() {
+		return i.imageService
 	}
 
-	return i.imageService
+	r, ok := i.serverConfig.Runtimes[sb.RuntimeHandler()]
+	if !ok || !r.RuntimePullImage {
+		return i.imageService
+	}
+
+	i.imageServiceRPLock.RLock()
+	is := i.imageServiceRP[sb.ID()]
+	i.imageServiceRPLock.RUnlock()
+
+	if is != nil {
+		return is
+	}
+
+	rootDir, err := i.imageService.GetStore().ContainerRunDirectory(sb.ID())
+	if err != nil {
+		// This will happen when the sandbox is being created.
+		// After that, we will get the proper information allowing
+		// to retrieve the sandbox and create the appropriate ImageServer
+		// for it.
+		log.Warnf(i.ctx, "Failed to retrieve root dir for sandbox %s: %v", sb.ID(), err)
+
+		return i.imageService
+	}
+
+	regularIS, ok := i.imageService.(*imageService)
+	if !ok {
+		log.Warnf(i.ctx, "Failed to get an imageService")
+
+		return i.imageService
+	}
+
+	is, err = GetRuntimePulledImageService(i.ctx, regularIS, rootDir)
+	if err != nil {
+		// if we can't get the specific image server, return the default
+		log.Warnf(i.ctx, "Failed to get ImageServiceVM for sandbox %s: %v", sb.ID(), err)
+
+		return i.imageService
+	}
+
+	i.imageServiceRPLock.Lock()
+	defer i.imageServiceRPLock.Unlock()
+
+	// double-check that an instance was not created in parallel
+	if existing := i.imageServiceRP[sb.ID()]; existing != nil {
+		return existing
+	}
+
+	i.imageServiceRP[sb.ID()] = is
+
+	return is
 }
 
 // DeleteImage deletes the image with the given ID from all storage backends.
