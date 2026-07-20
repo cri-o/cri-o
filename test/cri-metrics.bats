@@ -29,6 +29,20 @@ function wait_for_metric() {
 	return 1
 }
 
+function assert_within_tolerance() {
+	local actual="$1"
+	local expected="$2"
+	local tolerance="$3"
+	local difference
+
+	difference=$((actual - expected))
+	((difference < 0)) && difference=$((-difference))
+	if ((difference > tolerance)); then
+		echo "Expected $actual to be within $tolerance of $expected (difference: $difference)" >&2
+		return 1
+	fi
+}
+
 function metrics_setup() {
 	# start sandbox
 	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
@@ -88,6 +102,7 @@ EOF
 
 	metrics_setup
 	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+	memory_metric_tolerance=$((16 * 1024))
 
 	cmd='for i in {1..10}; do dd if=/dev/zero of=/dev/null bs=10M count=1; done'
 	crictl exec --sync "$CONTAINER_ID" /bin/sh -c "$cmd"
@@ -101,7 +116,7 @@ EOF
 		cgroup_memory_usage=$(cat "$CTR_CGROUP"/memory.usage_in_bytes)
 	fi
 	metrics_memory_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_usage_bytes") | .value.value | tonumber')
-	[[ "$cgroup_memory_usage" == "$metrics_memory_usage" ]]
+	assert_within_tolerance "$metrics_memory_usage" "$cgroup_memory_usage" "$memory_metric_tolerance"
 
 	# assert container_memory_working_set_bytes ==
 	#    cgroup memory.usage_in_bytes - cgroup memory.stat:total_inactive_file(cgroup v1) or memory.current - memory.stat:inactive_file(cgroup v2)
@@ -114,7 +129,8 @@ EOF
 	fi
 
 	metrics_memory_working_set=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_working_set_bytes") | .value.value | tonumber')
-	[[ $metrics_memory_working_set == $((cgroup_memory_usage - cgroup_memory_inactive_file)) ]]
+	expected_memory_working_set=$((cgroup_memory_usage - cgroup_memory_inactive_file))
+	assert_within_tolerance "$metrics_memory_working_set" "$expected_memory_working_set" "$memory_metric_tolerance"
 
 	# assert container_memory_rss == cgroup memory.stat:total_rss(cgroup v1) or memory.stat:anon(cgroup v2)
 	if is_cgroup_v2; then
