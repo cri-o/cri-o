@@ -29,6 +29,30 @@ function wait_for_metric() {
 	return 1
 }
 
+# assert_within checks two integer values are within `tol` bytes (default 16 KiB).
+# Memory metrics and cgroup filesystem reads are not atomic, so exact equality races.
+function assert_within() {
+	local a="$1"
+	local b="$2"
+	local tol="${3:-16384}"
+	local diff
+
+	if [[ -z "$a" || -z "$b" ]]; then
+		echo "assert_within: empty value (a='$a' b='$b')" >&2
+		return 1
+	fi
+	if (( a > b )); then
+		diff=$((a - b))
+	else
+		diff=$((b - a))
+	fi
+	if (( diff > tol )); then
+		echo "assert_within: |$a - $b| = $diff exceeds tolerance $tol" >&2
+		return 1
+	fi
+	return 0
+}
+
 function metrics_setup() {
 	# start sandbox
 	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
@@ -101,7 +125,7 @@ EOF
 		cgroup_memory_usage=$(cat "$CTR_CGROUP"/memory.usage_in_bytes)
 	fi
 	metrics_memory_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_usage_bytes") | .value.value | tonumber')
-	[[ "$cgroup_memory_usage" == "$metrics_memory_usage" ]]
+	assert_within "$cgroup_memory_usage" "$metrics_memory_usage"
 
 	# assert container_memory_working_set_bytes ==
 	#    cgroup memory.usage_in_bytes - cgroup memory.stat:total_inactive_file(cgroup v1) or memory.current - memory.stat:inactive_file(cgroup v2)
@@ -114,7 +138,7 @@ EOF
 	fi
 
 	metrics_memory_working_set=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_working_set_bytes") | .value.value | tonumber')
-	[[ $metrics_memory_working_set == $((cgroup_memory_usage - cgroup_memory_inactive_file)) ]]
+	assert_within "$metrics_memory_working_set" "$((cgroup_memory_usage - cgroup_memory_inactive_file))"
 
 	# assert container_memory_rss == cgroup memory.stat:total_rss(cgroup v1) or memory.stat:anon(cgroup v2)
 	if is_cgroup_v2; then
@@ -124,7 +148,7 @@ EOF
 		cgroup_memory_rss=$(grep -w total_rss "$CTR_CGROUP"/memory.stat | awk '{print $2}')
 	fi
 	metrics_memory_rss=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_rss") | .value.value | tonumber')
-	[[ $metrics_memory_rss == "$cgroup_memory_rss" ]]
+	assert_within "$metrics_memory_rss" "$cgroup_memory_rss"
 
 	cmd="myarray=(); touch /dev/tmpfile; for i in {1..100}; do myarray+=(\"$(date)\"); date >> /dev/tmpfile; done"
 	crictl exec --sync "$CONTAINER_ID" /bin/sh -c "$cmd"
@@ -183,7 +207,7 @@ EOF
 	# assert container_memory_kernel_usage_bytes == cgroup memory.kmem.usage_in_bytes
 	cgroup_memory_kernel_usage=$(cat "$CTR_CGROUP"/memory.kmem.usage_in_bytes) &&
 		metrics_memory_kernel_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_kernel_usage") | .value.value | tonumber')
-	[[ $metrics_memory_kernel_usage == "$cgroup_memory_kernel_usage" ]]
+	assert_within "$metrics_memory_kernel_usage" "$cgroup_memory_kernel_usage"
 
 	cmd='for i in {1..10}; do dd if=/dev/zero of=/dev/null bs=10M count=1; done'
 	crictl exec --sync "$CONTAINER_ID" /bin/sh -c "$cmd"
@@ -192,7 +216,7 @@ EOF
 	metrics=$(crictl metricsp) &&
 		cgroup_memory_max_usage_bytes=$(cat "$CTR_CGROUP"/memory.max_usage_in_bytes)
 	metrics_memory_max_usage_bytes=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_max_usage_bytes") | .value.value | tonumber')
-	[[ $metrics_memory_max_usage_bytes == "$cgroup_memory_max_usage_bytes" ]]
+	assert_within "$metrics_memory_max_usage_bytes" "$cgroup_memory_max_usage_bytes"
 
 	# assert container_memory_failcnt == cgroup memory.failcnt
 	metrics=$(crictl metricsp) &&
