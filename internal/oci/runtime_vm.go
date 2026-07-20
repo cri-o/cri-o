@@ -47,6 +47,10 @@ import (
 	"github.com/cri-o/cri-o/utils/errdefs"
 )
 
+// errTaskNotConnected is returned when the shim task client is not initialized,
+// e.g. after a CRI-O restart before reconnection to the shim.
+var errTaskNotConnected = errors.New("task service not connected")
+
 // runtimeVM is the Runtime interface implementation that is more appropriate
 // for VM based container runtimes.
 type runtimeVM struct {
@@ -572,6 +576,9 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	}
 
 	// Create the "exec" process
+	if r.task == nil {
+		return execError, errTaskNotConnected
+	}
 	if _, err = r.task.Exec(r.ctx, request); err != nil {
 		return execError, errdefs.FromGRPC(err)
 	}
@@ -670,6 +677,9 @@ func (r *runtimeVM) UpdateContainer(ctx context.Context, c *Container, res *rspe
 		return err
 	}
 
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	if _, err := r.task.Update(r.ctx, &task.UpdateTaskRequest{
 		ID:        c.ID(),
 		Resources: protobuf.FromAny(anyType),
@@ -833,9 +843,13 @@ func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
 		return err
 	}
 
-	_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
-	if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
-		return err
+	if r.task != nil {
+		_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
+		if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
+			return err
+		}
+	} else if !force {
+		return errTaskNotConnected
 	}
 
 	r.Lock()
@@ -1067,6 +1081,9 @@ func (r *runtimeVM) PauseContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	if _, err := r.task.Pause(r.ctx, &task.PauseRequest{
 		ID: c.ID(),
 	}); err != nil {
@@ -1085,6 +1102,9 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	if _, err := r.task.Resume(r.ctx, &task.ResumeRequest{
 		ID: c.ID(),
 	}); err != nil {
@@ -1172,6 +1192,9 @@ func (r *runtimeVM) ReopenContainerLog(ctx context.Context, c *Container) error 
 }
 
 func (r *runtimeVM) start(ctrID, execID string) error {
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	if _, err := r.task.Start(r.ctx, &task.StartRequest{
 		ID:     ctrID,
 		ExecID: execID,
@@ -1183,6 +1206,9 @@ func (r *runtimeVM) start(ctrID, execID string) error {
 }
 
 func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
+	if r.task == nil {
+		return -1, errdefs.ErrNotFound
+	}
 	resp, err := r.task.Wait(r.ctx, &task.WaitRequest{
 		ID:     ctrID,
 		ExecID: execID,
@@ -1199,12 +1225,15 @@ func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
 }
 
 func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
+	if r.task == nil {
+		return errdefs.ErrNotFound
+	}
 	if _, err := r.task.Kill(r.ctx, &task.KillRequest{
 		ID:     ctrID,
 		ExecID: execID,
 		Signal: uint32(signal),
 		All:    false,
-	}); err != nil {
+	}); err != nil && !errors.Is(err, ttrpc.ErrClosed) {
 		return errdefs.FromGRPC(err)
 	}
 
@@ -1212,6 +1241,9 @@ func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
 }
 
 func (r *runtimeVM) remove(ctrID, execID string) error {
+	if r.task == nil {
+		return nil
+	}
 	if _, err := r.task.Delete(r.ctx, &task.DeleteRequest{
 		ID:     ctrID,
 		ExecID: execID,
@@ -1223,6 +1255,9 @@ func (r *runtimeVM) remove(ctrID, execID string) error {
 }
 
 func (r *runtimeVM) resizePty(ctrID, execID string, size remotecommand.TerminalSize) error {
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	_, err := r.task.ResizePty(r.ctx, &task.ResizePtyRequest{
 		ID:     ctrID,
 		ExecID: execID,
@@ -1237,6 +1272,9 @@ func (r *runtimeVM) resizePty(ctrID, execID string, size remotecommand.TerminalS
 }
 
 func (r *runtimeVM) closeIO(ctrID, execID string) error {
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	_, err := r.task.CloseIO(r.ctx, &task.CloseIORequest{
 		ID:     ctrID,
 		ExecID: execID,
