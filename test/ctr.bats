@@ -1318,6 +1318,17 @@ function assert_log_linking() {
 	run ! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
 }
 
+@test "ctr HOME env actual newline byte invalid" {
+	start_crio
+	# Use printf to embed an actual newline byte (0x0a) into the HOME value.
+	local payload
+	payload=$(printf '/root\nmalicious::0:0::/:/bin/bash')
+	jq --arg home "$payload" ' .envs = [{"key": "HOME", "value": $home}]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+
+	run ! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
+}
+
 @test "ctr log linking" {
 	if [[ $RUNTIME_TYPE == vm ]]; then
 		skip "not applicable to vm runtime type"
