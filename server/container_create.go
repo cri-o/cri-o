@@ -633,6 +633,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		return nil, err
 	}
 
+	// Labels are added as OCI annotations downstream, so filter them through
+	// the full annotation pipeline (internal + allowlist) to prevent injection.
+	// Must run before SpecAddAnnotations, which sets internal annotations that
+	// unfiltered labels could overwrite (maps are shared by reference).
+	if err := s.FilterDisallowedAnnotations(sb.Annotations(), ctr.Config().GetLabels(), sb.RuntimeHandler()); err != nil {
+		return nil, err
+	}
+
 	containerID := ctr.ID()
 	containerName := ctr.Name()
 	containerConfig := ctr.Config()
