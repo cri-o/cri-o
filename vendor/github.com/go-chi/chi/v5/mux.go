@@ -186,6 +186,12 @@ func (mx *Mux) Put(pattern string, handlerFn http.HandlerFunc) {
 	mx.handle(mPUT, pattern, handlerFn)
 }
 
+// Query adds the route `pattern` that matches a QUERY http method to
+// execute the `handlerFn` http.HandlerFunc.
+func (mx *Mux) Query(pattern string, handlerFn http.HandlerFunc) {
+	mx.handle(mQUERY, pattern, handlerFn)
+}
+
 // Trace adds the route `pattern` that matches a TRACE http method to
 // execute the `handlerFn` http.HandlerFunc.
 func (mx *Mux) Trace(pattern string, handlerFn http.HandlerFunc) {
@@ -472,9 +478,7 @@ func (mx *Mux) routeHTTP(w http.ResponseWriter, r *http.Request) {
 			value := rctx.URLParams.Values[i]
 			r.SetPathValue(key, value)
 		}
-		if supportsPattern {
-			setPattern(rctx, r)
-		}
+		r.Pattern = rctx.RoutePattern()
 
 		h.ServeHTTP(w, r)
 		return
