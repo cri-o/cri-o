@@ -10,7 +10,11 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
-var baseLabelKeys = []string{"id", "name", "image"}
+var (
+	runtimeLabelKeys    = []string{"id", "name", "image"}
+	kubernetesLabelKeys = []string{"namespace", "pod", "container"}
+	baseLabelKeys       = append(append([]string{}, runtimeLabelKeys...), kubernetesLabelKeys...)
+)
 
 type metricValue struct {
 	value      uint64
@@ -145,8 +149,13 @@ func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric) []*t
 }
 
 func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
+	namespace, podName := "", ""
+	if md := sb.Metadata(); md != nil {
+		namespace = md.GetNamespace()
+		podName = md.GetName()
+	}
 	// TODO FIXME: image?
-	return []string{sb.ID(), "POD", ""}
+	return []string{sb.ID(), "POD", "", namespace, podName, "POD"}
 }
 
 // computeContainerMetrics computes the metrics for container.
@@ -160,7 +169,7 @@ func containerBaseLabelValues(ctr *oci.Container) []string {
 		image = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
 	}
 
-	return []string{ctr.ID(), ctr.Name(), image}
+	return []string{ctr.ID(), ctr.Name(), image, "", "", ""}
 }
 
 func computeMetrics(baseLabels []string, metrics []*containerMetric) []*types.Metric {
