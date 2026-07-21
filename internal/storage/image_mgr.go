@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"errors"
-	"reflect"
 	"sync"
 
 	"go.podman.io/image/v5/types"
@@ -37,8 +36,7 @@ type ImageServiceManager struct {
 }
 
 func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
-	v := reflect.ValueOf(sb)
-	if sb == nil || v.Kind() != reflect.Pointer || v.IsNil() {
+	if sb == nil {
 		return i.imageService
 	}
 

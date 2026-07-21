@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"errors"
-	"reflect"
 	"sync"
 
 	"github.com/cri-o/cri-o/pkg/config"
@@ -25,8 +24,7 @@ type RuntimeServiceManager struct {
 }
 
 func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) RuntimeServer {
-	v := reflect.ValueOf(sb)
-	if sb == nil || v.Kind() != reflect.Pointer || v.IsNil() {
+	if sb == nil {
 		return r.runtimeService
 	}
 
