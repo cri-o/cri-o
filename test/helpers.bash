@@ -247,7 +247,16 @@ function check_journald() {
 
 # get a random available port
 function free_port() {
-    python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'
+    local port
+    for _ in {1..5}; do
+        port=$((RANDOM % 22768 + 10000))
+        if ! host_and_port_listens ".*" "$port"; then
+            echo "$port"
+            return 0
+        fi
+    done
+    echo "ERROR: free_port: could not find a free port after 5 attempts" >&2
+    return 1
 }
 
 # Check whether a port is listening
