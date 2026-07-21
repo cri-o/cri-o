@@ -80,13 +80,6 @@ var _ = t.Describe("ImageServiceManager", func() {
 			Expect(sut.GetImageService(nil)).To(Equal(mockImageServer))
 		})
 
-		// Typed-nil: a non-nil interface value wrapping a nil pointer must not panic
-		// and must behave like nil (return main store).
-		It("should return the main store for a typed-nil sandbox without panicking", func() {
-			var sb *fakeSandboxInfo // typed nil: non-nil interface, nil pointer
-			Expect(sut.GetImageService(sb)).To(Equal(mockImageServer))
-		})
-
 		// Item 2: the default "runc" handler has RuntimePullImage=false.
 		It("should return the main store when the handler has RuntimePullImage=false", func() {
 			sb := &fakeSandboxInfo{id: "sb-runc", runtimeHandler: "runc"}

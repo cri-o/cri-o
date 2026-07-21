@@ -78,6 +78,10 @@ func (c *ContainerServer) Store() cstorage.Store {
 
 // StorageImageServer returns the ImageServer for the ContainerServer.
 func (c *ContainerServer) StorageImageServer(sb *sandbox.Sandbox) storage.ImageServer {
+	if sb == nil {
+		return c.storageImgSvcMgr.GetImageService(nil)
+	}
+
 	return c.storageImgSvcMgr.GetImageService(sb)
 }
 
@@ -98,6 +102,10 @@ func (c *ContainerServer) Config() *libconfig.Config {
 
 // StorageRuntimeServer gets the runtime server for the ContainerServer.
 func (c *ContainerServer) StorageRuntimeServer(sb storage.SandboxInfo) storage.RuntimeServer {
+	if sb == nil {
+		return c.storageRuntimeSvcMgr.GetRuntimeService(nil)
+	}
+
 	return c.storageRuntimeSvcMgr.GetRuntimeService(sb)
 }
 

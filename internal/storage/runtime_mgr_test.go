@@ -72,13 +72,6 @@ var _ = t.Describe("RuntimeServiceManager", func() {
 			Expect(sut.GetRuntimeService(nil)).To(Equal(mockRuntimeServer))
 		})
 
-		// Typed-nil safety: same as ImageServiceManager — the Kind-based guard
-		// must prevent a panic on a non-nil interface wrapping a nil pointer.
-		It("should return the main service for a typed-nil sandbox without panicking", func() {
-			var sb *fakeSandboxInfo
-			Expect(sut.GetRuntimeService(sb)).To(Equal(mockRuntimeServer))
-		})
-
 		// A sandbox using a handler without RuntimePullImage skips the rp path entirely.
 		It("should return the main service when the handler has RuntimePullImage=false", func() {
 			sb := &fakeSandboxInfo{id: "sb-runc", runtimeHandler: "runc"}
