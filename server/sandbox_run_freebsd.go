@@ -536,6 +536,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			return nil, err
 		}
 		g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
+
+		sb.SetHostInterfaces(libsandbox.HostInterfacesFromCNIResult(resultCurrent))
 	}
 
 	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_CREATED_EVENT)

@@ -1503,6 +1503,8 @@ func (s *Server) setupSandboxNetwork(ctx context.Context, sb *libsandbox.Sandbox
 		}
 
 		g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
+
+		sb.SetHostInterfaces(libsandbox.HostInterfacesFromCNIResult(resultCurrent))
 	}
 
 	return ips, nil
