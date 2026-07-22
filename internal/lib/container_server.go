@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	current "github.com/containernetworking/cni/pkg/types/100"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -309,6 +310,18 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	sbox.SetHostname(m.Annotations[annotations.HostName])
 	sbox.SetPortMappings(portMappings)
 	sbox.SetHostNetwork(hostNetwork)
+
+	if cniResultJSON, ok := m.Annotations[annotations.CNIResult]; ok {
+		var cniResult current.Result
+		if err := json.Unmarshal([]byte(cniResultJSON), &cniResult); err != nil {
+			log.WithFields(ctx, map[string]any{
+				"sandboxID": id,
+				"error":     err,
+			}).Warn("Failed to parse CNI result")
+		} else {
+			sbox.SetHostInterfaces(sandbox.HostInterfacesFromCNIResult(&cniResult))
+		}
+	}
 
 	usernsMode, _ := v2.GetAnnotationValue(m.Annotations, v2.UsernsMode)
 	sbox.SetUsernsMode(usernsMode)
