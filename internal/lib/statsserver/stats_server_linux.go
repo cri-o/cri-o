@@ -322,6 +322,22 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 		}
 	}
 
+	namespace, podName, containerName := "", "", ""
+	if md := sb.Metadata(); md != nil {
+		namespace = md.GetNamespace()
+		podName = md.GetName()
+	}
+
+	if md := c.Metadata(); md != nil {
+		containerName = md.GetName()
+	}
+
+	for _, m := range metrics {
+		m.LabelValues[len(runtimeLabelKeys)] = namespace
+		m.LabelValues[len(runtimeLabelKeys)+1] = podName
+		m.LabelValues[len(runtimeLabelKeys)+2] = containerName
+	}
+
 	return &types.ContainerMetrics{
 		ContainerId: c.ID(),
 		Metrics:     metrics,
