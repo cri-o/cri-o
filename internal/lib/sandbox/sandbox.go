@@ -55,6 +55,7 @@ type Sandbox struct {
 	hostname       string
 	// ipv4 or ipv6 cache
 	ips                []string
+	hostInterfaces     []string
 	seccompProfilePath string
 	infraContainer     *oci.Container
 	nsOpts             *types.NamespaceOption
@@ -147,6 +148,16 @@ func (s *Sandbox) IPs() []string {
 // Wrap the IPs() method to match the NRI interface.
 func (s *Sandbox) GetIPs() []string {
 	return s.IPs()
+}
+
+// SetHostInterfaces stores the host network interfaces in the sandbox.
+func (s *Sandbox) SetHostInterfaces(ifaces []string) {
+	s.hostInterfaces = ifaces
+}
+
+// HostInterfaces returns the host network interfaces of the sandbox.
+func (s *Sandbox) HostInterfaces() []string {
+	return s.hostInterfaces
 }
 
 // ID returns the id of the sandbox.

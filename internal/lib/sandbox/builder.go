@@ -100,6 +100,9 @@ type Builder interface {
 	// SetHostNetwork sets the host network.
 	SetHostNetwork(bool)
 
+	// SetHostInterfaces sets the host-side network interface names.
+	SetHostInterfaces([]string)
+
 	// SetUsernsMode sets the user namespace mode.
 	SetUsernsMode(string)
 
@@ -473,6 +476,11 @@ func (b *sandboxBuilder) SetPortMappings(portMappings []*hostport.PortMapping) {
 func (b *sandboxBuilder) SetHostNetwork(hostNetwork bool) {
 	b.validations.setValidation(validationSetHostNetwork)
 	b.sandboxRef.hostNetwork = hostNetwork
+}
+
+// SetHostInterfaces sets the host-side network interface names.
+func (b *sandboxBuilder) SetHostInterfaces(hostInterfaces []string) {
+	b.sandboxRef.hostInterfaces = hostInterfaces
 }
 
 // SetUsernsMode sets the user namespace mode for the sidecar container.
