@@ -537,7 +537,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	}
 
 	resourceCleaner.Add(ctx, "createCtr: deleting container "+ctr.ID()+" from storage", func() error {
-		if err := s.ContainerServer.StorageRuntimeServer(sb).DeleteContainer(ctx, ctr.ID()); err != nil {
+		runtimeSvc, err := s.StorageRuntimeServer(sb)
+		if err != nil {
+			return fmt.Errorf("failed to get runtime service for cleanup: %w", err)
+		}
+
+		if err := runtimeSvc.DeleteContainer(ctx, ctr.ID()); err != nil {
 			return fmt.Errorf("failed to cleanup container storage: %w", err)
 		}
 
@@ -670,7 +675,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: deleting container %s from storage", containerInfo.ID)
 
-			if err := s.ContainerServer.StorageRuntimeServer(sb).DeleteContainer(ctx, containerInfo.ID); err != nil {
+			runtimeSvc, err := s.StorageRuntimeServer(sb)
+			if err != nil {
+				log.Warnf(ctx, "Failed to get runtime service for cleanup: %v", err)
+			} else if err := runtimeSvc.DeleteContainer(ctx, containerInfo.ID); err != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err)
 			}
 		}
@@ -722,7 +730,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage start")
 
-	mountPoint, err := s.ContainerServer.StorageRuntimeServer(sb).StartContainer(containerID)
+	runtimeSvc, err := s.StorageRuntimeServer(sb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get runtime service for container %s(%s): %w", containerName, containerID, err)
+	}
+
+	mountPoint, err := runtimeSvc.StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %w", containerName, containerID, err)
 	}
@@ -731,7 +744,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: stopping storage container %s", containerID)
 
-			if err := s.ContainerServer.StorageRuntimeServer(sb).StopContainer(ctx, containerID); err != nil {
+			if err := runtimeSvc.StopContainer(ctx, containerID); err != nil {
 				log.Warnf(ctx, "Couldn't stop storage container: %v: %v", containerID, err)
 			}
 		}
@@ -1256,7 +1269,12 @@ func (s *Server) createStorageContainer(ctx context.Context, ctr container.Conta
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 
-	containerInfo, err := s.ContainerServer.StorageRuntimeServer(sb).CreateContainer(s.config.SystemContext,
+	runtimeSvc, err := s.StorageRuntimeServer(sb)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	containerInfo, err := runtimeSvc.CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
 		userRequestedImage, imageID,
 		containerName, containerID,
@@ -1283,7 +1301,11 @@ func (s *Server) resolveAndVerifyContainerImage(ctx context.Context, ctr contain
 
 	var imgResult *storage.ImageResult
 
-	imageService := s.StorageImageServer(sb)
+	imageService, err := s.StorageImageServer(sb)
+	if err != nil {
+		return nil, err
+	}
+
 	if id := imageService.HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
 		imgResult, err = imageService.ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
@@ -1446,7 +1468,12 @@ func (s *Server) verifyImageSignature(ctx context.Context, namespace, userSpecif
 			return fmt.Errorf("unable to get userSpecifiedImageRef from user specified image %q: %w", userSpecifiedImage, err)
 		}
 
-		if err := s.ContainerServer.StorageImageServer(sb).IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, status.ID); err != nil {
+		imageServer, err := s.StorageImageServer(sb)
+		if err != nil {
+			return err
+		}
+
+		if err := imageServer.IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, status.ID); err != nil {
 			return err
 		}
 	}

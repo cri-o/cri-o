@@ -69,13 +69,17 @@ var _ = t.Describe("RuntimeServiceManager", func() {
 	t.Describe("GetRuntimeService", func() {
 		// Nil sandbox — early return, no routing decision needed.
 		It("should return the main service for a nil sandbox", func() {
-			Expect(sut.GetRuntimeService(nil)).To(Equal(mockRuntimeServer))
+			result, err := sut.GetRuntimeService(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(mockRuntimeServer))
 		})
 
 		// A sandbox using a handler without RuntimePullImage skips the rp path entirely.
 		It("should return the main service when the handler has RuntimePullImage=false", func() {
 			sb := &fakeSandboxInfo{id: "sb-runc", runtimeHandler: "runc"}
-			Expect(sut.GetRuntimeService(sb)).To(Equal(mockRuntimeServer))
+			result, err := sut.GetRuntimeService(sb)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(mockRuntimeServer))
 		})
 	})
 
@@ -89,7 +93,9 @@ var _ = t.Describe("RuntimeServiceManager", func() {
 		It("should update the service returned by GetRuntimeService for a nil sandbox", func() {
 			anotherMock := criostoragemock.NewMockRuntimeServer(mockCtrl)
 			sut.SetStorageRuntimeServer(anotherMock)
-			Expect(sut.GetRuntimeService(nil)).To(Equal(anotherMock))
+			result, err := sut.GetRuntimeService(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(anotherMock))
 		})
 	})
 })

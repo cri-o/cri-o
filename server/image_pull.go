@@ -47,7 +47,12 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	pullArgs := pullArguments{image: image}
 
 	// set the default imageServer. It will be replaced later if required
-	pullArgs.imageServer = s.StorageImageServer(nil)
+	defaultImageServer, err := s.StorageImageServer(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	pullArgs.imageServer = defaultImageServer
 
 	sc := req.GetSandboxConfig()
 	if sc != nil {
@@ -73,9 +78,12 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 			sb, sbErr = s.LookupSandbox(podID)
 			if sbErr != nil {
 				log.Debugf(ctx, "Failed to retrieve sandbox for image %s (podID: %s): %v", name, podID, sbErr)
+			} else {
+				pullArgs.imageServer, sbErr = s.StorageImageServer(sb)
+				if sbErr != nil {
+					log.Debugf(ctx, "Failed to get image server for sandbox %s: %v", podID, sbErr)
+				}
 			}
-
-			pullArgs.imageServer = s.StorageImageServer(sb)
 		}
 
 		// Double-check the runtime handler from the image spec.

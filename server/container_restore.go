@@ -93,8 +93,13 @@ func (s *Server) CRImportCheckpoint(
 
 		log.Debugf(ctx, "Restoring from oci image %s", inputImage)
 
+		imageServer, err := s.StorageImageServer(sb)
+		if err != nil {
+			return "", err
+		}
+
 		// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
-		mountPoint, err = s.ContainerServer.StorageImageServer(sb).GetStore().MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
+		mountPoint, err = imageServer.GetStore().MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
 		if err != nil {
 			return "", err
 		}
@@ -103,7 +108,7 @@ func (s *Server) CRImportCheckpoint(
 
 		defer func() {
 			// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
-			if _, err := s.ContainerServer.StorageImageServer(sb).GetStore().UnmountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), true); err != nil {
+			if _, err := imageServer.GetStore().UnmountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), true); err != nil {
 				log.Errorf(ctx, "Could not unmount checkpoint image %s: %q", restoreStorageImageID, err)
 			}
 		}()
@@ -373,7 +378,11 @@ func (s *Server) CRImportCheckpoint(
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: deleting container %s from storage", ctr.ID())
 
-			err2 := s.ContainerServer.StorageRuntimeServer(sb).DeleteContainer(ctx, ctr.ID())
+			runtimeSvc, err2 := s.StorageRuntimeServer(sb)
+			if err2 == nil {
+				err2 = runtimeSvc.DeleteContainer(ctx, ctr.ID())
+			}
+
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}

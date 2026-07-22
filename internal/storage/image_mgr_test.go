@@ -77,19 +77,25 @@ var _ = t.Describe("ImageServiceManager", func() {
 	t.Describe("GetImageService", func() {
 		// Item 1: a nil sandbox means "no sandbox context" — always routes to main store.
 		It("should return the main store for a nil sandbox", func() {
-			Expect(sut.GetImageService(nil)).To(Equal(mockImageServer))
+			result, err := sut.GetImageService(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(mockImageServer))
 		})
 
 		// Item 2: the default "runc" handler has RuntimePullImage=false.
 		It("should return the main store when the handler has RuntimePullImage=false", func() {
 			sb := &fakeSandboxInfo{id: "sb-runc", runtimeHandler: "runc"}
-			Expect(sut.GetImageService(sb)).To(Equal(mockImageServer))
+			result, err := sut.GetImageService(sb)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(mockImageServer))
 		})
 
 		// An unknown handler (not present in config.Runtimes) falls back to the main store.
 		It("should return the main store for an unknown runtime handler", func() {
 			sb := &fakeSandboxInfo{id: "sb-unknown", runtimeHandler: "unknown-runtime"}
-			Expect(sut.GetImageService(sb)).To(Equal(mockImageServer))
+			result, err := sut.GetImageService(sb)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(mockImageServer))
 		})
 	})
 
@@ -103,7 +109,9 @@ var _ = t.Describe("ImageServiceManager", func() {
 		It("should update the store returned by GetImageService for a nil sandbox", func() {
 			anotherMock := criostoragemock.NewMockImageServer(mockCtrl)
 			sut.SetStorageImageServer(anotherMock)
-			Expect(sut.GetImageService(nil)).To(Equal(anotherMock))
+			result, err := sut.GetImageService(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(anotherMock))
 		})
 	})
 

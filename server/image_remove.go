@@ -73,7 +73,10 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 	// Proceed with the default store for name-based search.
 	// Runtime-pulled images being deleted along with the pod that uses them,
 	// we only try to clean the default store here.
-	imageService := s.StorageImageServer(nil)
+	imageService, err := s.StorageImageServer(nil)
+	if err != nil {
+		return err
+	}
 
 	potentialMatches, err := imageService.CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
 	if err != nil {

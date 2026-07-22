@@ -122,7 +122,12 @@ func (c *ContainerServer) ContainerCheckpoint(
 			log.Warnf(ctx, "Failed to lookup sandbox %s for checkpoint cleanup: %v", ctr.Sandbox(), err)
 		}
 
-		if err := c.StorageRuntimeServer(sb).StopContainer(ctx, ctr.ID()); err != nil {
+		runtimeSvc, err := c.StorageRuntimeServer(sb)
+		if err != nil {
+			return "", fmt.Errorf("failed to get runtime service for container %s: %w", ctr.ID(), err)
+		}
+
+		if err := runtimeSvc.StopContainer(ctx, ctr.ID()); err != nil {
 			return "", fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 		}
 	}
@@ -321,7 +326,12 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		return fmt.Errorf("failed to lookup sandbox %s: %w", ctr.Sandbox(), err)
 	}
 
-	mountPoint, err := c.StorageImageServer(sb).GetStore().Mount(id, specgen.Linux.MountLabel)
+	imageServer, err := c.StorageImageServer(sb)
+	if err != nil {
+		return fmt.Errorf("failed to get image service for sandbox %s: %w", sb.ID(), err)
+	}
+
+	mountPoint, err := imageServer.GetStore().Mount(id, specgen.Linux.MountLabel)
 	if err != nil {
 		return fmt.Errorf("not able to get mountpoint for container %q: %w", id, err)
 	}
