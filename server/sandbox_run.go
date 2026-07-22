@@ -113,12 +113,17 @@ func (s *Server) setPodSandboxMountLabel(ctx context.Context, sbox libsandbox.Bu
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
-	storageMetadata, err := s.ContainerServer.StorageRuntimeServer(sbox).GetContainerMetadata(sbox.ID())
+	runtimeSvc, err := s.StorageRuntimeServer(sbox)
+	if err != nil {
+		return err
+	}
+
+	storageMetadata, err := runtimeSvc.GetContainerMetadata(sbox.ID())
 	if err != nil {
 		return err
 	}
 
 	storageMetadata.SetMountLabel(mountLabel)
 
-	return s.ContainerServer.StorageRuntimeServer(sbox).SetContainerMetadata(sbox.ID(), &storageMetadata)
+	return runtimeSvc.SetContainerMetadata(sbox.ID(), &storageMetadata)
 }

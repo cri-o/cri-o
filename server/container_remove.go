@@ -77,7 +77,12 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 
 	c.CleanupConmonCgroup(ctx)
 
-	if err := s.ContainerServer.StorageRuntimeServer(sb).DeleteContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
+	runtimeSvc, err := s.StorageRuntimeServer(sb)
+	if err != nil {
+		return fmt.Errorf("failed to get runtime service for container %s: %w", c.Name(), err)
+	}
+
+	if err := runtimeSvc.DeleteContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
 	}
 

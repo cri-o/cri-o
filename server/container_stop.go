@@ -68,7 +68,10 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 }
 
 func (s *Server) postStopCleanup(ctx context.Context, ctr *oci.Container, sb *sandbox.Sandbox, hooks runtimehandlerhooks.RuntimeHandlerHooks) {
-	if err := s.ContainerServer.StorageRuntimeServer(sb).StopContainer(ctx, ctr.ID()); err != nil {
+	runtimeSvc, err := s.StorageRuntimeServer(sb)
+	if err != nil {
+		log.Errorf(ctx, "Failed to get runtime service for container %s: %v", ctr.ID(), err)
+	} else if err := runtimeSvc.StopContainer(ctx, ctr.ID()); err != nil {
 		log.Errorf(ctx, "Failed to unmount container %s: %v", ctr.ID(), err)
 	}
 

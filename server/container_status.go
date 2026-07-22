@@ -166,7 +166,12 @@ func (s *Server) createContainerInfo(ctx context.Context, container *oci.Contain
 		log.Debugf(ctx, "Failed to lookup sandbox %s: %v", container.Sandbox(), err)
 	}
 
-	metadata, err := s.ContainerServer.StorageRuntimeServer(sb).GetContainerMetadata(container.ID())
+	runtimeSvc, err := s.StorageRuntimeServer(sb)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime service: %w", err)
+	}
+
+	metadata, err := runtimeSvc.GetContainerMetadata(container.ID())
 	if err != nil {
 		return nil, fmt.Errorf("getting container metadata: %w", err)
 	}

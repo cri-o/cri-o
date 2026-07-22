@@ -23,14 +23,14 @@ type RuntimeServiceManager struct {
 	runtimeServiceRPLock sync.RWMutex
 }
 
-func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) RuntimeServer {
+func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) (RuntimeServer, error) {
 	if sb == nil {
-		return r.runtimeService
+		return r.runtimeService, nil
 	}
 
 	rt, ok := r.serverConfig.Runtimes[sb.RuntimeHandler()]
 	if !ok || !rt.RuntimePullImage {
-		return r.runtimeService
+		return r.runtimeService, nil
 	}
 
 	id := sb.ID()
@@ -40,10 +40,13 @@ func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) RuntimeServer 
 	r.runtimeServiceRPLock.RUnlock()
 
 	if rs != nil {
-		return rs
+		return rs, nil
 	}
 
-	is := r.imageServiceMgr.GetImageService(sb)
+	is, err := r.imageServiceMgr.GetImageService(sb)
+	if err != nil {
+		return nil, err
+	}
 
 	// GetRuntimeService() is called first at sandbox creation,
 	// at a time where the sandbox creation is not complete, and we
@@ -54,7 +57,7 @@ func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) RuntimeServer 
 	// The next call will get the proper runtimePulledImageService
 	// that we can use to create and cache our runtimePulledRuntimeService.
 	if _, ok = is.(*runtimePulledImageService); !ok {
-		return r.runtimeService
+		return r.runtimeService, nil
 	}
 
 	rs = GetRuntimePulledRuntimeService(r.ctx, r.runtimeService, is)
@@ -64,12 +67,12 @@ func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) RuntimeServer 
 
 	// double-check that an instance was not created in parallel
 	if existing := r.runtimeServiceRP[id]; existing != nil {
-		return existing
+		return existing, nil
 	}
 
 	r.runtimeServiceRP[id] = rs
 
-	return rs
+	return rs, nil
 }
 
 func GetRuntimeServiceManager(ctx context.Context, imageServiceMgr *ImageServiceManager, storageTransport StorageTransport, serverConfig *config.Config) (*RuntimeServiceManager, error) {

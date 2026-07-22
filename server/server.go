@@ -174,7 +174,14 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	for i := range containers {
 		// use the default runtime service here, as ContainerMetadata is not
 		// treated differently for different runtimes.
-		metadata, err2 := s.ContainerServer.StorageRuntimeServer(nil).GetContainerMetadata(containers[i].ID)
+		runtimeSvc, err2 := s.StorageRuntimeServer(nil)
+		if err2 != nil {
+			log.Warnf(ctx, "Error getting runtime service for %s: %v, ignoring", containers[i].ID, err2)
+
+			continue
+		}
+
+		metadata, err2 := runtimeSvc.GetContainerMetadata(containers[i].ID)
 		if err2 != nil {
 			log.Warnf(ctx, "Error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
 
@@ -461,7 +468,12 @@ func New(
 		os.Unsetenv("DBUS_SESSION_BUS_ADDRESS")
 	}
 
-	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.AdditionalArtifactStores, config.SystemContext, containerServer.StorageImageServer(nil).PinnedImageRegexps(), false)
+	defaultImageServer, err := containerServer.StorageImageServer(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.AdditionalArtifactStores, config.SystemContext, defaultImageServer.PinnedImageRegexps(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -643,9 +655,14 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// For this operation, we set the "runtime handler" parameter to "",
 			// so that the default ImageServer is used. There is no need to
 			// update pinned images for runtimes that manage the images themselves.
-			imageService := s.StorageImageServer(nil)
-			imageService.UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
-			s.artifactStore.SetPinnedImageRegexps(imageService.PinnedImageRegexps())
+			imageService, err := s.StorageImageServer(nil)
+			if err != nil {
+				log.Errorf(ctx, "Failed to get image server during config reload: %v", err)
+			} else {
+				imageService.UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
+				s.artifactStore.SetPinnedImageRegexps(imageService.PinnedImageRegexps())
+			}
+
 			log.Infof(ctx, "Configuration reload completed")
 			// Print the current configuration.
 			tomlConfig, err := s.config.ToString()

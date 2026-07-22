@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"go.podman.io/image/v5/types"
@@ -35,14 +36,14 @@ type ImageServiceManager struct {
 	imageServiceRPLock sync.RWMutex
 }
 
-func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
+func (i *ImageServiceManager) GetImageService(sb SandboxInfo) (ImageServer, error) {
 	if sb == nil {
-		return i.imageService
+		return i.imageService, nil
 	}
 
 	r, ok := i.serverConfig.Runtimes[sb.RuntimeHandler()]
 	if !ok || !r.RuntimePullImage {
-		return i.imageService
+		return i.imageService, nil
 	}
 
 	i.imageServiceRPLock.RLock()
@@ -50,7 +51,7 @@ func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
 	i.imageServiceRPLock.RUnlock()
 
 	if is != nil {
-		return is
+		return is, nil
 	}
 
 	rootDir, err := i.imageService.GetStore().ContainerRunDirectory(sb.ID())
@@ -61,22 +62,20 @@ func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
 		// for it.
 		log.Warnf(i.ctx, "Failed to retrieve root dir for sandbox %s: %v", sb.ID(), err)
 
-		return i.imageService
+		return i.imageService, nil
 	}
 
 	regularIS, ok := i.imageService.(*imageService)
 	if !ok {
 		log.Warnf(i.ctx, "Failed to get an imageService")
 
-		return i.imageService
+		return i.imageService, nil
 	}
 
 	is, err = GetRuntimePulledImageService(i.ctx, regularIS, rootDir)
 	if err != nil {
-		// if we can't get the specific image server, return the default
-		log.Warnf(i.ctx, "Failed to get ImageServiceVM for sandbox %s: %v", sb.ID(), err)
-
-		return i.imageService
+		// if we can't get the specific image server, return an error
+		return nil, fmt.Errorf("failed to get ImageServiceVM for sandbox %s: %w", sb.ID(), err)
 	}
 
 	i.imageServiceRPLock.Lock()
@@ -84,12 +83,12 @@ func (i *ImageServiceManager) GetImageService(sb SandboxInfo) ImageServer {
 
 	// double-check that an instance was not created in parallel
 	if existing := i.imageServiceRP[sb.ID()]; existing != nil {
-		return existing
+		return existing, nil
 	}
 
 	i.imageServiceRP[sb.ID()] = is
 
-	return is
+	return is, nil
 }
 
 // DeleteImage deletes the image with the given ID from all storage backends.

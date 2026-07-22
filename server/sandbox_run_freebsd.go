@@ -143,7 +143,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
-	podContainer, err := s.ContainerServer.StorageRuntimeServer(sbox).CreatePodSandbox(s.config.SystemContext,
+	runtimeSvc, err := s.ContainerServer.StorageRuntimeServer(sbox)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime service for sandbox %q: %w", sboxName, err)
+	}
+
+	podContainer, err := runtimeSvc.CreatePodSandbox(s.config.SystemContext,
 		sboxName, sboxId,
 		pauseImage,
 		s.config.PauseImageAuthFile,
@@ -163,7 +168,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, fmt.Errorf("creating pod sandbox with name %q: %w", sboxName, err)
 	}
 	resourceCleaner.Add(ctx, "runSandbox: removing pod sandbox from storage: "+sboxId, func() error {
-		return s.ContainerServer.StorageRuntimeServer(sbox).DeleteContainer(ctx, sboxId)
+		return runtimeSvc.DeleteContainer(ctx, sboxId)
 	})
 
 	mountLabel := podContainer.MountLabel
@@ -392,12 +397,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox storage start")
 
-	mountPoint, err := s.ContainerServer.StorageRuntimeServer(sbox).StartContainer(sboxId)
+	runtimeSvcStart, err := s.ContainerServer.StorageRuntimeServer(sbox)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime service for sandbox %s(%s): %w", sb.Name(), sboxId, err)
+	}
+
+	mountPoint, err := runtimeSvcStart.StartContainer(sboxId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %w", containerName, sb.Name(), sboxId, err)
 	}
 	resourceCleaner.Add(ctx, "runSandbox: stopping storage container for sandbox "+sboxId, func() error {
-		if err := s.ContainerServer.StorageRuntimeServer(sbox).StopContainer(ctx, sboxId); err != nil {
+		if err := runtimeSvcStart.StopContainer(ctx, sboxId); err != nil {
 			return fmt.Errorf("could not stop storage container: %s: %w", sboxId, err)
 		}
 		return nil

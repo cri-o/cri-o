@@ -518,7 +518,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	podContainer, err := s.ContainerServer.StorageRuntimeServer(sbox).CreatePodSandbox(s.config.SystemContext,
+	runtimeSvc, err := s.StorageRuntimeServer(sbox)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime service for sandbox %q: %w", sboxName, err)
+	}
+
+	podContainer, err := runtimeSvc.CreatePodSandbox(s.config.SystemContext,
 		sboxName, sboxID,
 		pauseImage,
 		s.config.PauseImageAuthFile,
@@ -540,7 +545,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	resourceCleaner.Add(ctx, "runSandbox: removing pod sandbox from storage: "+sboxID, func() error {
-		return s.ContainerServer.StorageRuntimeServer(sbox).DeleteContainer(ctx, sboxID)
+		return runtimeSvc.DeleteContainer(ctx, sboxID)
 	})
 
 	mountLabel := podContainer.MountLabel
@@ -1570,13 +1575,18 @@ func (s *Server) prepareSandboxMetadataAndLabels(sbox libsandbox.Builder, kubeAn
 func (s *Server) setupSandboxStorage(ctx context.Context, sb *libsandbox.Sandbox, g *generate.Generator, sboxID, sboxName, containerName string, resourceCleaner *resourcestore.ResourceCleaner) (string, error) {
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox storage start")
 
-	mountPoint, err := s.ContainerServer.StorageRuntimeServer(sb).StartContainer(sboxID)
+	runtimeSvc, err := s.StorageRuntimeServer(sb)
+	if err != nil {
+		return "", fmt.Errorf("getting runtime service for sandbox %s(%s): %w", sb.Name(), sboxID, err)
+	}
+
+	mountPoint, err := runtimeSvc.StartContainer(sboxID)
 	if err != nil {
 		return "", fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %w", containerName, sb.Name(), sboxID, err)
 	}
 
 	resourceCleaner.Add(ctx, "runSandbox: stopping storage container for sandbox "+sboxID, func() error {
-		if err := s.ContainerServer.StorageRuntimeServer(sb).StopContainer(ctx, sboxID); err != nil {
+		if err := runtimeSvc.StopContainer(ctx, sboxID); err != nil {
 			return fmt.Errorf("could not stop storage container: %s: %w", sboxID, err)
 		}
 

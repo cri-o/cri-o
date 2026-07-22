@@ -79,7 +79,12 @@ func (s *Server) listImages(ctx context.Context, filter *types.ImageFilter) ([]*
 	// Call "ListImages()" with the default ImageServer (using "" for runtimeHandler)
 	// so that we get only the images that CRI-O actually manages.
 	// Images handled by the underlying runtime are ignored for now.
-	results, err := s.ContainerServer.StorageImageServer(nil).ListImages(s.config.SystemContext)
+	imageServer, err := s.StorageImageServer(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := imageServer.ListImages(s.config.SystemContext)
 	if err != nil {
 		return nil, err
 	}

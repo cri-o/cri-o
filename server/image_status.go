@@ -98,7 +98,11 @@ func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) 
 	// Use the default store here: Images managed by the runtime are ignored, to
 	// avoid confusion at the Kubernetes level, as we can't report multiple image
 	// satuses depending on the runtime being used.
-	imageService := s.StorageImageServer(nil)
+	imageService, err := s.StorageImageServer(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	if id := imageService.HeuristicallyTryResolvingStringAsIDPrefix(spec.GetImage()); id != nil {
 		status, err := imageService.ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
