@@ -9,6 +9,7 @@ import (
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/storage/pkg/mount"
+
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -27,8 +28,8 @@ func TestMergeEnvs(t *testing.T) {
 				},
 			},
 			kubeEnvs: []*types.KeyValue{
-				{Key: "VAR2", Value: "3"},
-				{Key: "VAR3", Value: "3"},
+				{Key: "VAR2", Value: []byte("3")},
+				{Key: "VAR3", Value: []byte("3")},
 			},
 			expected: []string{"VAR2=3", "VAR3=3", "VAR1=1"},
 		},
@@ -46,7 +47,7 @@ func TestMergeEnvs(t *testing.T) {
 			name:        "imageConfig is nil",
 			imageConfig: nil,
 			kubeEnvs: []*types.KeyValue{
-				{Key: "VAR1", Value: "1"},
+				{Key: "VAR1", Value: []byte("1")},
 			},
 			expected: []string{"VAR1=1"},
 		},
@@ -58,8 +59,8 @@ func TestMergeEnvs(t *testing.T) {
 				},
 			},
 			kubeEnvs: []*types.KeyValue{
-				{Key: "", Value: "3"},
-				{Key: "VAR2", Value: "2"},
+				{Key: "", Value: []byte("3")},
+				{Key: "VAR2", Value: []byte("2")},
 			},
 			expected: []string{"VAR2=2", "VAR1=1"},
 		},
@@ -71,7 +72,7 @@ func TestMergeEnvs(t *testing.T) {
 				},
 			},
 			kubeEnvs: []*types.KeyValue{
-				{Key: "VAR2", Value: "2"},
+				{Key: "VAR2", Value: []byte("2")},
 			},
 			expected: []string{"VAR2=2", "VAR1=1"},
 		},
@@ -83,7 +84,7 @@ func TestMergeEnvs(t *testing.T) {
 				},
 			},
 			kubeEnvs: []*types.KeyValue{
-				{Key: "VAR3", Value: ""},
+				{Key: "VAR3", Value: []byte("")},
 			},
 			expected: []string{"VAR3=", "VAR1=", "VAR2=2"},
 		},
