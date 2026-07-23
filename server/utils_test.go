@@ -22,11 +22,11 @@ func TestMergeEnvs(t *testing.T) {
 	configKube := []*types.KeyValue{
 		{
 			Key:   "VAR2",
-			Value: "3",
+			Value: []byte("3"),
 		},
 		{
 			Key:   "VAR3",
-			Value: "3",
+			Value: []byte("3"),
 		},
 	}
 
