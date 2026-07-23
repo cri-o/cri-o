@@ -241,7 +241,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 	for _, env := range specgen.Config.Process.Env {
 		if after, ok := strings.CutPrefix(env, "HOME="); ok {
 			homedir = after
-			if idx := strings.Index(homedir, `\n`); idx > -1 {
+			if strings.ContainsAny(homedir, "\n\r") {
 				return errors.New("invalid HOME environment; newline not allowed")
 			}
 
