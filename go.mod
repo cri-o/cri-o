@@ -68,11 +68,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.41.0
 	go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39
 	go.podman.io/image/v5 v5.38.0
-	go.podman.io/storage v1.61.1-0.20251212224252-b0f86df5a665
+	go.podman.io/storage v1.62.1-0.20260323170939-f7aa90bb7162
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.51.0
-	golang.org/x/sync v0.19.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sync v0.20.0
+	golang.org/x/sys v0.42.0
 	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.36.0-rc.0
@@ -94,7 +94,7 @@ require (
 
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2 // indirect
-	cyphar.com/go-pathrs v0.2.1 // indirect
+	cyphar.com/go-pathrs v0.2.4 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
@@ -178,7 +178,7 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/klauspost/compress v1.18.3 // indirect
+	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/knqyf263/go-plugin v0.9.0 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
