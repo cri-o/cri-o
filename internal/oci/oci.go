@@ -76,7 +76,7 @@ type RuntimeImpl interface {
 	PortForwardContainer(context.Context, *Container, string,
 		int32, io.ReadWriteCloser) error
 	ReopenContainerLog(context.Context, *Container) error
-	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
+	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool, string, string) error
 	RestoreContainer(context.Context, *Container, string, string) error
 	IsContainerAlive(*Container) bool
 	// ProbeMonitor is used to check the liveness of the container monitor process.
@@ -534,13 +534,13 @@ func (e *ExecSyncError) Error() string {
 }
 
 // CheckpointContainer checkpoints a container.
-func (r *Runtime) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
+func (r *Runtime) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool, workPath, imagePath string) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
 	}
 
-	return impl.CheckpointContainer(ctx, c, specgen, leaveRunning)
+	return impl.CheckpointContainer(ctx, c, specgen, leaveRunning, workPath, imagePath)
 }
 
 // RestoreContainer restores a container.

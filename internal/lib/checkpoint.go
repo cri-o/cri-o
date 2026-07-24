@@ -92,7 +92,7 @@ func (c *ContainerServer) ContainerCheckpoint(
 		}
 	}
 
-	if err := c.runtime.CheckpointContainer(ctx, ctr, specgen.Config, opts.KeepRunning); err != nil {
+	if err := c.runtime.CheckpointContainer(ctx, ctr, specgen.Config, opts.KeepRunning, ctr.Dir(), ctr.CheckpointPath()); err != nil {
 		// in the case of an error, clean up any leftover CRIU images
 		if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
 			log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
