@@ -17,8 +17,8 @@ import (
 const (
 	ciImage        = "quay.io/crio/fedora-crio-ci:latest"
 	connectTimeout = 3 * time.Second
-	requestTimeout = 10 * time.Second
 	pullimgTimeout = 300 * time.Second
+	requestTimeout = 10 * time.Second
 )
 
 type runtime struct {

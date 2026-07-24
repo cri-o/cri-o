@@ -51,8 +51,9 @@ jobs:
             test/checkcriu/checkcriu
             test/checkseccomp/checkseccomp
             test/copyimg/copyimg
-            test/updateunified/updateunified
+            test/criogrpccaller/criogrpccaller
             test/nri/nri.test
+            test/nri-delay-plugin/nri-delay-plugin
 
   integration:
     needs: test-binaries
@@ -221,7 +222,8 @@ jobs:
             test/checkcriu/checkcriu \
             test/checkseccomp/checkseccomp \
             test/copyimg/copyimg \
-            test/updateunified/updateunified \
+            test/criogrpccaller/criogrpccaller \
+            test/nri-delay-plugin/nri-delay-plugin \
             test/nri/nri.test
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
