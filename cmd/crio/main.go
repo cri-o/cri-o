@@ -162,6 +162,7 @@ func main() {
 	app.Commands = append(app.Commands,
 		criocli.CheckCommand,
 		criocli.ConfigCommand,
+		criocli.DedupCommand,
 		criocli.PublishCommand,
 		criocli.StatusCommand,
 		criocli.VersionCommand,
