@@ -59,11 +59,24 @@
 
 - name: Install Kata Containers
   block:
-    - name: Get and extract kata tarball from upstream release
-      unarchive:
-        src: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-amd64.tar.xz"
-        dest: "/"
-        remote_src: yes
+    - name: Install zstd for kata tarball extraction
+      package:
+        name: zstd
+        state: present
+
+    - name: Download kata tarball from upstream release
+      get_url:
+        url: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-amd64.tar.zst"
+        dest: "/tmp/kata-static-{{ kata_version }}-amd64.tar.zst"
+        checksum: "{{ kata_amd64_checksum }}"
+
+    - name: Extract kata tarball
+      command: tar -I zstd -xf /tmp/kata-static-{{ kata_version }}-amd64.tar.zst -C /
+
+    - name: Remove kata tarball
+      file:
+        path: "/tmp/kata-static-{{ kata_version }}-amd64.tar.zst"
+        state: absent
 
 - name: Set debugging logs
   block:
