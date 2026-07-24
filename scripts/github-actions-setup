@@ -135,6 +135,7 @@ install_runc() {
 install_ginkgo() {
     GOPATH="$(go env GOPATH)"
     for i in $GOPATH "$(go env GOCACHE)"; do
+        mkdir -p "$i"
         sudo chown -R "$(id -u):$(id -g)" "$i"
     done
     go install github.com/onsi/ginkgo/v2/ginkgo@latest
