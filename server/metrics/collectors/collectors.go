@@ -19,6 +19,12 @@ const (
 	// ImagePullsLayerSize is the key for CRI-O image pull metrics per layer.
 	ImagePullsLayerSize Collector = crioPrefix + "image_pulls_layer_size"
 
+	// ImageLayerDedupDurationSeconds is the key for CRI-O image layer deduplication duration metrics.
+	ImageLayerDedupDurationSeconds Collector = crioPrefix + "image_layer_dedup_duration_seconds"
+
+	// ImageLayerDedupBytesSaved is the key for CRI-O image layer deduplication bytes saved metrics.
+	ImageLayerDedupBytesSaved Collector = crioPrefix + "image_layer_dedup_bytes_saved"
+
 	// ContainersEventsDropped is the key for the total number of container events dropped counter.
 	ContainersEventsDropped Collector = crioPrefix + "containers_events_dropped_total"
 
@@ -94,6 +100,8 @@ func (c Collectors) ToSlice() (r []string) {
 func All() Collectors {
 	return Collectors{
 		ImagePullsLayerSize.Stripped(),
+		ImageLayerDedupDurationSeconds.Stripped(),
+		ImageLayerDedupBytesSaved.Stripped(),
 		ContainersEventsDropped.Stripped(),
 		ContainersOOMTotal.Stripped(),
 		ProcessesDefunct.Stripped(),
