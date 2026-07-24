@@ -917,6 +917,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		g.AddAnnotation(k, v)
 	}
 
+	// Labels are added as OCI annotations below, so filter them through the
+	// full annotation pipeline (internal + allowlist) to prevent injection.
+	if err := s.FilterDisallowedAnnotations(sbox.Config().GetAnnotations(), labels, runtimeHandler); err != nil {
+		return nil, err
+	}
+
 	for k, v := range labels {
 		g.AddAnnotation(k, v)
 	}
