@@ -947,7 +947,7 @@ function assert_log_linking() {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	# XXX: this relies on PATH being the first element in envs[]
-	jq '	  .envs[0].value += ":/acustompathinpath"' \
+	jq '	  .envs[0].value = ((.envs[0].value | @base64d) + ":/acustompathinpath" | @base64)' \
 		"$TESTDATA"/container_config.json > "$newconfig"
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 
@@ -1315,7 +1315,8 @@ function assert_log_linking() {
 
 @test "ctr HOME env newline invalid" {
 	start_crio
-	jq ' .envs = [{"key": "HOME=", "value": "/root:/sbin/nologin\\ntest::0:0::/:/bin/bash"}]' \
+	jq --arg v "$(printf '%s' '/root:/sbin/nologin\ntest::0:0::/:/bin/bash' | base64 -w0)" \
+		' .envs = [{"key": "HOME=", "value": $v}]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
 
 	run ! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json

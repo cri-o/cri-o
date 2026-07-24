@@ -13,23 +13,23 @@
   "envs": [
     {
       "key": "PATH",
-      "value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      "value": "L3Vzci9sb2NhbC9zYmluOi91c3IvbG9jYWwvYmluOi91c3Ivc2JpbjovdXNyL2Jpbjovc2JpbjovYmlu"
     },
     {
       "key": "TERM",
-      "value": "xterm"
+      "value": "eHRlcm0="
     },
     {
       "key": "GLIBC_TUNABLES",
-      "value": "glibc.pthread.rseq=0"
+      "value": "Z2xpYmMucHRocmVhZC5yc2VxPTA="
     },
     {
       "key": "TESTDIR",
-      "value": "test/dir1"
+      "value": "dGVzdC9kaXIx"
     },
     {
       "key": "TESTFILE",
-      "value": "test/file1"
+      "value": "dGVzdC9maWxlMQ=="
     }
   ],
   "labels": {

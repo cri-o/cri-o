@@ -111,7 +111,8 @@ function annotate_ctr_with_unknown_cdidev {
 }
 
 function prepare_ctr_with_cdidev {
-	jq ".CDI_Devices |= . + [ { \"Name\": \"vendor0.com/device=loop8\" }, { \"Name\": \"vendor0.com/device=loop9\" } ] | .envs |= . + [ { \"key\": \"VENDOR0\", \"value\": \"unset\" }, { \"key\": \"LOOP8\", \"value\": \"unset\" } ]" \
+	jq --arg v "$(printf %s unset | base64 -w0)" \
+		'.CDI_Devices |= . + [{"Name": "vendor0.com/device=loop8"}, {"Name": "vendor0.com/device=loop9"}] | .envs |= . + [{"key": "VENDOR0", "value": $v}, {"key": "LOOP8", "value": $v}]' \
 		"$TESTDATA/container_sleep.json" > "$ctr_config"
 }
 

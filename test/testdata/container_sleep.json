@@ -12,11 +12,11 @@
   "envs": [
     {
       "key": "PATH",
-      "value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      "value": "L3Vzci9sb2NhbC9zYmluOi91c3IvbG9jYWwvYmluOi91c3Ivc2JpbjovdXNyL2Jpbjovc2JpbjovYmlu"
     },
     {
       "key": "GLIBC_TUNABLES",
-      "value": "glibc.pthread.rseq=0"
+      "value": "Z2xpYmMucHRocmVhZC5yc2VxPTA="
     }
   ],
   "annotations": {
