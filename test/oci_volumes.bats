@@ -139,6 +139,63 @@ IMAGE=quay.io/crio/artifact:v1
 	[[ $(crictl exec "$CTR_ID" cat "$CONTAINER_PATH/file") == 1 ]]
 }
 
+@test "OCI image volume mount is readonly" {
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		skip "test fails in a user namespace"
+	fi
+
+	start_crio
+
+	# Prepull the artifact
+	crictl pull "$IMAGE"
+
+	# Set mounts in the same way as the kubelet would do
+	jq --arg IMAGE "$IMAGE" --arg CONTAINER_PATH "$CONTAINER_PATH" \
+		'.mounts = [{
+			host_path: "",
+			container_path: $CONTAINER_PATH,
+			image: { image: $IMAGE, user_specified_image: $IMAGE },
+			readonly: true
+		}]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
+
+	CTR_ID=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+
+	# Assert the mount is readonly
+	mount_info=$(crictl exec "$CTR_ID" grep "$CONTAINER_PATH" /proc/mounts)
+	[[ "$mount_info" == *"ro,"* ]]
+
+	# Assert writing to the volume fails
+	run ! crictl exec "$CTR_ID" touch "$CONTAINER_PATH/test_file"
+}
+
+@test "OCI image volume mount doesn't have noexec" {
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		skip "test fails in a user namespace"
+	fi
+
+	start_crio
+
+	# Prepull the artifact
+	crictl pull "$IMAGE"
+
+	# Set mounts in the same way as the kubelet would do
+	jq --arg IMAGE "$IMAGE" --arg CONTAINER_PATH "$CONTAINER_PATH" \
+		'.mounts = [{
+			host_path: "",
+			container_path: $CONTAINER_PATH,
+			image: { image: $IMAGE, user_specified_image: $IMAGE },
+			readonly: true
+		}]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
+
+	CTR_ID=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+
+	# Assert the mount doesn't have noexec
+	mount_info=$(crictl exec "$CTR_ID" grep "$CONTAINER_PATH" /proc/mounts)
+	[[ "$mount_info" != *"noexec"* ]]
+}
+
 @test "OCI image volume mount with invalid sub path" {
 	if [[ "$TEST_USERNS" == "1" ]]; then
 		skip "test fails in a user namespace"
