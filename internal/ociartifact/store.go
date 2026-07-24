@@ -17,6 +17,7 @@ import (
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
+	"go.podman.io/image/v5/pkg/blobinfocache/none"
 	"go.podman.io/image/v5/types"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -65,10 +66,15 @@ type Store struct {
 	// Access is via atomic.Pointer to allow concurrent reads during listing
 	// while the reload watcher updates the regexps.
 	pinnedImageRegexps atomic.Pointer[[]*regexp.Regexp]
+
+	// allowImages is a flag indicating whether the store should accept to
+	// pull image artifacts. By default, the store is intended to hold only
+	// non-image artifacts.
+	allowImages bool
 }
 
 // NewStore creates a new OCI artifact store.
-func NewStore(rootPath string, additionalPaths []string, systemContext *types.SystemContext, pinnedImageRegexps []*regexp.Regexp) (*Store, error) {
+func NewStore(rootPath string, additionalPaths []string, systemContext *types.SystemContext, pinnedImageRegexps []*regexp.Regexp, allowImages bool) (*Store, error) {
 	storePath := filepath.Join(rootPath, "artifacts")
 
 	store, err := libart.NewArtifactStore(storePath, systemContext)
@@ -100,6 +106,7 @@ func NewStore(rootPath string, additionalPaths []string, systemContext *types.Sy
 		rootPath:         storePath,
 		impl:             &defaultImpl{},
 		additionalStores: additional,
+		allowImages:      allowImages,
 	}
 	s.SetPinnedImageRegexps(pinnedImageRegexps)
 
@@ -113,36 +120,13 @@ func (s *Store) Pull(
 	ref types.ImageReference,
 	opts *libimage.CopyOptions,
 ) (manifestDigest *digest.Digest, err error) {
-	// Reject regular container images early. If a container image was
-	// pulled into the artifact store, it would not be usable as an image.
-	if err := s.EnsureNotContainerImage(ctx, ref); err != nil {
-		return nil, fmt.Errorf("image reference: %w", err)
+	strRef, cachedDigest, err := s.prepareForPull(ctx, ref)
+	if err != nil {
+		return nil, err
 	}
 
-	strRef := ref.DockerReference().String()
-
-	// Skip pulling if the artifact already exists in a read-only additional
-	// store. This avoids duplicating artifacts that are already available.
-	// We intentionally do NOT skip for artifacts in the main store, because
-	// the remote tag may have been re-pointed to a different digest.
-	if len(s.additionalStores) > 0 {
-		artRef, err := libart.NewArtifactStorageReference(strRef)
-		if err == nil {
-			for _, add := range s.additionalStores {
-				art, inspErr := add.store.Inspect(ctx, artRef)
-				if inspErr == nil {
-					log.Infof(ctx, "Artifact %s already exists in additional store %s, skipping pull", strRef, add.path)
-					// Force-pinned: additional stores are read-only and not subject to GC.
-					dgst := s.newArtifact(art, add.path, true).Digest()
-
-					return &dgst, nil
-				}
-
-				if !errors.Is(inspErr, ErrNotFound) {
-					log.Warnf(ctx, "Failed to inspect artifact in additional store %q, pulling into main store: %v", add.path, inspErr)
-				}
-			}
-		}
+	if cachedDigest != nil {
+		return cachedDigest, nil
 	}
 
 	log.Infof(ctx, "Pulling OCI artifact %s", strRef)
@@ -158,6 +142,166 @@ func (s *Store) Pull(
 	}
 
 	return &dgst, nil
+}
+
+// PullManifestOnly fetches only the manifest and config blob from the remote
+// registry and records them in the local OCI layout store without downloading
+// any layer blobs. This is intended for use when layer data is retrieved
+// externally (e.g., inside a confidential VM by the kata-agent).
+// Returns the digest of the stored manifest.
+func (s *Store) PullManifestOnly(
+	ctx context.Context,
+	ref types.ImageReference,
+	opts *libimage.CopyOptions,
+) (*digest.Digest, error) {
+	strRef, cachedDigest, err := s.prepareForPull(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	if cachedDigest != nil {
+		return cachedDigest, nil
+	}
+
+	log.Infof(ctx, "Pulling OCI artifact manifest and config (no layers): %s", strRef)
+
+	// Merge per-request auth credentials from opts into a local copy of the
+	// system context, mirroring what libimage.NewCopier does.
+	sys := s.libartifactStore.SystemContext()
+	if opts != nil && (opts.Username != "" || opts.AuthFilePath != "") {
+		sysCopy := *sys
+		if opts.Username != "" {
+			sysCopy.DockerAuthConfig = &types.DockerAuthConfig{
+				Username: opts.Username,
+				Password: opts.Password,
+			}
+		}
+
+		if opts.AuthFilePath != "" {
+			sysCopy.AuthFilePath = opts.AuthFilePath
+		}
+
+		sys = &sysCopy
+	}
+
+	// Open the remote source once to fetch both the manifest and config blob.
+	remoteSrc, err := ref.NewImageSource(ctx, sys)
+	if err != nil {
+		return nil, fmt.Errorf("open remote source: %w", err)
+	}
+	defer remoteSrc.Close()
+
+	manifestBytes, mimeType, err := remoteSrc.GetManifest(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("get manifest: %w", err)
+	}
+
+	// If the registry returned a manifest list, resolve to the
+	// platform-specific instance for the current host.
+	if manifest.MIMETypeIsMultiImage(mimeType) {
+		list, err := manifest.ListFromBlob(manifestBytes, mimeType)
+		if err != nil {
+			return nil, fmt.Errorf("parse manifest list: %w", err)
+		}
+
+		instanceDigest, err := s.impl.ChooseInstance(list, sys)
+		if err != nil {
+			return nil, fmt.Errorf("choose manifest instance: %w", err)
+		}
+
+		manifestBytes, mimeType, err = remoteSrc.GetManifest(ctx, &instanceDigest)
+		if err != nil {
+			return nil, fmt.Errorf("get platform manifest: %w", err)
+		}
+	}
+
+	// Parse the (platform-specific) manifest to obtain the config descriptor.
+	parsedManifest, err := manifest.FromBlob(manifestBytes, mimeType)
+	if err != nil {
+		return nil, fmt.Errorf("parse manifest: %w", err)
+	}
+
+	configInfo := parsedManifest.ConfigInfo()
+
+	// Open the local OCI layout destination.
+	ir, err := layout.NewReference(s.rootPath, strRef)
+	if err != nil {
+		return nil, fmt.Errorf("layout reference: %w", err)
+	}
+
+	imgDest, err := ir.NewImageDestination(ctx, sys)
+	if err != nil {
+		return nil, fmt.Errorf("image destination: %w", err)
+	}
+	defer imgDest.Close()
+
+	// Fetch the config blob from remote and write it locally so that
+	// datastore.PullConfig can read the OCI image config after this call.
+	configRC, _, err := remoteSrc.GetBlob(ctx, types.BlobInfo{Digest: configInfo.Digest, Size: configInfo.Size}, none.NoCache)
+	if err != nil {
+		return nil, fmt.Errorf("get config blob: %w", err)
+	}
+	defer configRC.Close()
+
+	if _, err := imgDest.PutBlob(ctx, configRC, types.BlobInfo{Digest: configInfo.Digest, Size: configInfo.Size}, none.NoCache, true); err != nil {
+		return nil, fmt.Errorf("store config blob: %w", err)
+	}
+
+	if err := imgDest.PutManifest(ctx, manifestBytes, nil); err != nil {
+		return nil, fmt.Errorf("put manifest: %w", err)
+	}
+
+	unparsed := &manifestOnlyUnparsed{ir: ir, manifestBytes: manifestBytes, mimeType: mimeType}
+	if err := imgDest.Commit(ctx, unparsed); err != nil {
+		return nil, fmt.Errorf("commit manifest: %w", err)
+	}
+
+	dgst := digest.FromBytes(manifestBytes)
+
+	return &dgst, nil
+}
+
+// prepareForPull runs the checks shared by Pull and PullManifestOnly:
+//   - rejects container images when allowImages is false
+//   - returns an existing digest when the reference is already in a
+//     read-only additional store (caller should return it immediately)
+//
+// strRef is always set on a nil error. cachedDigest is non-nil only on an
+// additional-store hit.
+func (s *Store) prepareForPull(ctx context.Context, ref types.ImageReference) (strRef string, cachedDigest *digest.Digest, err error) {
+	if !s.allowImages {
+		if err := s.EnsureNotContainerImage(ctx, ref); err != nil {
+			return "", nil, fmt.Errorf("image reference: %w", err)
+		}
+	}
+
+	strRef = ref.DockerReference().String()
+
+	// Skip pulling if the artifact already exists in a read-only additional
+	// store. This avoids duplicating artifacts that are already available.
+	// We intentionally do NOT skip for artifacts in the main store, because
+	// the remote tag may have been re-pointed to a different digest.
+	if len(s.additionalStores) > 0 {
+		artRef, err := libart.NewArtifactStorageReference(strRef)
+		if err == nil {
+			for _, add := range s.additionalStores {
+				art, inspErr := add.store.Inspect(ctx, artRef)
+				if inspErr == nil {
+					log.Infof(ctx, "Artifact %s already exists in additional store %s, skipping pull", strRef, add.path)
+					// Force-pinned: additional stores are read-only and not subject to GC.
+					dgst := s.newArtifact(art, add.path, true).Digest()
+
+					return strRef, &dgst, nil
+				}
+
+				if !errors.Is(inspErr, ErrNotFound) {
+					log.Warnf(ctx, "Failed to inspect artifact in additional store %q, pulling into main store: %v", add.path, inspErr)
+				}
+			}
+		}
+	}
+
+	return strRef, nil, nil
 }
 
 // EnsureNotContainerImage inspects the manifest at ref and returns
@@ -411,4 +555,22 @@ func (s *Store) isArtifactPinned(artifact *Artifact) bool {
 // RootPath returns the root path of the store.
 func (s *Store) RootPath() string {
 	return s.rootPath
+}
+
+// manifestOnlyUnparsed is a minimal types.UnparsedImage used when committing
+// a manifest-only entry to the OCI layout store (no layer blobs written).
+type manifestOnlyUnparsed struct {
+	ir            types.ImageReference
+	manifestBytes []byte
+	mimeType      string
+}
+
+func (m *manifestOnlyUnparsed) Reference() types.ImageReference { return m.ir }
+
+func (m *manifestOnlyUnparsed) Manifest(_ context.Context) (manifestBlob []byte, mimeType string, err error) {
+	return m.manifestBytes, m.mimeType, nil
+}
+
+func (m *manifestOnlyUnparsed) Signatures(_ context.Context) ([][]byte, error) {
+	return [][]byte{}, nil
 }
