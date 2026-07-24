@@ -394,11 +394,11 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd, env []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	log.Debugf(ctx, "RuntimeVM.ExecContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.ExecContainer() end")
 
-	exitCode, err := r.execContainerCommon(ctx, c, cmd, 0, stdin, stdout, stderr, tty, resizeChan)
+	exitCode, err := r.execContainerCommon(ctx, c, cmd, env, 0, stdin, stdout, stderr, tty, resizeChan)
 	if err != nil {
 		return err
 	}
@@ -427,7 +427,7 @@ func (w *writeCloserWrapper) Close() error {
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
+func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command, env []string, timeout int64) (*types.ExecSyncResponse, error) {
 	log.Debugf(ctx, "RuntimeVM.ExecSyncContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.ExecSyncContainer() end")
 
@@ -436,7 +436,7 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 	stdout := &writeCloserWrapper{limitWriter(&stdoutBuf, maxExecSyncSize)}
 	stderr := &writeCloserWrapper{limitWriter(&stderrBuf, maxExecSyncSize)}
 
-	exitCode, err := r.execContainerCommon(ctx, c, command, timeout, nil, stdout, stderr, c.terminal, nil)
+	exitCode, err := r.execContainerCommon(ctx, c, command, env, timeout, nil, stdout, stderr, c.terminal, nil)
 	if err != nil {
 		return nil, fmt.Errorf("ExecSyncContainer failed: %w", err)
 	}
@@ -494,7 +494,7 @@ func (l *limitedWriter) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
-func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) (exitCode int32, retErr error) {
+func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd, env []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) (exitCode int32, retErr error) {
 	log.Debugf(ctx, "RuntimeVM.execContainerCommon() start")
 	defer log.Debugf(ctx, "RuntimeVM.execContainerCommon() end")
 
@@ -543,6 +543,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	// process spec
 	pSpec := *c.Spec().Process
 	pSpec.Args = cmd
+	pSpec.Env = mergeProcessEnvOverlay(pSpec.Env, env)
 
 	anyType, err := typeurl.MarshalAny(&pSpec)
 	if err != nil {
@@ -1263,7 +1264,7 @@ func (r *runtimeVM) ProbeMonitor(ctx context.Context, c *Container) error {
 	return nil
 }
 
-func (r *runtimeVM) ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error) {
+func (r *runtimeVM) ServeExecContainer(_ context.Context, _ *Container, _, _ []string, _, _, _, _ bool) (string, error) {
 	return "", nil
 }
 

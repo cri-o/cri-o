@@ -60,9 +60,8 @@ type Runtime struct {
 type RuntimeImpl interface {
 	CreateContainer(context.Context, *Container, string, bool) error
 	StartContainer(context.Context, *Container) error
-	ExecContainer(context.Context, *Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
-		bool, <-chan remotecommand.TerminalSize) error
-	ExecSyncContainer(context.Context, *Container, []string, int64) (*types.ExecSyncResponse, error)
+	ExecContainer(ctx context.Context, c *Container, cmd, env []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error
+	ExecSyncContainer(ctx context.Context, c *Container, command, env []string, timeout int64) (*types.ExecSyncResponse, error)
 	UpdateContainer(context.Context, *Container, *rspec.LinuxResources) error
 	StopContainer(context.Context, *Container, int64) error
 	DeleteContainer(context.Context, *Container) error
@@ -81,7 +80,7 @@ type RuntimeImpl interface {
 	IsContainerAlive(*Container) bool
 	// ProbeMonitor is used to check the liveness of the container monitor process.
 	ProbeMonitor(context.Context, *Container) error
-	ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error)
+	ServeExecContainer(ctx context.Context, c *Container, cmd, env []string, tty, stdin, stdout, stderr bool) (string, error)
 	ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error)
 }
 
@@ -340,7 +339,7 @@ func (r *Runtime) StartContainer(ctx context.Context, c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd, env []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -349,11 +348,11 @@ func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string,
 		return err
 	}
 
-	return impl.ExecContainer(ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
+	return impl.ExecContainer(ctx, c, cmd, env, stdin, stdout, stderr, tty, resizeChan)
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
+func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command, env []string, timeout int64) (*types.ExecSyncResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -362,7 +361,7 @@ func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command [
 		return nil, err
 	}
 
-	return impl.ExecSyncContainer(ctx, c, command, timeout)
+	return impl.ExecSyncContainer(ctx, c, command, env, timeout)
 }
 
 // UpdateContainer updates container resources.
@@ -571,13 +570,13 @@ func (r *Runtime) ProbeMonitor(ctx context.Context, c *Container) error {
 	return impl.ProbeMonitor(ctx, c)
 }
 
-func (r *Runtime) ServeExecContainer(ctx context.Context, c *Container, cmd []string, tty, stdin, stdout, stderr bool) (string, error) {
+func (r *Runtime) ServeExecContainer(ctx context.Context, c *Container, cmd, env []string, tty, stdin, stdout, stderr bool) (string, error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return "", err
 	}
 
-	return impl.ServeExecContainer(ctx, c, cmd, tty, stdin, stdout, stderr)
+	return impl.ServeExecContainer(ctx, c, cmd, env, tty, stdin, stdout, stderr)
 }
 
 func (r *Runtime) ServeAttachContainer(ctx context.Context, c *Container, stdin, stdout, stderr bool) (string, error) {
