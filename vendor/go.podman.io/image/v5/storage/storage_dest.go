@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -267,7 +268,7 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 
 	// Set up to digest the blob if necessary, and count its size while saving it to a file.
 	filename := s.computeNextBlobCacheFile()
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0o600)
 	if err != nil {
 		return private.UploadedBlob{}, fmt.Errorf("creating temporary file %q: %w", filename, err)
 	}
@@ -285,7 +286,6 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 		decompressed, err := archive.DecompressStream(stream)
 		if err != nil {
 			return "", "", 0, fmt.Errorf("setting up to decompress blob: %w", err)
-
 		}
 		defer decompressed.Close()
 
@@ -348,7 +348,6 @@ func (f *zstdFetcher) GetBlobAt(chunks []chunked.ImageSourceChunk) (chan io.Read
 		err = chunked.ErrBadRequest{}
 	}
 	return rc, errs, err
-
 }
 
 // PutBlobPartial attempts to create a blob using the data that is already present
@@ -838,7 +837,12 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) (string, error)
 	if err != nil {
 		return "", err
 	}
-	tocIDInput := ""
+	var tocIDInput strings.Builder
+	// ordinaryImageID is a digest of a config, which is a JSON value.
+	// To avoid the risk of collisions, start the input with @ so that the input is not a valid JSON.
+	tocIDInput.WriteString("@With TOC:")
+	tocIDInput.WriteString(ordinaryImageID)
+	tocIDInput.WriteByte('|') // "|" can not be present in a digest, so this is an unambiguous separator.
 	hasLayerPulledByTOC := false
 	for i, li := range layerInfos {
 		trusted, ok := s.trustedLayerIdentityDataLocked(i, li.Digest)
@@ -850,15 +854,14 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) (string, error)
 			hasLayerPulledByTOC = true
 			layerValue = trusted.tocDigest.String()
 		}
-		tocIDInput += layerValue + "|" // "|" can not be present in a TOC digest, so this is an unambiguous separator.
+		tocIDInput.WriteString(layerValue)
+		tocIDInput.WriteByte('|') // "|" can not be present in a TOC digest, so this is an unambiguous separator.
 	}
 
 	if !hasLayerPulledByTOC {
 		return ordinaryImageID, nil
 	}
-	// ordinaryImageID is a digest of a config, which is a JSON value.
-	// To avoid the risk of collisions, start the input with @ so that the input is not a valid JSON.
-	tocImageID := digest.FromString("@With TOC:" + tocIDInput).Encoded()
+	tocImageID := digest.FromString(tocIDInput.String()).Encoded()
 	logrus.Debugf("Ordinary storage image ID %s; a layer was looked up by TOC, so using image ID %s", ordinaryImageID, tocImageID)
 	return tocImageID, nil
 }

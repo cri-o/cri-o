@@ -106,5 +106,5 @@ func copyTimezoneFile(containerRunDir, zonePath string) (string, error) {
 }
 
 func openDirectory(path string) (fd int, err error) {
-	return unix.Open(path, unix.O_RDONLY|O_PATH|unix.O_CLOEXEC, 0)
+	return unix.Open(path, O_PATH|unix.O_CLOEXEC, 0)
 }

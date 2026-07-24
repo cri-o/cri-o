@@ -60,7 +60,7 @@ type Network struct {
 	// NetworkInterface is the network interface name on the host.
 	NetworkInterface string `json:"network_interface,omitempty"`
 	// Created contains the timestamp when this network was created.
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// Subnets to use for this network.
 	Subnets []Subnet `json:"subnets,omitempty"`
 	// Routes to use for this network.
@@ -101,7 +101,7 @@ type NetworkInfo struct {
 	Version        string         `json:"version,omitempty"`
 	Package        string         `json:"package,omitempty"`
 	Path           string         `json:"path,omitempty"`
-	DNS            DNSNetworkInfo `json:"dns,omitempty"`
+	DNS            DNSNetworkInfo `json:"dns"`
 	DefaultNetwork string         `json:"defaultNetwork,omitempty"`
 }
 
@@ -201,15 +201,31 @@ type Subnet struct {
 	LeaseRange *LeaseRange `json:"lease_range,omitempty"`
 }
 
+// RouteType represents the type of a route.
+type RouteType string
+
+const (
+	// RouteTypeUnicast is a regular route with a gateway (default).
+	RouteTypeUnicast RouteType = "unicast"
+	// RouteTypeBlackhole silently discards packets.
+	RouteTypeBlackhole RouteType = "blackhole"
+	// RouteTypeUnreachable rejects with "destination unreachable".
+	RouteTypeUnreachable RouteType = "unreachable"
+	// RouteTypeProhibit rejects with "administratively prohibited".
+	RouteTypeProhibit RouteType = "prohibit"
+)
+
 type Route struct {
 	// Destination for this route in CIDR form.
 	// swagger:strfmt string
 	Destination IPNet `json:"destination"`
-	// Gateway IP for this route.
+	// Gateway IP for this route. Required for unicast routes, must be empty for blackhole/unreachable/prohibit.
 	// swagger:strfmt string
-	Gateway net.IP `json:"gateway"`
+	Gateway net.IP `json:"gateway,omitempty"`
 	// Metric for this route. Optional.
 	Metric *uint32 `json:"metric,omitempty"`
+	// RouteType is the type of route: unicast (default), blackhole, unreachable, prohibit.
+	RouteType RouteType `json:"route_type,omitempty"`
 }
 
 // LeaseRange contains the range where IP are leased.
@@ -253,6 +269,12 @@ type NetAddress struct {
 	Gateway net.IP `json:"gateway,omitempty"`
 }
 
+// NamedPerNetworkOptions includes both options to apply to a network and the name of the network.
+type NamedPerNetworkOptions struct {
+	Name string `json:"name"`
+	PerNetworkOptions
+}
+
 // PerNetworkOptions are options which should be set on a per network basis.
 type PerNetworkOptions struct {
 	// StaticIPs for this container. Optional.
@@ -282,9 +304,11 @@ type NetworkOptions struct {
 	ContainerName string `json:"container_name"`
 	// PortMappings contains the port mappings for this container
 	PortMappings []PortMapping `json:"port_mappings,omitempty"`
-	// Networks contains all networks with the PerNetworkOptions.
-	// The map should contain at least one element.
-	Networks map[string]PerNetworkOptions `json:"networks"`
+	// Networks contains all networks and the options they were configured with.
+	// Each is represented by a single NamedPerNetworkOptions struct.
+	// Each NamedPerNetworkOptions must have a unique Name.
+	// The list should contain at least one element.
+	Networks []NamedPerNetworkOptions `json:"networks"`
 	// List of custom DNS server for podman's DNS resolver.
 	// Priority order will be kept as defined by user in the configuration.
 	DNSServers []string `json:"dns_servers,omitempty"`
@@ -353,6 +377,9 @@ type RootlessNetnsInfo struct {
 	DnsForwardIps []string
 	// MapGuestIps should be used for the host.containers.internal entry when set
 	MapGuestIps []string
+	// PestoSocketPath is the path to the pasta control socket for dynamic
+	// port forwarding via pesto. Empty when pasta was started without -c.
+	PestoSocketPath string
 }
 
 // FilterFunc can be passed to NetworkList to filter the networks.

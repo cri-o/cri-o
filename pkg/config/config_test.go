@@ -300,7 +300,7 @@ var _ = t.Describe("Config", func() {
 			sut = runtimeValidConfig()
 
 			// When
-			err := sut.RuntimeConfig.Validate(nil, true)
+			err := sut.RuntimeConfig.Validate(sut.SystemContext, true)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -312,7 +312,7 @@ var _ = t.Describe("Config", func() {
 			sut.AdditionalDevices = []string{"/dev/null:/dev/null:rw"}
 
 			// When
-			err := sut.RuntimeConfig.Validate(nil, true)
+			err := sut.RuntimeConfig.Validate(sut.SystemContext, true)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -330,7 +330,7 @@ var _ = t.Describe("Config", func() {
 			sut.HooksDir = []string{validDirPath, validDirPath, validDirPath}
 
 			// When
-			err := sut.RuntimeConfig.Validate(nil, true)
+			err := sut.RuntimeConfig.Validate(sut.SystemContext, true)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -346,7 +346,7 @@ var _ = t.Describe("Config", func() {
 			sut.HooksDir = []string{invalidPath, validDirPath, validDirPath}
 
 			// When
-			err := sut.RuntimeConfig.Validate(nil, true)
+			err := sut.RuntimeConfig.Validate(sut.SystemContext, true)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -362,7 +362,7 @@ var _ = t.Describe("Config", func() {
 			sut.HooksDir = []string{filepath.Join(validDirPath, "new")}
 
 			// When
-			err := sut.RuntimeConfig.Validate(nil, true)
+			err := sut.RuntimeConfig.Validate(sut.SystemContext, true)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
