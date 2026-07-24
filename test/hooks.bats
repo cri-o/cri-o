@@ -20,7 +20,12 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	crictl stopp "$pod_id"
-	crictl rmp "$pod_id"
+	# check prestart
 	cat "${HOOKSCHECK}"
+	rm "${HOOKSCHECK}"
+	crictl stopp "$pod_id"
+	# check poststop
+	cat "${HOOKSCHECK}"
+	rm "${HOOKSCHECK}"
+	crictl rmp "$pod_id"
 }
