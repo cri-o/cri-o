@@ -79,6 +79,24 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 			},
 		},
 		{
+			desc: containerMemoryTotalActiveAnon,
+			valueFunc: func() metricValues {
+				return metricValues{{value: mem.Stats["active_anon"], metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryTotalInactiveAnon,
+			valueFunc: func() metricValues {
+				return metricValues{{value: mem.Stats["inactive_anon"], metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryAnonHugepages,
+			valueFunc: func() metricValues {
+				return metricValues{{value: mem.Stats["anon_thp"], metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
 			desc: containerMemoryFailuresTotal,
 			valueFunc: func() metricValues {
 				metrics := make([]metricValue, 0, 4)
