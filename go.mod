@@ -52,7 +52,7 @@ require (
 	github.com/opencontainers/runc v1.4.1
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20251205004911-5e639034dcdc
-	github.com/opencontainers/selinux v1.13.1
+	github.com/opencontainers/selinux v1.15.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/seccomp/libseccomp-golang v0.11.1
 	github.com/sirupsen/logrus v1.9.4

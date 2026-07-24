@@ -454,7 +454,12 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		sb.SetStopped(ctx, true)
 	}
 
-	selinux.ReserveLabel(processLabel)
+	if err := selinux.ReserveLabelV2(processLabel); err != nil {
+		if !errors.Is(err, selinux.ErrMCSAlreadyExists) {
+			return sb, fmt.Errorf("unable to reserve selinux process label %q: %w", processLabel, err)
+		}
+		log.Warnf(ctx, "SELinux label %s already reserved, ignoring: %v", processLabel, err)
+	}
 
 	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return sb, err
