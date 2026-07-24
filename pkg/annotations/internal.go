@@ -1,5 +1,45 @@
 package annotations
 
+import "strings"
+
+var internalAnnotations = map[string]struct{}{
+	Annotations:      {},
+	ContainerID:      {},
+	ContainerName:    {},
+	ContainerType:    {},
+	Created:          {},
+	HostName:         {},
+	CgroupParent:     {},
+	IP:               {},
+	NamespaceOptions: {},
+	SeccompProfilePath: {},
+	Image:            {},
+	ImageName:        {},
+	ImageRef:         {},
+	KubeName:         {},
+	PortMappings:     {},
+	Labels:           {},
+	LogPath:          {},
+	Metadata:         {},
+	Name:             {},
+	Namespace:        {},
+	PrivilegedRuntime: {},
+	ResolvPath:       {},
+	HostnamePath:     {},
+	SandboxID:        {},
+	SandboxName:      {},
+	ShmPath:          {},
+	MountPoint:       {},
+	RuntimeHandler:   {},
+	TTY:              {},
+	Stdin:            {},
+	StdinOnce:        {},
+	Volumes:          {},
+	HostNetwork:      {},
+	CNIResult:        {},
+	ContainerManager: {},
+}
+
 const (
 	// Annotations carries the received Kubelet annotations.
 	Annotations = "io.kubernetes.cri-o.Annotations"
@@ -120,3 +160,11 @@ const (
 // ContainerManagerLibpod indicates that libpod created and manages the
 // container.
 const ContainerManagerLibpod = "libpod"
+
+// IsInternal returns true if the annotation key is set by CRI-O at runtime and
+// must not be overwritten by user input.
+func IsInternal(key string) bool {
+	_, ok := internalAnnotations[key]
+	// Also match indexed variants like io.kubernetes.cri-o.IP.0, IP.1, etc.
+	return ok || strings.HasPrefix(key, IP+".")
+}
