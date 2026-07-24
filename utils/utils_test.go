@@ -401,6 +401,83 @@ var _ = t.Describe("Utils", func() {
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
 		})
+
+		It("should prefix numeric username in generated passwd to avoid shadow-utils issues", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			// UID 300 doesn't exist in /etc/passwd, so GeneratePasswd creates an entry.
+			// With a numeric containerUser "300", the generated username must be
+			// "user300" (not "300") to stay compatible with shadow-utils on Fedora/RHEL.
+			passwdFile, err := utils.GeneratePasswd("300", 300, 250, "", dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(passwdFile).ToNot(BeEmpty())
+
+			content, err := os.ReadFile(passwdFile)
+			Expect(err).ToNot(HaveOccurred())
+			// The generated line must use "user300" as the username, not "300".
+			Expect(string(content)).To(ContainSubstring("user300:x:300:250:"))
+			Expect(string(content)).ToNot(MatchRegexp(`\n300:x:`))
+		})
+
+		It("should prefix large numeric uid username in generated passwd", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			// UID 999999 doesn't exist in /etc/passwd; the numeric username
+			// "999999" must be prefixed to "user999999".
+			passwdFile, err := utils.GeneratePasswd("999999", 999999, 250, "", dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(passwdFile).ToNot(BeEmpty())
+
+			content, err := os.ReadFile(passwdFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("user999999:x:999999:250:"))
+		})
+
+		It("should not prefix non-numeric username in generated passwd", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			// A non-numeric username like "myapp" should pass through unchanged.
+			passwdFile, err := utils.GeneratePasswd("myapp", 300, 250, "", dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(passwdFile).ToNot(BeEmpty())
+
+			content, err := os.ReadFile(passwdFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("myapp:x:300:250:"))
+		})
+
+		It("should not prefix mixed alphanumeric username", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			// "123abc" is not fully numeric and should pass through unchanged.
+			passwdFile, err := utils.GeneratePasswd("123abc", 300, 250, "", dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(passwdFile).ToNot(BeEmpty())
+
+			content, err := os.ReadFile(passwdFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("123abc:x:300:250:"))
+		})
+
+		It("should prefix numeric group name in generated group file", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			// GID 6000 doesn't exist in /etc/group, so GenerateGroup creates an entry.
+			// The generated group name must be "user6000" (not "6000").
+			groupPath, err := utils.GenerateGroup(6000, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).ToNot(BeEmpty())
+
+			content, err := os.ReadFile(groupPath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("user6000:x:6000:"))
+			Expect(string(content)).ToNot(MatchRegexp(`\n6000:x:`))
+		})
 	})
 
 	t.Describe("ParseDuration", func() {
