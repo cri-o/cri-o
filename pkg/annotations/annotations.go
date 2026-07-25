@@ -1,8 +1,57 @@
 package annotations
 
 import (
+	"strings"
+
+	podmanAnnotations "github.com/containers/podman/v4/pkg/annotations"
 	"github.com/intel/goresctrl/pkg/rdt"
 )
+
+var internalAnnotations = map[string]struct{}{
+	podmanAnnotations.Annotations:        {},
+	podmanAnnotations.ContainerID:        {},
+	podmanAnnotations.ContainerName:      {},
+	podmanAnnotations.ContainerType:      {},
+	podmanAnnotations.Created:            {},
+	podmanAnnotations.HostName:           {},
+	podmanAnnotations.CgroupParent:       {},
+	podmanAnnotations.IP:                 {},
+	podmanAnnotations.NamespaceOptions:   {},
+	podmanAnnotations.SeccompProfilePath: {},
+	podmanAnnotations.Image:              {},
+	podmanAnnotations.ImageName:          {},
+	podmanAnnotations.ImageRef:           {},
+	podmanAnnotations.KubeName:           {},
+	podmanAnnotations.PortMappings:       {},
+	podmanAnnotations.Labels:             {},
+	podmanAnnotations.LogPath:            {},
+	podmanAnnotations.Metadata:           {},
+	podmanAnnotations.Name:               {},
+	podmanAnnotations.Namespace:          {},
+	podmanAnnotations.PrivilegedRuntime:  {},
+	podmanAnnotations.ResolvPath:         {},
+	podmanAnnotations.HostnamePath:       {},
+	podmanAnnotations.SandboxID:          {},
+	podmanAnnotations.SandboxName:        {},
+	podmanAnnotations.ShmPath:            {},
+	podmanAnnotations.MountPoint:         {},
+	podmanAnnotations.RuntimeHandler:     {},
+	podmanAnnotations.TTY:                {},
+	podmanAnnotations.Stdin:              {},
+	podmanAnnotations.StdinOnce:          {},
+	podmanAnnotations.Volumes:            {},
+	podmanAnnotations.HostNetwork:        {},
+	podmanAnnotations.CNIResult:          {},
+	podmanAnnotations.ContainerManager:   {},
+}
+
+// IsInternal returns true if the annotation key is set by CRI-O at runtime and
+// must not be overwritten by user input.
+func IsInternal(key string) bool {
+	_, ok := internalAnnotations[key]
+	// Also match indexed variants like io.kubernetes.cri-o.IP.0, IP.1, etc.
+	return ok || strings.HasPrefix(key, podmanAnnotations.IP+".")
+}
 
 const (
 	// UsernsMode is the user namespace mode to use
