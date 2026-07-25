@@ -62,10 +62,10 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/vishvananda/netlink v1.3.1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.64.0
-	go.opentelemetry.io/otel v1.39.0
+	go.opentelemetry.io/otel v1.41.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.39.0
 	go.opentelemetry.io/otel/sdk v1.39.0
-	go.opentelemetry.io/otel/trace v1.39.0
+	go.opentelemetry.io/otel/trace v1.41.0
 	go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39
 	go.podman.io/image/v5 v5.38.0
 	go.podman.io/storage v1.61.1-0.20251212224252-b0f86df5a665
@@ -74,15 +74,15 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.40.0
 	google.golang.org/grpc v1.78.0
-	google.golang.org/protobuf v1.36.11
-	k8s.io/api v0.35.0-rc.0
-	k8s.io/apimachinery v0.35.0-rc.0
-	k8s.io/client-go v0.35.0-rc.0
-	k8s.io/component-base v0.35.0-rc.0
-	k8s.io/cri-api v0.35.0-rc.0
-	k8s.io/cri-client v0.35.0-rc.0
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
+	k8s.io/api v0.35.7
+	k8s.io/apimachinery v0.35.7
+	k8s.io/client-go v0.35.7
+	k8s.io/component-base v0.35.7
+	k8s.io/cri-api v0.35.7
+	k8s.io/cri-client v0.35.7
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubelet v0.35.0-rc.0
+	k8s.io/kubelet v0.35.7
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/knftables v0.0.19
 	sigs.k8s.io/release-sdk v0.12.5
@@ -236,7 +236,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.39.0 // indirect
 	go.opentelemetry.io/otel/log v0.6.0 // indirect
-	go.opentelemetry.io/otel/metric v1.39.0 // indirect
+	go.opentelemetry.io/otel/metric v1.41.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
@@ -254,7 +254,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.35.0-rc.0 // indirect
+	k8s.io/apiserver v0.35.7 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
