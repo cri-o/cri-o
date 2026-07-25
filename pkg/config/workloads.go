@@ -8,6 +8,8 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/cpuset"
+
+	"github.com/cri-o/cri-o/pkg/annotations"
 )
 
 type Workloads map[string]*WorkloadConfig
@@ -89,10 +91,17 @@ func (w Workloads) AllowedAnnotations(toFind map[string]string) []string {
 }
 
 // FilterDisallowedAnnotations filters annotations that are not specified in the allowed_annotations map
-// for a given handler.
+// for a given handler. Internal CRI-O annotations are also stripped.
 // This function returns an error if the runtime handler can't be found.
 // The annotations map is mutated in-place.
 func (w Workloads) FilterDisallowedAnnotations(allowed []string, toFilter map[string]string) error {
+	for k := range toFilter {
+		if annotations.IsInternal(k) {
+			logrus.Warnf("Dropping CRI-O internal annotation from request: %s", k)
+			delete(toFilter, k)
+		}
+	}
+
 	disallowed, err := validateAllowedAndGenerateDisallowedAnnotations(allowed)
 	if err != nil {
 		return err
