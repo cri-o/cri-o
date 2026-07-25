@@ -30,7 +30,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 @test "accept unsigned image with default policy" {
 	start_crio
 
-	crictl pull "$UNSIGNED_IMAGE"
+	crictl_pull "$UNSIGNED_IMAGE"
 
 	assert_log "$SIGNATURE_POLICY"
 }
@@ -46,7 +46,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "deny unsigned image with restrictive policy if already pulled" {
 	start_crio
-	crictl pull "$UNSIGNED_IMAGE"
+	crictl_pull "$UNSIGNED_IMAGE"
 	stop_crio_no_clean
 
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
@@ -59,7 +59,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 @test "accept signed image with default policy" {
 	start_crio
 
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 
 	assert_log "$SIGNATURE_POLICY"
 }
@@ -67,7 +67,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 @test "accept signed image with restrictive policy" {
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
 
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 
 	assert_log "$RESTRICTIVE_POLICY"
 }
@@ -100,7 +100,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 	start_crio
 
-	crictl pull --pod-config "$NEW_SANDBOX_CONFIG" "$UNSIGNED_IMAGE"
+	crictl_pull --pod-config "$NEW_SANDBOX_CONFIG" "$UNSIGNED_IMAGE"
 
 	assert_log "$SIGNATURE_POLICY"
 }
@@ -110,7 +110,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	jq '.metadata.namespace = "unrestrictive"' "$SANDBOX_CONFIG" > "$NEW_SANDBOX_CONFIG"
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
 
-	crictl pull --pod-config "$NEW_SANDBOX_CONFIG" "$UNSIGNED_IMAGE"
+	crictl_pull --pod-config "$NEW_SANDBOX_CONFIG" "$UNSIGNED_IMAGE"
 
 	assert_log "$SIGNATURE_POLICY_DIR/unrestrictive.json"
 }
@@ -131,7 +131,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	jq '.metadata.namespace = "restrictive"' "$SANDBOX_CONFIG" > "$NEW_SANDBOX_CONFIG"
 	start_crio
 
-	crictl pull --pod-config "$NEW_SANDBOX_CONFIG" "$SIGNED_IMAGE"
+	crictl_pull --pod-config "$NEW_SANDBOX_CONFIG" "$SIGNED_IMAGE"
 
 	assert_log "$SIGNATURE_POLICY_DIR/restrictive.json"
 }
@@ -140,7 +140,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	start_crio
 	# Pull returns the image ID directly now, use it to verify the exact data flow
 	# from PullImage to CreateContainer
-	IMAGE_ID=$(crictl pull "$SIGNED_IMAGE" | awk '{print $NF}')
+	IMAGE_ID=$(crictl_pull "$SIGNED_IMAGE" | awk '{print $NF}')
 	stop_crio_no_clean
 
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
@@ -158,7 +158,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	start_crio
 	# Pull returns the image ID directly now, use it to verify the exact data flow
 	# from PullImage to CreateContainer
-	IMAGE_ID=$(crictl pull "$UNSIGNED_IMAGE" | awk '{print $NF}')
+	IMAGE_ID=$(crictl_pull "$UNSIGNED_IMAGE" | awk '{print $NF}')
 	stop_crio_no_clean
 
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
@@ -173,7 +173,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "allow signed image with restrictive policy on container creation3 if already pulled (by ID)" {
 	start_crio
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 	IMAGE_ID=$(crictl images -q "$SIGNED_IMAGE")
 	stop_crio_no_clean
 
@@ -190,7 +190,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "deny unsigned image with restrictive policy on container creation4 if already pulled (by ID)" {
 	start_crio
-	crictl pull "$UNSIGNED_IMAGE"
+	crictl_pull "$UNSIGNED_IMAGE"
 	IMAGE_ID=$(crictl images -q "$UNSIGNED_IMAGE")
 	stop_crio_no_clean
 
@@ -206,7 +206,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "allow signed image with restrictive policy on container creation5 if already pulled (by tag)" {
 	start_crio
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 	stop_crio_no_clean
 
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
@@ -222,7 +222,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "deny unsigned image with restrictive policy on container creation6 if already pulled (by tag)" {
 	start_crio
-	crictl pull "$UNSIGNED_IMAGE"
+	crictl_pull "$UNSIGNED_IMAGE"
 	stop_crio_no_clean
 
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
@@ -237,7 +237,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "allow signed image with restrictive policy on container creation7 if already pulled (by tag and ID)" {
 	start_crio
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 	# Insert "latest" tag into the repoDigests field, and use that as the reference
 	# CRI-O should filter out the :latest bit, so it's a valid reference for c/image
 	REPO_TAG_DIGEST=$(crictl inspecti "$SIGNED_IMAGE" | jq -r .status.repoDigests[0] | sed "s|@|:latest@|g")
@@ -256,7 +256,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "deny unsigned image with restrictive policy on container creation7 if already pulled (by tag and ID)" {
 	start_crio
-	crictl pull "$UNSIGNED_IMAGE"
+	crictl_pull "$UNSIGNED_IMAGE"
 	# Insert "latest" tag into the repoDigests field, and use that as the reference
 	# CRI-O should filter out the :latest bit, so it's a valid reference for c/image
 	REPO_TAG_DIGEST=$(crictl inspecti "$UNSIGNED_IMAGE" | jq -r .status.repoDigests[0] | sed "s|@|:latest@|g")
@@ -274,7 +274,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "deny signed image with restrictive policy on container creation if invalid policy (subjectEmail)" {
 	start_crio
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 	# Insert "latest" tag into the repoDigests field, and use that as the reference
 	# CRI-O should filter out the :latest bit, so it's a valid reference for c/image
 	REPO_TAG_DIGEST=$(crictl inspecti "$SIGNED_IMAGE" | jq -r .status.repoDigests[0] | sed "s|@|:latest@|g")
@@ -295,7 +295,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 @test "deny signed image with restrictive policy on container creation if invalid policy (oidcIssuer)" {
 	start_crio
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 	# Insert "latest" tag into the repoDigests field, and use that as the reference
 	# CRI-O should filter out the :latest bit, so it's a valid reference for c/image
 	REPO_TAG_DIGEST=$(crictl inspecti "$SIGNED_IMAGE" | jq -r .status.repoDigests[0] | sed "s|@|:latest@|g")
@@ -319,7 +319,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 		skip "test fails in a user namespace"
 	fi
 	start_crio
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 	stop_crio_no_clean
 
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
@@ -339,7 +339,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 		skip "test fails in a user namespace"
 	fi
 	start_crio
-	crictl pull "$UNSIGNED_IMAGE"
+	crictl_pull "$UNSIGNED_IMAGE"
 	stop_crio_no_clean
 
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio

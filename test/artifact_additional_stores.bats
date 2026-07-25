@@ -20,7 +20,7 @@ function populate_additional_store() {
 	local additional_store="$1"
 
 	# Pull artifact into the main store
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 
 	# Copy the OCI artifact layout to the additional store
 	local main_store="$TESTDIR/crio/artifacts"
@@ -116,7 +116,7 @@ EOF
 	populate_additional_store "$ADDITIONAL_STORE"
 
 	# Pull again; should be skipped because it exists in the additional store
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 
 	# Verify the artifact is NOT in the main store (pull was skipped)
 	local main_index="$TESTDIR/crio/artifacts/index.json"
@@ -161,7 +161,7 @@ EOF
 	start_crio
 
 	# Pull artifact into main store
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 
 	# Copy to additional store (artifact now exists in both)
 	local main_store="$TESTDIR/crio/artifacts"

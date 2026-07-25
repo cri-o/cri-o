@@ -87,6 +87,20 @@ function crictl() {
     "$CRICTL_BINARY" -t "$CRICTL_TIMEOUT" --config "$CRICTL_CONFIG_FILE" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" "$@"
 }
 
+# Pull an image, tolerating transient registry failures. copyimg already
+# retries for the preloaded images, but that only covers get_img(): a pull
+# issued inside a test goes through CRI-O and gets none. Fixed delay rather
+# than copyimg's backoff - neither jitters, and CRICTL_TIMEOUT dominates.
+#
+# Only for pulls expected to succeed: one expected to fail would be retried
+# three times first.
+# retry captures stdout, so re-emit it: callers parse the pulled reference out
+# of it, and it belongs in the log for a failing test either way.
+function crictl_pull() {
+    retry 3 5 crictl pull "$@" || return 1
+    printf '%s\n' "$output"
+}
+
 # Run the runtime binary with the specified RUNTIME_ROOT
 function runtime() {
     "$RUNTIME_BINARY_PATH" --root "$RUNTIME_ROOT" "$@"

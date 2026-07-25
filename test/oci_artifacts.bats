@@ -18,7 +18,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 @test "should be able to pull and list an OCI artifact" {
 	start_crio
 	cleanup_images
-	crictl pull $ARTIFACT_IMAGE
+	crictl_pull $ARTIFACT_IMAGE
 
 	# Should get listed as filtered artifact
 	run crictl images -q $ARTIFACT_IMAGE
@@ -30,7 +30,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 @test "should be able to inspect an OCI artifact" {
 	start_crio
-	crictl pull $ARTIFACT_IMAGE
+	crictl_pull $ARTIFACT_IMAGE
 
 	crictl inspecti $ARTIFACT_IMAGE |
 		jq -e '
@@ -42,7 +42,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 @test "should be able to inspect an OCI artifact with other references" {
 	start_crio
-	crictl pull $ARTIFACT_IMAGE
+	crictl_pull $ARTIFACT_IMAGE
 
 	# canonical name
 	digestedRef=$(crictl inspecti $ARTIFACT_IMAGE | jq -r '.status.repoDigests[0]')
@@ -56,7 +56,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 @test "should be able to remove an OCI artifact" {
 	start_crio
-	crictl pull $ARTIFACT_IMAGE
+	crictl_pull $ARTIFACT_IMAGE
 	crictl rmi $ARTIFACT_IMAGE
 
 	[ "$(crictl images -q $ARTIFACT_IMAGE | wc -l)" == 0 ]
@@ -64,7 +64,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 @test "should be able to mount OCI Artifact" {
 	start_crio
-	crictl pull $ARTIFACT_IMAGE
+	crictl_pull $ARTIFACT_IMAGE
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE "$ARTIFACT_IMAGE" \
 		'.mounts = [ {
@@ -88,7 +88,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 @test "should be able to mount artifact with multiple files on directory" {
 	start_crio
 	IMAGE="$ARTIFACT_REPO:multiplefiles"
-	crictl pull $IMAGE
+	crictl_pull $IMAGE
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE "$IMAGE" \
 		'.mounts = [ {
@@ -111,7 +111,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	skip_if_selinux_disabled
 	skip_if_vm_runtime
 	start_crio
-	crictl pull $ARTIFACT_IMAGE
+	crictl_pull $ARTIFACT_IMAGE
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE "$ARTIFACT_IMAGE" \
 		'.mounts = [ {
@@ -132,7 +132,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 @test "should return error when mounting artifact on file path" {
 	start_crio
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE "$ARTIFACT_IMAGE" \
 		'.mounts = [ {
@@ -146,7 +146,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 @test "should return error when running executable" {
 	start_crio
 	IMAGE="$ARTIFACT_REPO:exec"
-	crictl pull $IMAGE
+	crictl_pull $IMAGE
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE "$IMAGE" \
 		'.mounts = [ {
@@ -163,7 +163,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 @test "should return error when removing image that is in use" {
 	start_crio
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE "$ARTIFACT_IMAGE" \
 		'.mounts = [ {
@@ -188,7 +188,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 oci_artifact_mount_support = false
 EOF
 	start_crio
-	crictl pull $ARTIFACT_IMAGE
+	crictl_pull $ARTIFACT_IMAGE
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE "$ARTIFACT_IMAGE" \
 		'.mounts = [ {
@@ -204,7 +204,7 @@ EOF
 
 @test "should be able to mount OCI Artifact with sub path" {
 	start_crio
-	crictl pull $ARTIFACT_IMAGE_SUBPATH
+	crictl_pull $ARTIFACT_IMAGE_SUBPATH
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE_SUBPATH "$ARTIFACT_IMAGE_SUBPATH" \
 		'.mounts = [ {
@@ -227,7 +227,7 @@ EOF
 
 @test "should fail to mount OCI Artifact with sub path if not existing" {
 	start_crio
-	crictl pull $ARTIFACT_IMAGE_SUBPATH
+	crictl_pull $ARTIFACT_IMAGE_SUBPATH
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq --arg ARTIFACT_IMAGE_SUBPATH "$ARTIFACT_IMAGE_SUBPATH" \
 		'.mounts = [ {
@@ -249,7 +249,7 @@ pinned_images = [ "$ARTIFACT_IMAGE" ]
 EOF
 
 	start_crio
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 
 	crictl inspecti "$ARTIFACT_IMAGE" |
 		jq -e '.status.pinned == true'
@@ -262,7 +262,7 @@ pinned_images = [ "quay.io/crio/artifact*" ]
 EOF
 
 	start_crio
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 
 	crictl inspecti "$ARTIFACT_IMAGE" |
 		jq -e '.status.pinned == true'
@@ -275,7 +275,7 @@ pinned_images = [ "quay.io/crio/nonexistent:latest" ]
 EOF
 
 	start_crio
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 
 	crictl inspecti "$ARTIFACT_IMAGE" |
 		jq -e '.status.pinned == false'
@@ -283,7 +283,7 @@ EOF
 
 @test "artifact pinned status should update after config reload" {
 	start_crio
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 
 	# Initially not pinned
 	crictl inspecti "$ARTIFACT_IMAGE" |
@@ -306,7 +306,7 @@ pinned_images = [ "$ARTIFACT_IMAGE" ]
 EOF
 
 	start_crio
-	crictl pull "$ARTIFACT_IMAGE"
+	crictl_pull "$ARTIFACT_IMAGE"
 
 	# Initially pinned
 	crictl inspecti "$ARTIFACT_IMAGE" |
@@ -328,7 +328,7 @@ EOF
 	# TODO(bitoku): use an image in quay.io/crio once quay.io supports multiarch artifacts
 	# This version doesn't have to be updated. It's specified only to keep the test consistent.
 	MULTIARCH_ARTIFACT="ghcr.io/cri-o/bundle:v1.32.4"
-	crictl pull "$MULTIARCH_ARTIFACT"
+	crictl_pull "$MULTIARCH_ARTIFACT"
 
 	jq --arg ARTIFACT_IMAGE "$MULTIARCH_ARTIFACT" \
 		'.mounts = [ {
