@@ -222,7 +222,7 @@ function start_crio_no_setup() {
         -l debug \
         -c "$CRIO_CONFIG" \
         -d "$CRIO_CONFIG_DIR" \
-        &>"$CRIO_LOG" &
+        &>"$CRIO_LOG" 3>&- &
     CRIO_PID=$!
     wait_until_reachable
 }
