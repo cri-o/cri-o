@@ -163,7 +163,17 @@ var (
 	}
 	containerMemoryAnonHugepages = &types.MetricDescriptor{
 		Name:      "container_memory_anon_hugepages_bytes",
-		Help:      "Amount of memory backed by transparent hugepages in bytes.",
+		Help:      "Amount of anonymous memory backed by transparent hugepages in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryShmemHugepages = &types.MetricDescriptor{
+		Name:      "container_memory_shmem_hugepages_bytes",
+		Help:      "Amount of shared memory backed by transparent hugepages in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryFileHugepages = &types.MetricDescriptor{
+		Name:      "container_memory_file_hugepages_bytes",
+		Help:      "Amount of file-backed memory backed by transparent hugepages in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
 	containerMemoryFailuresTotal = &types.MetricDescriptor{
