@@ -87,6 +87,8 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 		containerMemoryTotalActiveAnon,
 		containerMemoryTotalInactiveAnon,
 		containerMemoryAnonHugepages,
+		containerMemoryShmemHugepages,
+		containerMemoryFileHugepages,
 		containerMemoryFailuresTotal,
 	},
 	config.NetworkMetrics: {

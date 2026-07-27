@@ -16,6 +16,8 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 	workingSetBytes, rssBytes, pageFaults, majorPageFaults, _ := computeMemoryMetricValues(mem)
 	swapUsage := computeSwapUsageForMetrics(mem)
 	fileMapped := computeFileMapped(mem)
+	activeAnon, inactiveAnon := computeAnonMemory(mem)
+	anonTHP, shmemTHP, fileTHP := computeTransparentHugepages(mem)
 
 	memoryMetrics := []*containerMetric{
 		{
@@ -81,19 +83,31 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 		{
 			desc: containerMemoryTotalActiveAnon,
 			valueFunc: func() metricValues {
-				return metricValues{{value: mem.Stats["active_anon"], metricType: types.MetricType_GAUGE}}
+				return metricValues{{value: activeAnon, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
 			desc: containerMemoryTotalInactiveAnon,
 			valueFunc: func() metricValues {
-				return metricValues{{value: mem.Stats["inactive_anon"], metricType: types.MetricType_GAUGE}}
+				return metricValues{{value: inactiveAnon, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
 			desc: containerMemoryAnonHugepages,
 			valueFunc: func() metricValues {
-				return metricValues{{value: mem.Stats["anon_thp"], metricType: types.MetricType_GAUGE}}
+				return metricValues{{value: anonTHP, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryShmemHugepages,
+			valueFunc: func() metricValues {
+				return metricValues{{value: shmemTHP, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryFileHugepages,
+			valueFunc: func() metricValues {
+				return metricValues{{value: fileTHP, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
@@ -187,6 +201,29 @@ func computeFileMapped(memStats *cgroups.MemoryStats) uint64 {
 	}
 
 	return memStats.Stats["mapped_file"]
+}
+
+// computeAnonMemory computes the active and inactive anonymous memory values.
+// Both cgroup versions report these, but v1 prefixes the hierarchical totals
+// with "total_".
+func computeAnonMemory(memStats *cgroups.MemoryStats) (activeAnon, inactiveAnon uint64) {
+	if node.CgroupIsV2() {
+		return memStats.Stats["active_anon"], memStats.Stats["inactive_anon"]
+	}
+
+	return memStats.Stats["total_active_anon"], memStats.Stats["total_inactive_anon"]
+}
+
+// computeTransparentHugepages computes the amount of memory backed by
+// transparent hugepages, split by the kind of memory backing it. These keys
+// only exist under cgroup v2; cgroup v1 has no equivalent, so all three are
+// reported as zero there.
+func computeTransparentHugepages(memStats *cgroups.MemoryStats) (anonTHP, shmemTHP, fileTHP uint64) {
+	if !node.CgroupIsV2() {
+		return 0, 0, 0
+	}
+
+	return memStats.Stats["anon_thp"], memStats.Stats["shmem_thp"], memStats.Stats["file_thp"]
 }
 
 func GenerateContainerOOMMetrics(ctr *oci.Container, oomCount uint64) []*types.Metric {

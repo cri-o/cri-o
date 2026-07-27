@@ -8,6 +8,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/oci"
 )
@@ -87,7 +88,9 @@ func TestMetricLabelCardinality(t *testing.T) {
 
 // TestContainerMemoryMetricValues verifies that generateContainerMemoryMetrics
 // reads the expected cgroup stat keys and reports their raw byte values,
-// covering the active_anon, inactive_anon and anon_thp metrics.
+// covering the anonymous memory and transparent hugepage metrics. The stat key
+// names differ between cgroup versions, so the expected values depend on the
+// cgroup version of the host running the test.
 func TestContainerMemoryMetricValues(t *testing.T) {
 	t.Parallel()
 
@@ -99,10 +102,24 @@ func TestContainerMemoryMetricValues(t *testing.T) {
 		values[m.GetName()] = m.GetValue().GetValue()
 	}
 
-	want := map[string]uint64{
-		"container_memory_total_active_anon_bytes":   memStats.Stats["active_anon"],
-		"container_memory_total_inactive_anon_bytes": memStats.Stats["inactive_anon"],
-		"container_memory_anon_hugepages_bytes":      memStats.Stats["anon_thp"],
+	var want map[string]uint64
+	if node.CgroupIsV2() {
+		want = map[string]uint64{
+			"container_memory_total_active_anon_bytes":   memStats.Stats["active_anon"],
+			"container_memory_total_inactive_anon_bytes": memStats.Stats["inactive_anon"],
+			"container_memory_anon_hugepages_bytes":      memStats.Stats["anon_thp"],
+			"container_memory_shmem_hugepages_bytes":     memStats.Stats["shmem_thp"],
+			"container_memory_file_hugepages_bytes":      memStats.Stats["file_thp"],
+		}
+	} else {
+		// cgroup v1 has no transparent hugepage accounting.
+		want = map[string]uint64{
+			"container_memory_total_active_anon_bytes":   memStats.Stats["total_active_anon"],
+			"container_memory_total_inactive_anon_bytes": memStats.Stats["total_inactive_anon"],
+			"container_memory_anon_hugepages_bytes":      0,
+			"container_memory_shmem_hugepages_bytes":     0,
+			"container_memory_file_hugepages_bytes":      0,
+		}
 	}
 
 	for name, wantValue := range want {
@@ -201,7 +218,11 @@ func testMemoryStats() cgroups.MemoryStats {
 			"pgmajfault":          5,
 			"active_anon":         256 * 1024,
 			"inactive_anon":       16 * 1024,
+			"total_active_anon":   192 * 1024,
+			"total_inactive_anon": 8 * 1024,
 			"anon_thp":            128 * 1024,
+			"shmem_thp":           64 * 1024,
+			"file_thp":            48 * 1024,
 		},
 		PSI: &cgroups.PSIStats{
 			Full: cgroups.PSIData{Total: 500000},
