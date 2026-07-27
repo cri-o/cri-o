@@ -9,7 +9,6 @@ import (
 
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/storage/pkg/mount"
-
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
