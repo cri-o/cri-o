@@ -25,7 +25,7 @@ containers:100000:65536
 ### CRI-O configuration
 
 To enable pods to be able to use the userns-mode annotation, the pod must be
-allowed to interpret the experimental annotation `io.kubernetes.cri-o.userns-mode`.
+allowed to interpret the experimental annotation `userns-mode.crio.io`.
 
 #### 1.23.0 and beyond
 
@@ -34,11 +34,11 @@ This can be done by creating a file with the following contents in /etc/crio/cri
 
 ```toml
 [crio.runtime.workloads.userns]
-activation_annotation = "io.kubernetes.cri-o.userns-mode"
-allowed_annotations = ["io.kubernetes.cri-o.userns-mode"]
+activation_annotation = "userns-mode.crio.io"
+allowed_annotations = ["userns-mode.crio.io"]
 ```
 
-This will allow any pod with the `io.kubernetes.cri-o.userns-mode` annotation to
+This will allow any pod with the `userns-mode.crio.io` annotation to
 configure a user namespace. CRI-O opts for this approach to give administrators
 the ability to toggle the behavior on their nodes, just in case an administrator
 doesn't want their users to be able to create user namespace. An administrator
@@ -57,7 +57,7 @@ annotation, the following file can be created:
 [crio.runtime.runtimes.userns]
 runtime_path = "/usr/bin/runc"
 runtime_root = "/run/runc"
-allowed_annotations = ["io.kubernetes.cri-o.userns-mode"]
+allowed_annotations = ["userns-mode.crio.io"]
 ```
 
 `runtime_path` and `runtime_root` can be configured differently, but must be specified.
@@ -78,7 +78,7 @@ kind: Pod
 metadata:
   name: mypod
   annotations:
-    io.kubernetes.cri-o.userns-mode: "auto"
+    userns-mode.crio.io: "auto"
 ```
 
 In this case, upon pod creation, the pod will have a user namespace automatically

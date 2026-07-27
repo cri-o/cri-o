@@ -290,11 +290,11 @@ function check_conmon_fields() {
 }
 
 @test "test workload allowed annotation should not work if not configured" {
-	create_workload_with_allowed_annotation "io.kubernetes.cri-o.ShmSize" "$activation"
+	create_workload_with_allowed_annotation "shm-size.crio.io" "$activation"
 
 	start_crio
 
-	jq '.annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' \
+	jq '.annotations."shm-size.crio.io" = "16Mi"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$sboxconfig")
@@ -308,13 +308,13 @@ function check_conmon_fields() {
 		skip "userNS enabled"
 	fi
 	setup_crio
-	create_workload_with_allowed_annotation "io.kubernetes.cri-o.Devices"
-	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
+	create_workload_with_allowed_annotation "devices.crio.io"
+	create_runtime_with_allowed_annotation "shmsize" "shm-size.crio.io"
 	CONTAINER_ALLOWED_DEVICES="/dev/null" start_crio_no_setup
 
 	jq --arg act "$activation" \
-		'   .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"
-	    |   .annotations."io.kubernetes.cri-o.Devices" = "/dev/null:/dev/peterfoo:rwm"' \
+		'   .annotations."shm-size.crio.io" = "16Mi"
+	    |   .annotations."devices.crio.io" = "/dev/null:/dev/peterfoo:rwm"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$sboxconfig")
@@ -327,13 +327,13 @@ function check_conmon_fields() {
 }
 
 @test "test workload allowed annotation works for pod" {
-	create_workload_with_allowed_annotation "io.kubernetes.cri-o.ShmSize"
+	create_workload_with_allowed_annotation "shm-size.crio.io"
 
 	name=POD
 	start_crio
 
 	jq --arg act "$activation" \
-		' .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' \
+		' .annotations."shm-size.crio.io" = "16Mi"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$sboxconfig")
@@ -380,11 +380,11 @@ function check_conmon_fields() {
 @test "test workload pod should not be set if annotation not specified even if prefix" {
 	start_crio
 
-	jq '   .annotations["io.kubernetes.cri-o.UnifiedCgroup.podsandbox-sleep"] = "memory.max=4294967296" |
+	jq '   .annotations["unified-cgroup.crio.io/podsandbox-sleep"] = "memory.max=4294967296" |
 	  .labels["io.kubernetes.container.name"] = "podsandbox-sleep"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	jq '   .annotations["io.kubernetes.cri-o.UnifiedCgroup.podsandbox-sleep"] = "memory.max=4294967296" |
+	jq '   .annotations["unified-cgroup.crio.io/podsandbox-sleep"] = "memory.max=4294967296" |
 	  .labels["io.kubernetes.container.name"] = "podsandbox-sleep"' \
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 

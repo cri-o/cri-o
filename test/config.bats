@@ -110,8 +110,8 @@ EOF
 	unset CONTAINER_DEFAULT_RUNTIME
 	cat << EOF >> "$TESTDIR"/workload.conf
 [crio.runtime.workloads.userns]
-activation_annotation = "io.kubernetes.cri-o.userns-mode"
-allowed_annotations = ["io.kubernetes.cri-o.userns-mode"]
+activation_annotation = "userns-mode.crio.io"
+allowed_annotations = ["userns-mode.crio.io"]
 EOF
 
 	# then
