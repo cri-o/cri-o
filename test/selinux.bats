@@ -38,11 +38,11 @@ function teardown() {
 	touch "$FILE"
 
 	setup_crio
-	create_runtime_with_allowed_annotation "selinux" "io.kubernetes.cri-o.TrySkipVolumeSELinuxLabel"
+	create_runtime_with_allowed_annotation "selinux" "try-skip-volume-selinux-label.crio.io"
 	start_crio_no_setup
 
 	jq '	  .linux.security_context.selinux_options = {"level": "s0:c200,c100"}
-		|  .annotations["io.kubernetes.cri-o.TrySkipVolumeSELinuxLabel"] = "true"' \
+		|  .annotations["try-skip-volume-selinux-label.crio.io"] = "true"' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	jq --arg path "$VOLUME" \

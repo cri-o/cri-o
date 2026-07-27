@@ -13,7 +13,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l absent-mount-sources-to-re
 complete -c crio -n '__fish_crio_no_subcommand' -f -l add-inheritable-capabilities -d 'Add capabilities to the inheritable set, as well as the default group of permitted, bounding and effective.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l additional-artifact-stores -r -d 'Additional read-only OCI artifact store paths.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l additional-devices -r -d 'Devices to add to the containers.'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l allowed-devices -r -d 'Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l allowed-devices -r -d 'Devices a user is allowed to specify with the "devices.crio.io" allowed annotation.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l apparmor-profile -r -d 'Name of the apparmor profile to be used as the runtime\'s default. This only takes effect if the user does not specify a profile via the Kubernetes Pod\'s metadata annotation.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l auto-reload-registries -d 'If true, CRI-O will automatically reload the mirror registry when there is an update to the \'registries.conf.d\' directory. Default value is set to \'false\'.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l big-files-temporary-dir -r -d 'Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.'

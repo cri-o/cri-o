@@ -232,7 +232,7 @@ One example would be allowing ping inside of containers. On systems that support
 ```
 
 **allowed_devices**=[]
-List of devices on the host that a user can specify with the "io.kubernetes.cri-o.Devices" allowed annotation.
+List of devices on the host that a user can specify with the "devices.crio.io" allowed annotation.
 
 **additional_devices**=[]
 List of additional devices. Specified as "<device-on-host>:<device-on-container>:<permissions>", for example: "--additional-devices=/dev/sdc:/dev/xvdc:rwm". If it is empty or commented out, only the devices defined in the container json file by the user/kube will be added.
@@ -376,14 +376,14 @@ Whether this runtime handler prevents host devices from being passed to privileg
 **This field is currently DEPRECATED. If you'd like to use allowed_annotations, please use a workload.**
 A list of experimental annotations this runtime handler is allowed to process.
 The currently recognized values are:
-"io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
-"io.kubernetes.cri-o.Devices" for configuring devices for the pod.
-"io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
-"io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+"userns-mode.crio.io" for configuring a user namespace for the pod.
+"devices.crio.io" for configuring devices for the pod.
+"shm-size.crio.io" for configuring the size of /dev/shm.
+"unified-cgroup.crio.io/$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
-"seccomp-profile.kubernetes.cri-o.io" for setting the seccomp profile for: - a specific container by using: "seccomp-profile.kubernetes.cri-o.io/<CONTAINER_NAME>" - a whole pod by using: "seccomp-profile.kubernetes.cri-o.io/POD"
+"seccomp-profile.crio.io" for setting the seccomp profile for: - a specific container by using: "seccomp-profile.crio.io/<CONTAINER_NAME>" - a whole pod by using: "seccomp-profile.crio.io/POD"
 Note that the annotation works on containers as well as on images.
-For images, the plain annotation `seccomp-profile.kubernetes.cri-o.io`
+For images, the plain annotation `seccomp-profile.crio.io`
 can be used without the required `/POD` suffix or a container name.
 
 **container_min_memory**=""
@@ -428,18 +428,18 @@ The full annotation must be of the form `$annotation_prefix.$resource/$ctrname =
 **allowed_annotations**=[]
 allowed_annotations is a slice of experimental annotations that this workload is allowed to process.
 The currently recognized values are:
-"io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
-"io.kubernetes.cri-o.cgroup2-mount-hierarchy-rw" for mounting cgroups writably when set to "true".
-"io.kubernetes.cri-o.Devices" for configuring devices for the pod.
-"io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
-"io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
+"userns-mode.crio.io" for configuring a user namespace for the pod.
+"cgroup2-mount-hierarchy-rw.crio.io" for mounting cgroups writably when set to "true".
+"devices.crio.io" for configuring devices for the pod.
+"shm-size.crio.io" for configuring the size of /dev/shm.
+"unified-cgroup.crio.io/$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
-"io.kubernetes.cri-o.seccompNotifierAction" for enabling the seccomp notifier feature.
-"io.kubernetes.cri-o.umask" for setting the umask for container init process.
+"seccomp-notifier-action.crio.io" for enabling the seccomp notifier feature.
+"umask.crio.io" for setting the umask for container init process.
 "io.kubernetes.cri.rdt-class" for setting the RDT class of a container
-"seccomp-profile.kubernetes.cri-o.io" for setting the seccomp profile for: - a specific container by using: "seccomp-profile.kubernetes.cri-o.io/<CONTAINER_NAME>" - a whole pod by using: "seccomp-profile.kubernetes.cri-o.io/POD"
+"seccomp-profile.crio.io" for setting the seccomp profile for: - a specific container by using: "seccomp-profile.crio.io/<CONTAINER_NAME>" - a whole pod by using: "seccomp-profile.crio.io/POD"
 Note that the annotation works on containers as well as on images.
-"io.kubernetes.cri-o.DisableFIPS" for disabling FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
+"disable-fips.crio.io" for disabling FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
 
 #### Using the seccomp notifier feature:
 
@@ -448,16 +448,16 @@ blocked syscalls (permission denied errors) have negative impact on the
 workload.
 
 To be able to use this feature, configure a runtime which has the annotation
-"io.kubernetes.cri-o.seccompNotifierAction" in the `allowed_annotations` array.
+"seccomp-notifier-action.crio.io" in the `allowed_annotations` array.
 
 It also requires at least runc 1.1.0 or crun 0.19 which support the notifier
 feature.
 
 If everything is setup, CRI-O will modify chosen seccomp profiles for containers
-if the annotation "io.kubernetes.cri-o.seccompNotifierAction" is set on the Pod
+if the annotation "seccomp-notifier-action.crio.io" is set on the Pod
 sandbox. CRI-O will then get notified if a container is using a blocked syscall
 and then terminate the workload after a timeout of 5 seconds if the value of
-"io.kubernetes.cri-o.seccompNotifierAction=stop".
+"seccomp-notifier-action.crio.io=stop".
 
 This also means that multiple syscalls can be captured during that period, while
 the timeout will get reset once a new syscall has been discovered.

@@ -18,7 +18,7 @@ function teardown() {
 @test "seccomp notifier with runtime/default" {
 	# Run with enabled feature set
 	setup_crio
-	create_runtime_with_allowed_annotation seccomp io.kubernetes.cri-o.seccompNotifierAction
+	create_runtime_with_allowed_annotation seccomp seccomp-notifier-action.crio.io
 	PORT=$(free_port)
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio_no_setup
 
@@ -27,7 +27,7 @@ function teardown() {
 		"$TESTDATA"/container_redis.json > "$TESTDIR"/container.json
 
 	# Enable the annotation in the sandbox
-	jq '.annotations += { "io.kubernetes.cri-o.seccompNotifierAction": "stop" }' \
+	jq '.annotations += { "seccomp-notifier-action.crio.io": "stop" }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
@@ -51,7 +51,7 @@ function teardown() {
 @test "seccomp notifier with runtime/default but not stop" {
 	# Run with enabled feature set
 	setup_crio
-	create_runtime_with_allowed_annotation seccomp io.kubernetes.cri-o.seccompNotifierAction
+	create_runtime_with_allowed_annotation seccomp seccomp-notifier-action.crio.io
 	PORT=$(free_port)
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio_no_setup
 
@@ -60,7 +60,7 @@ function teardown() {
 		"$TESTDATA"/container_redis.json > "$TESTDIR"/container.json
 
 	# Enable the annotation in the sandbox
-	jq '.annotations += { "io.kubernetes.cri-o.seccompNotifierAction": "" }' \
+	jq '.annotations += { "seccomp-notifier-action.crio.io": "" }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
@@ -77,7 +77,7 @@ function teardown() {
 @test "seccomp notifier with custom profile" {
 	# Run with enabled feature set
 	setup_crio
-	create_runtime_with_allowed_annotation seccomp io.kubernetes.cri-o.seccompNotifierAction
+	create_runtime_with_allowed_annotation seccomp seccomp-notifier-action.crio.io
 	start_crio_no_setup
 
 	# Run with custom profile
@@ -89,7 +89,7 @@ function teardown() {
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
 
 	# Enable the annotation in the sandbox
-	jq '.annotations += { "io.kubernetes.cri-o.seccompNotifierAction": "stop" }' \
+	jq '.annotations += { "seccomp-notifier-action.crio.io": "stop" }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
@@ -122,7 +122,7 @@ function teardown() {
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
 
 	# Enable the annotation in the sandbox
-	jq '.annotations += { "io.kubernetes.cri-o.seccompNotifierAction": "stop" }' \
+	jq '.annotations += { "seccomp-notifier-action.crio.io": "stop" }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)

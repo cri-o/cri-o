@@ -221,7 +221,7 @@ EOF
 		skip "The directory /proc/sys/crypto does not exist on this host."
 	fi
 	setup_crio
-	create_runtime_with_allowed_annotation logs io.kubernetes.cri-o.DisableFIPS
+	create_runtime_with_allowed_annotation logs disable-fips.crio.io
 	start_crio_no_setup
 
 	jq '   .labels["FIPS_DISABLE"] = "true"' \

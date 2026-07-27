@@ -13,7 +13,7 @@ function setup() {
 	setup_test
 	sboxconfig="$TESTDIR/sandbox_config.json"
 	ctrconfig="$TESTDIR/container_config.json"
-	create_workload_with_allowed_annotation "io.kubernetes.cri-o.userns-mode"
+	create_workload_with_allowed_annotation "userns-mode.crio.io"
 	start_crio
 }
 
@@ -22,7 +22,7 @@ function teardown() {
 }
 
 @test "userns annotation auto should succeed" {
-	jq '      .annotations."io.kubernetes.cri-o.userns-mode" = "auto"' \
+	jq '      .annotations."userns-mode.crio.io" = "auto"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$sboxconfig")
@@ -36,14 +36,14 @@ function teardown() {
 }
 
 @test "userns annotation auto with keep-id and map-to-root should fail" {
-	jq '      .annotations."io.kubernetes.cri-o.userns-mode" = "auto:keep-id=true;map-to-root=true"' \
+	jq '      .annotations."userns-mode.crio.io" = "auto:keep-id=true;map-to-root=true"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	run ! crictl runp "$sboxconfig"
 }
 
 @test "userns annotation auto should map host run_as_user" {
-	jq '      .annotations."io.kubernetes.cri-o.userns-mode" = "auto"' \
+	jq '      .annotations."userns-mode.crio.io" = "auto"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	jq '	.linux.security_context.run_as_user.value = 1234
