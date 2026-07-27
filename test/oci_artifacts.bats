@@ -322,6 +322,40 @@ EOF
 		jq -e '.status.pinned == false'
 }
 
+@test "should treat bare tag in OCI layout as unknown reference" {
+	start_crio
+	crictl_pull $ARTIFACT_IMAGE
+
+	# Remember the artifact's image ID before we tamper with the layout.
+	imageId=$(crictl inspecti $ARTIFACT_IMAGE | jq -r '.status.id')
+
+	# Simulate an OCI layout written by an external tool (e.g. skopeo) that
+	# stores only the tag portion in org.opencontainers.image.ref.name.
+	local main_index="$TESTDIR/crio/artifacts/index.json"
+	jq '.manifests |= map(
+		if .annotations["org.opencontainers.image.ref.name"] then
+			.annotations["org.opencontainers.image.ref.name"] = "1.14.4"
+		else . end)' \
+		"$main_index" > "$main_index.tmp" && mv "$main_index.tmp" "$main_index"
+
+	# The artifact should appear with no repoTags and not the wrong
+	# docker.io/library/1.14.4 normalization.
+	crictl inspecti "$imageId" |
+		jq -e '(.status.repoTags | length == 0) and
+		       (.status.repoDigests | all(startswith("unknown@")))'
+}
+
+@test "should preserve fully qualified artifact name from OCI layout" {
+	start_crio
+	crictl_pull $ARTIFACT_IMAGE
+
+	crictl images | grep -qE "$ARTIFACT_REPO.*singlefile"
+
+	crictl inspecti $ARTIFACT_IMAGE |
+		jq -e '(.status.repoTags | length == 1) and
+		       (.status.repoTags[0] == "quay.io/crio/artifact:singlefile")'
+}
+
 @test "should pull multi-architecture image" {
 	start_crio
 

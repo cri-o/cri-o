@@ -567,6 +567,88 @@ var _ = t.Describe("Store", func() {
 		})
 	})
 
+	t.Describe("Bare tag artifact name", func() {
+		var (
+			storeMock *ociartifactmock.MockLibartifactStore
+			mockCtrl  *gomock.Controller
+			store     *ociartifact.Store
+		)
+
+		makeLibArtifact := func(name string) *libartifact.Artifact {
+			return &libartifact.Artifact{
+				Name:     name,
+				Digest:   testDigest,
+				Manifest: &manifest.OCI1{},
+			}
+		}
+
+		BeforeEach(func() {
+			logrus.SetOutput(io.Discard)
+
+			mockCtrl = gomock.NewController(GinkgoT())
+			storeMock = ociartifactmock.NewMockLibartifactStore(mockCtrl)
+
+			var err error
+
+			store, err = ociartifact.NewStore(t.MustTempDir("artifact"), nil, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
+			store.SetFakeStore(&ociartifact.FakeLibartifactStore{storeMock})
+		})
+
+		AfterEach(func() {
+			mockCtrl.Finish()
+		})
+
+		It("should treat bare version tag as unknown instead of normalizing it", func() {
+			// Given - simulates an OCI layout where org.opencontainers.image.ref.name
+			// contains only the tag portion (e.g. from skopeo copy)
+			storeMock.EXPECT().
+				List(gomock.Any()).
+				Return(libartifact.ArtifactList{makeLibArtifact("1.14.4")}, nil)
+
+			// When
+			arts, err := store.List(context.Background())
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(arts).To(HaveLen(1))
+			Expect(arts[0].Reference()).To(Equal("unknown"))
+			Expect(arts[0].CRIImage().GetRepoTags()).To(BeEmpty())
+		})
+
+		It("should treat bare 'latest' tag as unknown instead of normalizing it", func() {
+			// Given
+			storeMock.EXPECT().
+				List(gomock.Any()).
+				Return(libartifact.ArtifactList{makeLibArtifact("latest")}, nil)
+
+			// When
+			arts, err := store.List(context.Background())
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(arts).To(HaveLen(1))
+			Expect(arts[0].Reference()).To(Equal("unknown"))
+			Expect(arts[0].CRIImage().GetRepoTags()).To(BeEmpty())
+		})
+
+		It("should correctly parse fully qualified artifact names", func() {
+			// Given
+			storeMock.EXPECT().
+				List(gomock.Any()).
+				Return(libartifact.ArtifactList{makeLibArtifact("docker.io/coredns/coredns:1.14.4")}, nil)
+
+			// When
+			arts, err := store.List(context.Background())
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(arts).To(HaveLen(1))
+			Expect(arts[0].Reference()).To(Equal("docker.io/coredns/coredns:1.14.4"))
+			Expect(arts[0].CRIImage().GetRepoTags()).To(ConsistOf("docker.io/coredns/coredns:1.14.4"))
+		})
+	})
+
 	t.Describe("Additional stores", func() {
 		var (
 			mainStoreMock *ociartifactmock.MockLibartifactStore
