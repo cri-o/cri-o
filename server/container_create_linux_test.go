@@ -1,8 +1,10 @@
 package server
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/factory/container"
@@ -394,6 +396,67 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 	_, _, _, err = sut.addOCIBindMounts(t.Context(), ctr, ctrInfo, false, false, false, true, false)
 	if err != nil {
 		t.Errorf("%v", err)
+	}
+}
+
+func TestSetupContainerUserRejectsNewlineInHOME(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		homeVal string
+		wantErr bool
+	}{
+		{
+			name:    "actual newline byte in HOME",
+			homeVal: "/root\nmalicious::0:0::/:/bin/bash",
+			wantErr: true,
+		},
+		{
+			name:    "carriage return in HOME",
+			homeVal: "/root\r\nmalicious::0:0::/:/bin/bash",
+			wantErr: true,
+		},
+		{
+			name:    "valid HOME value",
+			homeVal: "/home/user",
+			wantErr: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			specgen, err := generate.New("linux")
+			if err != nil {
+				t.Fatalf("failed to create spec generator: %v", err)
+			}
+
+			specgen.AddProcessEnv("HOME", tc.homeVal)
+
+			sc := &types.LinuxContainerSecurityContext{
+				RunAsUser: &types.Int64Value{Value: 1000},
+			}
+
+			err = setupContainerUser(t.Context(), &specgen, t.TempDir(), "", t.TempDir(), sc, nil)
+
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("expected error for HOME with newline, got nil")
+				}
+
+				if !strings.Contains(err.Error(), "newline") {
+					t.Errorf("expected newline-related error, got: %v", err)
+				}
+			} else if err != nil {
+				// Valid HOME may still fail on missing rootfs files; that's fine.
+				// Only fail if the error is the newline check.
+				if strings.Contains(err.Error(), "newline") {
+					t.Errorf("unexpected newline error for valid HOME: %v", err)
+				}
+			}
+		})
 	}
 }
 
