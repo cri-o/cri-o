@@ -163,17 +163,17 @@ var (
 	}
 	containerMemoryAnonHugepages = &types.MetricDescriptor{
 		Name:      "container_memory_anon_hugepages_bytes",
-		Help:      "Amount of anonymous memory backed by transparent hugepages in bytes.",
+		Help:      "Amount of anonymous memory backed by transparent hugepages in bytes. Requires transparent hugepages to be enabled, which is the default on most distributions. Always zero on cgroup v1.",
 		LabelKeys: baseLabelKeys,
 	}
 	containerMemoryShmemHugepages = &types.MetricDescriptor{
 		Name:      "container_memory_shmem_hugepages_bytes",
-		Help:      "Amount of shared memory backed by transparent hugepages in bytes.",
+		Help:      "Amount of shared memory backed by transparent hugepages in bytes. Requires kernel 6.8 or later with shmem transparent hugepages enabled, which is not the default on most distributions. Always zero on cgroup v1.",
 		LabelKeys: baseLabelKeys,
 	}
 	containerMemoryFileHugepages = &types.MetricDescriptor{
 		Name:      "container_memory_file_hugepages_bytes",
-		Help:      "Amount of file-backed memory backed by transparent hugepages in bytes.",
+		Help:      "Amount of file-backed memory backed by transparent hugepages in bytes. Requires file transparent hugepages to be enabled, which is not the default on most distributions. Always zero on cgroup v1.",
 		LabelKeys: baseLabelKeys,
 	}
 	containerMemoryFailuresTotal = &types.MetricDescriptor{
