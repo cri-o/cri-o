@@ -144,6 +144,16 @@ jobs:
             jobs: 1
             timeout: 20
 
+          - name: critest / conmon / crun / rhel10-amd64
+            arch: amd64
+            runner: rhel10-x64
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 20
+
           # - name: integration / conmon / runc / amd64
           #   arch: amd64
           #   runner: ubuntu-latest
@@ -191,6 +201,16 @@ jobs:
             runtimeType: oci
             critest: 0
             userns: 1
+            jobs: 2
+            timeout: 120
+
+          - name: integration / conmon / crun / rhel10-amd64
+            arch: amd64
+            runner: rhel10-x64
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 0
+            userns: 0
             jobs: 2
             timeout: 120
     env:
