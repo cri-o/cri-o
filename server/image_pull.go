@@ -308,13 +308,32 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 
 	// Cancel the pull if no progress is made
 	pullCtx, cancel := context.WithCancel(ctx)
-	go consumeImagePullProgress(ctx, cancel, s.ContainerServer.Config().PullProgressTimeout, progress, remoteCandidateName)
+	// go consumeImagePullProgress(ctx, cancel, s.ContainerServer.Config().PullProgressTimeout, progress, remoteCandidateName)
+
+	pullProgressTimeout := s.ContainerServer.Config().PullProgressTimeout
+
+	// Compute the effective progress-event interval independently of the
+	// cancellation timeout so operators can tune them separately.
+	//
+	//   PullProgressInterval == 0, PullProgressTimeout > 0  →  timeout/10 (legacy)
+	//   both == 0  →  progress events disabled (existing default)
+
+	var effectiveInterval time.Duration
+	switch {
+	case s.ContainerServer.Config().PullProgressInterval > 0:
+		effectiveInterval = s.ContainerServer.Config().PullProgressInterval
+	case pullProgressTimeout > 0:
+		effectiveInterval = pullProgressTimeout / 10
+	}
+
+	go consumeImagePullProgress(ctx, cancel, pullProgressTimeout, progress, remoteCandidateName)
 
 	repoDigest, err := s.ContainerServer.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
-		ProgressInterval: s.ContainerServer.Config().PullProgressTimeout / 10,
+		//ProgressInterval: s.ContainerServer.Config().PullProgressTimeout / 10,
+		ProgressInterval: effectiveInterval,
 		Progress:         progress,
 		CgroupPull: storage.CgroupPullConfiguration{
 			UseNewCgroup: s.config.SeparatePullCgroup != "",
@@ -358,19 +377,33 @@ func (s *Server) resolveImageRefToID(ctx context.Context, imageRef storage.Regis
 // If the timeout is reached because no progress updates have been made, then
 // the cancel function will be called.
 func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, pullProgressTimeout time.Duration, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
-	timer := time.AfterFunc(pullProgressTimeout, func() {
-		if pullProgressTimeout != 0 {
+	// Only create a watchdog timer when the operator configured a timeout.
+	// When pullProgressTimeout == 0 the pull runs without a cancellation
+	// deadline, which is correct for unstable / slow networks.
+	var timer *time.Timer
+	if pullProgressTimeout > 0 {
+		timer = time.AfterFunc(pullProgressTimeout, func() {
 			log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", pullProgressTimeout)
 			cancel()
-		}
-	})
+		})
+		timer.Stop()       // don't start the timer immediately
+		defer timer.Stop() // ensure that the timer is stopped when we exit the progress loop
+	}
 
-	timer.Stop()       // don't start the timer immediately
-	defer timer.Stop() // ensure that the timer is stopped when we exit the progress loop
+	// Register a tracker for the /image/progress API and clean it up on exit.
+	imageName := remoteCandidateName.StringForOutOfProcessConsumptionOnly()
+	tracker := storage.NewImagePullTracker()
+	storage.ActivePullProgress.Store(imageName, tracker)
+	defer storage.ActivePullProgress.Delete(imageName)
 
 	for p := range progress {
-		timer.Reset(pullProgressTimeout)
+		//timer.Reset(pullProgressTimeout)
 
+		// Reset the watchdog on every incoming progress event so that a
+		// slow-but-steady download on an unstable network is not canceled.
+		if timer != nil {
+			timer.Reset(pullProgressTimeout)
+		}
 		if p.Event == imageTypes.ProgressEventSkipped {
 			// Skipped digests metrics
 			tryRecordSkippedMetric(ctx, remoteCandidateName, p.Artifact.Digest)
@@ -397,6 +430,12 @@ func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, pu
 		// Metrics for size histogram
 		if p.Event == imageTypes.ProgressEventDone {
 			metrics.Instance().MetricImagePullsLayerSizeObserve(p.Artifact.Size)
+		}
+		
+		if p.Event == imageTypes.ProgressEventSkipped {
+			tracker.UpdateLayer(p.Artifact.Digest.String(), p.Artifact.Size, p.Artifact.Size)
+		} else {
+			tracker.UpdateLayer(p.Artifact.Digest.String(), int64(p.Offset), p.Artifact.Size)
 		}
 	}
 }

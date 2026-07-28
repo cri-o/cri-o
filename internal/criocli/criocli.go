@@ -202,6 +202,10 @@ func mergeImageConfig(config *libconfig.Config, ctx *cli.Context) {
 		config.PullProgressTimeout = ctx.Duration("pull-progress-timeout")
 	}
 
+	if ctx.IsSet("pull-progress-interval") {
+		config.PullProgressInterval = ctx.Duration("pull-progress-interval")
+	}
+
 	if ctx.IsSet("pinned-images") {
 		config.PinnedImages = StringSliceTrySplit(ctx, "pinned-images")
 	}
@@ -1272,9 +1276,15 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.DurationFlag{
 			Name:    "pull-progress-timeout",
-			Usage:   "The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to --pull-progress-timeout / 10. Can be set to 0 to disable the timeout as well as the progress output.",
+			Usage:   "Maximum time an image pull may go without making progress before it is canceled. Set to 0 to disable the watchdog (recommended for unstable networks — pair with --pull-progress-interval). When non-zero and --pull-progress-interval is not set, the progress-event interval defaults to this value divided by 10.",
 			EnvVars: []string{"CONTAINER_PULL_PROGRESS_TIMEOUT"},
 			Value:   defConf.PullProgressTimeout,
+		},
+		&cli.DurationFlag{
+			Name:    "pull-progress-interval",
+			Usage:   "How often the image copy library emits per-layer progress events (drives crio_image_pulls_bytes_total and /image/progress). When 0 (default) the interval is derived from --pull-progress-timeout / 10. Set explicitly to decouple progress-bar update frequency from the cancellation timeout, e.g. --pull-progress-timeout=0 --pull-progress-interval=3s for frequent updates with no timeout.",
+			EnvVars: []string{"CONTAINER_PULL_PROGRESS_INTERVAL"},
+			Value:   defConf.PullProgressInterval,
 		},
 		&cli.BoolFlag{
 			Name:    "read-only",
@@ -1312,7 +1322,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringSliceFlag{
 			Name:    "allowed-devices",
-			Usage:   "Devices a user is allowed to specify with the \"devices.crio.io\" allowed annotation.",
+			Usage:   "Devices a user is allowed to specify with the \"io.kubernetes.cri-o.Devices\" allowed annotation.",
 			Value:   cli.NewStringSlice(defConf.AllowedDevices...),
 			EnvVars: []string{"CONTAINER_ALLOWED_DEVICES"},
 		},

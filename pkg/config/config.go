@@ -689,11 +689,27 @@ type ImageConfig struct {
 	// reload the mirror registry when there is an update to the
 	// 'registries.conf.d' directory.
 	AutoReloadRegistries bool `toml:"auto_reload_registries"`
-	// PullProgressTimeout is the timeout for an image pull to make progress
-	// until the pull operation gets canceled. This value will be also used for
-	// calculating the pull progress interval to pullProgressTimeout / 10.
-	// Can be set to 0 to disable the timeout as well as the progress output.
+	// PullProgressTimeout is the maximum time an image pull is allowed to go
+	// without making any progress before the pull is canceled.
+	// Set to 0 to disable the cancellation watchdog entirely (useful on
+	// unstable or slow networks where a long stall does not mean the pull
+	// is stuck).
 	PullProgressTimeout time.Duration `toml:"pull_progress_timeout"`
+	// PullProgressInterval controls how frequently the underlying image copy
+	// library reports per-layer progress events.  These events drive both the
+	// Prometheus counter crio_image_pulls_bytes_total and the custom
+	// /image/progress HTTP endpoint.
+	//
+	// When set to 0 (the default) the interval is derived automatically:
+	//   - if PullProgressTimeout > 0  →  interval = PullProgressTimeout / 10
+	//   - if PullProgressTimeout == 0 →  progress events are disabled
+	//
+	// Setting this field to a positive value decouples the two concerns so
+	// operators can have a long (or absent) cancellation timeout while still
+	// receiving frequent progress updates, e.g.:
+	//   pull_progress_timeout  = "0s"  # never cancel — unstable network
+	//   pull_progress_interval = "3s"  # update progress bar every 3 seconds
+	PullProgressInterval time.Duration `toml:"pull_progress_interval"`
 	// OCIArtifactMountSupport is used to determine if CRI-O should support OCI Artifacts.
 	OCIArtifactMountSupport bool `toml:"oci_artifact_mount_support"`
 	// ShortNameMode describes the mode of short name resolution.
@@ -970,14 +986,14 @@ func removeDupStorageOpts(storageOpts []string) []string {
 	var resOpts []string
 
 	opts := make(map[string]bool)
-	for _, storageOpt := range slices.Backward(storageOpts) {
-		if ok := opts[storageOpt]; ok {
+	for i := len(storageOpts) - 1; i >= 0; i-- {
+		if ok := opts[storageOpts[i]]; ok {
 			continue
 		}
 
-		opts[storageOpt] = true
+		opts[storageOpts[i]] = true
 
-		resOpts = append(resOpts, storageOpt)
+		resOpts = append(resOpts, storageOpts[i])
 	}
 
 	for i, j := 0, len(resOpts)-1; i < j; i, j = i+1, j-1 {

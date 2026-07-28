@@ -509,6 +509,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 
 	mux := &http.ServeMux{}
 	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/image/progress", handleImageProgressQuery)
 
 	return mux, nil
 }
