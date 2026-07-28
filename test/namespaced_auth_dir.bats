@@ -20,7 +20,7 @@ function teardown() {
 	echo '{}' > "$TESTDIR/auth/$NAMESPACE-$IMAGE_SHA256.json"
 	jq '.metadata.namespace = "'$NAMESPACE'"' "$TESTDATA/sandbox_config.json" > "$TESTDIR/sb.json"
 
-	crictl pull --pod-config "$TESTDIR/sb.json" $IMAGE
+	crictl_pull --pod-config "$TESTDIR/sb.json" $IMAGE
 
 	grep -q "Looking for namespaced auth JSON file in: .*$IMAGE_SHA256" "$CRIO_LOG"
 	grep -q "Using auth file for namespace $NAMESPACE" "$CRIO_LOG"
@@ -44,7 +44,7 @@ function teardown() {
 @test "should not use auth file if namespace does not match" {
 	AUTHFILE="$TESTDIR/auth/$NAMESPACE-$IMAGE_SHA256.json"
 	echo '{}' > "$AUTHFILE"
-	crictl pull --pod-config "$TESTDATA/sandbox_config.json" $IMAGE
+	crictl_pull --pod-config "$TESTDATA/sandbox_config.json" $IMAGE
 
 	grep -q "Looking for namespaced auth JSON file in: .*$IMAGE_SHA256" "$CRIO_LOG"
 	grep -vq "Using auth file for namespace $NAMESPACE" "$CRIO_LOG"

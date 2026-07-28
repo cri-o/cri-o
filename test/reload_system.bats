@@ -88,7 +88,7 @@ function assert_debounced_reloads() {
 
 	# then
 	expect_log_success
-	crictl pull "$TEST_IMAGE"
+	crictl_pull "$TEST_IMAGE"
 }
 
 @test "reload system registries should fail on invalid syntax in file" {
@@ -113,7 +113,7 @@ function assert_debounced_reloads() {
 
 	# then
 	expect_log_success
-	crictl pull "$TEST_IMAGE2"
+	crictl_pull "$TEST_IMAGE2"
 }
 
 @test "system registries should fail on invalid syntax in file without reload" {

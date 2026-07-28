@@ -73,7 +73,7 @@ function teardown() {
 @test "container status when created by image list canonical reference" {
 	start_crio
 
-	crictl pull "$IMAGE_LIST_DIGEST"
+	crictl_pull "$IMAGE_LIST_DIGEST"
 
 	jq '.image.image = "'"$IMAGE_LIST_DIGEST"'" | .image.user_specified_image = "'"$IMAGE_LIST_DIGEST"'"' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
@@ -87,7 +87,7 @@ function teardown() {
 
 @test "image pull and list" {
 	start_crio
-	crictl pull "$IMAGE"
+	crictl_pull "$IMAGE"
 	imageid=$(crictl images --quiet "$IMAGE")
 	[ "$imageid" != "" ]
 
@@ -107,7 +107,7 @@ function teardown() {
 	# registry.fedoraproject.org is pretty flaky
 	# Moving to the stable quay.io
 	FEDORA="quay.io/fedora/fedora"
-	crictl pull $FEDORA
+	crictl_pull $FEDORA
 	imageid=$(crictl images --quiet "$FEDORA")
 	[ "$imageid" != "" ]
 
@@ -130,13 +130,13 @@ function teardown() {
 @test "image pull with signature" {
 	skip "registry has some issues"
 	start_crio
-	crictl pull "$SIGNED_IMAGE"
+	crictl_pull "$SIGNED_IMAGE"
 	cleanup_images
 }
 
 @test "image pull and list by tag and ID" {
 	start_crio
-	crictl pull "$IMAGE:go"
+	crictl_pull "$IMAGE:go"
 
 	imageid=$(crictl images --quiet "$IMAGE:go")
 	[ "$imageid" != "" ]
@@ -150,7 +150,7 @@ function teardown() {
 @test "image pull and list by digest and ID" {
 	start_crio
 	NGINX_IMAGE=quay.io/crio/nginx@sha256:960355a671fb88ef18a85f92ccf2ccf8e12186216c86337ad808c204d69d512d
-	crictl pull "$NGINX_IMAGE"
+	crictl_pull "$NGINX_IMAGE"
 
 	imageid=$(crictl images --quiet "$NGINX_IMAGE")
 	[ "$imageid" != "" ]
@@ -164,7 +164,7 @@ function teardown() {
 @test "image pull and list by manifest list digest" {
 	start_crio
 
-	crictl pull ${IMAGE_LIST_DIGEST}
+	crictl_pull ${IMAGE_LIST_DIGEST}
 
 	imageid=$(crictl images --quiet ${IMAGE_LIST_DIGEST})
 	[ "$imageid" != "" ]
@@ -190,7 +190,7 @@ function teardown() {
 @test "image pull and list by manifest list tag" {
 	start_crio
 
-	crictl pull ${IMAGE_LIST_TAG}
+	crictl_pull ${IMAGE_LIST_TAG}
 	imageid=$(crictl images --quiet ${IMAGE_LIST_TAG})
 	[ "$imageid" != "" ]
 
@@ -219,13 +219,13 @@ function teardown() {
 @test "image pull and list by manifest list and individual digest" {
 	start_crio
 
-	crictl pull ${IMAGE_LIST_DIGEST}
+	crictl_pull ${IMAGE_LIST_DIGEST}
 	imageid=$(crictl images --quiet ${IMAGE_LIST_DIGEST})
 	[ "$imageid" != "" ]
 
 	case $ARCH in
 	x86_64)
-		crictl pull ${IMAGE_LIST_DIGEST_AMD64}
+		crictl_pull ${IMAGE_LIST_DIGEST_AMD64}
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
@@ -245,13 +245,13 @@ function teardown() {
 
 	case $ARCH in
 	x86_64)
-		crictl pull ${IMAGE_LIST_DIGEST_AMD64}
+		crictl_pull ${IMAGE_LIST_DIGEST_AMD64}
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	esac
 
-	crictl pull ${IMAGE_LIST_DIGEST}
+	crictl_pull ${IMAGE_LIST_DIGEST}
 
 	imageid=$(crictl images --quiet ${IMAGE_LIST_DIGEST})
 	[ "$imageid" != "" ]
@@ -267,7 +267,7 @@ function teardown() {
 
 @test "image list with filter" {
 	start_crio
-	crictl pull "$IMAGE"
+	crictl_pull "$IMAGE"
 	output=$(crictl images --quiet "$IMAGE")
 	[ "$output" != "" ]
 	for id in $output; do
@@ -280,7 +280,7 @@ function teardown() {
 
 @test "image list/remove" {
 	start_crio
-	crictl pull "$IMAGE"
+	crictl_pull "$IMAGE"
 	output=$(crictl images --quiet)
 	[ "$output" != "" ]
 	for id in $output; do
@@ -294,7 +294,7 @@ function teardown() {
 
 @test "image status/remove" {
 	start_crio
-	crictl pull "$IMAGE"
+	crictl_pull "$IMAGE"
 	output=$(crictl images --quiet)
 	[ "$output" != "" ]
 	for id in $output; do
@@ -352,7 +352,7 @@ EOF
 pinned_images = [ "quay.io/crio/hello-wasm:latest" ]
 EOF
 	start_crio
-	crictl pull quay.io/crio/hello-wasm:latest
+	crictl_pull quay.io/crio/hello-wasm:latest
 	output=$(crictl images -o json | jq '.images[] | select(.repoTags[] == "quay.io/crio/hello-wasm:latest") | .pinned')
 	[ "$output" == "true" ]
 }
@@ -395,7 +395,7 @@ EOF
 @test "pull progress timeout should not timeout when set to 0" {
 	CONTAINER_PULL_PROGRESS_TIMEOUT=0 start_crio
 
-	crictl pull "$IMAGE_LIST_TAG"
+	crictl_pull "$IMAGE_LIST_TAG"
 }
 
 @test "short name mode enabled should fail to pull ambiguous image" {
@@ -411,14 +411,14 @@ EOF
 	CONTAINER_SHORT_NAME_MODE="disabled" start_crio
 
 	# There should be many nginx images
-	crictl pull nginx
+	crictl_pull nginx
 }
 
 @test "image pull returns image ID not repo digest" {
 	start_crio
 
 	# Pull an image and capture the returned image reference
-	pulled_ref=$(crictl pull "$IMAGE")
+	pulled_ref=$(crictl_pull "$IMAGE")
 
 	# Extract the image ID from crictl output
 	# crictl may output "Image is up to date for <id>" or just "<id>"

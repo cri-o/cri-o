@@ -23,7 +23,7 @@ IMAGE=quay.io/crio/artifact:v1
 	start_crio
 
 	# Prepull the artifact
-	crictl pull "$IMAGE"
+	crictl_pull "$IMAGE"
 
 	# Set mounts in the same way as the kubelet would do
 	jq --arg IMAGE "$IMAGE" --arg CONTAINER_PATH "$CONTAINER_PATH" \
@@ -70,7 +70,7 @@ IMAGE=quay.io/crio/artifact:v1
 	start_crio
 
 	# Prepull the artifact
-	crictl pull "$IMAGE"
+	crictl_pull "$IMAGE"
 
 	# Build a second sandbox using a different level
 	jq '.metadata.name = "sb-1" |
@@ -120,7 +120,7 @@ IMAGE=quay.io/crio/artifact:v1
 	start_crio
 
 	# Prepull the artifact
-	crictl pull "$IMAGE"
+	crictl_pull "$IMAGE"
 
 	# Set mounts in the same way as the kubelet would do
 	jq --arg IMAGE "$IMAGE" --arg CONTAINER_PATH "$CONTAINER_PATH" \
@@ -147,7 +147,7 @@ IMAGE=quay.io/crio/artifact:v1
 	start_crio
 
 	# Prepull the artifact
-	crictl pull "$IMAGE"
+	crictl_pull "$IMAGE"
 
 	# Set mounts in the same way as the kubelet would do
 	jq --arg IMAGE "$IMAGE" --arg CONTAINER_PATH "$CONTAINER_PATH" \

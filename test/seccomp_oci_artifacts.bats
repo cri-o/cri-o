@@ -34,7 +34,7 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
-	crictl pull $ARTIFACT_IMAGE_WITH_ANNOTATION
+	crictl_pull $ARTIFACT_IMAGE_WITH_ANNOTATION
 	CTR=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 
 	# Assert
@@ -53,7 +53,7 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
-	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
+	crictl_pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
 	CTR=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 
 	# Assert
@@ -72,7 +72,7 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
-	crictl pull $ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION
+	crictl_pull $ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION
 	CTR=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 
 	# Assert
@@ -88,7 +88,7 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
-	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
+	crictl_pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
 	CTR=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 
 	# Assert
@@ -108,7 +108,7 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 		| .linux.security_context.seccomp.profile_type = 1' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
-	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
+	crictl_pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
 	CTR=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 
 	# Assert
@@ -128,7 +128,7 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 		| .linux.security_context.seccomp.profile_type = 0' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
-	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
+	crictl_pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
 	CTR=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 
 	# Assert
@@ -152,7 +152,7 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 		| .linux.security_context.seccomp.localhost_ref = "'"$TESTDIR"'/profile.json"' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
-	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
+	crictl_pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
 	CTR=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 
 	# Assert
