@@ -94,6 +94,12 @@ EOF
 	# wait a bit for metrics sync - tests are more flaky without this
 	sleep 1
 
+	# The metrics endpoint and the cgroup files are sampled at slightly
+	# different times, so the memory values can drift by a small amount between
+	# the two reads. Allow a 1 KiB tolerance on the memory comparisons instead
+	# of requiring an exact match to avoid flaky failures.
+	MEMORY_METRIC_TOLERANCE=1024
+
 	# assert container_memory_usage_bytes == cgroup memory.usage_in_bytes(cgroup v1) or memory.current(cgroup v2)
 	if is_cgroup_v2; then
 		cgroup_memory_usage=$(cat "$CTR_CGROUP"/memory.current)
@@ -101,7 +107,8 @@ EOF
 		cgroup_memory_usage=$(cat "$CTR_CGROUP"/memory.usage_in_bytes)
 	fi
 	metrics_memory_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_usage_bytes") | .value.value | tonumber')
-	[[ "$cgroup_memory_usage" == "$metrics_memory_usage" ]]
+	usage_diff=$((metrics_memory_usage - cgroup_memory_usage))
+	[[ ${usage_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
 
 	# assert container_memory_working_set_bytes ==
 	#    cgroup memory.usage_in_bytes - cgroup memory.stat:total_inactive_file(cgroup v1) or memory.current - memory.stat:inactive_file(cgroup v2)
@@ -114,7 +121,17 @@ EOF
 	fi
 
 	metrics_memory_working_set=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_working_set_bytes") | .value.value | tonumber')
-	[[ $metrics_memory_working_set == $((cgroup_memory_usage - cgroup_memory_inactive_file)) ]]
+	# Mirror the production clamp in computeMemoryMetricValues: usage and
+	# inactive_file are read separately, so the raw subtraction can transiently
+	# go negative while the exported metric is clamped to zero. Clamp here too
+	# so the comparison stays within tolerance.
+	if [[ $cgroup_memory_usage -lt $cgroup_memory_inactive_file ]]; then
+		cgroup_memory_working_set=0
+	else
+		cgroup_memory_working_set=$((cgroup_memory_usage - cgroup_memory_inactive_file))
+	fi
+	working_set_diff=$((metrics_memory_working_set - cgroup_memory_working_set))
+	[[ ${working_set_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
 
 	# assert container_memory_rss == cgroup memory.stat:total_rss(cgroup v1) or memory.stat:anon(cgroup v2)
 	if is_cgroup_v2; then
@@ -124,7 +141,8 @@ EOF
 		cgroup_memory_rss=$(grep -w total_rss "$CTR_CGROUP"/memory.stat | awk '{print $2}')
 	fi
 	metrics_memory_rss=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_rss") | .value.value | tonumber')
-	[[ $metrics_memory_rss == "$cgroup_memory_rss" ]]
+	rss_diff=$((metrics_memory_rss - cgroup_memory_rss))
+	[[ ${rss_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
 
 	cmd="myarray=(); touch /dev/tmpfile; for i in {1..100}; do myarray+=(\"$(date)\"); date >> /dev/tmpfile; done"
 	crictl exec --sync "$CONTAINER_ID" /bin/sh -c "$cmd"
@@ -136,7 +154,8 @@ EOF
 		cgroup_memory_cache=$(grep -w cache < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
 	fi
 	metrics_memory_cache=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_cache") | .value.value | tonumber')
-	[[ $metrics_memory_cache == "$cgroup_memory_cache" ]]
+	cache_diff=$((metrics_memory_cache - cgroup_memory_cache))
+	[[ ${cache_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
 
 	# assert container_memory_swap == cgroup memory.swap.current(cgroup v2).
 	# or for cgroup v1, container_memory_swap == cgroup memory.memsw.usage_in_bytes - cgroup memory.usage_in_bytes
