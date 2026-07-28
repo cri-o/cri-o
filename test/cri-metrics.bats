@@ -526,6 +526,12 @@ EOF
 }
 
 @test "container pressure metrics" {
+	if ! is_cgroup_v2; then
+		skip "pressure metrics require cgroup v2"
+	fi
+	if ! test -f /sys/fs/cgroup/cpu.pressure; then
+		skip "PSI not supported on this system"
+	fi
 	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]
