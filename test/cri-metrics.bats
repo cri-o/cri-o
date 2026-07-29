@@ -561,3 +561,31 @@ EOF
 	container_pressure_io_waiting_seconds_total=$(echo "$metrics" | jq 'select(.name == "container_pressure_io_waiting_seconds_total") | .value.value | tonumber')
 	[[ "$container_pressure_io_waiting_seconds_total" != "" ]]
 }
+
+@test "non-hostNetwork pod metrics match interfaces in the pod's network namespace" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	# create a non-hostNetwork pod with a container so we can exec into it
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_ID=$(crictl create "$POD_ID" "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$CTR_ID"
+
+	wait_for_metric "container_network_receive_bytes_total"
+
+	metrics=$(crictl metricsp)
+
+	# metrics must match the pod's own interfaces, not the host's
+	pod_metric_ifaces=$(echo "$metrics" | jq -r --arg id "$POD_ID" \
+		'[.podMetrics[] | select(.podSandboxId == $id) | .metrics[] | select(.name == "container_network_receive_bytes_total") | .labelValues[6]] | unique | .[]' | sed '/^$/d' | sort)
+	pod_actual_ifaces=$(crictl exec --sync "$CTR_ID" ls /sys/class/net/ | sed '/^$/d' | sort)
+	[[ "$pod_metric_ifaces" == "$pod_actual_ifaces" ]]
+}
