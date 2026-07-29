@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -12,7 +11,6 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubetypes "k8s.io/kubelet/pkg/types"
 
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -157,28 +155,6 @@ func (s *Server) CRImportCheckpoint(
 		ctrID = ""
 	}
 
-	originalAnnotations := make(map[string]string)
-
-	if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
-		return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
-	}
-
-	if sandboxUID != "" {
-		if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
-			originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-		}
-	}
-
-	if createAnnotations != nil {
-		// The hash also needs to be update or Kubernetes thinks the container needs to be restarted
-		_, ok1 := createAnnotations["io.kubernetes.container.hash"]
-		_, ok2 := originalAnnotations["io.kubernetes.container.hash"]
-
-		if ok1 && ok2 {
-			originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
-		}
-	}
-
 	sb, err := s.getPodSandboxFromRequest(ctx, sbID)
 	if err != nil {
 		if errors.Is(err, sandbox.ErrIDEmpty) {
@@ -242,10 +218,8 @@ func (s *Server) CRImportCheckpoint(
 			Resources:       &types.LinuxContainerResources{},
 			SecurityContext: &types.LinuxContainerSecurityContext{},
 		},
-		Annotations: originalAnnotations,
-		// The labels are nod changed or adapted. They are just taken from the CRI
-		// request without any modification (in contrast to the annotations).
-		Labels: createLabels,
+		Annotations: createAnnotations,
+		Labels:      createLabels,
 	}
 
 	if createConfig.Linux != nil {
