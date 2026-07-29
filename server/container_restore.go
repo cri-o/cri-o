@@ -220,7 +220,7 @@ func (s *Server) CRImportCheckpoint(
 			Resources:       &types.LinuxContainerResources{},
 			SecurityContext: &types.LinuxContainerSecurityContext{},
 		},
-		Annotations: originalAnnotations,
+		Annotations: createAnnotations,
 		Labels:      originalLabels,
 	}
 
