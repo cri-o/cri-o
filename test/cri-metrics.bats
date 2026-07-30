@@ -589,3 +589,53 @@ EOF
 	pod_actual_ifaces=$(crictl exec --sync "$CTR_ID" ls /sys/class/net/ | sed '/^$/d' | sort)
 	[[ "$pod_metric_ifaces" == "$pod_actual_ifaces" ]]
 }
+
+@test "hostNetwork pod metrics exclude pod-owned interfaces" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "network",
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	# create a non-hostNetwork pod with a container so we can exec into it
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_ID=$(crictl create "$POD_ID" "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$CTR_ID"
+
+	wait_for_metric "container_network_receive_bytes_total"
+
+	# find the host-side veth peer for the pod's eth0 by reading the
+	# iflink index from inside the container and resolving it on the host
+	peer_idx=$(crictl exec "$CTR_ID" cat /sys/class/net/eth0/iflink)
+	host_veth=$(ip -o link | awk -F'[ :]+' -v idx="$peer_idx" '$1 == idx {print $2}' | sed 's/@.*//')
+	[[ -n "$host_veth" ]]
+
+	# create a hostNetwork pod
+	jq '.metadata.name = "podsandbox2"
+		| .metadata.uid = "redhat-test-crio-2"
+		| .linux.security_context.namespace_options.network = 2
+		| del(.annotations)
+		| del(.hostname)' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork.json
+	HOST_POD_ID=$(crictl runp "$TESTDIR/sandbox_hostnetwork.json")
+
+	metrics=$(crictl metricsp)
+
+	# collect the hostNetwork pod's metric interfaces
+	host_pod_metric_ifaces=$(echo "$metrics" | jq -r --arg id "$HOST_POD_ID" \
+		'[.podMetrics[] | select(.podSandboxId == $id) | .metrics[] | select(.name == "container_network_receive_bytes_total") | .labelValues[6]] | unique | .[]')
+
+	# the hostNetwork pod must report at least lo
+	[[ -n "$host_pod_metric_ifaces" ]]
+
+	# the pod's host-side veth must not appear in hostNetwork metrics
+	if echo "$host_pod_metric_ifaces" | grep -qx "$host_veth"; then
+		echo "hostNetwork metrics unexpectedly contain pod veth: $host_veth"
+		return 1
+	fi
+}
