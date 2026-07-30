@@ -10,6 +10,11 @@ func (s *Store) SetImpl(impl Impl) {
 	s.impl = impl
 }
 
+// SetStore sets the underlying artifact store.
+func (s *Store) SetStore(store LibartifactStore) {
+	s.store = store
+}
+
 // SetData can be used to set the artifact data for tests.
 func (a *ArtifactData) SetData(data []byte) {
 	a.data = data

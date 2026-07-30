@@ -546,7 +546,7 @@ mock-ociartifact-datastore-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
 		-package datastoremock \
 		-destination ${MOCK_PATH}/ociartifact/datastore/datastore.go \
-		github.com/cri-o/cri-o/internal/ociartifact/datastore Impl
+		github.com/cri-o/cri-o/internal/ociartifact/datastore Impl,LibartifactStore
 
 .PHONY: mock-systemd
 mock-systemd: ${MOCKGEN}
