@@ -11,9 +11,34 @@ import (
 )
 
 func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox) []*types.Metric {
-	netDev, err := ss.readNetDev(sb)
+	if sb.HostNetwork() {
+		return ss.generateHostNetworkMetrics(sb)
+	}
+
+	return ss.generatePodNetworkMetrics(sb)
+}
+
+// generateHostNetworkMetrics returns metrics from the pre-computed host
+// network dev snapshot, which already has pod-owned interfaces filtered out.
+func (ss *StatsServer) generateHostNetworkMetrics(sb *sandbox.Sandbox) []*types.Metric {
+	var metrics []*types.Metric
+
+	for name := range ss.hostNetDev {
+		iface := ss.hostNetDev[name]
+		networkMetrics := generateSandboxNetworkMetrics(sb, &iface)
+		metrics = append(metrics, networkMetrics...)
+	}
+
+	return metrics
+}
+
+func (ss *StatsServer) generatePodNetworkMetrics(sb *sandbox.Sandbox) []*types.Metric {
+	netDev, err := readPodNetDev(sb)
 	if err != nil {
-		log.Errorf(ss.ctx, "Unable to retrieve network stats %s: %v", sb.ID(), err)
+		log.WithFields(ss.ctx, map[string]any{
+			"sandboxID": sb.ID(),
+			"error":     err,
+		}).Error("Unable to retrieve network stats")
 
 		return nil
 	}
@@ -35,15 +60,8 @@ func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox) []*types.Metr
 	return metrics
 }
 
-func (ss *StatsServer) readNetDev(sb *sandbox.Sandbox) (procfs.NetDev, error) {
-	if sb.HostNetwork() {
-		proc, err := procfs.Self()
-		if err != nil {
-			return nil, err
-		}
-
-		return proc.NetDev()
-	}
+func readPodNetDev(sb *sandbox.Sandbox) (procfs.NetDev, error) {
+	var lastErr error
 
 	for _, ctr := range sb.Containers().List() {
 		pid, err := ctr.Pid()
@@ -56,7 +74,18 @@ func (ss *StatsServer) readNetDev(sb *sandbox.Sandbox) (procfs.NetDev, error) {
 			continue
 		}
 
-		return proc.NetDev()
+		netDev, err := proc.NetDev()
+		if err != nil {
+			lastErr = err
+
+			continue
+		}
+
+		return netDev, nil
+	}
+
+	if lastErr != nil {
+		return nil, fmt.Errorf("read network stats for sandbox %s: %w", sb.ID(), lastErr)
 	}
 
 	return nil, fmt.Errorf("no running container in sandbox %s", sb.ID())
