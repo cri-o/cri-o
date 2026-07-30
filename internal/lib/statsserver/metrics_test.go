@@ -177,7 +177,7 @@ func testMemoryStats() cgroups.MemoryStats {
 // mirroring what generateSandboxNetworkMetrics does but without requiring a
 // real sandbox.Sandbox or netlink.LinkAttrs.
 func testNetworkMetrics() []*types.Metric {
-	sandboxBaseLabels := []string{"test-sandbox-id", "POD", "", "test-ns", "test-pod", "POD"}
+	sandboxBaseLabels := []string{"test-sandbox-id", "", "test-ns", "test-pod", "POD"}
 
 	networkDescs := []*types.MetricDescriptor{
 		containerNetworkReceiveBytesTotal,

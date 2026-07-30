@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	runtimeLabelKeys    = []string{"id", "name", "image"}
+	runtimeLabelKeys    = []string{"id", "image"}
 	kubernetesLabelKeys = []string{"namespace", "pod", "container"}
 	baseLabelKeys       = append(append([]string{}, runtimeLabelKeys...), kubernetesLabelKeys...)
 )
@@ -154,8 +154,9 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 		namespace = md.GetNamespace()
 		podName = md.GetName()
 	}
+
 	// TODO FIXME: image?
-	return []string{sb.ID(), "POD", "", namespace, podName, "POD"}
+	return []string{sb.ID(), "", namespace, podName, "POD"}
 }
 
 // computeContainerMetrics computes the metrics for container.
@@ -169,7 +170,12 @@ func containerBaseLabelValues(ctr *oci.Container) []string {
 		image = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
 	}
 
-	return []string{ctr.ID(), ctr.Name(), image, "", "", ""}
+	containerName := ""
+	if md := ctr.Metadata(); md != nil {
+		containerName = md.GetName()
+	}
+
+	return []string{ctr.ID(), image, "", "", containerName}
 }
 
 func computeMetrics(baseLabels []string, metrics []*containerMetric) []*types.Metric {
