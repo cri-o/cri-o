@@ -75,6 +75,8 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		ctrStats, err := ss.Runtime().ContainerStats(ss.ctx, c, sb.CgroupParent())
 		if err != nil {
 			log.Errorf(ss.ctx, "Error getting container stats %s: %v", c.ID(), err)
+
+			continue
 		}
 
 		diskStats, err := ss.Runtime().DiskStats(ss.ctx, c, sb.CgroupParent())
@@ -131,8 +133,6 @@ func (ss *StatsServer) updateContainerStats(c *oci.Container, sb *sandbox.Sandbo
 	diskStats, err := ss.Runtime().DiskStats(ss.ctx, c, sb.CgroupParent())
 	if err != nil {
 		log.Errorf(ss.ctx, "Error getting disk stats %s: %v", c.ID(), err)
-		// Continue without disk stats
-		diskStats = nil
 	}
 
 	cStats := containerCRIStats(ctrStats, diskStats, c, ctrStats.SystemNano)
@@ -237,7 +237,7 @@ func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetr
 // except for network metrics, which are collected at the pod level.
 func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *oci.Container, sm *SandboxMetrics) *types.ContainerMetrics {
 	ctrStats, err := ss.Runtime().ContainerStats(ss.ctx, c, sb.CgroupParent())
-	if err != nil || ctrStats == nil {
+	if err != nil {
 		log.Errorf(ss.ctx, "Error getting sandbox stats %s: %v", sb.ID(), err)
 
 		return nil
@@ -246,8 +246,6 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *o
 	diskStats, err := ss.Runtime().DiskStats(ss.ctx, c, sb.CgroupParent())
 	if err != nil {
 		log.Errorf(ss.ctx, "Error getting disk stats %s: %v", c.ID(), err)
-
-		return nil
 	}
 
 	return ss.containerMetricsFromContainerStats(sb, c, ctrStats, diskStats)
@@ -275,6 +273,10 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 				metrics = append(metrics, hugetlbMetrics...)
 			}
 		case config.DiskMetrics:
+			if diskStats == nil {
+				continue
+			}
+
 			if diskMetrics := generateContainerDiskMetrics(c, &diskStats.Filesystem); diskMetrics != nil {
 				metrics = append(metrics, diskMetrics...)
 			}
