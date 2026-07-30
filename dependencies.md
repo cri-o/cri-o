@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 30 Jul 2026 07:30:06 UTC for commit [85c0744][0]._
+_Generated on Thu, 30 Jul 2026 14:55:00 UTC for commit [2c97f89][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/85c07444cc72d056f7d8726445418c3b4da09a3e
+[0]: https://github.com/cri-o/cri-o/commit/2c97f898733797109aa466d571b94ddcdd0844c4
 
 ## Outdated Dependencies
 
@@ -20,7 +20,7 @@ _Generated on Thu, 30 Jul 2026 07:30:06 UTC for commit [85c0744][0]._
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                | v5.3.1                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.3                                | v1.4.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                               | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260730035829-2b2d1c4ec68c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260730074141-97981c143a68 | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                | v0.4.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.3                               | v2.32.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.40.0                               | v1.42.1                            | true   | true             |
@@ -33,7 +33,7 @@ _Generated on Thu, 30 Jul 2026 07:30:06 UTC for commit [85c0744][0]._
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.43.0                               | v1.44.0                            | true   | true             |
 | go.opentelemetry.io/otel/sdk                                                | v1.43.0                               | v1.44.0                            | true   | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.43.0                               | v1.44.0                            | true   | true             |
-| go.podman.io/common                                                         | v0.66.2-0.20260126213724-1e46b0756b39 | v0.68.1                            | true   | true             |
+| go.podman.io/common                                                         | v0.66.2-0.20260126213724-1e46b0756b39 | v0.69.0                            | true   | true             |
 | go.podman.io/image/v5                                                       | v5.38.0                               | v5.41.0                            | true   | true             |
 | go.podman.io/storage                                                        | v1.61.1-0.20251212224252-b0f86df5a665 | v1.64.0                            | true   | true             |
 | golang.org/x/net                                                            | v0.54.0                               | v0.57.0                            | true   | true             |
@@ -257,7 +257,7 @@ _Generated on Thu, 30 Jul 2026 07:30:06 UTC for commit [85c0744][0]._
 | github.com/blang/semver                                                     | v3.5.1+incompatible                    |                                    | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                 |                                    | true   | true             |
 | github.com/brianvoe/gofakeit/v7                                             | v7.12.1                                | v7.15.0                            | false  | true             |
-| github.com/buger/jsonparser                                                 | v1.1.1                                 | v1.6.0                             | false  | true             |
+| github.com/buger/jsonparser                                                 | v1.1.1                                 | v1.6.1                             | false  | true             |
 | github.com/buildkite/agent/v3                                               | v3.104.0                               | v3.135.0                           | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.15.0                                | v0.18.0                            | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                 |                                    | false  | true             |
@@ -469,7 +469,7 @@ _Generated on Thu, 30 Jul 2026 07:30:06 UTC for commit [85c0744][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260730035829-2b2d1c4ec68c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260730074141-97981c143a68 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
@@ -609,7 +609,7 @@ _Generated on Thu, 30 Jul 2026 07:30:06 UTC for commit [85c0744][0]._
 | github.com/sigstore/rekor                                                   | v1.5.1                                 | v1.5.3                             | false  | true             |
 | github.com/sigstore/rekor-tiles/v2                                          | v2.0.1                                 | v2.3.0                             | false  | true             |
 | github.com/sigstore/sigstore                                                | v1.10.4                                | v1.10.8                            | false  | true             |
-| github.com/sigstore/sigstore-go                                             | v1.1.4                                 | v1.2.2                             | false  | true             |
+| github.com/sigstore/sigstore-go                                             | v1.1.4                                 | v1.3.0                             | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/aws                          | v1.10.3                                | v1.10.8                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/azure                        | v1.10.3                                | v1.10.8                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/gcp                          | v1.10.3                                | v1.10.8                            | false  | true             |
@@ -706,7 +706,7 @@ _Generated on Thu, 30 Jul 2026 07:30:06 UTC for commit [85c0744][0]._
 | go.opentelemetry.io/otel/sdk/metric                                         | v1.43.0                                | v1.44.0                            | false  | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.43.0                                | v1.44.0                            | true   | true             |
 | go.opentelemetry.io/proto/otlp                                              | v1.10.0                                | v1.11.0                            | false  | true             |
-| go.podman.io/common                                                         | v0.66.2-0.20260126213724-1e46b0756b39  | v0.68.1                            | true   | true             |
+| go.podman.io/common                                                         | v0.66.2-0.20260126213724-1e46b0756b39  | v0.69.0                            | true   | true             |
 | go.podman.io/image/v5                                                       | v5.38.0                                | v5.41.0                            | true   | true             |
 | go.podman.io/storage                                                        | v1.61.1-0.20251212224252-b0f86df5a665  | v1.64.0                            | true   | true             |
 | go.step.sm/crypto                                                           | v0.75.0                                | v0.87.0                            | false  | true             |
