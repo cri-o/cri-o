@@ -133,6 +133,13 @@ function check_partition() {
 	[[ $(cat "$CTR_CGROUP"/cpuset.cpus.partition) == "$expected" ]]
 }
 
+function check_pod_cpuset_exclusive() {
+	local ctr_id="$1"
+	local expected="$2"
+	set_container_pod_cgroup_root "" "$ctr_id"
+	[[ $(cat "$POD_CGROUP"/cpuset.cpus.exclusive) == "$expected" ]]
+}
+
 function create_container_config() {
 	local name="$1"
 	local outfile="$2"
@@ -216,4 +223,37 @@ function create_container_config() {
 	# Verify only container-a is isolated
 	check_partition "$ctr_a" "isolated"
 	check_partition "$ctr_b" "member"
+}
+
+# Verify cpuset.cpus.exclusive is cleaned up from the pod cgroup when a
+# container exits naturally. Without this cleanup, stale exclusive CPUs on
+# the pod cgroup prevent sibling containers from isolating the same CPUs.
+# This reproduces OCPBUGS-72546: an init container's stale cpuset.cpus.exclusive
+# caused EINVAL for main containers with overlapping CPU assignments.
+# bats test_tags=crio:serial
+@test "test cpu load balancing exclusive cpus cleaned up on container exit" {
+	setup_per_container_test
+	start_crio
+
+	jq '.annotations."cpu-load-balancing.crio.io" = "disable"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sbox.json
+
+	jq '.command = ["/bin/sh", "-c", "exit 0"]
+		| .linux.resources.cpu_shares = 1024
+		| .linux.resources.cpuset_cpus = 2' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/ctr_init.json
+
+	pod_id=$(crictl runp --runtime high-performance "$TESTDIR"/sbox.json)
+
+	# Start a container that exits immediately (simulates an init container).
+	# PreStart sets cpuset.cpus.exclusive on the pod cgroup and container scope.
+	ctr_init=$(crictl create "$pod_id" "$TESTDIR"/ctr_init.json "$TESTDIR"/sbox.json)
+	crictl start "$ctr_init"
+	wait_until_exit "$ctr_init"
+
+	# After natural exit, PostStop must clean up cpuset.cpus.exclusive from
+	# the pod cgroup. The container scope may already be gone (systemd removes
+	# empty scopes), but the pod cgroup persists and must not retain stale
+	# exclusive CPUs.
+	check_pod_cpuset_exclusive "$ctr_init" ""
 }
