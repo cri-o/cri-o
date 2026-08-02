@@ -118,6 +118,9 @@ func New(c *config.Config) (*Runtime, error) {
 
 // Runtimes returns the map of OCI runtimes.
 func (r *Runtime) Runtimes() config.Runtimes {
+	r.configMutex.RLock()
+	defer r.configMutex.RUnlock()
+
 	return r.config.Runtimes
 }
 
@@ -147,7 +150,13 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 
 func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
 	// Define the current runtime handler as the default runtime handler.
+	// Read both fields under a single lock so the default handler cannot be
+	// resolved against a runtime map from a different reload. The lock is
+	// released before ValidateRuntimeHandler below, which takes it itself:
+	// a blocked writer stops new readers, so a nested RLock could deadlock.
+	r.configMutex.RLock()
 	rh := r.config.Runtimes[r.config.DefaultRuntime]
+	r.configMutex.RUnlock()
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this
