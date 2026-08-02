@@ -46,8 +46,26 @@ const (
 // information about the runtime.
 type Runtime struct {
 	config              *config.Config
+	configMutex         sync.RWMutex
 	runtimeImplMap      map[string]RuntimeImpl
 	runtimeImplMapMutex sync.RWMutex
+}
+
+// UpdateRuntimeConfig replaces the runtime handler configuration this Runtime
+// resolves handlers against. It is called after a SIGHUP configuration reload
+// so that newly added runtime handlers become available to RunPodSandbox
+// without restarting CRI-O.
+//
+// Server.config is a distinct value from the *config.Config this Runtime was
+// constructed with, so reloading the former does not update the latter. The
+// reload path must push the new values in explicitly, in the same way it
+// already does for the pinned image list.
+func (r *Runtime) UpdateRuntimeConfig(runtimes config.Runtimes, defaultRuntime string) {
+	r.configMutex.Lock()
+	defer r.configMutex.Unlock()
+
+	r.config.Runtimes = runtimes
+	r.config.DefaultRuntime = defaultRuntime
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -110,10 +128,14 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 		return nil, errors.New("empty runtime handler")
 	}
 
+	r.configMutex.RLock()
 	runtimeHandler, ok := r.config.Runtimes[handler]
+	runtimes := r.config.Runtimes
+	r.configMutex.RUnlock()
+
 	if !ok {
 		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
-			handler, r.config.Runtimes)
+			handler, runtimes)
 	}
 
 	if runtimeHandler.RuntimePath == "" {

@@ -635,6 +635,13 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 
 			metrics.Instance().MetricDefaultRuntimeSet(s.config.DefaultRuntime)
 
+			// oci.Runtime holds its own *config.Config, distinct from
+			// s.config, so the reload above does not reach it. Push the
+			// reloaded runtime handlers in explicitly, otherwise a handler
+			// added by SIGHUP shows up in "crio status config" but stays
+			// invisible to RunPodSandbox.
+			s.ContainerServer.Runtime().UpdateRuntimeConfig(s.config.Runtimes, s.config.DefaultRuntime)
+
 			// ImageServer compiles the list with regex for both
 			// pinned and sandbox/pause images, we need to update them
 			s.ContainerServer.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
