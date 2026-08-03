@@ -892,6 +892,7 @@ func (c *ContainerServer) RemoveSandbox(ctx context.Context, id string) error {
 	}
 
 	c.RemoveStatsForSandbox(sb)
+	c.RemoveMetricsForPodSandbox(sb)
 	c.state.sandboxes.Delete(id)
 
 	return nil
