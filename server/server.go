@@ -635,11 +635,16 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 
 			metrics.Instance().MetricDefaultRuntimeSet(s.config.DefaultRuntime)
 
-			// oci.Runtime holds its own *config.Config, distinct from
-			// s.config, so the reload above does not reach it. Push the
-			// reloaded runtime handlers in explicitly, otherwise a handler
+			// s.config is a value copy, so the reload above does not reach
+			// the *config.Config that oci.Runtime was constructed with. Push
+			// the reloaded runtime handlers in explicitly, otherwise a handler
 			// added by SIGHUP shows up in "crio status config" but stays
 			// invisible to RunPodSandbox.
+			//
+			// UpdateRuntimeConfig stores these on the Runtime rather than
+			// writing them back through that *config.Config, which is shared
+			// with ContainerServer and HooksRetriever and is read without
+			// synchronisation from request handlers.
 			s.ContainerServer.Runtime().UpdateRuntimeConfig(s.config.Runtimes, s.config.DefaultRuntime)
 
 			// ImageServer compiles the list with regex for both
