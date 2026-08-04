@@ -543,7 +543,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	if err := s.ContainerStateToDisk(ctx, container); err != nil {
+	if err := s.ContainerStateToDiskWithUpdate(ctx, container); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 

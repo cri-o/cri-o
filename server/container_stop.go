@@ -79,12 +79,21 @@ func (s *Server) postStopCleanup(ctx context.Context, ctr *oci.Container, sb *sa
 		}
 	}
 
-	if err := s.nri.stopContainer(ctx, sb, ctr, true); err != nil {
+	if err := s.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
+		log.Warnf(ctx, "Error updating the container status %q: %v", ctr.ID(), err)
+	}
+
+	// Remove OCI runtime container to trigger OCI poststop hooks
+	if err := s.ContainerServer.Runtime().DeleteContainer(ctx, ctr); err != nil {
+		log.Warnf(ctx, "Failed to delete runtime container %s in pod sandbox %s: %v", ctr.Name(), sb.ID(), err)
+	}
+
+	if err := s.nri.stopContainer(ctx, sb, ctr); err != nil {
 		log.Warnf(ctx, "NRI stop container request of %s failed: %v", ctr.ID(), err)
 	}
 
 	// persist container state at the end, so there's no window where CRI-O reports the container
-	// as stopped, but hasn't run post stop hooks.
+	// as stopped, but hasn't run post stop hooks
 	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
