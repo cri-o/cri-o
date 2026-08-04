@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 04 Aug 2026 11:18:25 UTC for commit [0067b9c][0]._
+_Generated on Tue, 04 Aug 2026 16:48:38 UTC for commit [de86c1a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0067b9c8e1c1a1754616d77d7eb42c06a03dabae
+[0]: https://github.com/cri-o/cri-o/commit/de86c1ae8f2ef251d3a097e3dcf23be3e87946b2
 
 ## Outdated Dependencies
 
@@ -51,7 +51,7 @@ _Generated on Tue, 04 Aug 2026 11:18:25 UTC for commit [0067b9c][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.2                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.18.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.170                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.171                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.15.0                            | false  | true             |
