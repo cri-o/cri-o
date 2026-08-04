@@ -466,7 +466,16 @@ func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup strin
 		return nil, err
 	}
 
-	return impl.CgroupStats(ctx, c, cgroup)
+	cgroupStats, err := impl.CgroupStats(ctx, c, cgroup)
+	if err != nil {
+		return nil, err
+	}
+
+	if cgroupStats == nil {
+		return nil, fmt.Errorf("no cgroup stats available for container %s", c.ID())
+	}
+
+	return cgroupStats, nil
 }
 
 // DiskStats provides disk statistics for a container.
