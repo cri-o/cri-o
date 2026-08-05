@@ -9,6 +9,7 @@ import (
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/opencontainers/cgroups"
+	"github.com/prometheus/procfs"
 	"github.com/vishvananda/netlink"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -484,4 +485,39 @@ func computeSwapUsage(memStats *cgroups.MemoryStats) uint64 {
 // isMemoryUnlimited checks if the memory limit is effectively unlimited.
 func isMemoryUnlimited(v uint64) bool {
 	return v == math.MaxUint64
+}
+
+// snapshotHostNetDev builds a snapshot of the host namespace's network device
+// stats with pod-owned interfaces (e.g. veth peers created by the CNI plugin)
+// filtered out. The resulting snapshot is used by all hostNetwork sandboxes so
+// their metrics only report genuine host interfaces, not pod-owned veth pairs.
+func (ss *StatsServer) snapshotHostNetDev(sandboxes []*sandbox.Sandbox) {
+	ss.hostNetDev = nil
+	podIfaces := buildPodIfacesExclusionSet(sandboxes)
+
+	proc, err := procfs.Self()
+	if err != nil {
+		log.WithFields(ss.ctx, map[string]any{
+			"error": err,
+		}).Error("Unable to read host procfs")
+
+		return
+	}
+
+	netDev, err := proc.NetDev()
+	if err != nil {
+		log.WithFields(ss.ctx, map[string]any{
+			"error": err,
+		}).Error("Unable to snapshot host network stats")
+
+		return
+	}
+
+	for name := range netDev {
+		if _, excluded := podIfaces[name]; excluded {
+			delete(netDev, name)
+		}
+	}
+
+	ss.hostNetDev = netDev
 }

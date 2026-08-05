@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	current "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/fields"
@@ -55,6 +56,7 @@ type Sandbox struct {
 	hostname       string
 	// ipv4 or ipv6 cache
 	ips                []string
+	hostInterfaces     []string
 	seccompProfilePath string
 	infraContainer     *oci.Container
 	nsOpts             *types.NamespaceOption
@@ -147,6 +149,16 @@ func (s *Sandbox) IPs() []string {
 // Wrap the IPs() method to match the NRI interface.
 func (s *Sandbox) GetIPs() []string {
 	return s.IPs()
+}
+
+// SetHostInterfaces stores the host network interfaces in the sandbox.
+func (s *Sandbox) SetHostInterfaces(ifaces []string) {
+	s.hostInterfaces = ifaces
+}
+
+// HostInterfaces returns the host network interfaces of the sandbox.
+func (s *Sandbox) HostInterfaces() []string {
+	return s.hostInterfaces
 }
 
 // ID returns the id of the sandbox.
@@ -508,4 +520,25 @@ func (s *Sandbox) Ready() bool {
 	defer s.stateMutex.RUnlock()
 
 	return s.created && !s.stopped
+}
+
+// HostInterfacesFromCNIResult returns the host-side interface names from a CNI result.
+// Per the CNI spec, an interface's Sandbox field holds the path to the network
+// namespace that contains it. An empty Sandbox means the interface is on the
+// host side (e.g. the host-side veth peer), while a non-empty value identifies
+// a container-side interface inside the pod's network namespace.
+func HostInterfacesFromCNIResult(result *current.Result) []string {
+	var ifaces []string
+
+	for _, iface := range result.Interfaces {
+		if iface == nil {
+			continue
+		}
+
+		if iface.Sandbox == "" {
+			ifaces = append(ifaces, iface.Name)
+		}
+	}
+
+	return ifaces
 }

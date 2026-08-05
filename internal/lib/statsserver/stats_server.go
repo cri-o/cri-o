@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/procfs"
 	"github.com/sirupsen/logrus"
 	cstorage "go.podman.io/storage"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -27,8 +28,14 @@ type StatsServer struct {
 	sboxStats        map[string]*types.PodSandboxStats
 	ctrStats         map[string]*types.ContainerStats
 	sboxMetrics      map[string]*SandboxMetrics
-	ctx              context.Context
-	mutex            sync.Mutex
+	// hostNetDev is a pre-computed snapshot of host network device stats
+	// with pod-owned interfaces filtered out. Rebuilt at the start of each
+	// collection cycle so all hostNetwork sandboxes share a single
+	// consistent view, avoiding redundant procfs reads and races from
+	// concurrent pod creation.
+	hostNetDev procfs.NetDev
+	ctx        context.Context
+	mutex      sync.Mutex
 }
 
 // parentServerIface is an interface for requesting information from the parent ContainerServer.
@@ -85,7 +92,10 @@ func (ss *StatsServer) update() {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
-	for _, sb := range ss.ListSandboxes() {
+	sandboxes := ss.ListSandboxes()
+	ss.snapshotHostNetDev(sandboxes)
+
+	for _, sb := range sandboxes {
 		ss.updateSandbox(sb)
 	}
 }
@@ -264,6 +274,10 @@ func (ss *StatsServer) MetricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
+	if ss.collectionPeriod == 0 && sb.HostNetwork() {
+		ss.snapshotHostNetDev(ss.ListSandboxes())
+	}
+
 	return ss.metricsForPodSandbox(sb)
 }
 
@@ -271,6 +285,10 @@ func (ss *StatsServer) MetricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics
 func (ss *StatsServer) MetricsForPodSandboxList(sboxes []*sandbox.Sandbox) []*SandboxMetrics {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
+	if ss.collectionPeriod == 0 {
+		ss.snapshotHostNetDev(ss.ListSandboxes())
+	}
 
 	metricsList := make([]*SandboxMetrics, 0, len(sboxes))
 
@@ -290,4 +308,20 @@ func (ss *StatsServer) RemoveMetricsForPodSandbox(sb *sandbox.Sandbox) {
 	defer ss.mutex.Unlock()
 
 	delete(ss.sboxMetrics, sb.ID())
+}
+
+// buildPodIfacesExclusionSet returns the set of host-side interface names
+// owned by non-hostNetwork sandboxes.
+func buildPodIfacesExclusionSet(sandboxes []*sandbox.Sandbox) map[string]struct{} {
+	podIfaces := make(map[string]struct{})
+
+	for _, sb := range sandboxes {
+		if !sb.HostNetwork() {
+			for _, iface := range sb.HostInterfaces() {
+				podIfaces[iface] = struct{}{}
+			}
+		}
+	}
+
+	return podIfaces
 }
