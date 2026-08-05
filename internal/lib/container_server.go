@@ -454,7 +454,9 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		sb.SetStopped(ctx, true)
 	}
 
-	selinux.ReserveLabel(processLabel)
+	if err := selinux.ReserveLabelV2(processLabel); err != nil && !errors.Is(err, selinux.ErrMCSAlreadyExists) {
+		return sb, err
+	}
 
 	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return sb, err

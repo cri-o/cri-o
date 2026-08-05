@@ -12,10 +12,9 @@ import (
 
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/internal/attributedstring"
 	nettypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/apparmor"
-	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/configfile"
 	"go.podman.io/storage/pkg/homedir"
 	"go.podman.io/storage/pkg/unshare"
 	"go.podman.io/storage/types"
@@ -117,14 +116,6 @@ var (
 		"CAP_SYS_CHROOT",
 	}
 
-	// Search these locations in which CNIPlugins can be installed.
-	DefaultCNIPluginDirs = []string{
-		"/usr/local/libexec/cni",
-		"/usr/libexec/cni",
-		"/usr/local/lib/cni",
-		"/usr/lib/cni",
-		"/opt/cni/bin",
-	}
 	DefaultNetavarkPluginDirs = []string{
 		"/usr/local/libexec/netavark",
 		"/usr/libexec/netavark",
@@ -185,9 +176,6 @@ const (
 	// DefaultSubnet is the subnet that will be used for the default
 	// network.
 	DefaultSubnet = "10.88.0.0/16"
-	// DefaultRootlessSignaturePolicyPath is the location within
-	// XDG_CONFIG_HOME of the rootless policy.json file.
-	DefaultRootlessSignaturePolicyPath = "containers/policy.json"
 	// DefaultShmSize is the default upper limit on the size of tmpfs mounts.
 	DefaultShmSize = "65536k"
 	// DefaultUserNSSize indicates the default number of UIDs allocated for user namespace within a container.
@@ -213,39 +201,27 @@ func defaultConfig() (*Config, error) {
 		return nil, err
 	}
 
-	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-	// NOTE: For now we want Windows to use system locations.
-	// GetRootlessUID == -1 on Windows, so exclude negative range
-	if unshare.GetRootlessUID() > 0 {
-		configHome, err := homedir.GetConfigHome()
-		if err != nil {
-			return nil, err
-		}
-		sigPath := filepath.Join(configHome, DefaultRootlessSignaturePolicyPath)
-		defaultEngineConfig.SignaturePolicyPath = sigPath
-		if err := fileutils.Exists(sigPath); err != nil {
-			if err := fileutils.Exists(DefaultSignaturePolicyPath); err == nil {
-				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-			}
-		}
+	machineConfig, err := defaultMachineConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	return &Config{
 		Containers: ContainersConfig{
-			Annotations:         attributedstring.Slice{},
+			Annotations:         configfile.Slice{},
 			ApparmorProfile:     DefaultApparmorProfile,
 			BaseHostsFile:       "",
 			CgroupNS:            "private",
 			Cgroups:             getDefaultCgroupsMode(),
-			DNSOptions:          attributedstring.Slice{},
-			DNSSearches:         attributedstring.Slice{},
-			DNSServers:          attributedstring.Slice{},
-			DefaultCapabilities: attributedstring.NewSlice(DefaultCapabilities),
-			DefaultSysctls:      attributedstring.Slice{},
-			Devices:             attributedstring.Slice{},
+			DNSOptions:          configfile.Slice{},
+			DNSSearches:         configfile.Slice{},
+			DNSServers:          configfile.Slice{},
+			DefaultCapabilities: configfile.NewSlice(DefaultCapabilities),
+			DefaultSysctls:      configfile.Slice{},
+			Devices:             configfile.Slice{},
 			EnableKeyring:       true,
-			EnableLabeling:      selinuxEnabled(),
-			Env:                 attributedstring.NewSlice(defaultContainerEnv),
+			EnableLabeling:      selinux.GetEnabled(),
+			Env:                 configfile.NewSlice(defaultContainerEnv),
 			EnvHost:             false,
 			HTTPProxy:           true,
 			IPCNS:               "shareable",
@@ -253,7 +229,7 @@ func defaultConfig() (*Config, error) {
 			InitPath:            "",
 			LogDriver:           defaultLogDriver(),
 			LogSizeMax:          DefaultLogSizeMax,
-			Mounts:              attributedstring.Slice{},
+			Mounts:              configfile.Slice{},
 			NetNS:               "private",
 			NoHosts:             false,
 			PidNS:               "private",
@@ -263,7 +239,7 @@ func defaultConfig() (*Config, error) {
 			UTSNS:               "private",
 			Umask:               "0022",
 			UserNSSize:          DefaultUserNSSize, // Deprecated
-			Volumes:             attributedstring.Slice{},
+			Volumes:             configfile.Slice{},
 		},
 		Network: NetworkConfig{
 			FirewallDriver:            "",
@@ -272,12 +248,12 @@ func defaultConfig() (*Config, error) {
 			DefaultSubnetPools:        DefaultSubnetPools,
 			DefaultRootlessNetworkCmd: "pasta",
 			DNSBindPort:               0,
-			CNIPluginDirs:             attributedstring.NewSlice(DefaultCNIPluginDirs),
-			NetavarkPluginDirs:        attributedstring.NewSlice(DefaultNetavarkPluginDirs),
+			NetavarkPluginDirs:        configfile.NewSlice(DefaultNetavarkPluginDirs),
+			RootlessPortForwarder:     RootlessPortForwarderRootlessport,
 		},
 		Engine:   *defaultEngineConfig,
 		Secrets:  defaultSecretConfig(),
-		Machine:  defaultMachineConfig(),
+		Machine:  machineConfig,
 		Farms:    defaultFarmConfig(),
 		Podmansh: defaultPodmanshConfig(),
 	}, nil
@@ -292,20 +268,33 @@ func defaultSecretConfig() SecretConfig {
 }
 
 // defaultMachineConfig returns the default machine configuration.
-func defaultMachineConfig() MachineConfig {
+func defaultMachineConfig() (MachineConfig, error) {
 	cpus := runtime.NumCPU() / 2
 	if cpus == 0 {
 		cpus = 1
 	}
+
+	volumes := getDefaultMachineVolumes()
+	path, err := configfile.UserConfigPath()
+	if err != nil {
+		return MachineConfig{}, err
+	}
+	// Mount the (host side) user config dir to the machine /etc/containers.
+	// It removes some confusion for machine users where they did not know
+	// if the config setting applies on the host or sever, with the mount host
+	// and server should see the same files and thus there is only one place to
+	// put it into.
+	volumes = append(volumes, path+":/etc/containers")
+
 	return MachineConfig{
 		CPUs:     uint64(cpus),
 		DiskSize: 100,
 		Image:    "docker://quay.io/podman/machine-os",
 		Memory:   2048,
 		User:     getDefaultMachineUser(),
-		Volumes:  attributedstring.NewSlice(getDefaultMachineVolumes()),
-		Rosetta:  true,
-	}
+		Volumes:  configfile.NewSlice(volumes),
+		Rosetta:  false,
+	}, nil
 }
 
 // defaultFarmConfig returns the default farms configuration.

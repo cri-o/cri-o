@@ -26,13 +26,13 @@ const (
 	DockerV2Schema2LayerMediaType = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 	// DockerV2SchemaLayerMediaTypeUncompressed is the mediaType used for uncompressed layers.
 	DockerV2SchemaLayerMediaTypeUncompressed = "application/vnd.docker.image.rootfs.diff.tar"
-	// DockerV2Schema2LayerMediaType is the MIME type used for schema 2 layers.
+	// DockerV2SchemaLayerMediaTypeZstd is the MIME type used for schema 2 layers.
 	DockerV2SchemaLayerMediaTypeZstd = "application/vnd.docker.image.rootfs.diff.tar.zstd"
 	// DockerV2ListMediaType MIME type represents Docker manifest schema 2 list
 	DockerV2ListMediaType = "application/vnd.docker.distribution.manifest.list.v2+json"
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for schema 2 foreign layers.
 	DockerV2Schema2ForeignLayerMediaType = "application/vnd.docker.image.rootfs.foreign.diff.tar"
-	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for gzipped schema 2 foreign layers.
+	// DockerV2Schema2ForeignLayerMediaTypeGzip is the MIME type used for gzipped schema 2 foreign layers.
 	DockerV2Schema2ForeignLayerMediaTypeGzip = "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
 )
 
@@ -107,9 +107,16 @@ func GuessMIMEType(manifest []byte) string {
 	return ""
 }
 
-// Digest returns the a digest of a docker manifest, with any necessary implied transformations like stripping v1s1 signatures.
+// Digest returns the digest of a docker manifest, with any necessary implied transformations like stripping v1s1 signatures.
 // This is publicly visible as c/image/manifest.Digest.
 func Digest(manifest []byte) (digest.Digest, error) {
+	return DigestWithAlgorithm(manifest, digest.Canonical)
+}
+
+// DigestWithAlgorithm returns the digest of a docker manifest using the specified algorithm,
+// with any necessary implied transformations like stripping v1s1 signatures.
+// This is publicly visible as c/image/manifest.DigestWithAlgorithm.
+func DigestWithAlgorithm(manifest []byte, algo digest.Algorithm) (digest.Digest, error) {
 	if GuessMIMEType(manifest) == DockerV2Schema1SignedMediaType {
 		sig, err := libtrust.ParsePrettySignature(manifest, "signatures")
 		if err != nil {
@@ -122,8 +129,7 @@ func Digest(manifest []byte) (digest.Digest, error) {
 			return "", err
 		}
 	}
-
-	return digest.FromBytes(manifest), nil
+	return algo.FromBytes(manifest), nil
 }
 
 // MatchesDigest returns true iff the manifest matches expectedDigest.

@@ -61,5 +61,10 @@ func defaultConfig() *config.Config {
 	Expect(c).NotTo(BeNil())
 	t.EnsureRuntimeDeps()
 
+	// Use a hermetic, empty registries configuration so tests do not depend on
+	// the host's /etc/containers/registries.conf, which may be in the legacy v1
+	// format that is no longer accepted.
+	c.SystemContext.SystemRegistriesConfPath = t.MustTempFile("registries")
+
 	return c
 }
