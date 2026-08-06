@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,11 +26,17 @@ const (
 	mPATCH
 	mPOST
 	mPUT
+	mQUERY
 	mTRACE
 )
 
 var mALL = mCONNECT | mDELETE | mGET | mHEAD |
-	mOPTIONS | mPATCH | mPOST | mPUT | mTRACE
+	mOPTIONS | mPATCH | mPOST | mPUT | mQUERY | mTRACE
+
+// methodQuery is the HTTP QUERY method (RFC 10008), a safe, idempotent
+// method that conveys a request body. It is defined here until net/http
+// provides an equivalent constant, at which point this is a 1-1 swap.
+const methodQuery = "QUERY"
 
 var methodMap = map[string]methodTyp{
 	http.MethodConnect: mCONNECT,
@@ -40,6 +47,7 @@ var methodMap = map[string]methodTyp{
 	http.MethodPatch:   mPATCH,
 	http.MethodPost:    mPOST,
 	http.MethodPut:     mPUT,
+	methodQuery:        mQUERY,
 	http.MethodTrace:   mTRACE,
 }
 
@@ -52,6 +60,7 @@ var reverseMethodMap = map[methodTyp]string{
 	mPATCH:   http.MethodPatch,
 	mPOST:    http.MethodPost,
 	mPUT:     http.MethodPut,
+	mQUERY:   methodQuery,
 	mTRACE:   http.MethodTrace,
 }
 
@@ -836,11 +845,15 @@ func Walk(r Routes, walkFn WalkFunc) error {
 
 func walk(r Routes, walkFn WalkFunc, parentRoute string, parentMw ...func(http.Handler) http.Handler) error {
 	for _, route := range r.Routes() {
-		mws := make([]func(http.Handler) http.Handler, len(parentMw))
-		copy(mws, parentMw)
-		mws = append(mws, r.Middlewares()...)
+		mws := slices.Concat(parentMw, r.Middlewares())
 
 		if route.SubRoutes != nil {
+			if handler, ok := route.Handlers["*"]; ok {
+				if chain, ok := handler.(*ChainHandler); ok {
+					mws = append(mws, chain.Middlewares...)
+				}
+			}
+
 			if err := walk(route.SubRoutes, walkFn, parentRoute+route.Pattern, mws...); err != nil {
 				return err
 			}
@@ -854,7 +867,7 @@ func walk(r Routes, walkFn WalkFunc, parentRoute string, parentMw ...func(http.H
 			}
 
 			fullRoute := parentRoute + route.Pattern
-			fullRoute = strings.Replace(fullRoute, "/*/", "/", -1)
+			fullRoute = strings.ReplaceAll(fullRoute, "/*/", "/")
 
 			if chain, ok := handler.(*ChainHandler); ok {
 				if err := walkFn(method, fullRoute, chain.Endpoint, append(mws, chain.Middlewares...)...); err != nil {
