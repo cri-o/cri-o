@@ -71,10 +71,11 @@ const (
 	RuntimeTypePod                = "pod"
 	defaultCtrStopTimeout         = 30 // seconds
 	defaultNamespacesDir          = "/var/run"
-	RuntimeTypeVMBinaryPattern    = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
-	tasksetBinary                 = "taskset"
-	MonitorExecCgroupDefault      = ""
-	MonitorExecCgroupContainer    = "container"
+	// runsc (gVisor) uses the v1 shim; all other VM runtimes are expected to use v2.
+	RuntimeTypeVMBinaryPattern = "containerd-shim-(runsc-v1|([a-zA-Z0-9\\-\\+])+-v2)"
+	tasksetBinary              = "taskset"
+	MonitorExecCgroupDefault   = ""
+	MonitorExecCgroupContainer = "container"
 )
 
 // When updating metrics, remember to update the document as well.
