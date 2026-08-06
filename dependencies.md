@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 06 Aug 2026 09:52:57 UTC for commit [2703224][0]._
+_Generated on Thu, 06 Aug 2026 19:41:23 UTC for commit [29d7059][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2703224a0269b1051b7e20e1d90682c523d4f3bd
+[0]: https://github.com/cri-o/cri-o/commit/29d705987069e73e5e34a6d20567b32f609c57bd
 
 ## Outdated Dependencies
 
@@ -20,7 +20,7 @@ _Generated on Thu, 06 Aug 2026 09:52:57 UTC for commit [2703224][0]._
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                | v5.3.1                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.3                                | v1.4.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                               | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260805213816-78e5f3e94df7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20260806124431-bf52ffaf69db | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                | v0.4.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.3                               | v2.32.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.40.0                               | v1.42.1                            | true   | true             |
@@ -52,7 +52,7 @@ _Generated on Thu, 06 Aug 2026 09:52:57 UTC for commit [2703224][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.2                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.18.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.175                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.176                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.15.0                            | false  | true             |
@@ -336,7 +336,7 @@ _Generated on Thu, 06 Aug 2026 09:52:57 UTC for commit [2703224][0]._
 | github.com/dimchansky/utfbom                                                | v1.1.1                                 |                                    | false  | true             |
 | github.com/disiqueira/gotree/v3                                             | v3.0.2                                 |                                    | false  | true             |
 | github.com/distribution/reference                                           | v0.6.0                                 |                                    | false  | true             |
-| github.com/docker/cli                                                       | v29.2.1+incompatible                   | v29.7.1+incompatible               | false  | true             |
+| github.com/docker/cli                                                       | v29.2.1+incompatible                   | v29.7.2+incompatible               | false  | true             |
 | github.com/docker/distribution                                              | v2.8.3+incompatible                    |                                    | true   | true             |
 | github.com/docker/docker                                                    | v28.5.2+incompatible                   |                                    | false  | true             |
 | github.com/docker/docker-credential-helpers                                 | v0.9.5                                 | v0.9.8                             | false  | true             |
@@ -470,7 +470,7 @@ _Generated on Thu, 06 Aug 2026 09:52:57 UTC for commit [2703224][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260805213816-78e5f3e94df7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260806124431-bf52ffaf69db | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
@@ -762,7 +762,7 @@ _Generated on Thu, 06 Aug 2026 09:52:57 UTC for commit [2703224][0]._
 | k8s.io/klog/v2                                                              | v2.140.0                               |                                    | true   | true             |
 | k8s.io/kube-openapi                                                         | v0.0.0-20260317180543-43fb72c5454a     | v0.0.0-20260721132016-d427ff9ee9ad | false  | true             |
 | k8s.io/kubelet                                                              | v0.36.3                                |                                    | true   | true             |
-| k8s.io/streaming                                                            | v0.37.0-alpha.0                        | v0.37.0-beta.0                     | false  | true             |
+| k8s.io/streaming                                                            | v0.37.0-alpha.0                        | v0.38.0-alpha.0                    | false  | true             |
 | k8s.io/utils                                                                | v0.0.0-20260210185600-b8788abfbbc2     | v0.0.0-20260707023825-cf1189d6abe3 | true   | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20250730193827-2d320260d730     |                                    | false  | true             |
 | sigs.k8s.io/knftables                                                       | v0.0.21                                | v0.0.22                            | true   | true             |
