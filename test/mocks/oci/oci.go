@@ -133,32 +133,32 @@ func (mr *MockRuntimeImplMockRecorder) DiskStats(arg0, arg1, arg2 any) *gomock.C
 }
 
 // ExecContainer mocks base method.
-func (m *MockRuntimeImpl) ExecContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 io.Reader, arg4, arg5 io.WriteCloser, arg6 bool, arg7 <-chan remotecommand.TerminalSize) error {
+func (m *MockRuntimeImpl) ExecContainer(ctx context.Context, c *oci.Container, cmd, env []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecContainer", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	ret := m.ctrl.Call(m, "ExecContainer", ctx, c, cmd, env, stdin, stdout, stderr, tty, resizeChan)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ExecContainer indicates an expected call of ExecContainer.
-func (mr *MockRuntimeImplMockRecorder) ExecContainer(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7 any) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) ExecContainer(ctx, c, cmd, env, stdin, stdout, stderr, tty, resizeChan any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecContainer), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecContainer), ctx, c, cmd, env, stdin, stdout, stderr, tty, resizeChan)
 }
 
 // ExecSyncContainer mocks base method.
-func (m *MockRuntimeImpl) ExecSyncContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 int64) (*v1.ExecSyncResponse, error) {
+func (m *MockRuntimeImpl) ExecSyncContainer(ctx context.Context, c *oci.Container, command, env []string, timeout int64) (*v1.ExecSyncResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecSyncContainer", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "ExecSyncContainer", ctx, c, command, env, timeout)
 	ret0, _ := ret[0].(*v1.ExecSyncResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExecSyncContainer indicates an expected call of ExecSyncContainer.
-func (mr *MockRuntimeImplMockRecorder) ExecSyncContainer(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) ExecSyncContainer(ctx, c, command, env, timeout any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecSyncContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecSyncContainer), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecSyncContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecSyncContainer), ctx, c, command, env, timeout)
 }
 
 // IsContainerAlive mocks base method.
@@ -261,18 +261,18 @@ func (mr *MockRuntimeImplMockRecorder) ServeAttachContainer(arg0, arg1, arg2, ar
 }
 
 // ServeExecContainer mocks base method.
-func (m *MockRuntimeImpl) ServeExecContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3, arg4, arg5, arg6 bool) (string, error) {
+func (m *MockRuntimeImpl) ServeExecContainer(ctx context.Context, c *oci.Container, cmd, env []string, tty, stdin, stdout, stderr bool) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ServeExecContainer", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret := m.ctrl.Call(m, "ServeExecContainer", ctx, c, cmd, env, tty, stdin, stdout, stderr)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ServeExecContainer indicates an expected call of ServeExecContainer.
-func (mr *MockRuntimeImplMockRecorder) ServeExecContainer(arg0, arg1, arg2, arg3, arg4, arg5, arg6 any) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) ServeExecContainer(ctx, c, cmd, env, tty, stdin, stdout, stderr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServeExecContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ServeExecContainer), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServeExecContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ServeExecContainer), ctx, c, cmd, env, tty, stdin, stdout, stderr)
 }
 
 // StartContainer mocks base method.
