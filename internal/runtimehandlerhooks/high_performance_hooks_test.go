@@ -16,6 +16,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.uber.org/mock/gomock"
+	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/utils/cpuset"
 
@@ -363,7 +364,7 @@ var _ = Describe("high_performance_hooks", func() {
 			if !enabled {
 				spec := c.Spec()
 
-				housekeepingSiblings, err = h.getHousekeepingCPUs(&spec, sb.Annotations())
+				housekeepingSiblings, err = h.getHousekeepingCPUs(&spec, sb.Annotations(), c.CRIContainer().GetMetadata().GetName())
 				if expectFailure {
 					Expect(err).To(HaveOccurred())
 
@@ -1842,6 +1843,150 @@ var _ = Describe("high_performance_hooks", func() {
 				wg.Wait()
 				verifySetIRQLoadBalancing(flags, bannedCPUFlags)
 			})
+		})
+	})
+
+	Describe("getAnnotationValueForContainer", func() {
+		It("should return pod-level value when no container-specific annotation exists", func() {
+			annotations := map[string]string{
+				crioannotations.CPULoadBalancing: "disable",
+			}
+			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container1")
+			Expect(ok).To(BeTrue())
+			Expect(v).To(Equal("disable"))
+		})
+
+		It("should return container-specific value when present", func() {
+			annotations := map[string]string{
+				crioannotations.CPULoadBalancing:                 "disable",
+				crioannotations.CPULoadBalancing + "/container1": "enable",
+			}
+			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container1")
+			Expect(ok).To(BeTrue())
+			Expect(v).To(Equal("enable"))
+		})
+
+		It("should fall back to pod-level for a different container name", func() {
+			annotations := map[string]string{
+				crioannotations.CPULoadBalancing:                 "disable",
+				crioannotations.CPULoadBalancing + "/container1": "enable",
+			}
+			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container2")
+			Expect(ok).To(BeTrue())
+			Expect(v).To(Equal("disable"))
+		})
+
+		It("should return not found when no annotation exists", func() {
+			annotations := map[string]string{}
+			_, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container1")
+			Expect(ok).To(BeFalse())
+		})
+
+		It("should return container-specific value even when no pod-level exists", func() {
+			annotations := map[string]string{
+				crioannotations.CPULoadBalancing + "/container1": "disable",
+			}
+			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container1")
+			Expect(ok).To(BeTrue())
+			Expect(v).To(Equal("disable"))
+		})
+
+		It("should fall back to pod-level when container name is empty", func() {
+			annotations := map[string]string{
+				crioannotations.CPULoadBalancing: "disable",
+			}
+			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "")
+			Expect(ok).To(BeTrue())
+			Expect(v).To(Equal("disable"))
+		})
+	})
+
+	Describe("per-container targeting for should* decision functions", func() {
+		ctx := context.TODO()
+
+		type decisionFunc func(context.Context, fields.Set, string) bool
+
+		testPerContainerTargeting := func(annotationKey string, fn decisionFunc) {
+			It("should use pod-level annotation for all containers", func() {
+				annotations := map[string]string{
+					annotationKey: "disable",
+				}
+				Expect(fn(ctx, annotations, "container1")).To(BeTrue())
+				Expect(fn(ctx, annotations, "container2")).To(BeTrue())
+			})
+
+			It("should use container-specific annotation when present", func() {
+				annotations := map[string]string{
+					annotationKey + "/container1": "disable",
+				}
+				Expect(fn(ctx, annotations, "container1")).To(BeTrue())
+				Expect(fn(ctx, annotations, "container2")).To(BeFalse())
+			})
+
+			It("should let container-specific override pod-level", func() {
+				annotations := map[string]string{
+					annotationKey:                 "disable",
+					annotationKey + "/container1": "enable",
+				}
+				Expect(fn(ctx, annotations, "container1")).To(BeFalse())
+				Expect(fn(ctx, annotations, "container2")).To(BeTrue())
+			})
+		}
+
+		Context("shouldCPULoadBalancingBeDisabled", func() {
+			testPerContainerTargeting(crioannotations.CPULoadBalancing, shouldCPULoadBalancingBeDisabled)
+		})
+
+		Context("shouldCPUQuotaBeDisabled", func() {
+			testPerContainerTargeting(crioannotations.CPUQuota, shouldCPUQuotaBeDisabled)
+		})
+
+		Context("shouldIRQLoadBalancingBeDisabled", func() {
+			testPerContainerTargeting(crioannotations.IRQLoadBalancing, shouldIRQLoadBalancingBeDisabled)
+
+			It("should support housekeeping value per container", func() {
+				annotations := map[string]string{
+					crioannotations.IRQLoadBalancing + "/container1": "housekeeping",
+				}
+				Expect(shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container1")).To(BeTrue())
+				Expect(shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container2")).To(BeFalse())
+			})
+
+			It("should let container-specific housekeeping override pod-level enable", func() {
+				annotations := map[string]string{
+					crioannotations.IRQLoadBalancing:                 "enable",
+					crioannotations.IRQLoadBalancing + "/container1": "housekeeping",
+				}
+				Expect(shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container1")).To(BeTrue())
+				Expect(shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container2")).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("isRequestedHousekeepingCPUs with per-container targeting", func() {
+		It("should use pod-level annotation for all containers", func() {
+			annotations := map[string]string{
+				crioannotations.IRQLoadBalancing: "housekeeping",
+			}
+			Expect(isRequestedHousekeepingCPUs(annotations, "container1")).To(BeTrue())
+			Expect(isRequestedHousekeepingCPUs(annotations, "container2")).To(BeTrue())
+		})
+
+		It("should use container-specific annotation when present", func() {
+			annotations := map[string]string{
+				crioannotations.IRQLoadBalancing + "/container1": "housekeeping",
+			}
+			Expect(isRequestedHousekeepingCPUs(annotations, "container1")).To(BeTrue())
+			Expect(isRequestedHousekeepingCPUs(annotations, "container2")).To(BeFalse())
+		})
+
+		It("should let container-specific override pod-level", func() {
+			annotations := map[string]string{
+				crioannotations.IRQLoadBalancing:                 "housekeeping",
+				crioannotations.IRQLoadBalancing + "/container1": "disable",
+			}
+			Expect(isRequestedHousekeepingCPUs(annotations, "container1")).To(BeFalse())
+			Expect(isRequestedHousekeepingCPUs(annotations, "container2")).To(BeTrue())
 		})
 	})
 })
