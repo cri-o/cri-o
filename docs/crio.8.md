@@ -537,6 +537,31 @@ it later with **--config**. Global options will modify the output.
 
 **--default**: Output the default configuration (without taking into account any configuration options).
 
+## dedup
+
+Deduplicate similar files in image layers using filesystem reflinks.
+
+    Deduplication uses copy-on-write (reflink) to share identical blocks across
+    image layers, reducing physical disk usage. Unlike hard links, reflinks allow
+    independent modification of files. Requires filesystem support (XFS with
+    reflink=1, Btrfs, etc).
+
+    Deduplication finds files with identical content across image layers and uses
+    the FIEMAP ioctl to deduplicate them via reflinks. The process uses SHA256
+    hashing to identify duplicate files.
+
+    This command should be run while CRI-O is stopped to avoid conflicts with
+    running containers.
+
+    When deduplication occurs: Deduplication happens after images are pulled
+    and stored. Space savings occur when multiple images share common layers or
+    when duplicate files exist across different image layers. Storage capacity
+    must still accommodate initial image pulls before deduplication runs.
+
+**--physical-disk-usage, -p**: Measure and report actual physical disk usage before and after deduplication using FIEMAP ioctl.
+    This provides reflink-aware reporting that shows true space savings by accounting for shared extents.
+    Linux only.
+
 ## man
 
 Generate the man page documentation.

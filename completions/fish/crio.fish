@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i check complete completion help h config man markdown md status config c containers container cs s info i goroutines g heap hp version wipe help h
+        if contains -- $i check complete completion help h config dedup man markdown md status config c containers container cs s info i goroutines g heap hp version wipe help h
             return 1
         end
     end
@@ -225,6 +225,28 @@ complete -r -c crio -n '__fish_crio_no_subcommand' -a 'config' -d 'Outputs a com
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
 complete -c crio -n '__fish_seen_subcommand_from config' -f -l default -d 'Output the default configuration (without taking into account any configuration options).'
+complete -c crio -n '__fish_seen_subcommand_from dedup' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_crio_no_subcommand' -a 'dedup' -d 'Deduplicate similar files in image layers using filesystem reflinks.
+
+    Deduplication uses copy-on-write (reflink) to share identical blocks across
+    image layers, reducing physical disk usage. Unlike hard links, reflinks allow
+    independent modification of files. Requires filesystem support (XFS with
+    reflink=1, Btrfs, etc).
+
+    Deduplication finds files with identical content across image layers and uses
+    the FIEMAP ioctl to deduplicate them via reflinks. The process uses SHA256
+    hashing to identify duplicate files.
+
+    This command should be run while CRI-O is stopped to avoid conflicts with
+    running containers.
+
+    When deduplication occurs: Deduplication happens after images are pulled
+    and stored. Space savings occur when multiple images share common layers or
+    when duplicate files exist across different image layers. Storage capacity
+    must still accommodate initial image pulls before deduplication runs.'
+complete -c crio -n '__fish_seen_subcommand_from dedup' -f -l physical-disk-usage -s p -d 'Measure and report actual physical disk usage before and after deduplication using FIEMAP ioctl.
+    This provides reflink-aware reporting that shows true space savings by accounting for shared extents.
+    Linux only.'
 complete -c crio -n '__fish_seen_subcommand_from man' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'man' -d 'Generate the man page documentation.'
 complete -c crio -n '__fish_seen_subcommand_from markdown md' -f -l help -s h -d 'show help'
