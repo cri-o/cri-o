@@ -24,7 +24,7 @@ capnproto.org/go/capnp/v3/util/deferred
 capnproto.org/go/capnp/v3/util/maybe
 capnproto.org/go/capnp/v3/util/rc
 capnproto.org/go/capnp/v3/util/sync/mutex
-# cyphar.com/go-pathrs v0.2.1
+# cyphar.com/go-pathrs v0.2.4
 ## explicit; go 1.18
 cyphar.com/go-pathrs
 cyphar.com/go-pathrs/internal/fdutils
@@ -621,7 +621,7 @@ github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types
 # github.com/kevinburke/ssh_config v1.2.0
 ## explicit
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.18.3
+# github.com/klauspost/compress v1.18.4
 ## explicit; go 1.23
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -1163,8 +1163,8 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.61.1-0.20251212224252-b0f86df5a665
-## explicit; go 1.24.0
+# go.podman.io/storage v1.62.1-0.20260323170939-f7aa90bb7162
+## explicit; go 1.25.0
 go.podman.io/storage
 go.podman.io/storage/drivers
 go.podman.io/storage/drivers/btrfs
@@ -1176,6 +1176,7 @@ go.podman.io/storage/drivers/register
 go.podman.io/storage/drivers/vfs
 go.podman.io/storage/drivers/zfs
 go.podman.io/storage/internal/dedup
+go.podman.io/storage/internal/driver
 go.podman.io/storage/internal/rawfilelock
 go.podman.io/storage/internal/staging_lockfile
 go.podman.io/storage/internal/tempdir
@@ -1188,6 +1189,7 @@ go.podman.io/storage/pkg/chunked/internal/minimal
 go.podman.io/storage/pkg/chunked/internal/path
 go.podman.io/storage/pkg/chunked/toc
 go.podman.io/storage/pkg/config
+go.podman.io/storage/pkg/configfile
 go.podman.io/storage/pkg/directory
 go.podman.io/storage/pkg/fileutils
 go.podman.io/storage/pkg/fsutils
@@ -1275,12 +1277,12 @@ golang.org/x/net/websocket
 ## explicit; go 1.24.0
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.19.0
-## explicit; go 1.24.0
+# golang.org/x/sync v0.20.0
+## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.41.0
-## explicit; go 1.24.0
+# golang.org/x/sys v0.42.0
+## explicit; go 1.25.0
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/plan9
