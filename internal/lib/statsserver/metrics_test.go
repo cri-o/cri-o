@@ -105,20 +105,20 @@ func TestContainerMemoryMetricValues(t *testing.T) {
 	var want map[string]uint64
 	if node.CgroupIsV2() {
 		want = map[string]uint64{
-			"container_memory_total_active_anon_bytes":   memStats.Stats["active_anon"],
-			"container_memory_total_inactive_anon_bytes": memStats.Stats["inactive_anon"],
-			"container_memory_anon_hugepages_bytes":      memStats.Stats["anon_thp"],
-			"container_memory_shmem_hugepages_bytes":     memStats.Stats["shmem_thp"],
-			"container_memory_file_hugepages_bytes":      memStats.Stats["file_thp"],
+			"container_memory_active_anon_bytes":   memStats.Stats["active_anon"],
+			"container_memory_inactive_anon_bytes": memStats.Stats["inactive_anon"],
+			"container_memory_anon_thp_bytes":      memStats.Stats["anon_thp"],
+			"container_memory_shmem_thp_bytes":     memStats.Stats["shmem_thp"],
+			"container_memory_file_thp_bytes":      memStats.Stats["file_thp"],
 		}
 	} else {
 		// cgroup v1 has no transparent hugepage accounting.
 		want = map[string]uint64{
-			"container_memory_total_active_anon_bytes":   memStats.Stats["total_active_anon"],
-			"container_memory_total_inactive_anon_bytes": memStats.Stats["total_inactive_anon"],
-			"container_memory_anon_hugepages_bytes":      0,
-			"container_memory_shmem_hugepages_bytes":     0,
-			"container_memory_file_hugepages_bytes":      0,
+			"container_memory_active_anon_bytes":   memStats.Stats["total_active_anon"],
+			"container_memory_inactive_anon_bytes": memStats.Stats["total_inactive_anon"],
+			"container_memory_anon_thp_bytes":      0,
+			"container_memory_shmem_thp_bytes":     0,
+			"container_memory_file_thp_bytes":      0,
 		}
 	}
 

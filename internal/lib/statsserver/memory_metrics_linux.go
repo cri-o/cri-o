@@ -81,31 +81,31 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 			},
 		},
 		{
-			desc: containerMemoryTotalActiveAnon,
+			desc: containerMemoryActiveAnonBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{value: activeAnon, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: containerMemoryTotalInactiveAnon,
+			desc: containerMemoryInactiveAnonBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{value: inactiveAnon, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: containerMemoryAnonHugepages,
+			desc: containerMemoryAnonTHPBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{value: anonTHP, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: containerMemoryShmemHugepages,
+			desc: containerMemoryShmemTHPBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{value: shmemTHP, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: containerMemoryFileHugepages,
+			desc: containerMemoryFileTHPBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{value: fileTHP, metricType: types.MetricType_GAUGE}}
 			},

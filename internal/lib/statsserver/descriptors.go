@@ -151,29 +151,29 @@ var (
 		Help:      "Current working set in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
-	containerMemoryTotalActiveAnon = &types.MetricDescriptor{
-		Name:      "container_memory_total_active_anon_bytes",
-		Help:      "Current total active anonymous in bytes.",
+	containerMemoryActiveAnonBytes = &types.MetricDescriptor{
+		Name:      "container_memory_active_anon_bytes",
+		Help:      "Current active anonymous memory in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
-	containerMemoryTotalInactiveAnon = &types.MetricDescriptor{
-		Name:      "container_memory_total_inactive_anon_bytes",
-		Help:      "Current total inactive anonymous in bytes.",
+	containerMemoryInactiveAnonBytes = &types.MetricDescriptor{
+		Name:      "container_memory_inactive_anon_bytes",
+		Help:      "Current inactive anonymous memory in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
-	containerMemoryAnonHugepages = &types.MetricDescriptor{
-		Name:      "container_memory_anon_hugepages_bytes",
-		Help:      "Amount of anonymous memory backed by transparent hugepages in bytes. Requires transparent hugepages to be enabled, which is the default on most distributions. Always zero on cgroup v1.",
+	containerMemoryAnonTHPBytes = &types.MetricDescriptor{
+		Name:      "container_memory_anon_thp_bytes",
+		Help:      "Amount of anonymous memory backed by transparent hugepages (THP) in bytes. This is not hugetlb memory, which is reported by the container_hugetlb_* metrics. Requires anonymous THP to be enabled, which is the default on most distributions. Always zero on cgroup v1.",
 		LabelKeys: baseLabelKeys,
 	}
-	containerMemoryShmemHugepages = &types.MetricDescriptor{
-		Name:      "container_memory_shmem_hugepages_bytes",
-		Help:      "Amount of shared memory backed by transparent hugepages in bytes. Requires kernel 6.8 or later with shmem transparent hugepages enabled, which is not the default on most distributions. Always zero on cgroup v1.",
+	containerMemoryShmemTHPBytes = &types.MetricDescriptor{
+		Name:      "container_memory_shmem_thp_bytes",
+		Help:      "Amount of shared memory backed by transparent hugepages (THP) in bytes. This is not hugetlb memory, which is reported by the container_hugetlb_* metrics. Requires kernel 6.8 or later with shmem THP enabled, which is not the default on most distributions. Always zero on cgroup v1.",
 		LabelKeys: baseLabelKeys,
 	}
-	containerMemoryFileHugepages = &types.MetricDescriptor{
-		Name:      "container_memory_file_hugepages_bytes",
-		Help:      "Amount of file-backed memory backed by transparent hugepages in bytes. Requires file transparent hugepages to be enabled, which is not the default on most distributions. Always zero on cgroup v1.",
+	containerMemoryFileTHPBytes = &types.MetricDescriptor{
+		Name:      "container_memory_file_thp_bytes",
+		Help:      "Amount of file-backed memory backed by transparent hugepages (THP) in bytes. This is not hugetlb memory, which is reported by the container_hugetlb_* metrics. Requires file THP to be enabled, which is not the default on most distributions. Always zero on cgroup v1.",
 		LabelKeys: baseLabelKeys,
 	}
 	containerMemoryFailuresTotal = &types.MetricDescriptor{
