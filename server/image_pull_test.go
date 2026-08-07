@@ -58,6 +58,45 @@ var _ = t.Describe("ImagePull", func() {
 			Expect(response.GetImageRef()).To(Equal(idHex))
 		})
 
+		It("should succeed with pull and dedup enabled", func() {
+			// Given
+			const idHex = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(idHex)
+			Expect(err).ToNot(HaveOccurred())
+
+			pulledRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+				"docker.io/library/image@sha256:340d9b015b194dc6e2a13938944e0d016e57b9679963fdeb9ce021daac430221")
+			Expect(err).ToNot(HaveOccurred())
+
+			// Enable layer dedup
+			sut.Config().EnableLayerDedup = true
+
+			gomock.InOrder(
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
+				imageServerMock.EXPECT().PullImage(gomock.Any(), imageCandidate, gomock.Any()).
+					Return(pulledRef, nil),
+				imageServerMock.EXPECT().ImageStatusByName(gomock.Any(), pulledRef).
+					Return(&storage.ImageResult{ID: imageID}, nil),
+				// Dedup will be called - GetStore returns a mock but dedup will fail gracefully
+				imageServerMock.EXPECT().GetStore().Return(nil),
+			)
+
+			// When
+			response, err := sut.PullImage(context.Background(),
+				&types.PullImageRequest{Image: &types.ImageSpec{
+					Image: "image",
+				}})
+
+			// Then
+			// Should succeed even if dedup fails (it logs warning but doesn't fail the pull)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.GetImageRef()).To(Equal(idHex))
+		})
+
 		It("should fail credential decode errors", func() {
 			// Given
 			// When

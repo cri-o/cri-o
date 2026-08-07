@@ -67,6 +67,8 @@ type Metrics struct {
 	config                                    *libconfig.MetricsConfig
 	apiConfig                                 *libconfig.APIConfig
 	metricImagePullsLayerSize                 prometheus.Histogram
+	metricImageLayerDedupDurationSeconds      prometheus.Histogram
+	metricImageLayerDedupBytesSaved           prometheus.Histogram
 	metricContainersEventsDropped             prometheus.Counter
 	metricContainersOOMTotal                  prometheus.Counter
 	metricProcessesDefunct                    prometheus.GaugeFunc
@@ -109,6 +111,31 @@ func New(config *libconfig.MetricsConfig, apiConfig *libconfig.APIConfig) *Metri
 					400 * 1000 * 1000,       // 400 MiB
 					500 * 1000 * 1000,       // 500 MiB
 					1000 * 1000 * 1000,      //   1 GiB
+					10 * 1000 * 1000 * 1000, //  10 GiB
+				},
+			},
+		),
+		metricImageLayerDedupDurationSeconds: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageLayerDedupDurationSeconds.String(),
+				Help:      "Duration in seconds of CRI-O image layer deduplication operations",
+				Buckets:   prometheus.DefBuckets, // 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10
+			},
+		),
+		metricImageLayerDedupBytesSaved: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageLayerDedupBytesSaved.String(),
+				Help:      "Bytes saved by CRI-O image layer deduplication operations",
+				Buckets: []float64{ // in bytes
+					1000 * 1000,             //   1 MiB
+					10 * 1000 * 1000,        //  10 MiB
+					50 * 1000 * 1000,        //  50 MiB
+					100 * 1000 * 1000,       // 100 MiB
+					500 * 1000 * 1000,       // 500 MiB
+					1000 * 1000 * 1000,      //   1 GiB
+					5 * 1000 * 1000 * 1000,  //   5 GiB
 					10 * 1000 * 1000 * 1000, //  10 GiB
 				},
 			},
@@ -391,6 +418,14 @@ func (m *Metrics) MetricImagePullsLayerSizeObserve(size int64) {
 	m.metricImagePullsLayerSize.Observe(float64(size))
 }
 
+func (m *Metrics) MetricImageLayerDedupDurationObserve(duration time.Duration) {
+	m.metricImageLayerDedupDurationSeconds.Observe(duration.Seconds())
+}
+
+func (m *Metrics) MetricImageLayerDedupBytesSavedObserve(bytes int64) {
+	m.metricImageLayerDedupBytesSaved.Observe(float64(bytes))
+}
+
 func (m *Metrics) MetricImagePullsSkippedBytesAdd(add float64) {
 	c, err := m.metricImagePullsSkippedBytesTotal.GetMetricWithLabelValues(GetSizeBucket(add))
 	if err != nil {
@@ -485,6 +520,8 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ImagePullsBytesTotal:                m.metricImagePullsBytesTotal,
 		collectors.ImagePullsFailureTotal:              m.metricImagePullsFailureTotal,
 		collectors.ImagePullsLayerSize:                 m.metricImagePullsLayerSize,
+		collectors.ImageLayerDedupDurationSeconds:      m.metricImageLayerDedupDurationSeconds,
+		collectors.ImageLayerDedupBytesSaved:           m.metricImageLayerDedupBytesSaved,
 		collectors.ImagePullsSkippedBytesTotal:         m.metricImagePullsSkippedBytesTotal,
 		collectors.ImagePullsSuccessTotal:              m.metricImagePullsSuccessTotal,
 		collectors.OperationsErrorsTotal:               m.metricOperationsErrorsTotal,

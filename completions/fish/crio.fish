@@ -57,6 +57,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l device-ownership-from-secu
 complete -c crio -n '__fish_crio_no_subcommand' -f -l disable-hostport-mapping -d 'If true, CRI-O would disable the hostport mapping.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l drop-infra-ctr -d 'Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-criu-support -d 'Enable CRIU integration, requires that the criu binary is available in $PATH.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-layer-dedup -d 'Enable automatic layer deduplication after image pulls using reflinks'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-metrics -d 'Enable metrics endpoint for the server.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-nri -d 'Enable NRI (Node Resource Interface) support.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-pod-events -d 'If true, CRI-O starts sending the container events to the kubelet'
