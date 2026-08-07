@@ -103,8 +103,6 @@ func makeOCIConfigurationRootless(g *generate.Generator) {
 		}
 		g.AddMount(sysMnt)
 	}
-
-	g.SetLinuxCgroupsPath("")
 }
 
 // getAvailableV2Controllers returns the entries in /sys/fs/cgroup/<SELF>/cgroup.controllers.
