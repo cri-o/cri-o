@@ -30,6 +30,8 @@ curl_retry() {
 prepare_system() {
     sudo systemctl stop docker || true
     sudo ufw disable || true
+    sudo systemctl stop firewalld || true
+    sudo iptables -P FORWARD ACCEPT
 
     # enable necessary kernel modules
     sudo modprobe br_netfilter
@@ -65,12 +67,30 @@ install_from_github_org_repo() {
     sudo rm -rf "$DIR"
 }
 
+install_parallel() {
+    if command -v parallel &>/dev/null; then
+        return
+    fi
+    TARBALL=parallel-20190322.tar.bz2
+    curl -sSfL --retry 5 --retry-delay 3 "https://ftpmirror.gnu.org/gnu/parallel/$TARBALL" -o "/tmp/$TARBALL"
+    tar xjf "/tmp/$TARBALL" -C /tmp
+    pushd /tmp/parallel-20190322
+    ./configure
+    make
+    sudo cp ./src/{env_parallel*,niceload,parallel,parcat,parset,sql} /usr/bin
+    sudo ln -sf /usr/bin/parallel /usr/bin/sem
+    popd
+    rm -rf /tmp/parallel*
+}
+
 install_bats() {
+    install_parallel
+
     install_from_github_org_repo \
         bats-core \
         bats-core \
         "${VERSIONS["bats"]}" \
-        sudo ./install.sh /usr/local
+        sudo ./install.sh /usr
 
     mkdir -p ~/.parallel
     touch ~/.parallel/will-cite
@@ -135,6 +155,7 @@ install_runc() {
 install_ginkgo() {
     GOPATH="$(go env GOPATH)"
     for i in $GOPATH "$(go env GOCACHE)"; do
+        mkdir -p "$i"
         sudo chown -R "$(id -u):$(id -g)" "$i"
     done
     go install github.com/onsi/ginkgo/v2/ginkgo@latest
@@ -143,7 +164,7 @@ install_ginkgo() {
 }
 
 install_files() {
-    REPO_ROOT=$(git rev-parse --show-toplevel)
+    REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || realpath "$(dirname "${BASH_SOURCE[0]}")/..")
     sudo mkdir -p /etc/containers/registries.d
     sudo cp "$REPO_ROOT"/test/policy.json /etc/containers
     sudo cp "$REPO_ROOT"/test/redhat_sigstore.yaml \
@@ -152,6 +173,8 @@ install_files() {
     sudo cp "$REPO_ROOT"/test/registries.conf /etc/containers/registries.conf
     sudo rm -rf /usr/share/containers/containers.conf
     sudo rm -rf /etc/containers/storage.conf
+    # allow containers to access test data when SELinux is enforcing
+    sudo chcon -Rt container_file_t "$REPO_ROOT"/test/testdata/ || true
 }
 
 install_buildah() {
