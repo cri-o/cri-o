@@ -16,8 +16,9 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 	workingSetBytes, rssBytes, pageFaults, majorPageFaults, _ := computeMemoryMetricValues(mem)
 	swapUsage := computeSwapUsageForMetrics(mem)
 	fileMapped := computeFileMapped(mem)
-	activeAnon, inactiveAnon := computeAnonMemory(mem)
-	anonTHP, shmemTHP, fileTHP := computeTransparentHugepages(mem)
+	isCgroupV2 := node.CgroupIsV2()
+	activeAnon, inactiveAnon := computeAnonMemory(mem, isCgroupV2)
+	anonTHP, shmemTHP, fileTHP := computeTransparentHugepages(mem, isCgroupV2)
 
 	memoryMetrics := []*containerMetric{
 		{
@@ -205,9 +206,10 @@ func computeFileMapped(memStats *cgroups.MemoryStats) uint64 {
 
 // computeAnonMemory computes the active and inactive anonymous memory values.
 // Both cgroup versions report these, but v1 prefixes the hierarchical totals
-// with "total_".
-func computeAnonMemory(memStats *cgroups.MemoryStats) (activeAnon, inactiveAnon uint64) {
-	if node.CgroupIsV2() {
+// with "total_". The cgroup version is passed in so both branches are
+// exercisable regardless of the host.
+func computeAnonMemory(memStats *cgroups.MemoryStats, isCgroupV2 bool) (activeAnon, inactiveAnon uint64) {
+	if isCgroupV2 {
 		return memStats.Stats["active_anon"], memStats.Stats["inactive_anon"]
 	}
 
@@ -217,9 +219,10 @@ func computeAnonMemory(memStats *cgroups.MemoryStats) (activeAnon, inactiveAnon 
 // computeTransparentHugepages computes the amount of memory backed by
 // transparent hugepages, split by the kind of memory backing it. These keys
 // only exist under cgroup v2; cgroup v1 has no equivalent, so all three are
-// reported as zero there.
-func computeTransparentHugepages(memStats *cgroups.MemoryStats) (anonTHP, shmemTHP, fileTHP uint64) {
-	if !node.CgroupIsV2() {
+// reported as zero there. The cgroup version is passed in so both branches are
+// exercisable regardless of the host.
+func computeTransparentHugepages(memStats *cgroups.MemoryStats, isCgroupV2 bool) (anonTHP, shmemTHP, fileTHP uint64) {
+	if !isCgroupV2 {
 		return 0, 0, 0
 	}
 
