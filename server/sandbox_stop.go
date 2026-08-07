@@ -3,8 +3,9 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -26,7 +27,7 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 		}
 
 		if errors.Is(err, errSandboxNotCreated) {
-			return nil, fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", req.GetPodSandboxId())
+			return nil, status.Errorf(codes.NotFound, "StopPodSandbox failed as the sandbox is not created: %s", req.GetPodSandboxId())
 		}
 
 		// If the sandbox isn't found we just return an empty response to adhere
