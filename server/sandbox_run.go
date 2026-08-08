@@ -8,6 +8,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/hostport"
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 )
 
@@ -108,16 +109,21 @@ func getHostname(id, hostname string, hostNetwork bool) (string, error) {
 	return hostname, nil
 }
 
-func (s *Server) setPodSandboxMountLabel(ctx context.Context, id, mountLabel string) error {
+func (s *Server) setPodSandboxMountLabel(ctx context.Context, sbox libsandbox.Builder, mountLabel string) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
-	storageMetadata, err := s.ContainerServer.StorageRuntimeServer().GetContainerMetadata(id)
+	runtimeSvc, err := s.StorageRuntimeServer(sbox)
+	if err != nil {
+		return err
+	}
+
+	storageMetadata, err := runtimeSvc.GetContainerMetadata(sbox.ID())
 	if err != nil {
 		return err
 	}
 
 	storageMetadata.SetMountLabel(mountLabel)
 
-	return s.ContainerServer.StorageRuntimeServer().SetContainerMetadata(id, &storageMetadata)
+	return runtimeSvc.SetContainerMetadata(sbox.ID(), &storageMetadata)
 }
