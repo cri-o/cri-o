@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/go-git/go-billy/v5"
@@ -458,10 +457,6 @@ func (w *Worktree) resetWorktree(t *object.Tree, files []string) error {
 
 	filesMap := buildFilePathMap(files)
 	for _, ch := range changes {
-		if err := w.validChange(ch); err != nil {
-			return err
-		}
-
 		if len(files) > 0 {
 			file := ""
 			if ch.From != nil {
@@ -487,108 +482,6 @@ func (w *Worktree) resetWorktree(t *object.Tree, files []string) error {
 
 	b.Write(idx)
 	return w.r.Storer.SetIndex(idx)
-}
-
-// worktreeDeny is a list of paths that are not allowed
-// to be used when resetting the worktree.
-var worktreeDeny = map[string]struct{}{
-	// .git
-	GitDirName: {},
-
-	// For other historical reasons, file names that do not conform to the 8.3
-	// format (up to eight characters for the basename, three for the file
-	// extension, certain characters not allowed such as `+`, etc) are associated
-	// with a so-called "short name", at least on the `C:` drive by default.
-	// Which means that `git~1/` is a valid way to refer to `.git/`.
-	"git~1": {},
-}
-
-// validPath checks whether paths are valid.
-// The rules around invalid paths could differ from upstream based on how
-// filesystems are managed within go-git, but they are largely the same.
-//
-// For upstream rules:
-// https://github.com/git/git/blob/564d0252ca632e0264ed670534a51d18a689ef5d/read-cache.c#L946
-// https://github.com/git/git/blob/564d0252ca632e0264ed670534a51d18a689ef5d/path.c#L1383
-func validPath(paths ...string) error {
-	for _, p := range paths {
-		parts := strings.FieldsFunc(p, func(r rune) bool { return (r == '\\' || r == '/') })
-		if len(parts) == 0 {
-			return fmt.Errorf("invalid path: %q", p)
-		}
-
-		if _, denied := worktreeDeny[strings.ToLower(parts[0])]; denied {
-			return fmt.Errorf("invalid path prefix: %q", p)
-		}
-
-		if runtime.GOOS == "windows" {
-			// Volume names are not supported, in both formats: \\ and <DRIVE_LETTER>:.
-			if vol := filepath.VolumeName(p); vol != "" {
-				return fmt.Errorf("invalid path: %q", p)
-			}
-
-			if !windowsValidPath(parts[0]) {
-				return fmt.Errorf("invalid path: %q", p)
-			}
-		}
-
-		for _, part := range parts {
-			if part == ".." {
-				return fmt.Errorf("invalid path %q: cannot use '..'", p)
-			}
-		}
-	}
-	return nil
-}
-
-// windowsPathReplacer defines the chars that need to be replaced
-// as part of windowsValidPath.
-var windowsPathReplacer *strings.Replacer
-
-func init() {
-	windowsPathReplacer = strings.NewReplacer(" ", "", ".", "")
-}
-
-func windowsValidPath(part string) bool {
-	if len(part) > 3 && strings.EqualFold(part[:4], GitDirName) {
-		// For historical reasons, file names that end in spaces or periods are
-		// automatically trimmed. Therefore, `.git . . ./` is a valid way to refer
-		// to `.git/`.
-		if windowsPathReplacer.Replace(part[4:]) == "" {
-			return false
-		}
-
-		// For yet other historical reasons, NTFS supports so-called "Alternate Data
-		// Streams", i.e. metadata associated with a given file, referred to via
-		// `<filename>:<stream-name>:<stream-type>`. There exists a default stream
-		// type for directories, allowing `.git/` to be accessed via
-		// `.git::$INDEX_ALLOCATION/`.
-		//
-		// For performance reasons, _all_ Alternate Data Streams of `.git/` are
-		// forbidden, not just `::$INDEX_ALLOCATION`.
-		if len(part) > 4 && part[4:5] == ":" {
-			return false
-		}
-	}
-	return true
-}
-
-func (w *Worktree) validChange(ch merkletrie.Change) error {
-	action, err := ch.Action()
-	if err != nil {
-		return nil
-	}
-
-	switch action {
-	case merkletrie.Delete:
-		return validPath(ch.From.String())
-	case merkletrie.Insert:
-		return validPath(ch.To.String())
-	case merkletrie.Modify:
-		return validPath(ch.From.String(), ch.To.String())
-	}
-
-	return nil
 }
 
 func (w *Worktree) checkoutChange(ch merkletrie.Change, t *object.Tree, idx *indexBuilder) error {
@@ -690,6 +583,10 @@ func (w *Worktree) checkoutChangeSubmodule(name string,
 			return err
 		}
 
+		if err := w.clearBlockingSymlinks(name); err != nil {
+			return err
+		}
+
 		if err := w.Filesystem.MkdirAll(name, mode); err != nil {
 			return err
 		}
@@ -733,7 +630,70 @@ func (w *Worktree) checkoutChangeRegularFile(name string,
 	return nil
 }
 
+// clearBlockingSymlinks removes a symlink that is in the way of
+// materialising name, so the checkout writes a real entry in its place
+// instead of following the link out of the worktree. Two cases:
+//
+//   - a leading directory component that is a symlink (e.g. "s" while
+//     writing "s/config", where "s" links to ".git"): OpenFile/MkdirAll
+//     would traverse it, so the write would land under the link's target.
+//   - the final component itself being a symlink (e.g. writing "s" while
+//     "s" links to ".git/config"): OpenFile with O_TRUNC, or Symlink,
+//     would follow/replace through it and clobber the target.
+//
+// A symlink can never be a legitimate parent of, or the destination for,
+// a tracked entry, so removing it is always correct. This mirrors upstream
+// Git's forced checkout, which unlinks a blocking symlink in the leading
+// path (create_directories) and unlinks an existing entry before
+// write_entry.
+// https://github.com/git/git/blob/v2.54.0/entry.c#L50
+func (w *Worktree) clearBlockingSymlinks(name string) error {
+	var dirs []string
+	for dir := filepath.Dir(name); dir != "." && dir != "" && dir != string(filepath.Separator); dir = filepath.Dir(dir) {
+		dirs = append(dirs, dir)
+	}
+	// Leading components, shallowest-first: removing the shallowest symlink
+	// invalidates every component beneath it, so a single removal is enough.
+	for i := len(dirs) - 1; i >= 0; i-- {
+		fi, err := w.Filesystem.Lstat(dirs[i])
+		if err != nil {
+			// A missing component is created as a real directory by the
+			// checkout. Any other error means we cannot tell whether it is
+			// a symlink, so surface it instead of leaving a blocking link in
+			// place and failing later in a harder-to-diagnose way.
+			if os.IsNotExist(err) {
+				continue
+			}
+			return err
+		}
+		if fi.Mode()&os.ModeSymlink != 0 {
+			return w.Filesystem.Remove(dirs[i])
+		}
+	}
+	// Final component: an existing symlink here would be followed by the
+	// subsequent OpenFile/Symlink/MkdirAll, so replace it.
+	fi, err := w.Filesystem.Lstat(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if fi.Mode()&os.ModeSymlink != 0 {
+		return w.Filesystem.Remove(name)
+	}
+	return nil
+}
+
 func (w *Worktree) checkoutFile(f *object.File) (err error) {
+	// checkoutFile is the materialisation boundary for tracked entries.
+	// Remove any blocking symlink first so the subsequent OpenFile or
+	// Symlink call writes the entry itself instead of following a planted
+	// final-component link in the underlying filesystem.
+	if err := w.clearBlockingSymlinks(f.Name); err != nil {
+		return err
+	}
+
 	mode, err := f.Mode.ToOSFileMode()
 	if err != nil {
 		return
@@ -763,10 +723,10 @@ func (w *Worktree) checkoutFile(f *object.File) (err error) {
 }
 
 func (w *Worktree) checkoutFileSymlink(f *object.File) (err error) {
-	// https://github.com/git/git/commit/10ecfa76491e4923988337b2e2243b05376b40de
-	if strings.EqualFold(f.Name, gitmodulesFile) {
-		return ErrGitModulesSymlink
-	}
+	// .gitmodules symlink rejection (and its NTFS / HFS variants) is
+	// enforced by the worktreeFilesystem wrapper's Symlink method via
+	// validSymlinkName. See https://github.com/git/git/commit/10ecfa7
+	// for the upstream rationale.
 
 	from, err := f.Reader()
 	if err != nil {
