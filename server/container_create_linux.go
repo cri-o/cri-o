@@ -534,14 +534,10 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 
 	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
-	options := []string{"ro", "noexec", "nosuid", "nodev"}
-
-	mountPoint, err := s.ContainerServer.Store().MountImage(imageID, options, "")
+	mountPoint, err := s.MountImageByID(ctx, imageID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("mount storage: %w", err)
 	}
-
-	log.Infof(ctx, "Image mounted to: %s", mountPoint)
 
 	var safeMount *safeMountInfo
 	if m.GetImageSubPath() != "" {
