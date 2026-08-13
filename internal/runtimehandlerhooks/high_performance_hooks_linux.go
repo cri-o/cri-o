@@ -388,37 +388,6 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 		return nil
 	}
 
-	containerName := c.CRIContainer().GetMetadata().GetName()
-
-	// disable the CPU load balancing for the container CPUs
-	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations(), containerName) {
-		podManager, containerManagers, err := h.PodAndContainerCgroupManagers(s.CgroupParent(), c.ID())
-		if err != nil {
-			return err
-		}
-
-		sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), containerName)
-		if sharedCPUsRequested && node.CgroupIsV2() {
-			// Add the cgroup-child so that we can safely remove the isolated cpuset cgroup
-			// Otherwise cpuset may be kept isolated even after the cgroup is deleted.
-			actualContainerManager, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
-			if err != nil {
-				return err
-			}
-
-			childCgroup, err := createChildCgroupManager(actualContainerManager.Path(""))
-			if err != nil {
-				return err
-			}
-
-			containerManagers = append(containerManagers, childCgroup)
-		}
-
-		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, true, sharedCPUsRequested); err != nil {
-			return fmt.Errorf("set CPU load balancing: %w", err)
-		}
-	}
-
 	// no need to reverse the cgroup CPU CFS quota setting as the pod cgroup will be deleted anyway
 
 	// Restore the c-state configuration for the container CPUs (only do this when the annotation is
@@ -454,8 +423,37 @@ func (h *HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s
 				return fmt.Errorf("set IRQ load balancing: %w", err)
 			}
 		}
-	}
+		// Re-enable CPU load balancing. It is done here because gracefully exiting containers won't have
+		// prestop hooks run, which causes issues with reserved CPUs taken by init containers for regular containers
+		// in the same pod.
+		if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations(), containerName) {
+			podManager, containerManagers, err := h.PodAndContainerCgroupManagers(s.CgroupParent(), c.ID())
+			if err != nil {
+				return err
+			}
 
+			sharedCPUsRequested := requestedSharedCPUs(s.Annotations(), containerName)
+			if sharedCPUsRequested && node.CgroupIsV2() {
+				// Add the cgroup-child so that we can safely remove the isolated cpuset cgroup
+				// Otherwise cpuset may be kept isolated even after the cgroup is deleted.
+				actualContainerManager, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
+				if err != nil {
+					return err
+				}
+
+				childCgroup, err := createChildCgroupManager(actualContainerManager.Path(""))
+				if err != nil {
+					return err
+				}
+
+				containerManagers = append(containerManagers, childCgroup)
+			}
+
+			if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, true, sharedCPUsRequested); err != nil {
+				return fmt.Errorf("set CPU load balancing: %w", err)
+			}
+		}
+	}
 	// We could check if `!cpuLoadBalancingAllowed()` here, but it requires access to the config, which would be
 	// odd to plumb. Instead, always assume if they're using a HighPerformanceHook, they have CPULoadBalanceDisabled
 	// annotation allowed.
@@ -736,6 +734,12 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManager(mgr cgroups.Manager,
 
 	currentCpusStr, err := cgroups.ReadFile(mgr.Path(""), file)
 	if err != nil {
+		// If we're removing, we are racing against systemd cleaning up the cgroup.
+		// Ignore ENOENT so we can free the cpus for sibling cgroups
+		if !add && errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+
 		return err
 	}
 
