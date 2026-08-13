@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/opencontainers/runtime-tools/generate"
+	"go.podman.io/storage/pkg/mount"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/factory/container"
@@ -178,10 +179,11 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		description string
-		rroSupport  bool
-		given       *types.Mount
-		want        string
+		description         string
+		rroSupport          bool
+		given               *types.Mount
+		want                string
+		requiresSharedMount bool
 	}{
 		{
 			"should fail to add an RRO mount without RRO mounts support",
@@ -194,6 +196,7 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 				Propagation:       0,
 			},
 			`recursive read-only mount support is not available for hostPath "/mnt"`,
+			false,
 		},
 		{
 			"should fail to add an RRO mount without readonly option",
@@ -206,6 +209,7 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 				Propagation:       0,
 			},
 			`recursive read-only mount conflicts with read-write mount for hostPath "/mnt"`,
+			false,
 		},
 		{
 			"should fail to add an RRO mount without private propagation",
@@ -218,6 +222,7 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 				Propagation:       2,
 			},
 			`recursive read-only mount requires private propagation for hostPath "/mnt", got: PROPAGATION_BIDIRECTIONAL`,
+			true,
 		},
 	}
 
@@ -226,6 +231,19 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
+
+			if tc.requiresSharedMount {
+				mountInfos, err := mount.GetMounts()
+				if err != nil {
+					t.Fatalf("Failed to get mount info: %v", err)
+				}
+
+				// Some test environments (e.g. running unit tests inside a container) do not have
+				// shared mounts, so skip in those environments.
+				if err := ensureShared(tc.given.GetHostPath(), mountInfos); err != nil {
+					t.Skipf("skipping: %v", err)
+				}
+			}
 
 			ctr, err := container.New()
 			if err != nil {
