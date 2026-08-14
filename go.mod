@@ -6,8 +6,8 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
-	github.com/checkpoint-restore/checkpointctl v1.5.0
-	github.com/checkpoint-restore/go-criu/v8 v8.2.0
+	github.com/checkpoint-restore/checkpointctl v1.6.0
+	github.com/checkpoint-restore/go-criu/v8 v8.4.0
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.31
 	github.com/containerd/containerd/api v1.10.0
@@ -26,7 +26,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/cri-o/crio-credential-provider v0.1.2
 	github.com/cri-o/ocicni v0.5.0
-	github.com/cyphar/filepath-securejoin v0.6.1
+	github.com/cyphar/filepath-securejoin v0.7.0
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/go-units v0.5.0
 	github.com/fsnotify/fsnotify v1.10.1
@@ -73,7 +73,7 @@ require (
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.54.0
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.45.0
+	golang.org/x/sys v0.46.0
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.36.3
@@ -95,12 +95,13 @@ require (
 
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2 // indirect
-	cyphar.com/go-pathrs v0.2.4 // indirect
+	cyphar.com/go-pathrs v0.2.5 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
+	github.com/aperturerobotics/protobuf-go-lite v0.15.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
