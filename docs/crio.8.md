@@ -310,7 +310,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        mounted into the container for the volumes.
 	3. ignore: All volumes are just ignored and no action is taken. (default: "mkdir")
 
-**--imagestore**="": Store newly pulled images in the specified path, rather than the path provided by --root.
+**--imagestore**="": Store newly pulled images in the specified path, rather than the path provided by --root. Defaults to the value from containers/storage configuration.
 
 **--included-pod-metrics**="": A list of pod metrics to include. Specify the names of the metrics to include in this list.
 
@@ -432,9 +432,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts the containers' tmpfs on '/run', '/tmp' and '/var/tmp'.
 
-**--root, -r**="": The CRI-O root directory. (default: "/var/lib/containers/storage")
+**--root, -r**="": The CRI-O root directory. Defaults to the value from containers/storage configuration.
 
-**--runroot**="": The CRI-O state directory. (default: "/run/containers/storage")
+**--runroot**="": The CRI-O state directory. Defaults to the value from containers/storage configuration.
 
 **--runtimes**="": OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path:container_min_memory'.
 
@@ -454,9 +454,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. DEPRECATED: This option will be removed in the future. (default: 0)
 
-**--storage-driver, -s**="": OCI storage driver.
+**--storage-driver, -s**="": OCI storage driver. Defaults to the value from containers/storage configuration.
 
-**--storage-opt**="": OCI storage driver option.
+**--storage-opt**="": OCI storage driver option. Defaults to the value from containers/storage configuration.
 
 **--stream-address**="": Bind address for streaming socket. (default: "127.0.0.1")
 
