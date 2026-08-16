@@ -31,16 +31,18 @@ func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.Runtime
 		return nil
 	}
 
-	s.containerEventStreamBroadcaster.Do(func() {
-		// note that this function will run indefinitely until ContainerEventsChan is closed
-		go s.broadcastEvents()
-	})
-
 	conn := &containerEventConn{
 		ch:   make(chan struct{}),
 		once: sync.Once{},
 	}
+	// Register before starting the broadcaster so the client that triggers
+	// it does not miss already buffered events.
 	s.containerEventClients.Store(ces, conn)
+
+	s.containerEventStreamBroadcaster.Do(func() {
+		// note that this function will run indefinitely until ContainerEventsChan is closed
+		go s.broadcastEvents()
+	})
 
 	// wait here until we don't want to send events to this client anymore
 	conn.wait()
