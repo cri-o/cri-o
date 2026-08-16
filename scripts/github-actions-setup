@@ -11,6 +11,7 @@ main() {
     set -x
     prepare_system
 
+    remove_runtimes
     install_bats
     install_conmon
     install_conmonrs
@@ -113,7 +114,29 @@ install_cni_plugins() {
     ls -lah "$CNI_DIR"
 }
 
+# remove_runtimes removes all the pre-installed OCI runtimes, so they can't
+# shadow the ones we install. The runner image ships a static podman bundle in
+# /usr/local/bin (which comes first in PATH) containing its own runc and crun
+# -- notably a crun built without systemd support, which breaks all the tests
+# using the systemd cgroup manager -- and docker brings its own /usr/bin/runc.
+remove_runtimes() {
+    sudo rm -f /usr/{local/,}{s,}bin/{runc,crun}
+}
+
+# check_not_installed makes sure $1 is not available in PATH, so that the
+# binary we're about to install is not shadowed by a pre-installed one (those
+# are removed by remove_runtimes).
+check_not_installed() {
+    local path
+    if path=$(command -v "$1"); then
+        echo "ERROR: $1 is already installed at $path, please remove it in remove_runtimes" >&2
+        return 1
+    fi
+}
+
 install_crun() {
+    check_not_installed crun
+
     git clone https://github.com/containers/crun
     pushd crun
     ./autogen.sh
@@ -162,6 +185,8 @@ install_libpathrs() {
 }
 
 install_runc() {
+    check_not_installed runc
+
     curl_retry "https://github.com/opencontainers/runc/releases/download/${VERSIONS["runc"]}/runc.$GOARCH" \
         -o /usr/sbin/runc
     echo "${RUNC_CHECKSUMS[$GOARCH]}  /usr/sbin/runc" | sha256sum -c --strict -
