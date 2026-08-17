@@ -37,6 +37,9 @@ func assembleTemplateString(displayAllConfig bool, c *Config) string {
 	// [crio.runtime] configuration
 	templateString += crioTemplateString(crioRuntimeConfig, templateStringCrioRuntime, displayAllConfig, crioTemplateConfig)
 
+	// [crio.checkpoint_restore] configuration
+	templateString += crioTemplateString(crioCheckpointRestoreConfig, templateStringCrioCheckpointRestore, displayAllConfig, crioTemplateConfig)
+
 	// [crio.image] configuration
 	templateString += crioTemplateString(crioImageConfig, templateStringCrioImage, displayAllConfig, crioTemplateConfig)
 
@@ -91,6 +94,7 @@ const (
 	crioRootConfig templateGroup = iota + 1
 	crioAPIConfig
 	crioRuntimeConfig
+	crioCheckpointRestoreConfig
 	crioImageConfig
 	crioNetworkConfig
 	crioMetricsConfig
@@ -491,6 +495,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringCrioRuntimeRuntimesRuntimeHandler,
 			group:          crioRuntimeConfig,
 			isDefaultValue: RuntimesEqual(dc.Runtimes, c.Runtimes),
+		},
+		{
+			templateString: templateStringCrioCheckpointRestoreContainerLevelEnabled,
+			group:          crioCheckpointRestoreConfig,
+			isDefaultValue: simpleEqual(dc.ContainerLevelEnabled, c.ContainerLevelEnabled),
 		},
 		{
 			templateString: templateStringCrioRuntimeWorkloads,
@@ -1281,6 +1290,9 @@ const templateStringCrioRuntimePinnsPath = `# pinns_path is the path to find the
 
 const templateStringCrioRuntimeEnableCriuSupport = `# Globally enable/disable CRIU support which is necessary to
 # checkpoint and restore container or pods (even if CRIU is found in $PATH).
+# This option is currently deprecated, and will be replaced with the
+# [crio.checkpoint_restore] table and its container_level_enabled option.
+# When set to false it is translated to container_level_enabled = "none".
 {{ $.Comment }}enable_criu_support = {{ .EnableCriuSupport }}
 
 `
@@ -1512,6 +1524,21 @@ const templateStringCrioRuntimeDisableHostPortMapping = `# disable_hostport_mapp
 const templateStringCrioRuntimeTimezone = `# timezone To set the timezone for a container in CRI-O.
 # If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.
 {{ $.Comment }}timezone = "{{ .Timezone }}"
+
+`
+
+const templateStringCrioCheckpointRestore = `# The crio.checkpoint_restore table contains settings pertaining to the
+# checkpoint and restore (CRIU) support for containers.
+[crio.checkpoint_restore]
+
+`
+
+const templateStringCrioCheckpointRestoreContainerLevelEnabled = `# container_level_enabled configures the level of container checkpoint and
+# restore (CRIU) support. It accepts one of the following values:
+# "none": checkpoint and restore support is disabled.
+# "checkpoint_only": only checkpointing containers is enabled.
+# "checkpoint_restore": both checkpointing and restoring containers is enabled.
+{{ $.Comment }}container_level_enabled = "{{ .CheckpointRestoreConfig.ContainerLevelEnabled }}"
 
 `
 

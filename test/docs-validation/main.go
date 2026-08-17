@@ -54,12 +54,13 @@ var (
 
 	// Mapping for inconsistencies between tags and CLI arguments.
 	tagToCLIOption = map[string]string{
-		"network_dir":         "cni-config-dir",
-		"plugin_dir":          "cni-plugin-dir",
-		"plugin_dirs":         "cni-plugin-dir",
-		"insecure_registries": "insecure-registry",
-		"log_to_journald":     "log-journald",
-		"storage_option":      "storage-opt",
+		"network_dir":             "cni-config-dir",
+		"plugin_dir":              "cni-plugin-dir",
+		"plugin_dirs":             "cni-plugin-dir",
+		"insecure_registries":     "insecure-registry",
+		"log_to_journald":         "log-journald",
+		"storage_option":          "storage-opt",
+		"container_level_enabled": "checkpoint-restore-container-level-enabled",
 	}
 )
 

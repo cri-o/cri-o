@@ -112,6 +112,7 @@ type Config struct {
 	RootConfig
 	APIConfig
 	RuntimeConfig
+	CheckpointRestoreConfig
 	ImageConfig
 	NetworkConfig
 	MetricsConfig
@@ -355,6 +356,81 @@ const (
 // Multiple runtime Handlers in a map.
 type Runtimes map[string]*RuntimeHandler
 
+// ContainerCheckpointRestoreLevel defines the level of container
+// checkpoint/restore (CRIU) support that is enabled.
+type ContainerCheckpointRestoreLevel string
+
+const (
+	// ContainerCheckpointRestoreLevelNone disables both checkpointing and
+	// restoring containers.
+	ContainerCheckpointRestoreLevelNone ContainerCheckpointRestoreLevel = "none"
+	// ContainerCheckpointRestoreLevelCheckpointOnly enables checkpointing
+	// containers, but not restoring them.
+	ContainerCheckpointRestoreLevelCheckpointOnly ContainerCheckpointRestoreLevel = "checkpoint_only"
+	// ContainerCheckpointRestoreLevelCheckpointRestore enables both
+	// checkpointing and restoring containers.
+	ContainerCheckpointRestoreLevelCheckpointRestore ContainerCheckpointRestoreLevel = "checkpoint_restore"
+)
+
+// Validate returns an error if the checkpoint/restore level is not one of the
+// recognized values.
+func (l ContainerCheckpointRestoreLevel) Validate() error {
+	switch l {
+	case ContainerCheckpointRestoreLevelNone,
+		ContainerCheckpointRestoreLevelCheckpointOnly,
+		ContainerCheckpointRestoreLevelCheckpointRestore:
+		return nil
+	default:
+		return fmt.Errorf(
+			"invalid container_level_enabled %q: must be one of %q, %q or %q",
+			l,
+			ContainerCheckpointRestoreLevelNone,
+			ContainerCheckpointRestoreLevelCheckpointOnly,
+			ContainerCheckpointRestoreLevelCheckpointRestore,
+		)
+	}
+}
+
+// CheckpointRestoreConfig represents the "crio.checkpoint_restore" TOML config
+// table.
+type CheckpointRestoreConfig struct {
+	// ContainerLevelEnabled configures the level of container checkpoint and
+	// restore (CRIU) support. It accepts one of the following values:
+	// "none": checkpoint and restore support is disabled.
+	// "checkpoint_only": only checkpointing containers is enabled.
+	// "checkpoint_restore": both checkpointing and restoring containers is enabled.
+	ContainerLevelEnabled ContainerCheckpointRestoreLevel `toml:"container_level_enabled"`
+}
+
+// Validate checks whether the checkpoint/restore configuration is valid. When
+// onExecution is true, it additionally verifies that the CRIU binary is
+// available in $PATH, disabling checkpoint/restore support if it is not.
+func (c *CheckpointRestoreConfig) Validate(onExecution bool) error {
+	if err := c.ContainerLevelEnabled.Validate(); err != nil {
+		return err
+	}
+
+	if !onExecution {
+		return nil
+	}
+
+	if c.ContainerLevelEnabled == ContainerCheckpointRestoreLevelNone {
+		logrus.Infof("Checkpoint/restore support disabled via configuration")
+
+		return nil
+	}
+
+	if err := validateCriuInPath(); err != nil {
+		c.ContainerLevelEnabled = ContainerCheckpointRestoreLevelNone
+
+		logrus.Infof("Checkpoint/restore support disabled: CRIU binary not found in $PATH")
+	} else {
+		logrus.Infof("Checkpoint/restore support enabled (level: %q)", c.ContainerLevelEnabled)
+	}
+
+	return nil
+}
+
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
 	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
@@ -530,8 +606,12 @@ type RuntimeConfig struct {
 	// to manage namespace lifecycle
 	PinnsPath string `toml:"pinns_path"`
 
-	// CriuPath is the path to find the criu binary, which is needed
-	// to checkpoint and restore containers
+	// EnableCriuSupport globally enables checkpoint/restore (CRIU) support,
+	// which is needed to checkpoint and restore containers.
+	//
+	// Deprecated: use the [crio.checkpoint_restore] table with
+	// container_level_enabled instead. When set to false this option is
+	// translated to container_level_enabled = "none".
 	EnableCriuSupport bool `toml:"enable_criu_support"`
 
 	// Runtimes defines a list of OCI compatible runtimes. The runtime to
@@ -848,14 +928,15 @@ type tomlConfig struct {
 	Crio struct {
 		RootConfig
 
-		API     struct{ APIConfig }     `toml:"api"`
-		Runtime struct{ RuntimeConfig } `toml:"runtime"`
-		Image   struct{ ImageConfig }   `toml:"image"`
-		Network struct{ NetworkConfig } `toml:"network"`
-		Metrics struct{ MetricsConfig } `toml:"metrics"`
-		Tracing struct{ TracingConfig } `toml:"tracing"`
-		Stats   struct{ StatsConfig }   `toml:"stats"`
-		NRI     struct{ *nri.Config }   `toml:"nri"`
+		API               struct{ APIConfig }               `toml:"api"`
+		Runtime           struct{ RuntimeConfig }           `toml:"runtime"`
+		CheckpointRestore struct{ CheckpointRestoreConfig } `toml:"checkpoint_restore"`
+		Image             struct{ ImageConfig }             `toml:"image"`
+		Network           struct{ NetworkConfig }           `toml:"network"`
+		Metrics           struct{ MetricsConfig }           `toml:"metrics"`
+		Tracing           struct{ TracingConfig }           `toml:"tracing"`
+		Stats             struct{ StatsConfig }             `toml:"stats"`
+		NRI               struct{ *nri.Config }             `toml:"nri"`
 	} `toml:"crio"`
 }
 
@@ -874,6 +955,7 @@ func (t *tomlConfig) toConfig(c *Config) {
 	c.RootConfig = t.Crio.RootConfig
 	c.APIConfig = t.Crio.API.APIConfig
 	c.RuntimeConfig = t.Crio.Runtime.RuntimeConfig
+	c.CheckpointRestoreConfig = t.Crio.CheckpointRestore.CheckpointRestoreConfig
 	c.ImageConfig = t.Crio.Image.ImageConfig
 	c.NetworkConfig = t.Crio.Network.NetworkConfig
 	c.MetricsConfig = t.Crio.Metrics.MetricsConfig
@@ -887,6 +969,7 @@ func (t *tomlConfig) fromConfig(c *Config) {
 	t.Crio.RootConfig = c.RootConfig
 	t.Crio.API.APIConfig = c.APIConfig
 	t.Crio.Runtime.RuntimeConfig = c.RuntimeConfig
+	t.Crio.CheckpointRestore.CheckpointRestoreConfig = c.CheckpointRestoreConfig
 	t.Crio.Image.ImageConfig = c.ImageConfig
 	t.Crio.Network.NetworkConfig = c.NetworkConfig
 	t.Crio.Metrics.MetricsConfig = c.MetricsConfig
@@ -1096,6 +1179,9 @@ func DefaultConfig() (*Config, error) {
 			TLSMinVersion:      DefaultTLSMinVersion,
 		},
 		RuntimeConfig: *DefaultRuntimeConfig(cgroupManager),
+		CheckpointRestoreConfig: CheckpointRestoreConfig{
+			ContainerLevelEnabled: ContainerCheckpointRestoreLevelCheckpointRestore,
+		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:        "docker://",
 			PauseImage:              DefaultPauseImage,
@@ -1194,6 +1280,19 @@ func (c *Config) Validate(onExecution bool) error {
 
 	if err := c.RuntimeConfig.Validate(c.SystemContext, onExecution); err != nil {
 		return fmt.Errorf("validating runtime config: %w", err)
+	}
+
+	// The enable_criu_support option is deprecated in favor of the
+	// [crio.checkpoint_restore] table. Translate the deprecated option into the
+	// new one when it is used to disable checkpoint/restore support.
+	if !c.EnableCriuSupport {
+		logrus.Warnf("The config field enable_criu_support is deprecated. Please use the [crio.checkpoint_restore] table with container_level_enabled instead")
+
+		c.ContainerLevelEnabled = ContainerCheckpointRestoreLevelNone
+	}
+
+	if err := c.CheckpointRestoreConfig.Validate(onExecution); err != nil {
+		return fmt.Errorf("validating checkpoint/restore config: %w", err)
 	}
 
 	c.seccompConfig.SetNotifierPath(
@@ -1484,18 +1583,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		c.namespaceManager = nsmgr.New(c.NamespacesDir, c.PinnsPath)
 		if err := c.namespaceManager.Initialize(); err != nil {
 			return fmt.Errorf("initialize nsmgr: %w", err)
-		}
-
-		if c.EnableCriuSupport {
-			if err := validateCriuInPath(); err != nil {
-				c.EnableCriuSupport = false
-
-				logrus.Infof("Checkpoint/restore support disabled: CRIU binary not found int $PATH")
-			} else {
-				logrus.Infof("Checkpoint/restore support enabled")
-			}
-		} else {
-			logrus.Infof("Checkpoint/restore support disabled via configuration")
 		}
 
 		if c.SeccompProfile == "" {
@@ -1824,8 +1911,28 @@ func (c *RuntimeConfig) Devices() []device.Device {
 	return c.deviceConfig.Devices()
 }
 
-func (c *RuntimeConfig) CheckpointRestore() bool {
-	return c.EnableCriuSupport
+// CheckpointRestore returns whether any checkpoint or restore support is
+// enabled (i.e. the level is not "none").
+func (c *CheckpointRestoreConfig) CheckpointRestore() bool {
+	return c.ContainerLevelEnabled != ContainerCheckpointRestoreLevelNone
+}
+
+// CheckpointContainerEnabled returns whether checkpointing containers is
+// enabled (i.e. the level is "checkpoint_only" or "checkpoint_restore").
+func (c *CheckpointRestoreConfig) CheckpointContainerEnabled() bool {
+	switch c.ContainerLevelEnabled {
+	case ContainerCheckpointRestoreLevelCheckpointOnly,
+		ContainerCheckpointRestoreLevelCheckpointRestore:
+		return true
+	default:
+		return false
+	}
+}
+
+// RestoreContainerEnabled returns whether restoring containers is enabled
+// (i.e. the level is "checkpoint_restore").
+func (c *CheckpointRestoreConfig) RestoreContainerEnabled() bool {
+	return c.ContainerLevelEnabled == ContainerCheckpointRestoreLevelCheckpointRestore
 }
 
 func validateExecutablePath(executable, currentPath string) (string, error) {
