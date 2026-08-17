@@ -574,8 +574,8 @@ docs: $(MANPAGES) ## Build the man pages.
 
 .PHONY: docs-generation
 docs-generation: ## Generate the documentation.
-	bin/crio -d "" --config="" md  > docs/crio.8.md
-	bin/crio -d "" --config="" man > docs/crio.8
+	CONTAINERS_STORAGE_CONF=/dev/null bin/crio -d "" --config="" md  > docs/crio.8.md
+	CONTAINERS_STORAGE_CONF=/dev/null bin/crio -d "" --config="" man > docs/crio.8
 
 .PHONY: prettier
 prettier: ## Prettify supported files.
