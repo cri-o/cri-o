@@ -118,7 +118,7 @@ install_crun() {
     git checkout "${VERSIONS["crun"]}"
     ./autogen.sh
     ./configure
-    sudo make -j "$(nproc)" install prefix=/usr
+    sudo make -j "$(nproc)" install prefix=/usr/local
     popd
     sudo rm -rf crun
     crun --version
