@@ -24,6 +24,7 @@ crio
 [--blockio-reload]
 [--cdi-spec-dirs]=[value]
 [--cgroup-manager]=[value]
+[--checkpoint-restore-container-level-enabled]=[value]
 [--clean-shutdown-file]=[value]
 [--cni-config-dir]=[value]
 [--cni-default-network]=[value]
@@ -200,6 +201,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--cgroup-manager**="": cgroup manager (cgroupfs or systemd). (default: "systemd")
 
+**--checkpoint-restore-container-level-enabled**="": The level of container checkpoint/restore support to enable. Must be one of "none", "checkpoint_only" or "checkpoint_restore". Enabling checkpoint or restore requires that the criu binary is available in $PATH. (default: "checkpoint_restore")
+
 **--clean-shutdown-file**="": Location for CRI-O to lay down the clean shutdown file. It indicates whether we've had time to sync changes to disk before shutting down. If not found, crio wipe will clear the storage directory. (default: "/var/lib/crio/clean.shutdown")
 
 **--cni-config-dir**="": CNI configuration files directory. (default: "/etc/cni/net.d/")
@@ -259,7 +262,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.
 
-**--enable-criu-support**: Enable CRIU integration, requires that the criu binary is available in $PATH.
+**--enable-criu-support**: Enable CRIU integration, requires that the criu binary is available in $PATH. DEPRECATED: use the container_level_enabled option in the crio.checkpoint_restore table instead. When set to false it is translated to container_level_enabled = "none".
 
 **--enable-metrics**: Enable metrics endpoint for the server.
 
