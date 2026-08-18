@@ -24,7 +24,31 @@ main() {
 }
 
 curl_retry() {
-    sudo curl -sSfL --retry 5 --retry-delay 3 "$@"
+    # --retry alone only covers transient errors, which does not include the
+    # 403 a release download occasionally returns.
+    sudo curl -sSfL --retry 5 --retry-delay 3 --retry-all-errors "$@"
+}
+
+# Clone with retries. Every job in the matrix runs this script before any test
+# does, so one transient failure here costs a whole job.
+#
+# A failed clone can leave a partial directory behind and git refuses to clone
+# into a non-empty one, so clear the target before each attempt - otherwise
+# every retry fails with "already exists" instead of retrying the fetch.
+git_clone_retry() {
+    local url=$1 dir=${2:-}
+    [[ -n "$dir" ]] || dir=$(basename "$url" .git)
+
+    local i
+    for ((i = 1; i <= 5; i++)); do
+        sudo rm -rf "$dir"
+        if git clone "$url" "$dir"; then
+            return 0
+        fi
+        echo "Clone attempt $i of 5 failed: $url" >&2
+        sleep 3
+    done
+    return 1
 }
 
 prepare_system() {
@@ -57,7 +81,7 @@ install_from_github_org_repo() {
     URL=https://github.com/$1/$2
     DIR=$(mktemp -ud)
 
-    git clone "$URL" "$DIR"
+    git_clone_retry "$URL" "$DIR"
     pushd "$DIR"
     git checkout "$3"
     "${@:4}"
@@ -106,14 +130,14 @@ install_cni_plugins() {
     TARBALL="cni-plugins-linux-$GOARCH-${VERSIONS["cni-plugins"]}.tgz"
     CNI_DIR=/opt/cni/bin
     sudo mkdir -p "$CNI_DIR"
-    wget -O "$TARBALL" $URL/"${VERSIONS["cni-plugins"]}"/"$TARBALL"
+    curl_retry -o "$TARBALL" $URL/"${VERSIONS["cni-plugins"]}"/"$TARBALL"
     sudo tar xf "$TARBALL" -C "$CNI_DIR"
     rm "$TARBALL"
     ls -lah "$CNI_DIR"
 }
 
 install_crun() {
-    git clone https://github.com/containers/crun
+    git_clone_retry https://github.com/containers/crun
     pushd crun
     git checkout "${VERSIONS["crun"]}"
     ./autogen.sh
@@ -157,7 +181,7 @@ install_files() {
 install_buildah() {
     URL=https://github.com/containers/buildah.git
 
-    git clone $URL
+    git_clone_retry "$URL"
     pushd buildah
     git checkout "${VERSIONS["buildah"]}"
     make bin/buildah
