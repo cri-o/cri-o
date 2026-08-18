@@ -561,6 +561,14 @@ type RuntimeConfig struct {
 	// SeparatePullCgroup specifies whether an image pull must be performed in a separate cgroup
 	SeparatePullCgroup string `toml:"separate_pull_cgroup"`
 
+	// EnableLayerDedup enables automatic layer deduplication after image pulls
+	EnableLayerDedup bool `toml:"enable_layer_dedup"`
+
+	// DedupScheduleDelaySeconds is the maximum time in seconds to wait for active pulls
+	// to complete before triggering deduplication. If 0 (default), dedup triggers immediately
+	// when active pulls drop to 0. If > 0, dedup waits up to this duration for pulls to finish.
+	DedupScheduleDelaySeconds int `toml:"dedup_schedule_delay_seconds"`
+
 	// InfraCtrCPUSet is the CPUs set that will be used to run infra containers
 	InfraCtrCPUSet string `toml:"infra_ctr_cpuset"`
 

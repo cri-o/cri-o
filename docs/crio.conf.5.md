@@ -337,6 +337,12 @@ Enable CRIU integration, requires that the criu binary is available in $PATH. (d
 **enable_pod_events**=false
 Enable CRI-O to generate the container pod-level events in order to optimize the performance of the Pod Lifecycle Event Generator (PLEG) module in Kubelet.
 
+**enable_layer_dedup**=false
+Enable automatic layer deduplication after image pulls using reflinks. This can save disk space when multiple images share common layers. Requires a filesystem that supports reflinks (XFS with reflink=1, BTRFS).
+
+**dedup_schedule_delay_seconds**=0
+Maximum time in seconds to wait for active image pulls to complete before triggering deduplication. Only applies when enable_layer_dedup is true. If 0 (default), dedup triggers immediately when active pulls drop to 0. If > 0, dedup waits up to this duration for pulls to finish, allowing batching.
+
 **hostnetwork_disable_selinux**=true
 Determines whether SELinux should be disabled within a pod when it is running in the host network namespace.
 

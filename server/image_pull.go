@@ -140,6 +140,9 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
+	log.Infof(ctx, "pullImage: Starting pull for image=%s, namespace=%s, enableDedup=%v",
+		pullArgs.image, pullArgs.namespace, s.config.EnableLayerDedup)
+
 	sourceCtx, err := s.contextForNamespace(pullArgs.namespace)
 	if err != nil {
 		return "", fmt.Errorf("get context for namespace: %w", err)
@@ -190,13 +193,43 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	// and they all fail, this error value should be overwritten by a real failure.
 	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
 
+	log.Infof(ctx, "pullImage: Found %d remote candidates for %s", len(remoteCandidates), pullArgs.image)
+
 	for _, remoteCandidateName := range remoteCandidates {
+		if s.config.EnableLayerDedup && s.dedupScheduler != nil {
+			log.Infof(ctx, "Notifying pull started for %s", remoteCandidateName)
+			s.dedupScheduler.NotifyPullStarted(ctx)
+		}
+
 		imageRef, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
+
+		if s.config.EnableLayerDedup && s.dedupScheduler != nil {
+			log.Infof(ctx, "Notifying pull completed for %s", remoteCandidateName)
+			s.dedupScheduler.NotifyPullCompleted(ctx)
+		}
+
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
 
-			return s.resolveImageRefToID(ctx, imageRef)
+			imageID, err := s.resolveImageRefToID(ctx, imageRef)
+			if err != nil {
+				return "", err
+			}
+
+			// Run deduplication if enabled
+			if s.config.EnableLayerDedup {
+				log.Infof(ctx, "Scheduling deduplication for image %s", imageID)
+
+				if dedupErr := s.scheduleDedupRequest(ctx, imageID); dedupErr != nil {
+					// Log warning but don't fail the pull
+					log.Warnf(ctx, "Deduplication of image %s failed: %v", imageID, dedupErr)
+				}
+			}
+
+			log.Infof(ctx, "pullImage: Successfully pulled image %s as %s", remoteCandidateName, imageID)
+
+			return imageID, nil
 		}
 
 		lastErr = err
@@ -456,4 +489,18 @@ func decodeDockerAuth(s string) (user, password string, _ error) {
 	password = strings.Trim(parts[1], "\x00")
 
 	return user, password, nil
+}
+
+// scheduleDedupRequest sends a dedup request to the scheduler and waits for completion.
+func (s *Server) scheduleDedupRequest(ctx context.Context, imageID string) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
+	if s.dedupScheduler == nil {
+		return errors.New("dedup scheduler not initialized")
+	}
+
+	log.Infof(ctx, "Scheduling deduplication for image %s", imageID)
+
+	return s.dedupScheduler.ScheduleDedupAsync(ctx, imageID)
 }

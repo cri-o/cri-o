@@ -39,6 +39,7 @@ crio
 [--container-exits-dir]=[value]
 [--ctr-stop-timeout]=[value]
 [--decryption-keys-path]=[value]
+[--dedup-schedule-delay-seconds]=[value]
 [--default-capabilities]=[value]
 [--default-env]=[value]
 [--default-mounts-file]=[value]
@@ -50,6 +51,7 @@ crio
 [--disable-hostport-mapping]
 [--drop-infra-ctr]
 [--enable-criu-support]
+[--enable-layer-dedup]
 [--enable-metrics]
 [--enable-nri]
 [--enable-pod-events]
@@ -239,6 +241,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--decryption-keys-path**="": Path to load keys for image decryption. (default: "/etc/crio/keys/")
 
+**--dedup-schedule-delay-seconds**="": Maximum time in seconds to wait for active image pulls before triggering deduplication (0=immediate when no active pulls) (default: 0)
+
 **--default-capabilities**="": Capabilities to add to the containers. (default: "CHOWN", "DAC_OVERRIDE", "FSETID", "FOWNER", "SETGID", "SETUID", "SETPCAP", "NET_BIND_SERVICE", "KILL")
 
 **--default-env**="": Additional environment variables to set for all containers.
@@ -260,6 +264,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.
 
 **--enable-criu-support**: Enable CRIU integration, requires that the criu binary is available in $PATH.
+
+**--enable-layer-dedup**: Enable automatic layer deduplication after image pulls using reflinks
 
 **--enable-metrics**: Enable metrics endpoint for the server.
 
@@ -354,7 +360,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
-**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime")
+**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "image_layer_dedup_duration_seconds", "image_layer_dedup_bytes_saved", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime")
 
 **--metrics-host**="": Host for the metrics endpoint. (default: "127.0.0.1")
 
@@ -432,9 +438,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts the containers' tmpfs on '/run', '/tmp' and '/var/tmp'.
 
-**--root, -r**="": The CRI-O root directory. (default: "/var/lib/containers/storage")
+**--root, -r**="": The CRI-O root directory. (default: "/home/core/.local/share/containers/storage")
 
-**--runroot**="": The CRI-O state directory. (default: "/run/containers/storage")
+**--runroot**="": The CRI-O state directory. (default: "/run/user/1001/containers")
 
 **--runtimes**="": OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path:container_min_memory'.
 
