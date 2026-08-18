@@ -28,3 +28,9 @@ func (ss *StatsServer) updateContainerStats(c *oci.Container, sb *sandbox.Sandbo
 func (ss *StatsServer) metricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics {
 	return &SandboxMetrics{}
 }
+
+// collectSandbox performs all I/O for a sandbox and returns raw stats without
+// accessing or modifying shared state. Safe to call concurrently.
+func (ss *StatsServer) collectSandbox(sb *sandbox.Sandbox) *sandboxCollectResult {
+	return nil
+}

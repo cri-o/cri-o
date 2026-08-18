@@ -3,6 +3,7 @@ package statsserver
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sync"
 	"time"
 
@@ -78,15 +79,52 @@ func (ss *StatsServer) updateLoop() {
 	}
 }
 
-// update updates the list of container and sandbox stats.
-// It does so by updating the stats of every sandbox, which in turn
-// updates the stats for each container it has.
+type sandboxCollectResult struct {
+	sandboxStats   *types.PodSandboxStats
+	sandboxMetrics *SandboxMetrics
+}
+
+// update collects stats for all sandboxes concurrently and flushes results under the lock.
+// It snapshots the previous stats before releasing the lock so goroutines can compute CPU deltas
+// without holding the lock during I/O.
 func (ss *StatsServer) update() {
+	sandboxes := ss.ListSandboxes()
+
+	ss.mutex.Lock()
+	prevSboxStats := maps.Clone(ss.sboxStats)
+	prevCtrStats := maps.Clone(ss.ctrStats)
+	ss.mutex.Unlock()
+
+	results := make([]*sandboxCollectResult, len(sandboxes))
+
+	var wg sync.WaitGroup
+	for i, sb := range sandboxes {
+		wg.Add(1)
+		go func(i int, sb *sandbox.Sandbox) {
+			defer wg.Done()
+			results[i] = ss.collectSandbox(sb)
+		}(i, sb)
+	}
+	wg.Wait()
+
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
-	for _, sb := range ss.ListSandboxes() {
-		ss.updateSandbox(sb)
+	for i, r := range results {
+		if r == nil {
+			continue
+		}
+		sb := sandboxes[i]
+		for _, cStats := range r.sandboxStats.GetLinux().GetContainers() {
+			if old, ok := prevCtrStats[cStats.GetAttributes().GetId()]; ok {
+				updateUsageNanoCores(old.GetCpu(), cStats.GetCpu())
+			}
+		}
+		if old, ok := prevSboxStats[sb.ID()]; ok {
+			updateUsageNanoCores(old.GetLinux().GetCpu(), r.sandboxStats.GetLinux().GetCpu())
+		}
+		ss.sboxStats[sb.ID()] = r.sandboxStats
+		ss.sboxMetrics[sb.ID()] = r.sandboxMetrics
 	}
 }
 
