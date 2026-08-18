@@ -3,13 +3,13 @@ declare -A VERSIONS=(
     ["cni-plugins"]=v1.8.0
     ["conmon"]=v2.1.13
     ["cri-tools"]=v1.36.0
-    ["crun"]=1.28
-    ["runc"]=v1.5.0
+    ["crun"]=1.29.1
+    ["runc"]=v1.5.1
     ["bats"]=v1.12.0
     ["buildah"]=v1.38.0
 )
 
 declare -A RUNC_CHECKSUMS=(
-    ["amd64"]="0363e69bebd3a027d1239364ab9b4f4873f6bc4e7a7878e94b4ea59f08551297"
-    ["arm64"]="1f6d8c553add066a6aaf838d3172d4c5ed3c6b065b6f7eed2f4a4aa4af261e59"
+    ["amd64"]="177df879d50c913eb205e898d5c1c05a18f574053c0ce5524c471208eaf06f6f"
+    ["arm64"]="ca70e7dbd6616ca782a59b5d3ac86909123fdaa9fa3f89dcf29051c70eee7ce9"
 )
