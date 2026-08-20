@@ -40,8 +40,8 @@ fi
 dnf -y install 'dnf-command(builddep)'
 dnf builddep -y "${OS_RPM_SPECFILE}" || true
 
-# Ensure to use latest golang
-GO_VERSION=$(curl -sSfL "https://go.dev/VERSION?m=text" | head -n1)
+# Keep in sync with go.mod via dependencies.yaml
+GO_VERSION=go1.26.4
 curl -sSfL -o- "https://go.dev/dl/${GO_VERSION}.linux-amd64.tar.gz" | tar xfz - -C /usr/local
 export PATH=/usr/local/go/bin:$PATH
 
