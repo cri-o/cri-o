@@ -27,6 +27,7 @@ It is assumed you are running a Linux machine.
   - [Build](#build)
     - [Install with Ansible](#install-with-ansible)
     - [Build Tags](#build-tags)
+    - [Container-based build environment](#container-based-build-environment)
   - [Static builds](#static-builds)
   - [Download conmon](#download-conmon)
 - [Setup CNI networking](#setup-cni-networking)
@@ -349,6 +350,30 @@ which uses the following buildtags.
 | ostree                      | build storage using ostree          | ostree     |
 
 <!-- markdownlint-enable MD013 -->
+
+#### Container-based build environment
+
+As an alternative to installing build dependencies on the host, a
+`Containerfile` is provided to create a container image with all
+required build dependencies. This can be used to build CRI-O and run
+unit tests without modifying the host system.
+
+Note that integration tests cannot be run in a container as CRI-O
+requires a full system environment.
+
+Build the container image:
+
+```shell
+podman build -f hack/Containerfile.dev -t crio-dev .
+```
+
+Then use it to build and test:
+
+```shell
+podman run --rm -v .:/src:Z crio-dev make all
+podman run --rm -v .:/src:Z crio-dev make lint
+podman run --rm -v .:/src:Z crio-dev make testunit
+```
 
 ### Static builds
 
