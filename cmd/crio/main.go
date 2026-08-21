@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/containers/kubensmnt"
+	"github.com/elastic/gmux"
 	"github.com/sirupsen/logrus"
-	"github.com/soheilhy/cmux"
 	"github.com/uptrace/opentelemetry-go-extra/otellogrus"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -47,7 +47,7 @@ func writeCrioGoroutineStacks() {
 	}
 }
 
-func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, tp *sdktrace.TracerProvider, streamingServer *server.Server, hserver *http.Server, signalled *bool) {
+func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, tp *sdktrace.TracerProvider, streamingServer *server.Server, hserver *http.Server) {
 	sig := make(chan os.Signal, 2048)
 	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGUSR2, unix.SIGPIPE, signals.Hup)
 
@@ -75,8 +75,6 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			default:
 				continue
 			}
-
-			*signalled = true
 
 			if tp != nil {
 				if err := tp.Shutdown(ctx); err != nil {
@@ -433,27 +431,28 @@ func main() {
 			}
 		}
 
-		m := cmux.New(lis)
-		grpcL := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
-		httpL := m.Match(cmux.HTTP1Fast())
-
 		infoMux := crioServer.GetExtendInterfaceMux(c.Bool("enable-profile-unix-socket"))
 		httpServer := &http.Server{
 			Handler:     infoMux,
 			ReadTimeout: 5 * time.Second,
 		}
 
-		graceful := false
-		catchShutdown(ctx, cancel, grpcServer, tracerProvider, crioServer, httpServer, &graceful)
+		// Multiplex the CRI gRPC API and the HTTP inspect API on the same Unix
+		// socket. gmux hijacks h2c (prior-knowledge HTTP/2) gRPC connections and
+		// routes them to grpcL, while every other request is handled by the HTTP
+		// server configured above. ConfigureServer wraps httpServer.Handler, so
+		// the handler must already be set, and it closes grpcL on
+		// httpServer.Shutdown.
+		grpcL, err := gmux.ConfigureServer(httpServer, nil)
+		if err != nil {
+			logrus.Fatalf("Failed to configure socket multiplexer: %v", err)
+		}
+
+		catchShutdown(ctx, cancel, grpcServer, tracerProvider, crioServer, httpServer)
 
 		go func() {
 			if err := grpcServer.Serve(grpcL); err != nil {
 				logrus.Errorf("Unable to run GRPC server: %v", err)
-			}
-		}()
-		go func() {
-			if err := httpServer.Serve(httpL); err != nil {
-				logrus.Debugf("Closed http server")
 			}
 		}()
 
@@ -462,10 +461,8 @@ func main() {
 		go func() {
 			defer close(serverCloseCh)
 
-			if err := m.Serve(); err != nil {
-				if !graceful || !strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
-					logrus.Errorf("Failed to serve grpc request: %v", err)
-				}
+			if err := httpServer.Serve(lis); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logrus.Errorf("Failed to serve request: %v", err)
 			}
 		}()
 
