@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 21 Aug 2026 09:51:06 UTC for commit [8521bed][0]._
+_Generated on Fri, 21 Aug 2026 15:16:21 UTC for commit [f954a17][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8521bed8e3b2cd1e870d3376987bacdc2dffb181
+[0]: https://github.com/cri-o/cri-o/commit/f954a17e505f8931e91004403b5f5eac71ab6085
 
 ## Outdated Dependencies
 
@@ -22,7 +22,7 @@ _Generated on Fri, 21 Aug 2026 09:51:06 UTC for commit [8521bed][0]._
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                 | v5.3.2                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.3                                 | v1.4.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                                | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260821073939-ddcb1ad8d23c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260821133433-a8f0ee0cd237 | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                 | v0.4.1                             | true   | true             |
 | github.com/moby/sys/userns                                                  | v0.1.0                                 | v0.2.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.3                                | v2.32.1                            | true   | true             |
@@ -212,7 +212,7 @@ _Generated on Fri, 21 Aug 2026 09:51:06 UTC for commit [8521bed][0]._
 | github.com/Azure/go-autorest/autorest/date                                  | v0.3.1                                 |                                    | false  | true             |
 | github.com/Azure/go-autorest/logger                                         | v0.2.2                                 |                                    | false  | true             |
 | github.com/Azure/go-autorest/tracing                                        | v0.6.1                                 |                                    | false  | true             |
-| github.com/AzureAD/microsoft-authentication-library-for-go                  | v1.6.0                                 | v1.8.0                             | false  | true             |
+| github.com/AzureAD/microsoft-authentication-library-for-go                  | v1.6.0                                 | v1.9.0                             | false  | true             |
 | github.com/BurntSushi/toml                                                  | v1.6.0                                 |                                    | true   | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp    | v1.31.0                                | v1.35.0                            | false  | true             |
 | github.com/Masterminds/goutils                                              | v1.1.1                                 |                                    | false  | true             |
@@ -345,7 +345,7 @@ _Generated on Fri, 21 Aug 2026 09:51:06 UTC for commit [8521bed][0]._
 | github.com/danieljoos/wincred                                               | v1.2.3                                 |                                    | false  | true             |
 | github.com/davecgh/go-spew                                                  | v1.1.2-0.20180830191138-d8f796af33cc   |                                    | false  | true             |
 | github.com/decred/dcrd/dcrec/secp256k1/v4                                   | v4.4.0                                 | v4.4.1                             | false  | true             |
-| github.com/digitorus/pkcs7                                                  | v0.0.0-20230818184609-3a137a874352     | v0.0.0-20260821091337-543b44b37060 | false  | true             |
+| github.com/digitorus/pkcs7                                                  | v0.0.0-20230818184609-3a137a874352     | v0.0.0-20260821105541-05f79448fa77 | false  | true             |
 | github.com/digitorus/timestamp                                              | v0.0.0-20231217203849-220c5c2851b7     | v0.0.0-20250524132541-c45532741eea | false  | true             |
 | github.com/dimchansky/utfbom                                                | v1.1.1                                 |                                    | false  | true             |
 | github.com/disiqueira/gotree/v3                                             | v3.0.2                                 |                                    | false  | true             |
@@ -484,7 +484,7 @@ _Generated on Fri, 21 Aug 2026 09:51:06 UTC for commit [8521bed][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260821073939-ddcb1ad8d23c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260821133433-a8f0ee0cd237 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
@@ -774,7 +774,7 @@ _Generated on Fri, 21 Aug 2026 09:51:06 UTC for commit [8521bed][0]._
 | k8s.io/cri-streaming                                                        | v0.36.3                                | v0.36.4                            | true   | true             |
 | k8s.io/gengo/v2                                                             | v2.0.0-20250604051438-85fd79dbfd9f     | v2.0.0-20260408192533-25e2208e0dc3 | false  | true             |
 | k8s.io/klog/v2                                                              | v2.140.0                               |                                    | true   | true             |
-| k8s.io/kube-openapi                                                         | v0.0.0-20260317180543-43fb72c5454a     | v0.0.0-20260721132016-d427ff9ee9ad | false  | true             |
+| k8s.io/kube-openapi                                                         | v0.0.0-20260317180543-43fb72c5454a     | v0.0.0-20260821135717-be32def86098 | false  | true             |
 | k8s.io/kubelet                                                              | v0.36.3                                | v0.36.4                            | true   | true             |
 | k8s.io/streaming                                                            | v0.37.0-alpha.0                        | v0.38.0-alpha.0                    | false  | true             |
 | k8s.io/utils                                                                | v0.0.0-20260210185600-b8788abfbbc2     | v0.0.0-20260707023825-cf1189d6abe3 | true   | true             |
