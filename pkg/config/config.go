@@ -870,6 +870,8 @@ type MetricsConfig struct {
 	MetricsCollectors collectors.Collectors `toml:"metrics_collectors"`
 
 	// MetricsHost is the IP address or hostname on which the metrics server will listen.
+	// Leave empty to disable the TCP listener and expose metrics only via
+	// MetricsSocket (Unix socket).
 	MetricsHost string `toml:"metrics_host"`
 
 	// MetricsPort is the port on which the metrics server will listen.

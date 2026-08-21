@@ -1706,6 +1706,8 @@ const templateStringCrioMetricsCollectors = `# Specify enabled metrics collector
 `
 
 const templateStringCrioMetricsMetricsHost = `# The IP address or hostname on which the metrics server will listen.
+# Leave empty to disable the TCP listener and expose metrics only via the
+# Unix socket configured by metrics_socket.
 {{ $.Comment }}metrics_host = "{{ .MetricsHost }}"
 
 `
