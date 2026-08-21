@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containerd/nri/pkg/api"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/stretchr/testify/require"
 )
 
@@ -150,6 +151,18 @@ func TestMountInjection(stdT *testing.T) {
 		injectMount = func(p *plugin, pod *api.PodSandbox, ctr *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
 			if err := os.Chmod(testDir, 0o777); err != nil {
 				return nil, nil, fmt.Errorf("failed to change permissions: %w", err)
+			}
+			// allow containers to access the bind-mounted dir when SELinux is enforcing
+			if _, mountLabel := selinux.ContainerLabels(); mountLabel != "" {
+				ctx, err := selinux.NewContext(mountLabel)
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to parse SELinux label: %w", err)
+				}
+				// strip MCS categories so any container can access the directory
+				ctx["level"] = "s0"
+				if err := selinux.Chcon(testDir, ctx.Get(), false); err != nil {
+					return nil, nil, fmt.Errorf("failed to set SELinux label: %w", err)
+				}
 			}
 
 			adjust := &api.ContainerAdjustment{}
