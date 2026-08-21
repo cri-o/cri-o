@@ -431,6 +431,10 @@ clean: ## Clean the repository.
 nixpkgs: ## Update the NIX package dependencies.
 	nix $(NIX_FLAKE_FLAGS) flake update
 
+.PHONY: versions-commits
+versions-commits: ## Resolve and record upstream commit hashes in dependencies.yaml.
+	./scripts/resolve-version-commits
+
 .PHONY: vendor
 vendor: export GOSUMDB :=
 vendor: ## Update the vendored dependencies.

@@ -56,6 +56,27 @@ dependencies:
       - path: scripts/versions
         match: conmon
 
+  - name: conmon-rs
+    version: main
+    refPaths:
+      - path: scripts/versions
+        match: conmon-rs
+
+  # Upstream commit hashes for tools built from source in CI. Recorded here so
+  # builds are reproducible and CI failures are easier to bisect. Kept up to
+  # date by `make versions-commits` (see scripts/resolve-version-commits).
+  - name: conmon-commit
+    version: 82de887596ed8ee6d9b2ee85e4f167f307bb569b
+
+  - name: conmon-rs-commit
+    version: 5d33ccee5201a07f48e12fbc949ee8a99d74e351
+
+  - name: cri-tools-commit
+    version: 88d8ad9d40f82726fda53c2d271e6172b4c619c9
+
+  - name: crun-commit
+    version: 54f16ffbefcd022bf032af768b5c5ce075c18bfc
+
   - name: cri-tools
     version: v1.36.0
     refPaths:
