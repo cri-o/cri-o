@@ -42,7 +42,7 @@ func DefaultProfile() *seccomp.Seccomp {
 		}{
 			{"clone", 1, 23},
 			{"clone3", 1, 24},
-			{"unshare", 1, 359},
+			{"unshare", 1, 363},
 		}
 
 		prof := seccomp.DefaultProfile()
