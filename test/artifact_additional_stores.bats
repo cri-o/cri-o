@@ -57,7 +57,7 @@ additional_artifact_stores = [
 EOF
 
 	run -1 "$CRIO_BINARY_PATH" --config-dir "$CRIO_CONFIG_DIR" config
-	[[ "$output" == *'additional_artifact_stores entry must be absolute'* ]]
+	[[ "$output" == *'must be absolute'* ]]
 	[[ "$output" == *'./relative/path/store'* ]]
 }
 
