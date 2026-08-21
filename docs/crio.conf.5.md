@@ -123,7 +123,7 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 The _name_ of the OCI runtime to be used as the default. This option supports live configuration reload.
 
 **default_ulimits**=[]
-A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>", for example:"nofile=1024:2048". If nothing is set here, settings will be inherited from the CRI-O daemon.
+A list of ulimits to be set in containers by default, specified as "<ulimit name>=<soft limit>:<hard limit>", for example: "nofile=1024:2048". If nothing is set here and `cgroup_manager` is `cgroupfs`, settings will be inherited from the CRI-O daemon. If `cgroup_manager` is `systemd`, unset limits are instead inherited from systemd's own defaults (e.g. `DefaultLimitNOFILE=1024:524288`, see systemd-system.conf(5)) rather than from the CRI-O daemon.
 
 **no_pivot**=false
 If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
