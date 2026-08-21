@@ -6,8 +6,18 @@
 package lib
 
 import (
+	cstorage "go.podman.io/storage"
+
 	"github.com/cri-o/cri-o/internal/storage"
 )
+
+// NewContainerServerForTest creates a minimal ContainerServer for unit tests.
+func NewContainerServerForTest(store cstorage.Store) *ContainerServer {
+	return &ContainerServer{
+		store:                     store,
+		mountOperationsInProgress: make(map[string]*mountOperation),
+	}
+}
 
 // SetStorageRuntimeServer sets the runtime server for the ContainerServer.
 func (c *ContainerServer) SetStorageRuntimeServer(server storage.RuntimeServer) {
