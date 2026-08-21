@@ -133,7 +133,7 @@ func (s *Store) Pull(
 				if inspErr == nil {
 					log.Infof(ctx, "Artifact %s already exists in additional store %s, skipping pull", strRef, add.path)
 					// Force-pinned: additional stores are read-only and not subject to GC.
-					dgst := s.newArtifact(art, add.path, true).Digest()
+					dgst := s.newArtifact(ctx, art, add.path, true).Digest()
 
 					return &dgst, nil
 				}
@@ -246,7 +246,7 @@ func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
 
 		for _, art := range addArts {
 			// Force-pinned: additional stores are read-only and not subject to GC.
-			arts = append(arts, s.newArtifact(art, add.path, true))
+			arts = append(arts, s.newArtifact(ctx, art, add.path, true))
 		}
 	}
 
@@ -257,7 +257,7 @@ func (s *Store) List(ctx context.Context) (res []*Artifact, err error) {
 	}
 
 	for _, art := range mainArts {
-		arts = append(arts, s.newArtifact(art, s.rootPath, false))
+		arts = append(arts, s.newArtifact(ctx, art, s.rootPath, false))
 	}
 
 	// Deduplicate by reference, preserving priority (additional stores
@@ -292,7 +292,7 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 		artifact, err := add.store.Inspect(ctx, artRef)
 		if err == nil {
 			// Force-pinned: additional stores are read-only and not subject to GC.
-			return s.newArtifact(artifact, add.path, true), nil
+			return s.newArtifact(ctx, artifact, add.path, true), nil
 		}
 
 		if errors.Is(err, ErrNotFound) {
@@ -305,7 +305,7 @@ func (s *Store) Status(ctx context.Context, nameOrDigest string) (*Artifact, err
 	// Check main store
 	artifact, err := s.libartifactStore.Inspect(ctx, artRef)
 	if err == nil {
-		return s.newArtifact(artifact, s.rootPath, false), nil
+		return s.newArtifact(ctx, artifact, s.rootPath, false), nil
 	}
 
 	return nil, fmt.Errorf("inspect artifact: %w", err)
