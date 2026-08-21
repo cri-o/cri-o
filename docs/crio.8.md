@@ -201,7 +201,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--cgroup-manager**="": cgroup manager (cgroupfs or systemd). (default: "systemd")
 
-**--checkpoint-restore-container-level-enabled**="": The level of container checkpoint/restore support to enable. Must be one of "none", "checkpoint_only" or "checkpoint_restore". Enabling checkpoint or restore requires that the criu binary is available in $PATH. (default: "checkpoint_restore")
+**--checkpoint-restore-container-level-enabled**="": The level of container checkpoint/restore support to enable. Must be one of "none", "checkpoint_only" or "checkpoint_restore". Enabling checkpoint or restore requires that the criu binary is available in $PATH. (default: "checkpoint_only")
 
 **--clean-shutdown-file**="": Location for CRI-O to lay down the clean shutdown file. It indicates whether we've had time to sync changes to disk before shutting down. If not found, crio wipe will clear the storage directory. (default: "/var/lib/crio/clean.shutdown")
 

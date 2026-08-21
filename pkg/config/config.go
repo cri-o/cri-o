@@ -1180,7 +1180,7 @@ func DefaultConfig() (*Config, error) {
 		},
 		RuntimeConfig: *DefaultRuntimeConfig(cgroupManager),
 		CheckpointRestoreConfig: CheckpointRestoreConfig{
-			ContainerLevelEnabled: ContainerCheckpointRestoreLevelCheckpointRestore,
+			ContainerLevelEnabled: ContainerCheckpointRestoreLevelCheckpointOnly,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:        "docker://",

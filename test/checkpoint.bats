@@ -9,30 +9,19 @@ function setup() {
 	fi
 
 	setup_test
+	has_criu
 }
 
 function teardown() {
 	cleanup_test
 }
 
-# Write a [crio.checkpoint_restore] drop-in setting container_level_enabled.
-# Must be called before start_crio so the drop-in is picked up. The file is
-# ordered after 00-crio-custom.conf so it wins.
-function set_checkpoint_restore_level() {
-	cat << EOF > "$CRIO_CONFIG_DIR/01-checkpoint-restore.conf"
-[crio.checkpoint_restore]
-container_level_enabled = "$1"
-EOF
-}
-
 @test "checkpoint and restore one container into a new pod (drop infra:true)" {
-	has_criu
-
 	if is_using_crun; then
 		skip "not supported by crun: https://github.com/containers/crun/issues/1207"
 	fi
 
-	CONTAINER_DROP_INFRA_CTR=true CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	CONTAINER_DROP_INFRA_CTR=true CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	BIND_MOUNT_FILE=$(mktemp)
 	BIND_MOUNT_DIR=$(mktemp -d)
@@ -85,9 +74,7 @@ EOF
 }
 
 @test "checkpoint and restore one container into a new pod (drop infra:false)" {
-	has_criu
-
-	CONTAINER_DROP_INFRA_CTR=false CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -104,9 +91,8 @@ EOF
 }
 
 @test "checkpoint and restore one container into a new pod using --export to OCI image" {
-	has_criu
 	has_buildah
-	CONTAINER_DROP_INFRA_CTR=false CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -127,9 +113,8 @@ EOF
 }
 
 @test "checkpoint and restore one container into a new pod using --export to OCI image using repoDigest" {
-	has_criu
 	has_buildah
-	CONTAINER_DROP_INFRA_CTR=false CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -152,9 +137,7 @@ EOF
 }
 
 @test "checkpoint and restore one container into a new pod with a new name" {
-	has_criu
-
-	CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	# Add Kubernetes like annotations
 	START_CONTAINER_JSON_1=$(mktemp)
@@ -193,9 +176,7 @@ EOF
 }
 
 @test "checkpoint and restore: /etc/passwd uses Kubernetes run_as_user on restore" {
-	has_criu
-
-	CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	# Create container with run_as_user=1001
 	START_JSON=$(mktemp)
@@ -235,36 +216,8 @@ EOF
 	rm -f "$RESTORE_JSON"
 }
 
-@test "checkpoint_restore level allows checkpoint and restore" {
-	has_criu
-
-	set_checkpoint_restore_level "checkpoint_restore"
-	start_crio
-
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
-	crictl checkpoint --export="$TESTDIR"/cp.tar "$ctr_id"
-	crictl rm -f "$ctr_id"
-	crictl rmp -f "$pod_id"
-
-	# Restore from the checkpoint archive.
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	RESTORE_JSON=$(mktemp)
-	jq ".image.image=\"$TESTDIR/cp.tar\"" "$TESTDATA"/container_sleep.json > "$RESTORE_JSON"
-	ctr_id=$(crictl create "$pod_id" "$RESTORE_JSON" "$TESTDATA"/sandbox_config.json)
-	rm -f "$RESTORE_JSON"
-	crictl start "$ctr_id"
-
-	restored=$(crictl inspect --output go-template --template "{{(index .info.restored)}}" "$ctr_id")
-	[[ "$restored" == "true" ]]
-}
-
 @test "checkpoint_only level allows checkpoint but blocks restore" {
-	has_criu
-
-	set_checkpoint_restore_level "checkpoint_only"
-	start_crio
+	CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_only" start_crio
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
@@ -284,10 +237,7 @@ EOF
 }
 
 @test "none level blocks checkpoint" {
-	has_criu
-
-	set_checkpoint_restore_level "none"
-	start_crio
+	CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="none" start_crio
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
@@ -296,13 +246,8 @@ EOF
 	[[ "$output" == *"checkpoint/restore support not available"* ]]
 }
 
-@test "deprecated enable_criu_support=false disables checkpoint" {
-	has_criu
-
-	CONTAINER_ENABLE_CRIU_SUPPORT=false start_crio
-
-	# The deprecated option is translated to container_level_enabled = "none".
-	grep -q "enable_criu_support is deprecated" "$CRIO_LOG"
+@test "deprecated enable_criu_support=false disables checkpoint and overrides checkpoint_restore field" {
+	CONTAINER_ENABLE_CRIU_SUPPORT=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
@@ -313,8 +258,8 @@ EOF
 
 @test "invalid container_level_enabled fails to start crio" {
 	setup_crio
-	set_checkpoint_restore_level "bogus"
 
+	export CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="bogus"
 	run ! "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
 	[[ "$output" == *"container_level_enabled"* ]]
 }
