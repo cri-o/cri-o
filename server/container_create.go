@@ -476,6 +476,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, fmt.Errorf("CreateContainer failed as the sandbox was stopped: %s", sb.ID())
 	}
 
+	defer s.nri.BlockPluginSync().Unblock()
+
 	ctr, err := container.New()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container: %w", err)
@@ -919,15 +921,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 
-	if err := s.nri.createContainer(ctx, specgen, sb, ociContainer); err != nil {
-		return nil, err
-	}
-
 	defer func() {
 		if retErr != nil {
 			s.nri.undoCreateContainer(ctx, specgen, sb, ociContainer)
 		}
 	}()
+
+	if err := s.nri.createContainer(ctx, specgen, sb, ociContainer); err != nil {
+		return nil, err
+	}
 
 	if hooks != nil {
 		if err := hooks.PreCreate(ctx, specgen, sb, ociContainer); err != nil {
