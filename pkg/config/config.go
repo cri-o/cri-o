@@ -1362,8 +1362,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	}
 
 	for _, p := range c.AdditionalArtifactStores {
-		if !filepath.IsAbs(p) {
-			return fmt.Errorf("additional_artifact_stores entry must be absolute: %q", p)
+		if err := validateStorePath(p); err != nil {
+			return fmt.Errorf("additional_artifact_stores: %w", err)
 		}
 	}
 
@@ -2348,4 +2348,30 @@ func (c *APIConfig) GetTLSMinVersion() uint16 {
 // The value is parsed and validated during Validate().
 func (c *APIConfig) GetTLSCipherSuites() []uint16 {
 	return c.tlsCipherSuitesParsed
+}
+
+var storePathRegexp = regexp.MustCompile(`^/[a-zA-Z0-9/._-]+$`)
+
+func validateStorePath(path string) error {
+	if path == "" {
+		return errors.New("path must not be empty")
+	}
+
+	if len(path) > 256 {
+		return fmt.Errorf("path %q must not exceed 256 characters", path)
+	}
+
+	if !storePathRegexp.MatchString(path) {
+		return fmt.Errorf("path %q must be absolute and contain only alphanumeric characters, '/', '.', '_', and '-'", path)
+	}
+
+	if strings.Contains(path, "//") {
+		return fmt.Errorf("path %q must not contain consecutive forward slashes", path)
+	}
+
+	if slices.Contains(strings.Split(path, "/"), "..") {
+		return fmt.Errorf("path %q must not contain '..' components", path)
+	}
+
+	return nil
 }

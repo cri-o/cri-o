@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -279,7 +280,7 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("additional_artifact_stores entry must be absolute"))
+			Expect(err.Error()).To(ContainSubstring("additional_artifact_stores"))
 			Expect(err.Error()).To(ContainSubstring("./relative/path"))
 		})
 
@@ -293,6 +294,88 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("relative/path"))
+		})
+
+		It("should fail with dot-dot traversal in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var/lib/../../etc"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("'..'"))
+		})
+
+		It("should fail with path containing special characters in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var/lib/store@v1"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must be absolute"))
+		})
+
+		It("should fail with consecutive slashes in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var//lib/store"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("consecutive forward slashes"))
+		})
+
+		It("should fail with empty path in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{""}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not be empty"))
+		})
+
+		It("should succeed with double dots within a filename in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var/lib/foo..bar"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should succeed with path at exactly 256 characters in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/" + strings.Repeat("a", 255)}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should fail with path exceeding 256 characters in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/" + strings.Repeat("a", 256)}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not exceed 256 characters"))
 		})
 
 		It("should succeed during runtime", func() {
