@@ -203,7 +203,7 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 // This function exists until the support for runtime level allowed annotations is dropped.
 // toFind is used to find the workload for the specific pod or container, toFilter are the annotations
 // for which disallowed annotations will be filtered. They may be the same.
-// After this function, toFilter will no longer container disallowed annotations.
+// After this function, toFilter will no longer contain disallowed or internal annotations.
 func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string, runtimeHandler string) error {
 	// Only one of these Filter* will actually do any filtering, as the runtime DisallowedAnnotations
 	// were scrubbed at the config validation step if there were workload AllowedAnnotations configured.
