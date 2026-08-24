@@ -11,7 +11,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/pkg/config"
 )
 
 // GomaxprocsHooks injects the GOMAXPROCS environment variable into containers
@@ -19,8 +18,7 @@ import (
 // for burstable pods with a CPU request, GOMAXPROCS is auto-calculated from
 // the request's CPU shares and only used if it exceeds the floor.
 type GomaxprocsHooks struct {
-	fallback  int64
-	workloads config.Workloads
+	fallback int64
 }
 
 func (g *GomaxprocsHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
@@ -31,13 +29,6 @@ func (g *GomaxprocsHooks) PreCreate(ctx context.Context, specgen *generate.Gener
 	// Skip if pod has the skip annotation.
 	if skipAnnotation, ok := annotations[crioann.SkipGoMaxProcsAnnotation]; ok && skipAnnotation == "true" {
 		log.Debugf(ctx, "Skipping GOMAXPROCS injection: %s annotation is set", crioann.SkipGoMaxProcsAnnotation)
-
-		return nil
-	}
-
-	// Skip workload-partitioned pods — their cpuset is managed by workload partitioning.
-	if g.workloads.IsWorkloadPartitioned(annotations) {
-		log.Debugf(ctx, "Skipping GOMAXPROCS injection: pod is workload-partitioned")
 
 		return nil
 	}
@@ -100,9 +91,12 @@ func (*GomaxprocsHooks) PostStop(context.Context, *oci.Container, *sandbox.Sandb
 // calculateGOMAXPROCS derives the GOMAXPROCS value from CPU shares and a floor.
 // Kubelet sets shares = cpu_request_in_millicores * 1024 / 1000.
 // We reverse that with ceil(shares / 1024) to get the CPU count.
+// We then double that CPU count, as having GOMAXPROCS double the actual requested number reduces the likelihood
+// the go runtime will throttle itself in cases where there is excess CPU capacity (which is the intended result
+// of a cpu request).
 // The floor is used when the calculated value is lower.
 func calculateGOMAXPROCS(shares, fallbackMaxProcs int64) int64 {
-	return max(max((shares+1023)/1024, 1), fallbackMaxProcs)
+	return max(max((shares*2+1023)/1024, 1), fallbackMaxProcs)
 }
 
 // injectGOMAXPROCS sets the GOMAXPROCS environment variable to the given value.
