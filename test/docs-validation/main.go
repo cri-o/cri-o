@@ -290,7 +290,7 @@ func recursiveEntries(
 				switch {
 				case field.Type.Implements(reflect.TypeFor[stringer]()):
 					// We need a checked type assertion to make golangci-lint happy...
-					if str, ok := vv.MethodByName("String").Interface().(func() string); ok {
+					if str, ok := reflect.TypeAssert[func() string](vv.MethodByName("String")); ok {
 						// if the field is a pointer and nil, skip validation
 						if vv.Kind() == reflect.Pointer && vv.IsNil() {
 							break
