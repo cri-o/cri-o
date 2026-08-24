@@ -460,6 +460,61 @@ func TestSetupContainerUserRejectsNewlineInHOME(t *testing.T) {
 	}
 }
 
+func TestUserSpecifiedSELinuxType(t *testing.T) {
+	newCtr := func(containerType, sandboxType string) container.Container {
+		t.Helper()
+
+		ctr, err := container.New()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		cfg := &types.ContainerConfig{
+			Metadata: &types.ContainerMetadata{Name: "testctr"},
+			Linux: &types.LinuxContainerConfig{
+				SecurityContext: &types.LinuxContainerSecurityContext{
+					SelinuxOptions: &types.SELinuxOption{Type: containerType},
+				},
+			},
+		}
+		sbox := &types.PodSandboxConfig{
+			Metadata: &types.PodSandboxMetadata{Name: "testpod"},
+			Linux: &types.LinuxPodSandboxConfig{
+				SecurityContext: &types.LinuxSandboxSecurityContext{
+					SelinuxOptions: &types.SELinuxOption{Type: sandboxType},
+				},
+			},
+		}
+
+		if err := ctr.SetConfig(cfg, sbox); err != nil {
+			t.Fatal(err)
+		}
+
+		return ctr
+	}
+
+	tests := []struct {
+		name          string
+		containerType string
+		sandboxType   string
+		want          string
+	}{
+		{name: "no type specified"},
+		{name: "container type", containerType: "container_init_t", want: "container_init_t"},
+		{name: "sandbox type", sandboxType: "spc_t", want: "spc_t"},
+		{name: "container type overrides sandbox", containerType: "container_t", sandboxType: "spc_t", want: "container_t"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := userSpecifiedSELinuxType(newCtr(tt.containerType, tt.sandboxType))
+			if got != tt.want {
+				t.Errorf("userSpecifiedSELinuxType() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIsSubDirectoryOf(t *testing.T) {
 	tests := []struct {
 		base, target string

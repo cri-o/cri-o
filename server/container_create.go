@@ -1236,9 +1236,15 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 
 	// Newer versions of container-selinux, container-selinux-2.132.0 or newer,
 	// supply a container_init_t label. If CRI-O is running systemd or init inside
-	// the container and the process label is unset, the init selinux label is required
-	// to run the container.
-	if ctr.WillRunSystemd() && processLabel == "" {
+	// the container, the init selinux label is required unless the user
+	// explicitly requested a different SELinux type.
+	//
+	// processLabel is typically already populated with the storage-generated
+	// default (container_t) when SELinux is enabled, so a non-empty processLabel
+	// must not be treated as a user override. Checking the CRI SELinux type
+	// preserves user-specified labels while still applying container_init_t
+	// for the default systemd case.
+	if ctr.WillRunSystemd() && userSpecifiedSELinuxType(ctr) == "" {
 		processLabel, err = selinux.SetProcessKind(processLabel, selinux.ProcessKindInit)
 		if err != nil {
 			return "", "", false, false, fmt.Errorf("failed to get init label: %w", err)
@@ -1258,6 +1264,21 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 	}
 
 	return mountLabel, processLabel, maybeRelabel, skipRelabel, nil
+}
+
+// userSpecifiedSELinuxType returns the SELinux type explicitly requested by the
+// container or its sandbox. An empty string means CRI-O should apply its default
+// labeling, including container_init_t for systemd/init containers.
+func userSpecifiedSELinuxType(ctr container.Container) string {
+	if t := ctr.Config().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType(); t != "" {
+		return t
+	}
+
+	if ctr.SandboxConfig() == nil {
+		return ""
+	}
+
+	return ctr.SandboxConfig().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType()
 }
 
 // createStorageContainer creates the storage layer container with the specified image and ID mappings.
