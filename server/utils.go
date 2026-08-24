@@ -44,8 +44,13 @@ func validateLabels(labels map[string]string) error {
 
 func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 	envs := []string{}
+
 	if kubeEnvs == nil && imageConfig != nil {
-		envs = imageConfig.Config.Env
+		for _, imageEnv := range imageConfig.Config.Env {
+			if key, _, ok := strings.Cut(imageEnv, "="); ok && key != "" {
+				envs = append(envs, imageEnv)
+			}
+		}
 	} else {
 		for _, item := range kubeEnvs {
 			if item.GetKey() == "" {
