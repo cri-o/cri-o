@@ -8,6 +8,8 @@ dependencies:
         match: buildGo126Module
       - path: go.mod
         match: go
+      - path: hack/build-rpms.sh
+        match: go
 
   # For a new minor (1.x.0) release, move the "development version"
   # below to the "supported versions" section (by omitting the patch version).
