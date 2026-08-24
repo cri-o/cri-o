@@ -76,6 +76,16 @@ func TestMergeEnvs(t *testing.T) {
 			expected: []string{"VAR2=2", "VAR1=1"},
 		},
 		{
+			name: "kubeEnvs nil with malformed image env filtered",
+			imageConfig: &v1.Image{
+				Config: v1.ImageConfig{
+					Env: []string{"INVALID_NO_EQUALS", "=NO_KEY", "VAR1=1"},
+				},
+			},
+			kubeEnvs: nil,
+			expected: []string{"VAR1=1"},
+		},
+		{
 			name: "valid envs with empty values",
 			imageConfig: &v1.Image{
 				Config: v1.ImageConfig{

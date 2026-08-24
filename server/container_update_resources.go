@@ -115,9 +115,9 @@ func reapplySharedCPUs(c *oci.Container, req *types.UpdateContainerResourcesRequ
 	}
 
 	for _, env := range c.Spec().Process.Env {
-		keyAndValue := strings.Split(env, "=")
-		if keyAndValue[0] == sharedCPUsEnvVar {
-			sharedCpus = keyAndValue[1]
+		key, val, ok := strings.Cut(env, "=")
+		if ok && key == sharedCPUsEnvVar {
+			sharedCpus = val
 		}
 	}
 	// nothing to do
