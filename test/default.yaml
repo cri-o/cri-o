@@ -1,2 +1,5 @@
 default-docker:
   use-sigstore-attachments: true
+docker:
+  registry.k8s.io:
+    use-sigstore-attachments: false
