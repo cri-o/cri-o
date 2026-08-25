@@ -2,8 +2,8 @@
 - name: set runc checksum
   set_fact:
     runc_checksums:
-      amd64: "sha256:0363e69bebd3a027d1239364ab9b4f4873f6bc4e7a7878e94b4ea59f08551297"
-      arm64: "sha256:1f6d8c553add066a6aaf838d3172d4c5ed3c6b065b6f7eed2f4a4aa4af261e59"
+      amd64: "sha256:177df879d50c913eb205e898d5c1c05a18f574053c0ce5524c471208eaf06f6f"
+      arm64: "sha256:ca70e7dbd6616ca782a59b5d3ac86909123fdaa9fa3f89dcf29051c70eee7ce9"
 
 - name: download prebuilt runc binary
   get_url:
