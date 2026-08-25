@@ -693,6 +693,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
+	containerImageConfig := containerInfo.Config
+	if containerImageConfig == nil {
+		return nil, fmt.Errorf("empty image config for %s", imgInfo.userRequestedImage)
+	}
+
+	// Process args must be set before configureSELinuxLabels so WillRunSystemd()
+	// can see /sbin/init or systemd. generate.New() defaults Args to ["sh"].
+	if err := ctr.SpecSetProcessArgs(containerImageConfig); err != nil {
+		return nil, err
+	}
+
 	mountLabel, processLabel, maybeRelabel, skipRelabel, err := s.configureSELinuxLabels(ctr, sb, containerInfo)
 	if err != nil {
 		return nil, err
@@ -820,17 +831,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	usernsEnabled := containerIDMappings != nil
 	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
 	addSysfsMounts(ctr, containerConfig, hostNet, usernsEnabled)
-
-	containerImageConfig := containerInfo.Config
-	if containerImageConfig == nil {
-		err = fmt.Errorf("empty image config for %s", imgInfo.userRequestedImage)
-
-		return nil, err
-	}
-
-	if err := ctr.SpecSetProcessArgs(containerImageConfig); err != nil {
-		return nil, err
-	}
 
 	if err := s.setupCgroupNamespace(ctr, specgen); err != nil {
 		return nil, err
