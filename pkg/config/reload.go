@@ -209,7 +209,7 @@ func (c *Config) ReloadRegistries() error {
 	if err != nil {
 		return fmt.Errorf(
 			"system registries reload failed: %s: %w",
-			sysregistriesv2.ConfigPath(c.SystemContext),
+			sysregistriesv2.ConfigurationSourceDescription(c.SystemContext),
 			err,
 		)
 	}

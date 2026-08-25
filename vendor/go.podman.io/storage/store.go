@@ -25,13 +25,13 @@ import (
 	"github.com/sirupsen/logrus"
 	drivers "go.podman.io/storage/drivers"
 	"go.podman.io/storage/internal/dedup"
+	"go.podman.io/storage/internal/driver"
 	"go.podman.io/storage/internal/tempdir"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/directory"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/ioutils"
 	"go.podman.io/storage/pkg/lockfile"
-	"go.podman.io/storage/pkg/parsers"
 	"go.podman.io/storage/pkg/stringutils"
 	"go.podman.io/storage/pkg/system"
 	"go.podman.io/storage/types"
@@ -633,13 +633,39 @@ type AutoUserNsOptions = types.AutoUserNsOptions
 
 type IDMappingOptions = types.IDMappingOptions
 
+// LayerIDMappingOptions are the on-disk ID mappings for a layer.
+//
+// Unlike the caller-facing IDMappingOptions (which expresses what mapping
+// the caller wants), these record how files are actually stored.  The two
+// may differ: when the graph driver supports shifting, no chown
+// occurs so HostUIDMapping/HostGIDMapping are true and UIDMap/GIDMap
+// are empty, even though the caller requested a non-trivial mapping.
+// The caller's requested mapping is still honored at mount time via
+// the Container's UIDMap/GIDMap.
+type LayerIDMappingOptions struct {
+	// HostUIDMapping is true when files in this layer are stored with host
+	// UIDs.
+	HostUIDMapping bool
+	// HostGIDMapping is true when files in this layer are stored with host
+	// GIDs.  See HostUIDMapping for details.
+	HostGIDMapping bool
+	// UIDMap is the on-disk UID mapping: it records the chown that was
+	// applied to the layer's files at creation time.  Empty when
+	// HostUIDMapping is true.
+	UIDMap []idtools.IDMap
+	// GIDMap is the on-disk GID mapping: it records the chown that was
+	// applied to the layer's files at creation time.  Empty when
+	// HostGIDMapping is true.
+	GIDMap []idtools.IDMap
+}
+
 // LayerOptions is used for passing options to a Store's CreateLayer() and PutLayer() methods.
 type LayerOptions struct {
 	// IDMappingOptions specifies the type of ID mapping which should be
 	// used for this layer.  If nothing is specified, the layer will
 	// inherit settings from its parent layer or, if it has no parent
 	// layer, the Store object.
-	types.IDMappingOptions
+	IDMappingOptions LayerIDMappingOptions
 	// TemplateLayer is the ID of a layer whose contents will be used to
 	// initialize this layer.  If set, it should be a child of the layer
 	// which we want to use as the parent of the new layer.
@@ -708,10 +734,18 @@ type ImageBigDataOption struct {
 
 // ContainerOptions is used for passing options to a Store's CreateContainer() method.
 type ContainerOptions struct {
-	// IDMappingOptions specifies the type of ID mapping which should be
-	// used for this container's layer.  If nothing is specified, the
-	// container's layer will inherit settings from the image's top layer
-	// or, if it is not being created based on an image, the Store object.
+	// IDMappingOptions specifies the caller's desired ID mapping for the
+	// container's user namespace.
+	//
+	// These express what the caller wants, not what ends up on disk.
+	// The store records them in the Container and uses them at mount
+	// time.  How the layer's files are stored depends on whether the
+	// driver supports shifting: if it does, no chown occurs and the
+	// mapping is applied at mount time; otherwise files are chowned at
+	// layer creation time.
+	//
+	// If nothing is specified, mappings are inherited from the image's top
+	// layer or, if no image, from the Store's defaults.
 	types.IDMappingOptions
 	LabelOpts []string
 	// Flags is a set of named flags and their values to store with the container.
@@ -807,7 +841,7 @@ type store struct {
 //	    return
 //	}
 func GetStore(options types.StoreOptions) (Store, error) {
-	defaultOpts, err := types.Options()
+	defaultOpts, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -858,14 +892,6 @@ func GetStore(options types.StoreOptions) (Store, error) {
 	}
 	if options.ImageStore != "" {
 		if err := os.MkdirAll(options.ImageStore, 0o700); err != nil {
-			return nil, err
-		}
-	}
-	if err := os.MkdirAll(filepath.Join(options.GraphRoot, options.GraphDriverName), 0o700); err != nil {
-		return nil, err
-	}
-	if options.ImageStore != "" {
-		if err := os.MkdirAll(filepath.Join(options.ImageStore, options.GraphDriverName), 0o700); err != nil {
 			return nil, err
 		}
 	}
@@ -977,6 +1003,16 @@ func (s *store) load() error {
 	}(); err != nil {
 		return err
 	}
+
+	if err := os.MkdirAll(filepath.Join(s.graphRoot, s.graphDriverName), 0o700); err != nil {
+		return err
+	}
+	if s.imageStoreDir != "" {
+		if err := os.MkdirAll(filepath.Join(s.imageStoreDir, s.graphDriverName), 0o700); err != nil {
+			return err
+		}
+	}
+
 	driverPrefix := s.graphDriverName + "-"
 
 	imgStoreRoot := s.imageStoreDir
@@ -1271,6 +1307,26 @@ func readAllLayerStores[T any](s *store, fn func(store roLayerStore) (T, bool, e
 	return zeroRes, false, nil
 }
 
+// readPrimaryLayerStore is a helper for working with store.getLayerStore():
+// It locks the store for reading, checks for updates, and calls fn()
+// It returns the return value of fn, or its own error initializing the store.
+//
+// Most callers should call readAllLayerStores instead.
+func readPrimaryLayerStore[T any](s *store, fn func(store rwLayerStore) (T, error)) (T, error) {
+	var zeroRes T // A zero value of T
+
+	store, err := s.getLayerStore()
+	if err != nil {
+		return zeroRes, err
+	}
+
+	if err := store.startReading(); err != nil {
+		return zeroRes, err
+	}
+	defer store.stopReading()
+	return fn(store)
+}
+
 // writeToLayerStore is a helper for working with store.getLayerStore():
 // It locks the store for writing, checks for updates, and calls fn()
 // It returns the return value of fn, or its own error initializing the store.
@@ -1496,14 +1552,14 @@ func populateLayerOptions(s *store, rlstore rwLayerStore, rlstores []roLayerStor
 		options.BigData = slices.Clone(lOptions.BigData)
 		options.Flags = copyMapPreferringNil(lOptions.Flags)
 	}
-	if options.HostUIDMapping {
-		options.UIDMap = nil
+	if options.IDMappingOptions.HostUIDMapping {
+		options.IDMappingOptions.UIDMap = nil
 	}
-	if options.HostGIDMapping {
-		options.GIDMap = nil
+	if options.IDMappingOptions.HostGIDMapping {
+		options.IDMappingOptions.GIDMap = nil
 	}
-	uidMap := options.UIDMap
-	gidMap := options.GIDMap
+	uidMap := options.IDMappingOptions.UIDMap
+	gidMap := options.IDMappingOptions.GIDMap
 	if parent != "" {
 		var err error
 		parentLayer, unlock, err = getParentLayer(rlstore, rlstores, parent)
@@ -1524,26 +1580,26 @@ func populateLayerOptions(s *store, rlstore rwLayerStore, rlstores []roLayerStor
 				return nil, nil, unlock, ErrParentIsContainer
 			}
 		}
-		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
+		if !options.IDMappingOptions.HostUIDMapping && len(options.IDMappingOptions.UIDMap) == 0 {
 			uidMap = parentLayer.UIDMap
 		}
-		if !options.HostGIDMapping && len(options.GIDMap) == 0 {
+		if !options.IDMappingOptions.HostGIDMapping && len(options.IDMappingOptions.GIDMap) == 0 {
 			gidMap = parentLayer.GIDMap
 		}
 	} else {
-		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
+		if !options.IDMappingOptions.HostUIDMapping && len(options.IDMappingOptions.UIDMap) == 0 {
 			uidMap = s.uidMap
 		}
-		if !options.HostGIDMapping && len(options.GIDMap) == 0 {
+		if !options.IDMappingOptions.HostGIDMapping && len(options.IDMappingOptions.GIDMap) == 0 {
 			gidMap = s.gidMap
 		}
 	}
 	if s.canUseShifting(uidMap, gidMap) {
-		options.IDMappingOptions = types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}
+		options.IDMappingOptions = LayerIDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}
 	} else {
-		options.IDMappingOptions = types.IDMappingOptions{
-			HostUIDMapping: options.HostUIDMapping,
-			HostGIDMapping: options.HostGIDMapping,
+		options.IDMappingOptions = LayerIDMappingOptions{
+			HostUIDMapping: options.IDMappingOptions.HostUIDMapping,
+			HostGIDMapping: options.IDMappingOptions.HostGIDMapping,
 			UIDMap:         copySlicePreferringNil(uidMap),
 			GIDMap:         copySlicePreferringNil(gidMap),
 		}
@@ -1834,14 +1890,14 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore roImageStore, rlst
 	// mappings, and register it as an alternate top layer in the image.
 	var layerOptions LayerOptions
 	if s.canUseShifting(options.UIDMap, options.GIDMap) {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{
+		layerOptions.IDMappingOptions = LayerIDMappingOptions{
 			HostUIDMapping: true,
 			HostGIDMapping: true,
 			UIDMap:         nil,
 			GIDMap:         nil,
 		}
 	} else {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{
+		layerOptions.IDMappingOptions = LayerIDMappingOptions{
 			HostUIDMapping: options.HostUIDMapping,
 			HostGIDMapping: options.HostGIDMapping,
 			UIDMap:         copySlicePreferringNil(options.UIDMap),
@@ -1986,20 +2042,12 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		// But in transient store mode, all container layers are volatile.
 		Volatile: options.Volatile || s.transientStore,
 	}
-	if s.canUseShifting(uidMap, gidMap) {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{
-			HostUIDMapping: true,
-			HostGIDMapping: true,
-			UIDMap:         nil,
-			GIDMap:         nil,
-		}
-	} else {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{
-			HostUIDMapping: idMappingsOptions.HostUIDMapping,
-			HostGIDMapping: idMappingsOptions.HostGIDMapping,
-			UIDMap:         copySlicePreferringNil(uidMap),
-			GIDMap:         copySlicePreferringNil(gidMap),
-		}
+	useHostMapping := idMappingsOptions.HostUIDMapping || s.canUseShifting(uidMap, gidMap)
+	layerOptions.IDMappingOptions = LayerIDMappingOptions{
+		HostUIDMapping: useHostMapping,
+		HostGIDMapping: useHostMapping,
+		UIDMap:         copySlicePreferringNil(uidMap),
+		GIDMap:         copySlicePreferringNil(gidMap),
 	}
 	if options.Flags == nil {
 		options.Flags = make(map[string]any)
@@ -2646,7 +2694,7 @@ func (s *store) DeleteLayer(id string) (retErr error) {
 	}()
 	return s.writeToAllStores(func(rlstore rwLayerStore) error {
 		if rlstore.Exists(id) {
-			if l, err := rlstore.Get(id); err != nil {
+			if l, err := rlstore.Get(id); err == nil {
 				id = l.ID
 			}
 			layers, err := rlstore.Layers()
@@ -3052,10 +3100,6 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if options.UidMaps != nil || options.GidMaps != nil {
-		options.DisableShifting = !s.canUseShifting(options.UidMaps, options.GidMaps)
-	}
-
 	if err := rlstore.startWriting(); err != nil {
 		return "", err
 	}
@@ -3083,16 +3127,9 @@ func (s *store) Mounted(id string) (int, error) {
 	if layerID, err := s.ContainerLayerID(id); err == nil {
 		id = layerID
 	}
-	rlstore, err := s.getLayerStore()
-	if err != nil {
-		return 0, err
-	}
-	if err := rlstore.startReading(); err != nil {
-		return 0, err
-	}
-	defer rlstore.stopReading()
-
-	return rlstore.Mounted(id)
+	return readPrimaryLayerStore(s, func(store rwLayerStore) (int, error) {
+		return store.Mounted(id)
+	})
 }
 
 func (s *store) UnmountImage(id string, force bool) (bool, error) {
@@ -3387,41 +3424,48 @@ func (s *store) LayerSize(id string) (int64, error) {
 }
 
 func (s *store) LayerParentOwners(id string) ([]int, []int, error) {
-	rlstore, err := s.getLayerStore()
-	if err != nil {
+	var parentUIDs, parentGIDs []int
+	if _, err := readPrimaryLayerStore(s, func(store rwLayerStore) (struct{}, error) {
+		if store.Exists(id) {
+			u, g, err := store.ParentOwners(id)
+			if err != nil {
+				return struct{}{}, err
+			}
+			parentUIDs = u
+			parentGIDs = g
+			return struct{}{}, nil
+		}
+		return struct{}{}, ErrLayerUnknown
+	}); err != nil {
 		return nil, nil, err
 	}
-	if err := rlstore.startReading(); err != nil {
-		return nil, nil, err
-	}
-	defer rlstore.stopReading()
-	if rlstore.Exists(id) {
-		return rlstore.ParentOwners(id)
-	}
-	return nil, nil, ErrLayerUnknown
+	return parentUIDs, parentGIDs, nil
 }
 
 func (s *store) ContainerParentOwners(id string) ([]int, []int, error) {
-	rlstore, err := s.getLayerStore()
-	if err != nil {
+	var parentUIDs, parentGIDs []int
+	if _, err := readPrimaryLayerStore(s, func(store rwLayerStore) (struct{}, error) {
+		_, _, err := readContainerStore(s, func() (struct{}, bool, error) {
+			container, err := s.containerStore.Get(id)
+			if err != nil {
+				return struct{}{}, true, err
+			}
+			if store.Exists(container.LayerID) {
+				u, g, err := store.ParentOwners(container.LayerID)
+				if err != nil {
+					return struct{}{}, true, err
+				}
+				parentUIDs = u
+				parentGIDs = g
+				return struct{}{}, true, nil
+			}
+			return struct{}{}, true, ErrLayerUnknown
+		})
+		return struct{}{}, err
+	}); err != nil {
 		return nil, nil, err
 	}
-	if err := rlstore.startReading(); err != nil {
-		return nil, nil, err
-	}
-	defer rlstore.stopReading()
-	if err := s.containerStore.startReading(); err != nil {
-		return nil, nil, err
-	}
-	defer s.containerStore.stopReading()
-	container, err := s.containerStore.Get(id)
-	if err != nil {
-		return nil, nil, err
-	}
-	if rlstore.Exists(container.LayerID) {
-		return rlstore.ParentOwners(container.LayerID)
-	}
-	return nil, nil, ErrLayerUnknown
+	return parentUIDs, parentGIDs, nil
 }
 
 func (s *store) Layers() ([]Layer, error) {
@@ -3499,6 +3543,12 @@ func (s *store) LookupAdditionalLayer(tocDigest digest.Digest, imageref string) 
 		}
 		return nil, err
 	}
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			al.Release()
+		}
+	}()
 	info, err := al.Info()
 	if err != nil {
 		return nil, err
@@ -3508,6 +3558,7 @@ func (s *store) LookupAdditionalLayer(tocDigest digest.Digest, imageref string) 
 	if err := json.NewDecoder(info).Decode(&layer); err != nil {
 		return nil, err
 	}
+	succeeded = true
 	return &additionalLayer{&layer, al, s}, nil
 }
 
@@ -3923,27 +3974,9 @@ const AutoUserNsMaxSize = 65536
 // creating a user namespace.
 const RootAutoUserNsUser = "containers"
 
-// SetDefaultConfigFilePath sets the default configuration to the specified path, and loads the file.
-// Deprecated: Use types.SetDefaultConfigFilePath, which can return an error.
-func SetDefaultConfigFilePath(path string) {
-	_ = types.SetDefaultConfigFilePath(path)
-}
-
-// DefaultConfigFile returns the path to the storage config file used
-func DefaultConfigFile() (string, error) {
-	return types.DefaultConfigFile()
-}
-
-// ReloadConfigurationFile parses the specified configuration file and overrides
-// the configuration in storeOptions.
-// Deprecated: Use types.ReloadConfigurationFile, which can return an error.
-func ReloadConfigurationFile(configFile string, storeOptions *types.StoreOptions) {
-	_ = types.ReloadConfigurationFile(configFile, storeOptions)
-}
-
 // GetDefaultMountOptions returns the default mountoptions defined in container/storage
 func GetDefaultMountOptions() ([]string, error) {
-	defaultStoreOptions, err := types.Options()
+	defaultStoreOptions, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -3951,18 +3984,13 @@ func GetDefaultMountOptions() ([]string, error) {
 }
 
 // GetMountOptions returns the mountoptions for the specified driver and graphDriverOptions
-func GetMountOptions(driver string, graphDriverOptions []string) ([]string, error) {
-	mountOpts := []string{
-		".mountopt",
-		fmt.Sprintf("%s.mountopt", driver),
-	}
+func GetMountOptions(usedDriver string, graphDriverOptions []string) ([]string, error) {
 	for _, option := range graphDriverOptions {
-		key, val, err := parsers.ParseKeyValueOpt(option)
+		optDriver, key, val, err := driver.ParseDriverOption(option)
 		if err != nil {
 			return nil, err
 		}
-		key = strings.ToLower(key)
-		if slices.Contains(mountOpts, key) {
+		if (optDriver == "" || optDriver == usedDriver) && key == "mountopt" {
 			return strings.Split(val, ","), nil
 		}
 	}

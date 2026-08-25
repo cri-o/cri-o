@@ -15,25 +15,25 @@ var (
 
 type threadSafeMovingAverage struct {
 	ewma.MovingAverage
-	mu sync.Mutex
-}
-
-func (s *threadSafeMovingAverage) Add(value float64) {
-	s.mu.Lock()
-	s.MovingAverage.Add(value)
-	s.mu.Unlock()
-}
-
-func (s *threadSafeMovingAverage) Value() float64 {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.MovingAverage.Value()
+	mut sync.RWMutex
 }
 
 func (s *threadSafeMovingAverage) Set(value float64) {
-	s.mu.Lock()
+	s.mut.Lock()
+	defer s.mut.Unlock()
 	s.MovingAverage.Set(value)
-	s.mu.Unlock()
+}
+
+func (s *threadSafeMovingAverage) Add(value float64) {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+	s.MovingAverage.Add(value)
+}
+
+func (s *threadSafeMovingAverage) Value() float64 {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+	return s.MovingAverage.Value()
 }
 
 // NewThreadSafeMovingAverage converts provided ewma.MovingAverage
@@ -41,6 +41,9 @@ func (s *threadSafeMovingAverage) Set(value float64) {
 func NewThreadSafeMovingAverage(average ewma.MovingAverage) ewma.MovingAverage {
 	if tsma, ok := average.(*threadSafeMovingAverage); ok {
 		return tsma
+	}
+	if average == nil {
+		average = NewMedian()
 	}
 	return &threadSafeMovingAverage{MovingAverage: average}
 }
@@ -63,7 +66,7 @@ func (s *medianWindow) Value() float64 {
 }
 
 func (s *medianWindow) Set(value float64) {
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		s[i] = value
 	}
 }

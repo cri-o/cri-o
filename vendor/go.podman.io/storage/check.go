@@ -2,6 +2,7 @@ package storage
 
 import (
 	"archive/tar"
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
@@ -9,7 +10,6 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -118,6 +118,26 @@ type CheckReport struct {
 	Containers            map[string][]error // damaged containers (including those based on damaged images)
 }
 
+func (r *CheckReport) recordLayerErrors(id string, errs ...error) {
+	r.Layers[id] = append(r.Layers[id], errs...)
+}
+
+func (r *CheckReport) recordROLayerErrors(id string, errs ...error) {
+	r.ROLayers[id] = append(r.ROLayers[id], errs...)
+}
+
+func (r *CheckReport) recordImageErrors(id string, errs ...error) {
+	r.Images[id] = append(r.Images[id], errs...)
+}
+
+func (r *CheckReport) recordROImageErrors(id string, errs ...error) {
+	r.ROImages[id] = append(r.ROImages[id], errs...)
+}
+
+func (r *CheckReport) recordContainerErrors(id string, errs ...error) {
+	r.Containers[id] = append(r.Containers[id], errs...)
+}
+
 // RepairOptions is the set of options for Repair().
 type RepairOptions struct {
 	RemoveContainers bool // Remove damaged containers
@@ -187,14 +207,27 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 			return struct{}{}, true, err
 		}
 		isReadWrite := roLayerStoreIsReallyReadWrite(store)
-		readWriteDesc := ""
-		if !isReadWrite {
+		var readWriteDesc string
+		var recordError2 func(id string, err error)
+		if isReadWrite {
+			readWriteDesc = ""
+			recordError2 = func(id string, err error) {
+				report.recordLayerErrors(id,
+					fmt.Errorf("layer %s: %w", id, err))
+			}
+		} else {
 			readWriteDesc = "read-only "
+			recordError2 = func(id string, err error) {
+				report.recordROLayerErrors(id,
+					fmt.Errorf("read-only layer %s: %w", id, err))
+			}
 		}
+
 		// Examine each layer in turn.
 		for i := range layers {
 			layer := layers[i]
 			id := layer.ID
+			recordError := func(err error) { recordError2(id, err) }
 			// If we've already seen a layer with this ID, no need to process it again.
 			if _, checked := referencedLayers[id]; checked {
 				continue
@@ -218,37 +251,22 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 			// were stored.
 			if options.LayerData {
 				for _, name := range layer.BigDataNames {
-					func() {
+					if err := func() error {
 						rc, err := store.BigData(id, name)
 						if err != nil {
 							if errors.Is(err, os.ErrNotExist) {
-								err := fmt.Errorf("%slayer %s: data item %q: %w", readWriteDesc, id, name, ErrLayerDataMissing)
-								if isReadWrite {
-									report.Layers[id] = append(report.Layers[id], err)
-								} else {
-									report.ROLayers[id] = append(report.ROLayers[id], err)
-								}
-								return
+								return ErrLayerDataMissing
 							}
-							err = fmt.Errorf("%slayer %s: data item %q: %w", readWriteDesc, id, name, err)
-							if isReadWrite {
-								report.Layers[id] = append(report.Layers[id], err)
-							} else {
-								report.ROLayers[id] = append(report.ROLayers[id], err)
-							}
-							return
+							return err
 						}
 						defer rc.Close()
 						if _, err = io.Copy(io.Discard, rc); err != nil {
-							err = fmt.Errorf("%slayer %s: data item %q: %w", readWriteDesc, id, name, err)
-							if isReadWrite {
-								report.Layers[id] = append(report.Layers[id], err)
-							} else {
-								report.ROLayers[id] = append(report.ROLayers[id], err)
-							}
-							return
+							return err
 						}
-					}()
+						return nil
+					}(); err != nil {
+						recordError(fmt.Errorf("data item %q: %w", name, err))
+					}
 				}
 			}
 			// Check that the content we get back when extracting the layer's contents
@@ -259,17 +277,11 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 			// diff, which we can use to reconstruct the expected contents for the tree
 			// we see when the layer is mounted.
 			if options.LayerDigests && layer.UncompressedDigest != "" {
-				func() {
+				if err := func() error {
 					expectedDigest := layer.UncompressedDigest
 					// Double-check that the digest isn't invalid somehow.
 					if err := layer.UncompressedDigest.Validate(); err != nil {
-						err := fmt.Errorf("%slayer %s: %w", readWriteDesc, id, err)
-						if isReadWrite {
-							report.Layers[id] = append(report.Layers[id], err)
-						} else {
-							report.ROLayers[id] = append(report.ROLayers[id], err)
-						}
-						return
+						return err
 					}
 					// Extract the diff.
 					uncompressed := archive.Uncompressed
@@ -278,86 +290,55 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 					}
 					diff, err := store.Diff("", id, &diffOptions)
 					if err != nil {
-						err := fmt.Errorf("%slayer %s: %w", readWriteDesc, id, err)
-						if isReadWrite {
-							report.Layers[id] = append(report.Layers[id], err)
-						} else {
-							report.ROLayers[id] = append(report.ROLayers[id], err)
-						}
-						return
+						return err
 					}
 					// Digest and count the length of the diff.
 					digester := expectedDigest.Algorithm().Digester()
 					counter := ioutils.NewWriteCounter(digester.Hash())
 					reader := io.TeeReader(diff, counter)
-					var wg sync.WaitGroup
+
 					var archiveErr error
-					wg.Add(1)
-					go func(layerID string, diffReader io.Reader) {
+					var diffHeaders []*tar.Header
+					func() {
 						// Read the diff, one item at a time.
-						tr := tar.NewReader(diffReader)
+						tr := tar.NewReader(reader)
 						hdr, err := tr.Next()
 						for err == nil {
-							diffHeadersByLayerMutex.Lock()
-							diffHeadersByLayer[layerID] = append(diffHeadersByLayer[layerID], hdr)
-							diffHeadersByLayerMutex.Unlock()
+							diffHeaders = append(diffHeaders, hdr)
 							hdr, err = tr.Next()
 						}
 						if !errors.Is(err, io.EOF) {
 							archiveErr = err
 						}
 						// consume any trailer after the EOF marker
-						if _, err := io.Copy(io.Discard, diffReader); err != nil {
-							err = fmt.Errorf("layer %s: consume any trailer after the EOF marker: %w", layerID, err)
-							if isReadWrite {
-								report.Layers[layerID] = append(report.Layers[layerID], err)
-							} else {
-								report.ROLayers[layerID] = append(report.ROLayers[layerID], err)
-							}
+						if _, err := io.Copy(io.Discard, reader); err != nil {
+							recordError(fmt.Errorf("consume any trailer after the EOF marker: %w", err))
 						}
-						wg.Done()
-					}(id, reader)
-					wg.Wait()
+					}()
+
 					diff.Close()
 					if archiveErr != nil {
 						// Reading the diff didn't end as expected
-						diffHeadersByLayerMutex.Lock()
-						delete(diffHeadersByLayer, id)
-						diffHeadersByLayerMutex.Unlock()
-						archiveErr = fmt.Errorf("%slayer %s: %w", readWriteDesc, id, archiveErr)
-						if isReadWrite {
-							report.Layers[id] = append(report.Layers[id], archiveErr)
-						} else {
-							report.ROLayers[id] = append(report.ROLayers[id], archiveErr)
-						}
-						return
+						return archiveErr
 					}
+					failed := false
 					if digester.Digest() != layer.UncompressedDigest {
-						// The diff digest didn't match.
-						diffHeadersByLayerMutex.Lock()
-						delete(diffHeadersByLayer, id)
-						diffHeadersByLayerMutex.Unlock()
-						err := fmt.Errorf("%slayer %s: %w", readWriteDesc, id, ErrLayerIncorrectContentDigest)
-						if isReadWrite {
-							report.Layers[id] = append(report.Layers[id], err)
-						} else {
-							report.ROLayers[id] = append(report.ROLayers[id], err)
-						}
+						failed = true // The diff digest didn't match.
+						recordError(ErrLayerIncorrectContentDigest)
 					}
 					if layer.UncompressedSize != -1 && counter.Count != layer.UncompressedSize {
-						// We expected the diff to have a specific size, and
-						// it didn't match.
-						diffHeadersByLayerMutex.Lock()
-						delete(diffHeadersByLayer, id)
-						diffHeadersByLayerMutex.Unlock()
-						err := fmt.Errorf("%slayer %s: read %d bytes instead of %d bytes: %w", readWriteDesc, id, counter.Count, layer.UncompressedSize, ErrLayerIncorrectContentSize)
-						if isReadWrite {
-							report.Layers[id] = append(report.Layers[id], err)
-						} else {
-							report.ROLayers[id] = append(report.ROLayers[id], err)
-						}
+						failed = true // We expected the diff to have a specific size, and it didn't match.
+						recordError(fmt.Errorf("read %d bytes instead of %d bytes: %w", counter.Count, layer.UncompressedSize, ErrLayerIncorrectContentSize))
 					}
-				}()
+					if !failed {
+						diffHeadersByLayerMutex.Lock()
+						diffHeadersByLayer[id] = diffHeaders
+						diffHeadersByLayerMutex.Unlock()
+					}
+					return nil
+				}(); err != nil {
+					recordError(err)
+				}
 			}
 		}
 		// At this point we're out of things that we can be sure will work in read-only
@@ -370,38 +351,27 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 		for i := range layers {
 			layer := layers[i]
 			id := layer.ID
+			recordError := func(err error) { recordError2(id, err) }
 			// Compare to what we see when we mount the layer and walk the tree, and
 			// flag cases where content is in the layer that shouldn't be there.  The
 			// tar-split implementation of Diff() won't catch this problem by itself.
 			if options.LayerMountable {
-				func() {
+				if err := func() error {
 					// Mount the layer.
 					mountPoint, err := s.graphDriver.Get(id, drivers.MountOpts{MountLabel: layer.MountLabel, Options: []string{"ro"}})
 					if err != nil {
-						err := fmt.Errorf("%slayer %s: %w", readWriteDesc, id, err)
-						if isReadWrite {
-							report.Layers[id] = append(report.Layers[id], err)
-						} else {
-							report.ROLayers[id] = append(report.ROLayers[id], err)
-						}
-						return
+						return err
 					}
 					// Unmount the layer when we're done in here.
 					defer func() {
 						if err := s.graphDriver.Put(id); err != nil {
-							err := fmt.Errorf("%slayer %s: %w", readWriteDesc, id, err)
-							if isReadWrite {
-								report.Layers[id] = append(report.Layers[id], err)
-							} else {
-								report.ROLayers[id] = append(report.ROLayers[id], err)
-							}
-							return
+							recordError(err)
 						}
 					}()
 					// If we're not looking at layer contents, or we didn't
 					// look at the diff for this layer, we're done here.
 					if !options.LayerDigests || layer.UncompressedDigest == "" || !options.LayerContents {
-						return
+						return nil
 					}
 					// Build a list of all of the changes in all of the layers
 					// that make up the tree we're looking at.
@@ -413,7 +383,7 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 						layerChanges, haveChanges := diffHeadersByLayer[layerID]
 						diffHeadersByLayerMutex.Unlock()
 						if !haveChanges {
-							return
+							return nil
 						}
 						// The diff headers for this layer go _before_ those of
 						// layers that inherited some of its contents.
@@ -431,48 +401,44 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 					}
 					actualCheckDirectory, err := newCheckDirectoryFromDirectory(mountPoint)
 					if err != nil {
-						err := fmt.Errorf("scanning contents of %slayer %s: %w", readWriteDesc, id, err)
-						if isReadWrite {
-							report.Layers[id] = append(report.Layers[id], err)
-						} else {
-							report.ROLayers[id] = append(report.ROLayers[id], err)
-						}
-						return
+						return fmt.Errorf("scanning contents: %w", err)
 					}
 					// Every departure from our expectations is an error.
 					diffs := compareCheckDirectory(expectedCheckDirectory, actualCheckDirectory, idmap, ignore)
 					for _, diff := range diffs {
-						err := fmt.Errorf("%slayer %s: %s, %w", readWriteDesc, id, diff, ErrLayerContentModified)
-						if isReadWrite {
-							report.Layers[id] = append(report.Layers[id], err)
-						} else {
-							report.ROLayers[id] = append(report.ROLayers[id], err)
-						}
+						recordError(fmt.Errorf("%s, %w", diff, ErrLayerContentModified))
 					}
-				}()
+					return nil
+				}(); err != nil {
+					recordError(err)
+				}
 			}
-		}
-		// Check that we don't have any dangling parent layer references.
-		for id, parent := range report.layerParentsByLayerID {
-			// If this layer doesn't have a parent, no problem.
-			if parent == "" {
-				continue
-			}
-			// If we've already seen a layer with this parent ID, skip it.
-			if _, checked := referencedLayers[parent]; checked {
-				continue
-			}
-			if _, checked := referencedROLayers[parent]; checked {
-				continue
-			}
-			// We haven't seen a layer with the ID that this layer's record
-			// says is its parent's ID.
-			err := fmt.Errorf("%slayer %s: %w", readWriteDesc, parent, ErrLayerMissing)
-			report.Layers[id] = append(report.Layers[id], err)
 		}
 		return struct{}{}, false, nil
 	}); err != nil {
 		return CheckReport{}, err
+	}
+
+	// Check that we don't have any dangling parent layer references.
+	// This runs after all layer stores (RW and RO) have been visited,
+	// so both referencedLayers and referencedROLayers are fully populated.
+	for id, parent := range report.layerParentsByLayerID {
+		if parent == "" {
+			continue
+		}
+		if _, checked := referencedLayers[parent]; checked {
+			continue
+		}
+		if _, checked := referencedROLayers[parent]; checked {
+			continue
+		}
+		if _, isRO := referencedROLayers[id]; isRO {
+			report.recordROLayerErrors(id,
+				fmt.Errorf("read-only layer %s: %w", parent, ErrLayerMissing))
+		} else {
+			report.recordLayerErrors(id,
+				fmt.Errorf("layer %s: %w", parent, ErrLayerMissing))
+		}
 	}
 
 	// This map will track examined images.  If we have multiple stores, read-only ones can
@@ -489,20 +455,37 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 			return struct{}{}, true, err
 		}
 		isReadWrite := roImageStoreIsReallyReadWrite(store)
-		readWriteDesc := ""
-		if !isReadWrite {
-			readWriteDesc = "read-only "
-		}
 		// Examine each image in turn.
 		for i := range images {
 			image := images[i]
 			id := image.ID
+			var appendErrors func(errors ...error)
+			var recordError func(err error)
+			if isReadWrite {
+				appendErrors = func(errors ...error) {
+					report.recordImageErrors(id, errors...)
+				}
+				recordError = func(err error) {
+					appendErrors(fmt.Errorf("image %s: %w", id, err))
+				}
+			} else {
+				appendErrors = func(errors ...error) {
+					report.recordROImageErrors(id, errors...)
+				}
+				recordError = func(err error) {
+					appendErrors(fmt.Errorf("read-only image %s: %w", id, err))
+				}
+			}
 			// If we've already seen an image with this ID, skip it.
 			if _, checked := examinedImages[id]; checked {
 				continue
 			}
 			examinedImages[id] = struct{}{}
-			logrus.Debugf("checking %simage %s", readWriteDesc, id)
+			if isReadWrite {
+				logrus.Debugf("checking image %s", id)
+			} else {
+				logrus.Debugf("checking read-only image %s", id)
+			}
 			if options.ImageData {
 				// Check that all of the big data items are present and reading them
 				// back gives us the right amount of data.  Even though we record
@@ -510,36 +493,21 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 				// were calculated (they're only used as lookup keys), so do not try
 				// to check them.
 				for _, key := range image.BigDataNames {
-					func() {
+					if err := func() error {
 						data, err := store.BigData(id, key)
 						if err != nil {
 							if errors.Is(err, os.ErrNotExist) {
-								err = fmt.Errorf("%simage %s: data item %q: %w", readWriteDesc, id, key, ErrImageDataMissing)
-								if isReadWrite {
-									report.Images[id] = append(report.Images[id], err)
-								} else {
-									report.ROImages[id] = append(report.ROImages[id], err)
-								}
-								return
+								return ErrImageDataMissing
 							}
-							err = fmt.Errorf("%simage %s: data item %q: %w", readWriteDesc, id, key, err)
-							if isReadWrite {
-								report.Images[id] = append(report.Images[id], err)
-							} else {
-								report.ROImages[id] = append(report.ROImages[id], err)
-							}
-							return
+							return err
 						}
 						if int64(len(data)) != image.BigDataSizes[key] {
-							err = fmt.Errorf("%simage %s: data item %q: %w", readWriteDesc, id, key, ErrImageDataIncorrectSize)
-							if isReadWrite {
-								report.Images[id] = append(report.Images[id], err)
-							} else {
-								report.ROImages[id] = append(report.ROImages[id], err)
-							}
-							return
+							return ErrImageDataIncorrectSize
 						}
-					}()
+						return nil
+					}(); err != nil {
+						recordError(fmt.Errorf("data item %q: %w", key, err))
+					}
 				}
 			}
 			// Walk the layers list for the image.  For every layer that the image uses
@@ -560,12 +528,7 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 					_, checkedRO := referencedROLayers[layer]
 					if !checked && !checkedRO {
 						err := fmt.Errorf("layer %s: %w", layer, ErrImageLayerMissing)
-						err = fmt.Errorf("%simage %s: %w", readWriteDesc, id, err)
-						if isReadWrite {
-							report.Images[id] = append(report.Images[id], err)
-						} else {
-							report.ROImages[id] = append(report.ROImages[id], err)
-						}
+						recordError(err)
 					} else {
 						// Count this layer as referenced.  Whether by the
 						// image or one of its child layers doesn't matter
@@ -577,20 +540,11 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 							referencedROLayers[layer] = true
 						}
 					}
-					if isReadWrite {
-						if len(report.Layers[layer]) > 0 {
-							report.Images[id] = append(report.Images[id], report.Layers[layer]...)
-						}
-						if len(report.ROLayers[layer]) > 0 {
-							report.Images[id] = append(report.Images[id], report.ROLayers[layer]...)
-						}
-					} else {
-						if len(report.Layers[layer]) > 0 {
-							report.ROImages[id] = append(report.ROImages[id], report.Layers[layer]...)
-						}
-						if len(report.ROLayers[layer]) > 0 {
-							report.ROImages[id] = append(report.ROImages[id], report.ROLayers[layer]...)
-						}
+					if layerErrs := report.Layers[layer]; len(layerErrs) > 0 {
+						appendErrors(layerErrs...)
+					}
+					if layerErrs := report.ROLayers[layer]; len(layerErrs) > 0 {
+						appendErrors(layerErrs...)
 					}
 				}
 			}
@@ -609,29 +563,32 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 		for i := range containers {
 			container := containers[i]
 			id := container.ID
+			appendErrors := func(errors ...error) {
+				report.recordContainerErrors(id, errors...)
+			}
+			recordError := func(err error) {
+				appendErrors(fmt.Errorf("container %s: %w", id, err))
+			}
 			logrus.Debugf("checking container %s", id)
 			if options.ContainerData {
 				// Check that all of the big data items are present and reading them
 				// back gives us the right amount of data.
 				for _, key := range container.BigDataNames {
-					func() {
+					if err := func() error {
 						data, err := s.containerStore.BigData(id, key)
 						if err != nil {
 							if errors.Is(err, os.ErrNotExist) {
-								err = fmt.Errorf("container %s: data item %q: %w", id, key, ErrContainerDataMissing)
-								report.Containers[id] = append(report.Containers[id], err)
-								return
+								return ErrContainerDataMissing
 							}
-							err = fmt.Errorf("container %s: data item %q: %w", id, key, err)
-							report.Containers[id] = append(report.Containers[id], err)
-							return
+							return err
 						}
 						if int64(len(data)) != container.BigDataSizes[key] {
-							err = fmt.Errorf("container %s: data item %q: %w", id, key, ErrContainerDataIncorrectSize)
-							report.Containers[id] = append(report.Containers[id], err)
-							return
+							return ErrContainerDataIncorrectSize
 						}
-					}()
+						return nil
+					}(); err != nil {
+						recordError(fmt.Errorf("data item %q: %w", key, err))
+					}
 				}
 			}
 			// Look at the container's base image.  If the image has errors, the image's errors
@@ -639,13 +596,13 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 			if container.ImageID != "" {
 				if _, checked := examinedImages[container.ImageID]; !checked {
 					err := fmt.Errorf("image %s: %w", container.ImageID, ErrContainerImageMissing)
-					report.Containers[id] = append(report.Containers[id], err)
+					appendErrors(err)
 				}
-				if len(report.Images[container.ImageID]) > 0 {
-					report.Containers[id] = append(report.Containers[id], report.Images[container.ImageID]...)
+				if imageErrs := report.Images[container.ImageID]; len(imageErrs) > 0 {
+					appendErrors(imageErrs...)
 				}
-				if len(report.ROImages[container.ImageID]) > 0 {
-					report.Containers[id] = append(report.Containers[id], report.ROImages[container.ImageID]...)
+				if imageErrs := report.ROImages[container.ImageID]; len(imageErrs) > 0 {
+					appendErrors(imageErrs...)
 				}
 			}
 			// Count the container's layer as referenced.
@@ -669,19 +626,19 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 		if err != nil {
 			return struct{}{}, true, err
 		}
+		maximumAge := defaultMaximumUnreferencedLayerAge
+		if options.LayerUnreferencedMaximumAge != nil {
+			maximumAge = *options.LayerUnreferencedMaximumAge
+		}
 		for _, layer := range layers {
-			maximumAge := defaultMaximumUnreferencedLayerAge
-			if options.LayerUnreferencedMaximumAge != nil {
-				maximumAge = *options.LayerUnreferencedMaximumAge
-			}
 			if referenced := referencedLayers[layer.ID]; !referenced {
 				if layer.Created.IsZero() || layer.Created.Add(maximumAge).Before(time.Now()) {
 					// Either we don't (and never will) know when this layer was
 					// created, or it was created far enough in the past that we're
 					// reasonably sure it's not part of an image that's being written
 					// right now.
-					err := fmt.Errorf("layer %s: %w", layer.ID, ErrLayerUnreferenced)
-					report.Layers[layer.ID] = append(report.Layers[layer.ID], err)
+					report.recordLayerErrors(layer.ID,
+						fmt.Errorf("layer %s: %w", layer.ID, ErrLayerUnreferenced))
 				}
 			}
 		}
@@ -690,25 +647,40 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 		return CheckReport{}, err
 	}
 
-	// If the driver can tell us about which layers it knows about, we should have previously
-	// examined all of them.  Any that we didn't are probably just wasted space.
-	// Note: if the driver doesn't support enumerating layers, it returns ErrNotSupported.
-	if err := s.startUsingGraphDriver(); err != nil {
-		return CheckReport{}, err
-	}
-	defer s.stopUsingGraphDriver()
-	layerList, err := s.graphDriver.ListLayers()
-	if err != nil && !errors.Is(err, drivers.ErrNotSupported) {
-		return CheckReport{}, err
-	}
-	if !errors.Is(err, drivers.ErrNotSupported) {
-		for i, id := range layerList {
-			if _, known := referencedLayers[id]; !known {
-				err := fmt.Errorf("layer %s: %w", id, ErrLayerUnaccounted)
-				report.Layers[id] = append(report.Layers[id], err)
-			}
-			report.layerOrder[id] = i + 1
+	if _, err := readPrimaryLayerStore(s, func(store rwLayerStore) (struct{}, error) {
+		// If the driver can tell us about which layers it knows about, we should have
+		// corresponding metadata records.
+		// Any layers without them are probably just wasted space.
+		// Note: if the driver doesn't support enumerating layers, it returns ErrNotSupported.
+		driverLayers, err := s.graphDriver.ListLayers()
+		if err != nil && !errors.Is(err, drivers.ErrNotSupported) {
+			return struct{}{}, err
 		}
+		if !errors.Is(err, drivers.ErrNotSupported) {
+			// Update the list of layers known to the layerStore, something
+			// might have been added recently.
+			currentLayers, err := store.Layers()
+			if err != nil {
+				return struct{}{}, err
+			}
+			for i := range currentLayers {
+				id := currentLayers[i].ID
+				if _, known := referencedLayers[id]; !known {
+					referencedLayers[id] = false
+				}
+			}
+
+			for i, id := range driverLayers {
+				if _, known := referencedLayers[id]; !known {
+					report.recordLayerErrors(id,
+						fmt.Errorf("layer %s: %w", id, ErrLayerUnaccounted))
+				}
+				report.layerOrder[id] = i + 1
+			}
+		}
+		return struct{}{}, nil
+	}); err != nil {
+		return CheckReport{}, err
 	}
 
 	return report, nil
@@ -776,23 +748,22 @@ func (s *store) Repair(report CheckReport, options *RepairOptions) []error {
 			return errors.Is(err, ErrLayerUnaccounted)
 		})
 	}
-	sort.Slice(layersToDelete, func(i, j int) bool {
+	slices.SortFunc(layersToDelete, func(a, b string) int {
 		// we've not heard of either of them, so remove them in the order the driver suggested
-		if isUnaccounted(report.Layers[layersToDelete[i]]) &&
-			isUnaccounted(report.Layers[layersToDelete[j]]) &&
-			report.layerOrder[layersToDelete[i]] != 0 && report.layerOrder[layersToDelete[j]] != 0 {
-			return report.layerOrder[layersToDelete[i]] < report.layerOrder[layersToDelete[j]]
+		if isUnaccounted(report.Layers[a]) && isUnaccounted(report.Layers[b]) &&
+			report.layerOrder[a] != 0 && report.layerOrder[b] != 0 {
+			return cmp.Compare(report.layerOrder[a], report.layerOrder[b])
 		}
 		// always delete the one we've heard of first
-		if isUnaccounted(report.Layers[layersToDelete[i]]) && !isUnaccounted(report.Layers[layersToDelete[j]]) {
-			return false
+		if isUnaccounted(report.Layers[a]) && !isUnaccounted(report.Layers[b]) {
+			return 1
 		}
 		// always delete the one we've heard of first
-		if !isUnaccounted(report.Layers[layersToDelete[i]]) && isUnaccounted(report.Layers[layersToDelete[j]]) {
-			return true
+		if !isUnaccounted(report.Layers[a]) && isUnaccounted(report.Layers[b]) {
+			return -1
 		}
 		// we've heard of both of them; the one that's on the end of a longer chain goes first
-		return depth(layersToDelete[i]) > depth(layersToDelete[j]) // closer-to-a-notional-base layers get removed later
+		return -cmp.Compare(depth(a), depth(b)) // closer-to-a-notional-base layers get removed later
 	})
 	// Now delete the layers that haven't been removed along with images.
 	for _, id := range layersToDelete {
@@ -821,6 +792,7 @@ func (s *store) Repair(report CheckReport, options *RepairOptions) []error {
 				}
 				if err = s.DeleteLayer(id); err != nil {
 					err = fmt.Errorf("deleting layer %s: %w", id, err)
+				} else {
 					logrus.Debugf("deleted layer %s", id)
 				}
 			}
@@ -1049,25 +1021,25 @@ func (c *checkDirectory) headers(hdrs []*tar.Header) {
 	// before content when they both appear in the same directory, per
 	// https://github.com/opencontainers/image-spec/blob/main/layer.md#whiteouts
 	// and that hard links appear after other types of entries
-	sort.SliceStable(hdrs, func(i, j int) bool {
-		if hdrs[i].Typeflag != tar.TypeLink && hdrs[j].Typeflag == tar.TypeLink {
-			return true
+	slices.SortStableFunc(hdrs, func(a, b *tar.Header) int {
+		if a.Typeflag != tar.TypeLink && b.Typeflag == tar.TypeLink {
+			return -1
 		}
-		if hdrs[i].Typeflag == tar.TypeLink && hdrs[j].Typeflag != tar.TypeLink {
-			return false
+		if a.Typeflag == tar.TypeLink && b.Typeflag != tar.TypeLink {
+			return 1
 		}
-		idir, ifile := path.Split(hdrs[i].Name)
-		jdir, jfile := path.Split(hdrs[j].Name)
-		if idir != jdir {
-			return hdrs[i].Name < hdrs[j].Name
+		adir, afile := path.Split(a.Name)
+		bdir, bfile := path.Split(b.Name)
+		if adir != bdir {
+			return cmp.Compare(a.Name, b.Name)
 		}
-		if ifile == archive.WhiteoutOpaqueDir {
-			return true
+		if afile == archive.WhiteoutOpaqueDir {
+			return -1
 		}
-		if strings.HasPrefix(ifile, archive.WhiteoutPrefix) && !strings.HasPrefix(jfile, archive.WhiteoutPrefix) {
-			return true
+		if strings.HasPrefix(afile, archive.WhiteoutPrefix) && !strings.HasPrefix(bfile, archive.WhiteoutPrefix) {
+			return -1
 		}
-		return false
+		return 0
 	})
 	for _, hdr := range hdrs {
 		c.header(hdr)
@@ -1147,14 +1119,14 @@ func compareCheckSubdirectory(path string, a, b *checkDirectory, idmap *idtools.
 // compareCheckDirectory walks two directory trees and returns a sorted list of differences
 func compareCheckDirectory(a, b *checkDirectory, idmap *idtools.IDMappings, ignore checkIgnore) []string {
 	diff := compareCheckSubdirectory("", a, b, idmap, ignore)
-	sort.Slice(diff, func(i, j int) bool {
-		if strings.Compare(diff[i][1:], diff[j][1:]) < 0 {
-			return true
+	slices.SortFunc(diff, func(a, b string) int {
+		if a[1:] < b[1:] {
+			return -1
 		}
-		if diff[i][0] == '-' {
-			return true
+		if a[0] == '-' {
+			return -1
 		}
-		return false
+		return 1
 	})
 	return diff
 }

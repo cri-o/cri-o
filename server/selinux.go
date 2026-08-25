@@ -11,7 +11,11 @@ func KVMLabel(cLabel string) (string, error) {
 		return "", nil
 	}
 
-	processLabel, _ := selinux.KVMContainerLabels()
+	processLabel, err := selinux.KVMContainerLabel()
+	if err != nil {
+		return "", err
+	}
+
 	selinux.ReleaseLabel(processLabel)
 
 	return swapSELinuxLabel(cLabel, processLabel)
@@ -24,7 +28,11 @@ func InitLabel(cLabel string) (string, error) {
 		return "", nil
 	}
 
-	processLabel, _ := selinux.InitContainerLabels()
+	processLabel, err := selinux.InitContainerLabel()
+	if err != nil {
+		return "", err
+	}
+
 	selinux.ReleaseLabel(processLabel)
 
 	return swapSELinuxLabel(cLabel, processLabel)
