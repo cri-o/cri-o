@@ -21,6 +21,8 @@ type Impl interface {
 type LibartifactStore interface {
 	Pull(ctx context.Context, ref libartifact.ArtifactReference, opts libimage.CopyOptions) (digest.Digest, error)
 	BlobMountPaths(ctx context.Context, asr libartifact.ArtifactStoreReference, opts *libartTypes.BlobMountPathOptions) ([]libartTypes.BlobMountPath, error)
+	List(ctx context.Context) (libartifact.ArtifactList, error)
+	Remove(ctx context.Context, asr libartifact.ArtifactStoreReference) (*digest.Digest, error)
 }
 
 // defaultImpl is the default implementation for the OCI artifact handling.

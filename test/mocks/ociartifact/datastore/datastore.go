@@ -113,6 +113,21 @@ func (mr *MockLibartifactStoreMockRecorder) BlobMountPaths(ctx, asr, opts any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlobMountPaths", reflect.TypeOf((*MockLibartifactStore)(nil).BlobMountPaths), ctx, asr, opts)
 }
 
+// List mocks base method.
+func (m *MockLibartifactStore) List(ctx context.Context) (libartifact.ArtifactList, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "List", ctx)
+	ret0, _ := ret[0].(libartifact.ArtifactList)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// List indicates an expected call of List.
+func (mr *MockLibartifactStoreMockRecorder) List(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockLibartifactStore)(nil).List), ctx)
+}
+
 // Pull mocks base method.
 func (m *MockLibartifactStore) Pull(ctx context.Context, ref libartifact.ArtifactReference, opts libimage.CopyOptions) (digest.Digest, error) {
 	m.ctrl.T.Helper()
@@ -126,4 +141,19 @@ func (m *MockLibartifactStore) Pull(ctx context.Context, ref libartifact.Artifac
 func (mr *MockLibartifactStoreMockRecorder) Pull(ctx, ref, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockLibartifactStore)(nil).Pull), ctx, ref, opts)
+}
+
+// Remove mocks base method.
+func (m *MockLibartifactStore) Remove(ctx context.Context, asr libartifact.ArtifactStoreReference) (*digest.Digest, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Remove", ctx, asr)
+	ret0, _ := ret[0].(*digest.Digest)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Remove indicates an expected call of Remove.
+func (mr *MockLibartifactStoreMockRecorder) Remove(ctx, asr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Remove", reflect.TypeOf((*MockLibartifactStore)(nil).Remove), ctx, asr)
 }

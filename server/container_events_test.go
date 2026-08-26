@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -70,8 +71,11 @@ var _ = t.Describe("ContainerEvents", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			go recv(client1)
-			go recv(client2)
+			var wg sync.WaitGroup
+			wg.Add(2)
+
+			go func() { defer wg.Done(); recv(client1) }()
+			go func() { defer wg.Done(); recv(client2) }()
 
 			// wait so that both goroutines are ready
 			// when we send the events
@@ -81,6 +85,12 @@ var _ = t.Describe("ContainerEvents", func() {
 			for _, event := range events {
 				sut.ContainerEventsChan <- event
 			}
+
+			// wait for both goroutines to finish processing all events
+			// before AfterEach runs; ContainerEventsChan is buffered so sends
+			// above are non-blocking, and without this the mock Finish() check
+			// races against the broadcaster goroutine.
+			wg.Wait()
 		})
 	})
 })
