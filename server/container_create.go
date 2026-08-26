@@ -1211,6 +1211,16 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 	hostPID := securityContext.GetNamespaceOptions().GetPid() == types.NamespaceMode_NODE
 	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
 
+	// requestedSelinuxType is the SELinux type the user actually asked for: an explicit
+	// container-level type wins, otherwise fall back to the pod-level type. Unlike
+	// processLabel/containerInfo.ProcessLabel, this is never non-empty unless the user
+	// requested it, since storage always defaults ProcessLabel to a concrete type
+	// (e.g. container_t) even when nothing was requested.
+	requestedSelinuxType := securityContext.GetSelinuxOptions().GetType()
+	if requestedSelinuxType == "" {
+		requestedSelinuxType = ctr.SandboxConfig().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType()
+	}
+
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
 	if hostPID || hostIPC {
 		processLabel, mountLabel = "", ""
@@ -1222,9 +1232,9 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 
 	// Newer versions of container-selinux, container-selinux-2.132.0 or newer,
 	// supply a container_init_t label. If CRI-O is running systemd or init inside
-	// the container and the process label is unset, the init selinux label is required
-	// to run the container.
-	if ctr.WillRunSystemd() && processLabel == "" {
+	// the container and the user didn't request a specific SELinux type, the init
+	// selinux label is required to run the container.
+	if ctr.WillRunSystemd() && requestedSelinuxType == "" {
 		processLabel, err = InitLabel(processLabel)
 		if err != nil {
 			return "", "", false, false, fmt.Errorf("failed to get init label: %w", err)
@@ -1237,9 +1247,7 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 
 	const superPrivilegedType = "spc_t"
 
-	if securityContext.GetSelinuxOptions().GetType() == superPrivilegedType || // super privileged container
-		(ctr.SandboxConfig().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType() == superPrivilegedType && // super privileged pod
-			securityContext.GetSelinuxOptions().GetType() == "") {
+	if requestedSelinuxType == superPrivilegedType {
 		skipRelabel = true
 	}
 

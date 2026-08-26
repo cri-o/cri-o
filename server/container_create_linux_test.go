@@ -3,11 +3,16 @@ package server
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/factory/container"
+	"github.com/cri-o/cri-o/internal/hostport"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/memorystore"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 )
 
@@ -480,6 +485,173 @@ func TestIsSubDirectoryOf(t *testing.T) {
 			res := isSubDirectoryOf(tt.base, tt.target)
 			if res != tt.want {
 				t.Errorf("got %v, want %v", res, tt.want)
+			}
+		})
+	}
+}
+
+// newTestSandbox builds the minimal valid *sandbox.Sandbox that
+// configureSELinuxLabels needs (it only reads sb.Annotations()).
+func newTestSandbox(t *testing.T) *sandbox.Sandbox {
+	t.Helper()
+
+	b := sandbox.NewBuilder()
+	b.SetID("sandboxid")
+	b.SetName("sandboxname")
+	b.SetLogDir(t.TempDir())
+	b.SetShmPath("test")
+	b.SetNamespace("")
+	b.SetKubeName("")
+	b.SetMountLabel("")
+	b.SetProcessLabel("")
+	b.SetCgroupParent("")
+	b.SetRuntimeHandler("")
+	b.SetResolvPath("")
+	b.SetHostname("")
+	b.SetPortMappings([]*hostport.PortMapping{})
+	b.SetHostNetwork(false)
+	b.SetUsernsMode("")
+	b.SetPodLinuxOverhead(nil)
+	b.SetPodLinuxResources(nil)
+	b.SetCreatedAt(time.Now())
+
+	if err := b.SetCRISandbox(b.ID(), map[string]string{}, map[string]string{}, &types.PodSandboxMetadata{}); err != nil {
+		t.Fatalf("SetCRISandbox: %v", err)
+	}
+
+	b.SetPrivileged(false)
+	b.SetContainers(memorystore.New[*oci.Container]())
+
+	sb, err := b.GetSandbox()
+	if err != nil {
+		t.Fatalf("GetSandbox: %v", err)
+	}
+
+	return sb
+}
+
+// newSELinuxTestContainer builds a container.Container whose configured process
+// is either a systemd/init entrypoint or a regular command, with the given
+// container-level and pod-level SELinux types (empty string means unset).
+func newSELinuxTestContainer(t *testing.T, systemd bool, containerSelinuxType, podSelinuxType string) container.Container {
+	t.Helper()
+
+	command := []string{"/bin/sh"}
+	if systemd {
+		command = []string{"/sbin/init"}
+	}
+
+	cfg := &types.ContainerConfig{
+		Metadata: &types.ContainerMetadata{Name: "testctr"},
+		Command:  command,
+		Linux: &types.LinuxContainerConfig{
+			SecurityContext: &types.LinuxContainerSecurityContext{
+				NamespaceOptions: &types.NamespaceOption{},
+				SelinuxOptions:   &types.SELinuxOption{Type: containerSelinuxType},
+			},
+		},
+	}
+
+	sboxCfg := &types.PodSandboxConfig{
+		Metadata: &types.PodSandboxMetadata{Name: "testpod"},
+		Linux: &types.LinuxPodSandboxConfig{
+			SecurityContext: &types.LinuxSandboxSecurityContext{
+				SelinuxOptions: &types.SELinuxOption{Type: podSelinuxType},
+			},
+		},
+	}
+
+	ctr, err := container.New()
+	if err != nil {
+		t.Fatalf("container.New: %v", err)
+	}
+
+	if err := ctr.SetConfig(cfg, sboxCfg); err != nil {
+		t.Fatalf("SetConfig: %v", err)
+	}
+
+	if err := ctr.SpecSetProcessArgs(nil); err != nil {
+		t.Fatalf("SpecSetProcessArgs: %v", err)
+	}
+
+	return ctr
+}
+
+func TestConfigureSELinuxLabels(t *testing.T) {
+	const originalProcessLabel = "system_u:system_r:container_t:s0:c1,c2"
+
+	cases := []struct {
+		name                  string
+		systemd               bool
+		containerSelinuxType  string
+		podSelinuxType        string
+		wantProcessLabelUnset bool // true: InitLabel must NOT fire, processLabel stays as-is
+		wantSkipRelabel       bool
+	}{
+		{
+			name:                  "systemd, no type requested anywhere: promoted to init label",
+			systemd:               true,
+			wantProcessLabelUnset: false,
+			wantSkipRelabel:       false,
+		},
+		{
+			name:                  "systemd, explicit non-spc_t container type: respected",
+			systemd:               true,
+			containerSelinuxType:  "container_t",
+			wantProcessLabelUnset: true,
+			wantSkipRelabel:       false,
+		},
+		{
+			name:                  "systemd, explicit spc_t container type: respected and skips relabel",
+			systemd:               true,
+			containerSelinuxType:  "spc_t",
+			wantProcessLabelUnset: true,
+			wantSkipRelabel:       true,
+		},
+		{
+			name:                  "systemd, spc_t requested only at pod level: respected and skips relabel",
+			systemd:               true,
+			podSelinuxType:        "spc_t",
+			wantProcessLabelUnset: true,
+			wantSkipRelabel:       true,
+		},
+		{
+			name:                  "systemd, container-level type overrides pod-level spc_t",
+			systemd:               true,
+			containerSelinuxType:  "container_t",
+			podSelinuxType:        "spc_t",
+			wantProcessLabelUnset: true,
+			wantSkipRelabel:       false,
+		},
+		{
+			name:                  "non-systemd container, no type requested: never promoted",
+			systemd:               false,
+			wantProcessLabelUnset: true,
+			wantSkipRelabel:       false,
+		},
+	}
+
+	sb := newTestSandbox(t)
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctr := newSELinuxTestContainer(t, tc.systemd, tc.containerSelinuxType, tc.podSelinuxType)
+			containerInfo := &storage.ContainerInfo{ProcessLabel: originalProcessLabel}
+
+			s := &Server{}
+
+			_, processLabel, _, skipRelabel, err := s.configureSELinuxLabels(ctr, sb, containerInfo)
+			if err != nil {
+				t.Fatalf("configureSELinuxLabels: %v", err)
+			}
+
+			gotUnset := processLabel == originalProcessLabel
+			if gotUnset != tc.wantProcessLabelUnset {
+				t.Errorf("processLabel = %q (unchanged=%v), want unchanged=%v", processLabel, gotUnset, tc.wantProcessLabelUnset)
+			}
+
+			if skipRelabel != tc.wantSkipRelabel {
+				t.Errorf("skipRelabel = %v, want %v", skipRelabel, tc.wantSkipRelabel)
 			}
 		})
 	}
