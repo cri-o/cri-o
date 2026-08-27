@@ -278,9 +278,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--global-auth-file**="": Path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
 
-**--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes. (default: 83886080)
+**--grpc-max-recv-msg-size**="": Maximum grpc receive message size in bytes. (default: 16777216)
 
-**--grpc-max-send-msg-size**="": Maximum grpc receive message size. (default: 83886080)
+**--grpc-max-send-msg-size**="": Maximum grpc send message size in bytes. (default: 16777216)
 
 **--help, -h**: show help
 

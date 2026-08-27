@@ -56,7 +56,11 @@ import (
 
 // Defaults if none are specified.
 const (
-	defaultGRPCMaxMsgSize = 80 * 1024 * 1024
+	// defaultGRPCMaxMsgSize matches the 16 MiB receive cap every CRI client
+	// (kubelet, crictl) sets via k8s.io/cri-client. Responses larger than that
+	// are rejected by the client regardless of the server cap, and no CRI
+	// request comes close to 16 MiB, so a larger cap serves no purpose.
+	defaultGRPCMaxMsgSize = 16 * 1024 * 1024
 	// default minimum memory for all other runtimes.
 	defaultContainerMinMemory = 12 * 1024 * 1024 // 12 MiB
 	// defaultContainerCreateTimeout is the default timeout for container creation operations in seconds.
