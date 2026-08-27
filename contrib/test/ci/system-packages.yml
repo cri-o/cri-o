@@ -37,7 +37,6 @@
       - libxslt-devel
       - libcap-devel
       - make
-      - mlocate
       - nfs-utils
       - nftables
       - nmap-ncat
