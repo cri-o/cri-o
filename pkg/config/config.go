@@ -78,17 +78,18 @@ const (
 
 // When updating metrics, remember to update the document as well.
 const (
-	AllMetrics      = "all"
-	CPUMetrics      = "cpu"
-	DiskMetrics     = "disk"
-	DiskIOMetrics   = "diskIO"
-	HugetlbMetrics  = "hugetlb"
-	MemoryMetrics   = "memory"
-	NetworkMetrics  = "network"
-	OOMMetrics      = "oom"
-	ProcessMetrics  = "process"
-	SpecMetrics     = "spec"
-	PressureMetrics = "pressure"
+	AllMetrics         = "all"
+	CPUMetrics         = "cpu"
+	DiskMetrics        = "disk"
+	DiskIOMetrics      = "diskIO"
+	HugetlbMetrics     = "hugetlb"
+	MemoryMetrics      = "memory"
+	MemoryExtraMetrics = "memoryExtra"
+	NetworkMetrics     = "network"
+	OOMMetrics         = "oom"
+	ProcessMetrics     = "process"
+	SpecMetrics        = "spec"
+	PressureMetrics    = "pressure"
 )
 
 // AvailableMetrics is a list of all available metrics that can be included in stats.
@@ -99,6 +100,7 @@ var AvailableMetrics = []string{
 	DiskIOMetrics,
 	HugetlbMetrics,
 	MemoryMetrics,
+	MemoryExtraMetrics,
 	NetworkMetrics,
 	OOMMetrics,
 	ProcessMetrics,

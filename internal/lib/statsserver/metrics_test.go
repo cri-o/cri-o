@@ -54,6 +54,7 @@ func TestMetricLabelCardinality(t *testing.T) {
 		{"diskIO", generateContainerDiskIOMetrics(ctr, &blkioStats)},
 		{"hugetlb", generateContainerHugetlbMetrics(ctr, hugetlbStats)},
 		{"memory", generateContainerMemoryMetrics(ctr, &memStats)},
+		{"memoryExtra", generateContainerMemoryExtraMetrics(ctr, &memStats)},
 		{"network", networkMetrics},
 		{"oom", GenerateContainerOOMMetrics(ctr, 3)},
 		{"process", generateContainerProcessMetrics(ctr, &pidsStats, &processStats)},
@@ -181,18 +182,19 @@ func TestComputeTransparentHugepages(t *testing.T) {
 	}
 }
 
-// TestContainerMemoryMetricValues verifies that generateContainerMemoryMetrics
-// wires the anonymous memory and transparent hugepage helpers to the right
-// metric names. The values themselves are covered per cgroup version by
-// TestComputeAnonMemory and TestComputeTransparentHugepages.
-func TestContainerMemoryMetricValues(t *testing.T) {
+// TestContainerMemoryExtraMetricValues verifies that
+// generateContainerMemoryExtraMetrics wires the anonymous memory and
+// transparent hugepage helpers to the right metric names. The values themselves
+// are covered per cgroup version by TestComputeAnonMemory and
+// TestComputeTransparentHugepages.
+func TestContainerMemoryExtraMetricValues(t *testing.T) {
 	t.Parallel()
 
 	ctr := newTestContainer(t)
 	memStats := testMemoryStats()
 
 	values := make(map[string]uint64)
-	for _, m := range generateContainerMemoryMetrics(ctr, &memStats) {
+	for _, m := range generateContainerMemoryExtraMetrics(ctr, &memStats) {
 		values[m.GetName()] = m.GetValue().GetValue()
 	}
 

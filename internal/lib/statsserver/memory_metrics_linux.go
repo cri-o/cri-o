@@ -16,9 +16,6 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 	workingSetBytes, rssBytes, pageFaults, majorPageFaults, _ := computeMemoryMetricValues(mem)
 	swapUsage := computeSwapUsageForMetrics(mem)
 	fileMapped := computeFileMapped(mem)
-	isCgroupV2 := node.CgroupIsV2()
-	activeAnon, inactiveAnon := computeAnonMemory(mem, isCgroupV2)
-	anonTHP, shmemTHP, fileTHP := computeTransparentHugepages(mem, isCgroupV2)
 
 	memoryMetrics := []*containerMetric{
 		{
@@ -82,36 +79,6 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 			},
 		},
 		{
-			desc: containerMemoryActiveAnonBytes,
-			valueFunc: func() metricValues {
-				return metricValues{{value: activeAnon, metricType: types.MetricType_GAUGE}}
-			},
-		},
-		{
-			desc: containerMemoryInactiveAnonBytes,
-			valueFunc: func() metricValues {
-				return metricValues{{value: inactiveAnon, metricType: types.MetricType_GAUGE}}
-			},
-		},
-		{
-			desc: containerMemoryAnonTHPBytes,
-			valueFunc: func() metricValues {
-				return metricValues{{value: anonTHP, metricType: types.MetricType_GAUGE}}
-			},
-		},
-		{
-			desc: containerMemoryShmemTHPBytes,
-			valueFunc: func() metricValues {
-				return metricValues{{value: shmemTHP, metricType: types.MetricType_GAUGE}}
-			},
-		},
-		{
-			desc: containerMemoryFileTHPBytes,
-			valueFunc: func() metricValues {
-				return metricValues{{value: fileTHP, metricType: types.MetricType_GAUGE}}
-			},
-		},
-		{
 			desc: containerMemoryFailuresTotal,
 			valueFunc: func() metricValues {
 				metrics := make([]metricValue, 0, 4)
@@ -148,6 +115,54 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 	}
 
 	return computeContainerMetrics(ctr, memoryMetrics)
+}
+
+// generateContainerMemoryExtraMetrics reports the memory metrics that have no
+// cAdvisor equivalent, so they can be enabled independently of the cAdvisor
+// compatible set in generateContainerMemoryMetrics.
+func generateContainerMemoryExtraMetrics(ctr *oci.Container, mem *cgroups.MemoryStats) []*types.Metric {
+	if mem == nil {
+		return []*types.Metric{}
+	}
+
+	isCgroupV2 := node.CgroupIsV2()
+	activeAnon, inactiveAnon := computeAnonMemory(mem, isCgroupV2)
+	anonTHP, shmemTHP, fileTHP := computeTransparentHugepages(mem, isCgroupV2)
+
+	memoryExtraMetrics := []*containerMetric{
+		{
+			desc: containerMemoryActiveAnonBytes,
+			valueFunc: func() metricValues {
+				return metricValues{{value: activeAnon, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryInactiveAnonBytes,
+			valueFunc: func() metricValues {
+				return metricValues{{value: inactiveAnon, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryAnonTHPBytes,
+			valueFunc: func() metricValues {
+				return metricValues{{value: anonTHP, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryShmemTHPBytes,
+			valueFunc: func() metricValues {
+				return metricValues{{value: shmemTHP, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryFileTHPBytes,
+			valueFunc: func() metricValues {
+				return metricValues{{value: fileTHP, metricType: types.MetricType_GAUGE}}
+			},
+		},
+	}
+
+	return computeContainerMetrics(ctr, memoryExtraMetrics)
 }
 
 // computeMemoryMetricValues computes derived memory statistics for metrics.
