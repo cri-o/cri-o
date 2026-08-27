@@ -1,3 +1,5 @@
+//go:build test
+
 package nsmgr_test
 
 import (
