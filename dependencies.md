@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 26 Aug 2026 23:00:49 UTC for commit [755ae68][0]._
+_Generated on Thu, 27 Aug 2026 11:29:48 UTC for commit [fc1342e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/755ae682cb1a2ddac5eafbcd291f2c25b16ffbce
+[0]: https://github.com/cri-o/cri-o/commit/fc1342e0ef022b76dff3dace01936acd93868fb4
 
 ## Outdated Dependencies
 
@@ -22,7 +22,7 @@ _Generated on Wed, 26 Aug 2026 23:00:49 UTC for commit [755ae68][0]._
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                 | v5.3.2                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.3                                 | v1.4.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                                | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260826202204-959fd34c3851 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260827105237-f37f6ea92c80 | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                 | v0.4.1                             | true   | true             |
 | github.com/moby/sys/userns                                                  | v0.1.0                                 | v0.2.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.3                                | v2.32.1                            | true   | true             |
@@ -484,7 +484,7 @@ _Generated on Wed, 26 Aug 2026 23:00:49 UTC for commit [755ae68][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260826202204-959fd34c3851 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260827105237-f37f6ea92c80 | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
