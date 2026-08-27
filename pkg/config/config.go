@@ -1461,8 +1461,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	}
 
 	for _, p := range c.AdditionalArtifactStores {
-		if !filepath.IsAbs(p) {
-			return fmt.Errorf("additional_artifact_stores entry must be absolute: %q", p)
+		if err := validateStorePath(p); err != nil {
+			return fmt.Errorf("additional_artifact_stores: %w", err)
 		}
 	}
 
@@ -2455,4 +2455,40 @@ func (c *APIConfig) GetTLSMinVersion() uint16 {
 // The value is parsed and validated during Validate().
 func (c *APIConfig) GetTLSCipherSuites() []uint16 {
 	return c.tlsCipherSuitesParsed
+}
+
+var storePathRegexp = regexp.MustCompile(`^/[a-zA-Z0-9/._-]+$`)
+
+func validateStorePath(p string) error {
+	if p == "" {
+		return errors.New("path must not be empty")
+	}
+
+	if len(p) > 256 {
+		return fmt.Errorf("path %q must not exceed 256 characters", p)
+	}
+
+	if !storePathRegexp.MatchString(p) {
+		return fmt.Errorf("path %q must be absolute, non-root, and contain only alphanumeric characters, '/', '.', '_', and '-'", p)
+	}
+
+	if strings.HasSuffix(p, "/") {
+		return fmt.Errorf("path %q must not have a trailing slash", p)
+	}
+
+	if strings.Contains(p, "//") {
+		return fmt.Errorf("path %q must not contain consecutive forward slashes", p)
+	}
+
+	for component := range strings.SplitSeq(p, "/") {
+		if component == ".." {
+			return fmt.Errorf("path %q must not contain '..' components", p)
+		}
+
+		if component == "." {
+			return fmt.Errorf("path %q must not contain '.' components", p)
+		}
+	}
+
+	return nil
 }
