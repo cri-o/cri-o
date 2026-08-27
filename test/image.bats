@@ -401,9 +401,9 @@ EOF
 @test "short name mode enabled should fail to pull ambiguous image" {
 	start_crio
 
-	# There should be many nginx images
-	run crictl pull nginx
-	[[ "$output" == *"short name mode is enforcing, but image name nginx returns ambiguous list"* ]]
+	# Use a name without a shortname alias so it remains ambiguous
+	run crictl pull ambiguous-test-image
+	[[ "$output" == *"short name mode is enforcing, but image name ambiguous-test-image returns ambiguous list"* ]]
 	[[ "$status" -ne 0 ]]
 }
 

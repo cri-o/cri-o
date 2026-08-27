@@ -5,10 +5,15 @@ load helpers
 
 function detect_irqbalance_config() {
 	# debian/ubuntu
-	[ -f /etc/default/irqbalance ] && echo "/etc/default/irqbalance"
+	[ -f /etc/default/irqbalance ] && {
+		echo "/etc/default/irqbalance"
+		return
+	}
 	# fedora/centos/RHEL
-	[ -f /etc/sysconfig/irqbalance ] && echo "/etc/sysconfig/irqbalance"
-	# default
+	[ -f /etc/sysconfig/irqbalance ] && {
+		echo "/etc/sysconfig/irqbalance"
+		return
+	}
 	echo ""
 }
 
@@ -18,8 +23,7 @@ function setup_file() {
 	fi
 	IRQBALANCE_CONF=$(detect_irqbalance_config)
 	if [ -z "$IRQBALANCE_CONF" ]; then
-		echo "error: unable to find irqbalance config file"
-		return 1
+		IRQBALANCE_CONF="/etc/sysconfig/irqbalance"
 	fi
 	CONFIGLET="$CRIO_CONFIG_DIR/99-irqbalance.conf"
 

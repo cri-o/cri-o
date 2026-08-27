@@ -15,6 +15,18 @@ function teardown() {
 	cleanup_test
 }
 
+# TODO: remove skip once CRI-O sets CPUWeight instead of CPUShares on cgroup v2
+function skip_if_systemd_ignores_cpushares() {
+	if [[ "$CONTAINER_CGROUP_MANAGER" != "systemd" ]]; then
+		return
+	fi
+	local ver
+	ver=$(systemctl --version | head -1 | awk '{print $2}')
+	if [ "$ver" -ge 258 ]; then
+		skip "systemd >= 258 ignores CPUShares on cgroup v2 (needs CRI-O fix to use CPUWeight)"
+	fi
+}
+
 function create_workload() {
 	local cpushares="$1"
 	local cpuset="$2"
@@ -172,6 +184,7 @@ function check_conmon_fields() {
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		skip "not yet supported by conmonrs"
 	fi
+	skip_if_systemd_ignores_cpushares
 
 	shares="200"
 	set="0-1"
@@ -194,6 +207,7 @@ function check_conmon_fields() {
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		skip "not yet supported by conmonrs"
 	fi
+	skip_if_systemd_ignores_cpushares
 
 	shares="200"
 	set="0-1"
@@ -220,6 +234,7 @@ function check_conmon_fields() {
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		skip "not yet supported by conmonrs"
 	fi
+	skip_if_systemd_ignores_cpushares
 
 	shares="200"
 	set=""
@@ -243,6 +258,7 @@ function check_conmon_fields() {
 }
 
 @test "test workload pod should not be set if annotation not specified" {
+	skip_if_systemd_ignores_cpushares
 	shares=""
 	set=""
 	name=POD
@@ -267,6 +283,7 @@ function check_conmon_fields() {
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		skip "not yet supported by conmonrs"
 	fi
+	skip_if_systemd_ignores_cpushares
 
 	shares="200"
 	set="0-1"

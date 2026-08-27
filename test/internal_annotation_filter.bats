@@ -109,20 +109,16 @@ function teardown() {
 }
 
 @test "allowed v1 feature annotation should not be dropped" {
-	if ! grep -q "^containers:" /etc/subuid 2> /dev/null || ! grep -q "^containers:" /etc/subgid 2> /dev/null; then
-		skip "user namespace not configured (containers user not in /etc/subuid or /etc/subgid)"
-	fi
-
-	create_workload_with_allowed_annotation "io.kubernetes.cri-o.userns-mode"
+	create_workload_with_allowed_annotation "io.kubernetes.cri-o.DisableFIPS"
 	start_crio
 
-	jq '.annotations."io.kubernetes.cri-o.userns-mode" = "auto"' \
+	jq '.annotations."io.kubernetes.cri-o.DisableFIPS" = "true"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	pod_id=$(crictl runp "$sboxconfig")
 
-	ann=$(crictl inspectp "$pod_id" | jq -r '.info.runtimeSpec.annotations["io.kubernetes.cri-o.userns-mode"]')
-	[[ "$ann" == "auto" ]]
+	ann=$(crictl inspectp "$pod_id" | jq -r '.info.runtimeSpec.annotations["io.kubernetes.cri-o.DisableFIPS"]')
+	[[ "$ann" == "true" ]]
 
 	crictl stopp "$pod_id"
 	crictl rmp "$pod_id"
