@@ -43,7 +43,7 @@ if [[ "$RUN_CRITEST" == "1" ]]; then
 fi
 
 # The number of parallel jobs to execute tests
-export JOBS=${JOBS:-$(nproc --all)}
+export JOBS=${JOBS:-$(($(nproc --all) * 2))}
 # The maximum number of additional attempts that will be made on a failed test before it is finally considered failed.
 # https://bats-core.readthedocs.io/en/stable/writing-tests.html#special-variables
 export BATS_TEST_RETRIES=1
