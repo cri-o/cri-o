@@ -21,10 +21,10 @@ func NewContainerServerForTest(store cstorage.Store) *ContainerServer {
 
 // SetStorageRuntimeServer sets the runtime server for the ContainerServer.
 func (c *ContainerServer) SetStorageRuntimeServer(server storage.RuntimeServer) {
-	c.storageRuntimeServer = server
+	c.storageRuntimeSvcMgr.SetStorageRuntimeServer(server)
 }
 
 // SetStorageImageServer sets the ImageServer for the ContainerServer.
 func (c *ContainerServer) SetStorageImageServer(server storage.ImageServer) {
-	c.storageImageServer = server
+	c.storageImgSvcMgr.SetStorageImageServer(server)
 }
