@@ -35,7 +35,13 @@ func isRemoteSource(ref string) bool {
 }
 
 // copyImageWithRetry attempts to copy an image with exponential backoff retry.
-func copyImageWithRetry(ctx context.Context, policyContext *signature.PolicyContext, dest, src types.ImageReference, options *copy.Options, retryAttempts int) error {
+func copyImageWithRetry(
+	ctx context.Context,
+	policyContext *signature.PolicyContext,
+	dest, src types.ImageReference,
+	options *copy.Options,
+	retryAttempts int,
+) error {
 	backoff := wait.Backoff{
 		Duration: 2 * time.Second,
 		Factor:   2.0,
@@ -235,8 +241,18 @@ func main() {
 			if importFrom != "" {
 				// Use retry logic only when pulling from remote sources and retry is enabled (retryAttempts > 0)
 				if retryAttempts > 0 && isRemoteSource(importFrom) {
-					logrus.Infof("Pulling image with retry enabled (max attempts: %d)", retryAttempts)
-					err = copyImageWithRetry(ctx, policyContext, ref, importRef, options, retryAttempts)
+					logrus.Infof(
+						"Pulling image with retry enabled (max attempts: %d)",
+						retryAttempts,
+					)
+					err = copyImageWithRetry(
+						ctx,
+						policyContext,
+						ref,
+						importRef,
+						options,
+						retryAttempts,
+					)
 				} else {
 					_, err = copy.Image(ctx, policyContext, ref, importRef, options)
 				}
@@ -268,7 +284,14 @@ func main() {
 			// Use retry logic only when pulling from remote sources and retry is enabled (retryAttempts > 0)
 			if retryAttempts > 0 && isRemoteSource(importFrom) {
 				logrus.Infof("Pulling image with retry enabled (max attempts: %d)", retryAttempts)
-				err = copyImageWithRetry(ctx, policyContext, exportRef, importRef, options, retryAttempts)
+				err = copyImageWithRetry(
+					ctx,
+					policyContext,
+					exportRef,
+					importRef,
+					options,
+					retryAttempts,
+				)
 			} else {
 				_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
 			}

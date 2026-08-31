@@ -21,12 +21,19 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 	}
 
 	runtimeHandler := s.getSandbox(ctx, c.Sandbox()).RuntimeHandler()
-	if streamWebsocket, err := s.Runtime().RuntimeStreamWebsockets(runtimeHandler); err == nil && streamWebsocket {
+	if streamWebsocket, err := s.Runtime().
+		RuntimeStreamWebsockets(runtimeHandler); err == nil &&
+		streamWebsocket {
 		log.Debugf(ctx, "Runtime handler %q is configured to use websockets", runtimeHandler)
 
-		url, err := s.Runtime().ServeExecContainer(ctx, c, req.GetCmd(), req.GetTty(), req.GetStdin(), req.GetStdout(), req.GetStderr())
+		url, err := s.Runtime().
+			ServeExecContainer(ctx, c, req.GetCmd(), req.GetTty(), req.GetStdin(), req.GetStdout(), req.GetStderr())
 		if err != nil {
-			return nil, fmt.Errorf("could not serve exec for container %q: %w", req.GetContainerId(), err)
+			return nil, fmt.Errorf(
+				"could not serve exec for container %q: %w",
+				req.GetContainerId(),
+				err,
+			)
 		}
 
 		log.Infof(ctx, "Using exec URL from container monitor")
@@ -43,7 +50,15 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 }
 
 // Exec endpoint for streaming.Runtime.
-func (s *StreamService) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (s *StreamService) Exec(
+	ctx context.Context,
+	containerID string,
+	cmd []string,
+	stdin io.Reader,
+	stdout, stderr io.WriteCloser,
+	tty bool,
+	resizeChan <-chan remotecommand.TerminalSize,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -56,5 +71,6 @@ func (s *StreamService) Exec(ctx context.Context, containerID string, cmd []stri
 		return status.Errorf(codes.NotFound, "container is not created or running: %v", err)
 	}
 
-	return s.runtimeServer.ContainerServer.Runtime().ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
+	return s.runtimeServer.ContainerServer.Runtime().
+		ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
 }

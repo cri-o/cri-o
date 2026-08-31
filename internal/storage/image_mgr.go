@@ -95,7 +95,11 @@ func (i *ImageServiceManager) GetImageService(sb SandboxInfo) (ImageServer, erro
 // This is needed as there is no way, most of the time, to know which runtime
 // is handling the image, and kubernetes expects the image to exist in a single
 // store anyway.
-func (i *ImageServiceManager) DeleteImage(ctx context.Context, systemContext *types.SystemContext, id StorageImageID) error {
+func (i *ImageServiceManager) DeleteImage(
+	ctx context.Context,
+	systemContext *types.SystemContext,
+	id StorageImageID,
+) error {
 	err := i.imageService.DeleteImage(systemContext, id)
 	if err != nil {
 		log.Debugf(ctx, "Failed to delete image %s from main store: %v", id, err)
@@ -109,7 +113,13 @@ func (i *ImageServiceManager) DeleteImage(ctx context.Context, systemContext *ty
 	for index := range i.imageServiceRP {
 		e := i.imageServiceRP[index].DeleteImage(systemContext, id)
 		if e != nil {
-			log.Debugf(ctx, "Failed to delete image %s from runtime-pulled store %s: %v", id, index, e)
+			log.Debugf(
+				ctx,
+				"Failed to delete image %s from runtime-pulled store %s: %v",
+				id,
+				index,
+				e,
+			)
 		}
 
 		if !ok {
@@ -137,7 +147,9 @@ type IDPrefixMatch struct {
 // HeuristicallyTryResolvingStringAsIDPrefix calls the same function on each
 // image store and returns all matches, each paired with the ImageServer it was
 // found in, allowing direct calls to the right store.
-func (i *ImageServiceManager) HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput string) []IDPrefixMatch {
+func (i *ImageServiceManager) HeuristicallyTryResolvingStringAsIDPrefix(
+	heuristicInput string,
+) []IDPrefixMatch {
 	var matches []IDPrefixMatch
 
 	if id := i.imageService.HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput); id != nil {
@@ -148,7 +160,9 @@ func (i *ImageServiceManager) HeuristicallyTryResolvingStringAsIDPrefix(heuristi
 	defer i.imageServiceRPLock.RUnlock()
 
 	for index := range i.imageServiceRP {
-		if id := i.imageServiceRP[index].HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput); id != nil {
+		if id := i.imageServiceRP[index].HeuristicallyTryResolvingStringAsIDPrefix(
+			heuristicInput,
+		); id != nil {
 			matches = append(matches, IDPrefixMatch{ID: id, Server: i.imageServiceRP[index]})
 		}
 	}
@@ -156,7 +170,12 @@ func (i *ImageServiceManager) HeuristicallyTryResolvingStringAsIDPrefix(heuristi
 	return matches
 }
 
-func GetImageServiceManager(ctx context.Context, store storage.Store, storageTransport StorageTransport, serverConfig *config.Config) (*ImageServiceManager, error) {
+func GetImageServiceManager(
+	ctx context.Context,
+	store storage.Store,
+	storageTransport StorageTransport,
+	serverConfig *config.Config,
+) (*ImageServiceManager, error) {
 	is, err := GetImageService(ctx, store, storageTransport, serverConfig)
 	if err != nil {
 		return nil, err

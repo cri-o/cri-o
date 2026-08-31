@@ -163,7 +163,11 @@ func TestReverseAnnotationMigrationMap(t *testing.T) {
 			}
 
 			if gotValue != "test-value" {
-				t.Errorf("GetAnnotationValue returned wrong value: got %s, want %s", gotValue, "test-value")
+				t.Errorf(
+					"GetAnnotationValue returned wrong value: got %s, want %s",
+					gotValue,
+					"test-value",
+				)
 			}
 		})
 	}

@@ -133,7 +133,11 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 		logrus.Warnf("Pinns %v failed: %s (%v)", pinnsArgs, string(output), err)
 		// cleanup the mounts
 		for _, ns := range cfg.Namespaces {
-			if mErr := unix.Unmount(ns.Path, unix.MNT_DETACH); mErr != nil && !errors.Is(mErr, unix.EINVAL) {
+			if mErr := unix.Unmount(
+				ns.Path,
+				unix.MNT_DETACH,
+			); mErr != nil &&
+				!errors.Is(mErr, unix.EINVAL) {
 				logrus.Warnf("Failed to unmount %s: %v", ns.Path, mErr)
 			}
 		}
@@ -192,7 +196,10 @@ func getMappingsForPinns(mappings []idtools.IDMap) string {
 // This function is heavily based on containernetworking ns package found at:
 // https://github.com/containernetworking/plugins/blob/5c3c17164270150467498a32c71436c7cd5501be/pkg/ns/ns.go#L140
 // Credit goes to the CNI authors.
-func (mgr *NamespaceManager) NamespaceFromProcEntry(pid int, nsType NSType) (_ Namespace, retErr error) {
+func (mgr *NamespaceManager) NamespaceFromProcEntry(
+	pid int,
+	nsType NSType,
+) (_ Namespace, retErr error) {
 	// now create an empty file
 	f, err := os.CreateTemp(mgr.dirForType(PIDNS), string(PIDNS))
 	if err != nil {
@@ -223,8 +230,16 @@ func (mgr *NamespaceManager) NamespaceFromProcEntry(pid int, nsType NSType) (_ N
 
 	defer func() {
 		if retErr != nil {
-			if err := unix.Unmount(pinnedNamespace, unix.MNT_DETACH); err != nil && !errors.Is(err, unix.EINVAL) {
-				logrus.Errorf("Failed umount after failed to pin %s namespace: %v", string(nsType), err)
+			if err := unix.Unmount(
+				pinnedNamespace,
+				unix.MNT_DETACH,
+			); err != nil &&
+				!errors.Is(err, unix.EINVAL) {
+				logrus.Errorf(
+					"Failed umount after failed to pin %s namespace: %v",
+					string(nsType),
+					err,
+				)
 			}
 		}
 	}()

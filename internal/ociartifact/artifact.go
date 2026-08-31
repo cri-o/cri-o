@@ -36,7 +36,12 @@ type Artifact struct {
 }
 
 // newArtifact creates a new Artifact from a libartifact.Artifact.
-func (s *Store) newArtifact(ctx context.Context, art *libartifact.Artifact, rootPath string, pinned bool) *Artifact {
+func (s *Store) newArtifact(
+	ctx context.Context,
+	art *libartifact.Artifact,
+	rootPath string,
+	pinned bool,
+) *Artifact {
 	artifact := &Artifact{
 		Artifact: art,
 		rootPath: rootPath,
@@ -50,8 +55,11 @@ func (s *Store) newArtifact(ctx context.Context, art *libartifact.Artifact, root
 		// turn these into nonsensical refs like "docker.io/library/1.14.4".
 		// The upstream fix lives in libartifact (container-libs #1027).
 		if !strings.Contains(art.Name, "/") {
-			log.Warnf(ctx,
-				"Artifact name %q looks like a bare tag, not a fully qualified reference; skipping normalization", art.Name)
+			log.Warnf(
+				ctx,
+				"Artifact name %q looks like a bare tag, not a fully qualified reference; skipping normalization",
+				art.Name,
+			)
 		} else {
 			namedRef, err := reference.ParseNormalizedNamed(art.Name)
 			if err != nil {

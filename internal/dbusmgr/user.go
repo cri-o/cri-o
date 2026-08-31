@@ -43,13 +43,23 @@ func newUserSystemdDbus() (*systemdDbus.Conn, error) {
 		if err != nil {
 			conn.Close()
 
-			return nil, fmt.Errorf("error while authenticating connection, address=%q, UID=%d: %w", addr, uid, err)
+			return nil, fmt.Errorf(
+				"error while authenticating connection, address=%q, UID=%d: %w",
+				addr,
+				uid,
+				err,
+			)
 		}
 
 		if err = conn.Hello(); err != nil {
 			conn.Close()
 
-			return nil, fmt.Errorf("error while sending Hello message, address=%q, UID=%d: %w", addr, uid, err)
+			return nil, fmt.Errorf(
+				"error while sending Hello message, address=%q, UID=%d: %w",
+				addr,
+				uid,
+				err,
+			)
 		}
 
 		return conn, nil
@@ -67,7 +77,11 @@ func DetectUID() (int, error) {
 
 	b, err := cmdrunner.Command("busctl", "--user", "--no-pager", "status").CombinedOutput()
 	if err != nil {
-		return -1, fmt.Errorf("could not execute `busctl --user --no-pager status`: %q: %w", string(b), err)
+		return -1, fmt.Errorf(
+			"could not execute `busctl --user --no-pager status`: %q: %w",
+			string(b),
+			err,
+		)
 	}
 
 	scanner := bufio.NewScanner(bytes.NewReader(b))
@@ -109,9 +123,14 @@ func DetectUserDbusSessionBusAddress() (string, error) {
 		}
 	}
 
-	b, err := cmdrunner.Command("systemctl", "--user", "--no-pager", "show-environment").CombinedOutput()
+	b, err := cmdrunner.Command("systemctl", "--user", "--no-pager", "show-environment").
+		CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("could not execute `systemctl --user --no-pager show-environment`, output=%q: %w", string(b), err)
+		return "", fmt.Errorf(
+			"could not execute `systemctl --user --no-pager show-environment`, output=%q: %w",
+			string(b),
+			err,
+		)
 	}
 
 	scanner := bufio.NewScanner(bytes.NewReader(b))
@@ -122,5 +141,7 @@ func DetectUserDbusSessionBusAddress() (string, error) {
 		}
 	}
 
-	return "", errors.New("could not detect DBUS_SESSION_BUS_ADDRESS from `systemctl --user --no-pager show-environment`. Make sure you have installed the dbus-user-session or dbus-daemon package and then run: `systemctl --user start dbus`")
+	return "", errors.New(
+		"could not detect DBUS_SESSION_BUS_ADDRESS from `systemctl --user --no-pager show-environment`. Make sure you have installed the dbus-user-session or dbus-daemon package and then run: `systemctl --user start dbus`",
+	)
 }

@@ -54,12 +54,16 @@ var AllSpoofedNamespaces = []nsmgr.Namespace{
 }
 
 func ContainerWithPid(pid int) (*oci.Container, error) {
-	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
+	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+		"example.com/some-image:latest",
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(
+		"2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812",
+	)
 	if err != nil {
 		return nil, err
 	}

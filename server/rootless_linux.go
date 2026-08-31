@@ -28,47 +28,62 @@ func makeOCIConfigurationRootless(g *generate.Generator) {
 	if r := g.Config.Linux.Resources; r != nil {
 		// cannot control device eBPF with rootless
 		r.Devices = nil
-		if r.Memory != nil || r.CPU != nil || r.Pids != nil || r.BlockIO != nil || r.Rdma != nil || r.HugepageLimits != nil {
+		if r.Memory != nil || r.CPU != nil || r.Pids != nil || r.BlockIO != nil || r.Rdma != nil ||
+			r.HugepageLimits != nil {
 			v2Controllers := getAvailableV2Controllers()
 			if _, ok := v2Controllers["memory"]; !ok && r.Memory != nil {
-				logrus.Warn("rootless: cgroup v2 memory controller is not delegated. Discarding memory limit.")
+				logrus.Warn(
+					"rootless: cgroup v2 memory controller is not delegated. Discarding memory limit.",
+				)
 
 				r.Memory = nil
 			}
 
 			if _, ok := v2Controllers["cpu"]; !ok && r.CPU != nil {
-				logrus.Warn("rootless: cgroup v2 cpu controller is not delegated. Discarding cpu limit.")
+				logrus.Warn(
+					"rootless: cgroup v2 cpu controller is not delegated. Discarding cpu limit.",
+				)
 
 				r.CPU = nil
 			}
 
 			if _, ok := v2Controllers["cpuset"]; !ok && r.CPU != nil {
-				logrus.Warn("rootless: cgroup v2 cpuset controller is not delegated. Discarding cpuset limit.")
+				logrus.Warn(
+					"rootless: cgroup v2 cpuset controller is not delegated. Discarding cpuset limit.",
+				)
 
 				r.CPU.Cpus = ""
 				r.CPU.Mems = ""
 			}
 
 			if _, ok := v2Controllers["pids"]; !ok && r.Pids != nil {
-				logrus.Warn("rootless: cgroup v2 pids controller is not delegated. Discarding pids limit.")
+				logrus.Warn(
+					"rootless: cgroup v2 pids controller is not delegated. Discarding pids limit.",
+				)
 
 				r.Pids = nil
 			}
 
 			if _, ok := v2Controllers["io"]; !ok && r.BlockIO != nil {
-				logrus.Warn("rootless: cgroup v2 io controller is not delegated. Discarding block I/O limit.")
+				logrus.Warn(
+					"rootless: cgroup v2 io controller is not delegated. Discarding block I/O limit.",
+				)
 
 				r.BlockIO = nil
 			}
 
 			if _, ok := v2Controllers["rdma"]; !ok && r.Rdma != nil {
-				logrus.Warn("rootless: cgroup v2 rdma controller is not delegated. Discarding RDMA limit.")
+				logrus.Warn(
+					"rootless: cgroup v2 rdma controller is not delegated. Discarding RDMA limit.",
+				)
 
 				r.Rdma = nil
 			}
 
 			if _, ok := v2Controllers["hugetlb"]; !ok && r.HugepageLimits != nil {
-				logrus.Warn("rootless: cgroup v2 hugetlb controller is not delegated. Discarding RDMA limit.")
+				logrus.Warn(
+					"rootless: cgroup v2 hugetlb controller is not delegated. Discarding RDMA limit.",
+				)
 
 				r.HugepageLimits = nil
 			}

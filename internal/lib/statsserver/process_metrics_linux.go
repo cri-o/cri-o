@@ -8,7 +8,11 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-func generateContainerProcessMetrics(ctr *oci.Container, pids *cgroups.PidsStats, process *stats.ProcessStats) []*types.Metric {
+func generateContainerProcessMetrics(
+	ctr *oci.Container,
+	pids *cgroups.PidsStats,
+	process *stats.ProcessStats,
+) []*types.Metric {
 	if pids == nil || process == nil {
 		return []*types.Metric{}
 	}

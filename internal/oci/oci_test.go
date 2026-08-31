@@ -150,7 +150,9 @@ var _ = t.Describe("Oci", func() {
 		Context("AllowedAnnotations", func() {
 			It("should succeed to return allowed annotation", func() {
 				// Given
-				Expect(runtimes[performanceRuntime].ValidateRuntimeAllowedAnnotations()).To(Succeed())
+				Expect(
+					runtimes[performanceRuntime].ValidateRuntimeAllowedAnnotations(),
+				).To(Succeed())
 
 				// When
 				foundAnn, err := sut.AllowedAnnotations(performanceRuntime)
@@ -271,7 +273,11 @@ var _ = t.Describe("Oci", func() {
 
 			defer os.RemoveAll("checkpoint")
 
-			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
+			inventory, err := os.OpenFile(
+				"checkpoint/inventory.img",
+				os.O_RDONLY|os.O_CREATE,
+				0o644,
+			)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
@@ -288,7 +294,12 @@ var _ = t.Describe("Oci", func() {
 			myContainer.SetSpec(specgen)
 
 			// When
-			err = sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
+			err = sut.RestoreContainer(
+				context.Background(),
+				myContainer,
+				"no-parent-cgroup-exists",
+				"label",
+			)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -323,7 +334,11 @@ var _ = t.Describe("Oci", func() {
 
 			defer os.RemoveAll("checkpoint")
 
-			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
+			inventory, err := os.OpenFile(
+				"checkpoint/inventory.img",
+				os.O_RDONLY|os.O_CREATE,
+				0o644,
+			)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
@@ -344,7 +359,12 @@ var _ = t.Describe("Oci", func() {
 
 			defer os.RemoveAll("restore.log")
 			// When
-			err = sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
+			err = sut.RestoreContainer(
+				context.Background(),
+				myContainer,
+				"no-parent-cgroup-exists",
+				"label",
+			)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -357,11 +377,18 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			beforeEach()
 			// When
-			err := sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
+			err := sut.RestoreContainer(
+				context.Background(),
+				myContainer,
+				"no-parent-cgroup-exists",
+				"label",
+			)
 
 			// Then
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("a complete checkpoint for this container cannot be found, cannot restore: stat checkpoint/inventory.img: no such file or directory"))
+			Expect(
+				err.Error(),
+			).To(Equal("a complete checkpoint for this container cannot be found, cannot restore: stat checkpoint/inventory.img: no such file or directory"))
 		})
 	})
 })

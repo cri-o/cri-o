@@ -12,7 +12,10 @@ import (
 const networkNotReadyReason = "NetworkPluginNotReady"
 
 // Status returns the status of the runtime.
-func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.StatusResponse, error) {
+func (s *Server) Status(
+	ctx context.Context,
+	req *types.StatusRequest,
+) (*types.StatusResponse, error) {
 	runtimeCondition := &types.RuntimeCondition{
 		Type:   types.RuntimeReady,
 		Status: true,

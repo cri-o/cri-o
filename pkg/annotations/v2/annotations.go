@@ -225,7 +225,10 @@ func GetAnnotationValue(annotations map[string]string, newKey string) (string, b
 //
 // This function handles both base annotations (e.g., "userns-mode.crio.io") and container-specific
 // annotations (e.g., "unified-cgroup.crio.io/containerName" or "seccomp-profile.crio.io/containerName").
-func GetAnnotationValueWithKey(annotations map[string]string, newKey string) (value, key string, found bool) {
+func GetAnnotationValueWithKey(
+	annotations map[string]string,
+	newKey string,
+) (value, key string, found bool) {
 	// Prefer V2 annotation
 	if value, ok := annotations[newKey]; ok {
 		return value, newKey, true
@@ -257,14 +260,16 @@ func GetAnnotationValueWithKey(annotations map[string]string, newKey string) (va
 func findV1KeyForContainerSpecific(newKey string) string {
 	for v2Base, v1Base := range reverseAnnotationMigrationMap {
 		// Check for slash-separated pattern (e.g., "unified-cgroup.crio.io/containerName")
-		if len(newKey) > len(v2Base)+1 && newKey[:len(v2Base)] == v2Base && newKey[len(v2Base)] == '/' {
+		if len(newKey) > len(v2Base)+1 && newKey[:len(v2Base)] == v2Base &&
+			newKey[len(v2Base)] == '/' {
 			suffix := newKey[len(v2Base):]
 
 			return v1Base + suffix
 		}
 		// For backwards compatibility, also check for dot-separated pattern (deprecated)
 		// This supports migration from the earlier implementation that used dots
-		if len(newKey) > len(v2Base)+1 && newKey[:len(v2Base)] == v2Base && newKey[len(v2Base)] == '.' {
+		if len(newKey) > len(v2Base)+1 && newKey[:len(v2Base)] == v2Base &&
+			newKey[len(v2Base)] == '.' {
 			suffix := newKey[len(v2Base):]
 
 			return v1Base + suffix

@@ -81,7 +81,15 @@ type RuntimeImpl interface {
 	IsContainerAlive(*Container) bool
 	// ProbeMonitor is used to check the liveness of the container monitor process.
 	ProbeMonitor(context.Context, *Container) error
-	ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error)
+	ServeExecContainer(
+		context.Context,
+		*Container,
+		[]string,
+		bool,
+		bool,
+		bool,
+		bool,
+	) (string, error)
 	ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error)
 }
 
@@ -218,7 +226,9 @@ func (r *Runtime) GetContainerMinMemory(runtimeHandler string) (int64, error) {
 	}
 	// We can skip error checking since the value was checked
 	// at the time of initializing the runtime handlers features.
-	value, _ := units.RAMInBytes(rh.ContainerMinMemory) //nolint:errcheck // value was validated at initialization
+	value, _ := units.RAMInBytes( //nolint:errcheck // value validated at init
+		rh.ContainerMinMemory,
+	)
 
 	return value, nil
 }
@@ -309,7 +319,12 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 }
 
 // CreateContainer creates a container.
-func (r *Runtime) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) error {
+func (r *Runtime) CreateContainer(
+	ctx context.Context,
+	c *Container,
+	cgroupParent string,
+	restore bool,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Instantiate a new runtime implementation for this new container
@@ -340,7 +355,15 @@ func (r *Runtime) StartContainer(ctx context.Context, c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *Runtime) ExecContainer(
+	ctx context.Context,
+	c *Container,
+	cmd []string,
+	stdin io.Reader,
+	stdout, stderr io.WriteCloser,
+	tty bool,
+	resizeChan <-chan remotecommand.TerminalSize,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -353,7 +376,12 @@ func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string,
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
+func (r *Runtime) ExecSyncContainer(
+	ctx context.Context,
+	c *Container,
+	command []string,
+	timeout int64,
+) (*types.ExecSyncResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -366,7 +394,11 @@ func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command [
 }
 
 // UpdateContainer updates container resources.
-func (r *Runtime) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
+func (r *Runtime) UpdateContainer(
+	ctx context.Context,
+	c *Container,
+	res *rspec.LinuxResources,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -457,7 +489,11 @@ func (r *Runtime) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup string) (*stats.CgroupStats, error) {
+func (r *Runtime) ContainerStats(
+	ctx context.Context,
+	c *Container,
+	cgroup string,
+) (*stats.CgroupStats, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -479,7 +515,11 @@ func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup strin
 }
 
 // DiskStats provides disk statistics for a container.
-func (r *Runtime) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskStats, error) {
+func (r *Runtime) DiskStats(
+	ctx context.Context,
+	c *Container,
+	cgroup string,
+) (*stats.DiskStats, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -492,7 +532,14 @@ func (r *Runtime) DiskStats(ctx context.Context, c *Container, cgroup string) (*
 }
 
 // AttachContainer attaches IO to a running container.
-func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *Runtime) AttachContainer(
+	ctx context.Context,
+	c *Container,
+	inputStream io.Reader,
+	outputStream, errorStream io.WriteCloser,
+	tty bool,
+	resizeChan <-chan remotecommand.TerminalSize,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -505,7 +552,13 @@ func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.
-func (r *Runtime) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+func (r *Runtime) PortForwardContainer(
+	ctx context.Context,
+	c *Container,
+	netNsPath string,
+	port int32,
+	stream io.ReadWriteCloser,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -539,11 +592,22 @@ type ExecSyncError struct {
 }
 
 func (e *ExecSyncError) Error() string {
-	return fmt.Sprintf("command error: %+v, stdout: %s, stderr: %s, exit code %d", e.Err, e.Stdout.Bytes(), e.Stderr.Bytes(), e.ExitCode)
+	return fmt.Sprintf(
+		"command error: %+v, stdout: %s, stderr: %s, exit code %d",
+		e.Err,
+		e.Stdout.Bytes(),
+		e.Stderr.Bytes(),
+		e.ExitCode,
+	)
 }
 
 // CheckpointContainer checkpoints a container.
-func (r *Runtime) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
+func (r *Runtime) CheckpointContainer(
+	ctx context.Context,
+	c *Container,
+	specgen *rspec.Spec,
+	leaveRunning bool,
+) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -553,7 +617,11 @@ func (r *Runtime) CheckpointContainer(ctx context.Context, c *Container, specgen
 }
 
 // RestoreContainer restores a container.
-func (r *Runtime) RestoreContainer(ctx context.Context, c *Container, cgroupParent, mountLabel string) error {
+func (r *Runtime) RestoreContainer(
+	ctx context.Context,
+	c *Container,
+	cgroupParent, mountLabel string,
+) error {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -580,7 +648,12 @@ func (r *Runtime) ProbeMonitor(ctx context.Context, c *Container) error {
 	return impl.ProbeMonitor(ctx, c)
 }
 
-func (r *Runtime) ServeExecContainer(ctx context.Context, c *Container, cmd []string, tty, stdin, stdout, stderr bool) (string, error) {
+func (r *Runtime) ServeExecContainer(
+	ctx context.Context,
+	c *Container,
+	cmd []string,
+	tty, stdin, stdout, stderr bool,
+) (string, error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return "", err
@@ -589,7 +662,11 @@ func (r *Runtime) ServeExecContainer(ctx context.Context, c *Container, cmd []st
 	return impl.ServeExecContainer(ctx, c, cmd, tty, stdin, stdout, stderr)
 }
 
-func (r *Runtime) ServeAttachContainer(ctx context.Context, c *Container, stdin, stdout, stderr bool) (string, error) {
+func (r *Runtime) ServeAttachContainer(
+	ctx context.Context,
+	c *Container,
+	stdin, stdout, stderr bool,
+) (string, error) {
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return "", err

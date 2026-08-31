@@ -40,7 +40,9 @@ var _ = t.Describe("ContainerEvents", func() {
 
 	t.Describe("ContainerEvents", func() {
 		It("should send events to single client", func() {
-			cesMock := containereventservermock.NewMockRuntimeService_GetContainerEventsServer[string](mockCtrl)
+			cesMock := containereventservermock.NewMockRuntimeService_GetContainerEventsServer[string](
+				mockCtrl,
+			)
 			// EXPECT expects the exact object, so we can't use the copy range gives us
 			for i := range events {
 				cesMock.EXPECT().Send(&events[i]).Return(nil)
@@ -56,8 +58,12 @@ var _ = t.Describe("ContainerEvents", func() {
 		})
 
 		It("should send events all events to both clients", func() {
-			client1 := containereventservermock.NewMockRuntimeService_GetContainerEventsServer[string](mockCtrl)
-			client2 := containereventservermock.NewMockRuntimeService_GetContainerEventsServer[string](mockCtrl)
+			client1 := containereventservermock.NewMockRuntimeService_GetContainerEventsServer[string](
+				mockCtrl,
+			)
+			client2 := containereventservermock.NewMockRuntimeService_GetContainerEventsServer[string](
+				mockCtrl,
+			)
 
 			for i := range events {
 				client1.EXPECT().Send(&events[i]).Return(nil)

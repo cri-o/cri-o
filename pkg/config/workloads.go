@@ -147,13 +147,22 @@ func (w Workloads) FilterDisallowedAnnotations(allowed []string, toFilter map[st
 	return nil
 }
 
-func (w Workloads) MutateSpecGivenAnnotations(ctrName string, specgen *generate.Generator, sboxAnnotations map[string]string) error {
+func (w Workloads) MutateSpecGivenAnnotations(
+	ctrName string,
+	specgen *generate.Generator,
+	sboxAnnotations map[string]string,
+) error {
 	workload := w.workloadGivenActivationAnnotation(sboxAnnotations)
 	if workload == nil {
 		return nil
 	}
 
-	resources, err := resourcesFromAnnotation(workload.AnnotationPrefix, ctrName, sboxAnnotations, workload.Resources)
+	resources, err := resourcesFromAnnotation(
+		workload.AnnotationPrefix,
+		ctrName,
+		sboxAnnotations,
+		workload.Resources,
+	)
 	if err != nil {
 		return err
 	}
@@ -163,7 +172,9 @@ func (w Workloads) MutateSpecGivenAnnotations(ctrName string, specgen *generate.
 	return nil
 }
 
-func (w Workloads) workloadGivenActivationAnnotation(sboxAnnotations map[string]string) *WorkloadConfig {
+func (w Workloads) workloadGivenActivationAnnotation(
+	sboxAnnotations map[string]string,
+) *WorkloadConfig {
 	for _, wc := range w {
 		for annotation := range sboxAnnotations {
 			if wc.ActivationAnnotation == annotation {
@@ -175,7 +186,11 @@ func (w Workloads) workloadGivenActivationAnnotation(sboxAnnotations map[string]
 	return nil
 }
 
-func resourcesFromAnnotation(prefix, ctrName string, allAnnotations map[string]string, defaultResources *Resources) (*Resources, error) {
+func resourcesFromAnnotation(
+	prefix, ctrName string,
+	allAnnotations map[string]string,
+	defaultResources *Resources,
+) (*Resources, error) {
 	annotationKey := prefix + "/" + ctrName
 
 	value, ok := allAnnotations[annotationKey]

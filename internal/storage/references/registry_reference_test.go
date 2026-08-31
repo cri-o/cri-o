@@ -14,9 +14,13 @@ var _ = t.Describe("RegistryImageReference", func() {
 	It("Should parse valid references", func() {
 		ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData("minimal")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/minimal:latest"))
+		Expect(
+			ref.StringForOutOfProcessConsumptionOnly(),
+		).To(Equal("docker.io/library/minimal:latest"))
 
-		ref, err = references.ParseRegistryImageReferenceFromOutOfProcessData("quay.io/ns/repo:notlatest")
+		ref, err = references.ParseRegistryImageReferenceFromOutOfProcessData(
+			"quay.io/ns/repo:notlatest",
+		)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("quay.io/ns/repo:notlatest"))
 	})

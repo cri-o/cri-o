@@ -62,7 +62,8 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		// start values
 		operationStart := time.Now()
 		operation := filepath.Base(info.FullMethod)
-		newCtx, span := opentelemetry.Tracer().Start(AddRequestNameAndID(ctx, info.FullMethod), info.FullMethod)
+		newCtx, span := opentelemetry.Tracer().
+			Start(AddRequestNameAndID(ctx, info.FullMethod), info.FullMethod)
 
 		// List* RPCs can return large payloads; use compact format to avoid
 		// enormous log messages that cause gRPC timeouts (see issue #9894).

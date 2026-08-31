@@ -57,9 +57,13 @@ var _ = BeforeSuite(func() {
 })
 
 func getTestContainer() *oci.Container {
-	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image-name:latest")
+	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+		"docker.io/library/image-name:latest",
+	)
 	Expect(err).ToNot(HaveOccurred())
-	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(
+		"2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812",
+	)
 	Expect(err).ToNot(HaveOccurred())
 	container, err := oci.NewContainer("id", "name", "bundlePath", "logPath",
 		map[string]string{"key": "label"},

@@ -19,7 +19,11 @@ import (
 )
 
 // CgroupStats provides cgroup statistics of a container.
-func (r *runtimeVM) CgroupStats(ctx context.Context, c *Container, _ string) (*stats.CgroupStats, error) {
+func (r *runtimeVM) CgroupStats(
+	ctx context.Context,
+	c *Container,
+	_ string,
+) (*stats.CgroupStats, error) {
 	log.Debugf(ctx, "RuntimeVM.CgroupStats() start")
 	defer log.Debugf(ctx, "RuntimeVM.CgroupStats() end")
 
@@ -60,7 +64,11 @@ func (r *runtimeVM) CgroupStats(ctx context.Context, c *Container, _ string) (*s
 	}
 }
 
-func (r *runtimeVM) DiskStats(ctx context.Context, c *Container, _ string) (*stats.DiskStats, error) {
+func (r *runtimeVM) DiskStats(
+	ctx context.Context,
+	c *Container,
+	_ string,
+) (*stats.DiskStats, error) {
 	return &stats.DiskStats{}, nil
 }
 

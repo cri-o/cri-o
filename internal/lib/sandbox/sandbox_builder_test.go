@@ -31,7 +31,12 @@ var _ = Describe("Sandbox:Builder", func() {
 		builder.SetUsernsMode("")
 		builder.SetPodLinuxOverhead(nil)
 		builder.SetPodLinuxResources(nil)
-		err := builder.SetCRISandbox(builder.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+		err := builder.SetCRISandbox(
+			builder.ID(),
+			make(map[string]string),
+			make(map[string]string),
+			&types.PodSandboxMetadata{},
+		)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

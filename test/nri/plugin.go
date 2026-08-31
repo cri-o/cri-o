@@ -58,7 +58,9 @@ func WithTestNamespace(namespace string) PluginOption {
 	}
 }
 
-func WithCreateHandler(fn func(*plugin, *api.PodSandbox, *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error)) PluginOption {
+func WithCreateHandler(
+	fn func(*plugin, *api.PodSandbox, *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error),
+) PluginOption {
 	return func(p *plugin) {
 		p.createContainer = fn
 	}
@@ -70,13 +72,17 @@ func WithPostCreateHandler(fn func(*plugin, *api.PodSandbox, *api.Container) err
 	}
 }
 
-func WithStopHandler(fn func(*plugin, *api.PodSandbox, *api.Container) ([]*api.ContainerUpdate, error)) PluginOption {
+func WithStopHandler(
+	fn func(*plugin, *api.PodSandbox, *api.Container) ([]*api.ContainerUpdate, error),
+) PluginOption {
 	return func(p *plugin) {
 		p.stopContainer = fn
 	}
 }
 
-func WithUpdateHandler(fn func(*plugin, *api.PodSandbox, *api.Container) ([]*api.ContainerUpdate, error)) PluginOption {
+func WithUpdateHandler(
+	fn func(*plugin, *api.PodSandbox, *api.Container) ([]*api.ContainerUpdate, error),
+) PluginOption {
 	return func(p *plugin) {
 		p.updateContainer = fn
 	}
@@ -156,7 +162,11 @@ func (p *plugin) Configure(_ context.Context, cfg, name, version string) (stub.E
 	return 0, nil
 }
 
-func (p *plugin) Synchronize(_ context.Context, pods []*api.PodSandbox, ctrs []*api.Container) ([]*api.ContainerUpdate, error) {
+func (p *plugin) Synchronize(
+	_ context.Context,
+	pods []*api.PodSandbox,
+	ctrs []*api.Container,
+) ([]*api.ContainerUpdate, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -212,7 +222,11 @@ func (p *plugin) RunPodSandbox(_ context.Context, pod *api.PodSandbox) error {
 	return nil
 }
 
-func (p *plugin) UpdatePodSandbox(_ context.Context, pod *api.PodSandbox, overhead, resources *api.LinuxResources) error {
+func (p *plugin) UpdatePodSandbox(
+	_ context.Context,
+	pod *api.PodSandbox,
+	overhead, resources *api.LinuxResources,
+) error {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil
 	}
@@ -270,7 +284,11 @@ func (p *plugin) RemovePodSandbox(_ context.Context, pod *api.PodSandbox) error 
 	return nil
 }
 
-func (p *plugin) CreateContainer(_ context.Context, pod *api.PodSandbox, ctr *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
+func (p *plugin) CreateContainer(
+	_ context.Context,
+	pod *api.PodSandbox,
+	ctr *api.Container,
+) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil, nil, nil
 	}
@@ -302,7 +320,11 @@ func (p *plugin) CreateContainer(_ context.Context, pod *api.PodSandbox, ctr *ap
 	return adjust, update, err
 }
 
-func (p *plugin) PostCreateContainer(_ context.Context, pod *api.PodSandbox, ctr *api.Container) error {
+func (p *plugin) PostCreateContainer(
+	_ context.Context,
+	pod *api.PodSandbox,
+	ctr *api.Container,
+) error {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil
 	}
@@ -340,7 +362,11 @@ func (p *plugin) StartContainer(_ context.Context, pod *api.PodSandbox, ctr *api
 	return nil
 }
 
-func (p *plugin) PostStartContainer(_ context.Context, pod *api.PodSandbox, ctr *api.Container) error {
+func (p *plugin) PostStartContainer(
+	_ context.Context,
+	pod *api.PodSandbox,
+	ctr *api.Container,
+) error {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil
 	}
@@ -356,7 +382,12 @@ func (p *plugin) PostStartContainer(_ context.Context, pod *api.PodSandbox, ctr 
 	return nil
 }
 
-func (p *plugin) UpdateContainer(_ context.Context, pod *api.PodSandbox, ctr *api.Container, _ *api.LinuxResources) ([]*api.ContainerUpdate, error) {
+func (p *plugin) UpdateContainer(
+	_ context.Context,
+	pod *api.PodSandbox,
+	ctr *api.Container,
+	_ *api.LinuxResources,
+) ([]*api.ContainerUpdate, error) {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil, nil
 	}
@@ -387,7 +418,11 @@ func (p *plugin) UpdateContainer(_ context.Context, pod *api.PodSandbox, ctr *ap
 	return update, err
 }
 
-func (p *plugin) PostUpdateContainer(_ context.Context, pod *api.PodSandbox, ctr *api.Container) error {
+func (p *plugin) PostUpdateContainer(
+	_ context.Context,
+	pod *api.PodSandbox,
+	ctr *api.Container,
+) error {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil
 	}
@@ -403,7 +438,11 @@ func (p *plugin) PostUpdateContainer(_ context.Context, pod *api.PodSandbox, ctr
 	return nil
 }
 
-func (p *plugin) StopContainer(_ context.Context, pod *api.PodSandbox, ctr *api.Container) ([]*api.ContainerUpdate, error) {
+func (p *plugin) StopContainer(
+	_ context.Context,
+	pod *api.PodSandbox,
+	ctr *api.Container,
+) ([]*api.ContainerUpdate, error) {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil, nil
 	}

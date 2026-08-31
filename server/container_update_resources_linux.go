@@ -12,7 +12,11 @@ import (
 
 // validateMemoryUpdate checks if the new memory limit is safe to apply by getting current usage from CRI-O's stats server.
 // This ensures real-time accuracy and prevents decreasing memory limits below current usage.
-func (s *Server) validateMemoryUpdate(ctx context.Context, c *oci.Container, newMemoryLimit int64) error {
+func (s *Server) validateMemoryUpdate(
+	ctx context.Context,
+	c *oci.Container,
+	newMemoryLimit int64,
+) error {
 	// Negative memory limits are invalid
 	if newMemoryLimit < 0 {
 		return fmt.Errorf("invalid memory limit: %d bytes (cannot be negative)", newMemoryLimit)

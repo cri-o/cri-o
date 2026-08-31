@@ -152,45 +152,59 @@ var _ = t.Describe("Inspect", func() {
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
 
-		It("should fail with valid container ID on /pause route because update status error", func() {
-			// Given
-			state := &oci.ContainerState{
-				State: specs.State{
-					Status: oci.ContainerStateRunning,
-				},
-			}
-			testContainer.SetState(state)
-			addContainerAndSandbox()
+		It(
+			"should fail with valid container ID on /pause route because update status error",
+			func() {
+				// Given
+				state := &oci.ContainerState{
+					State: specs.State{
+						Status: oci.ContainerStateRunning,
+					},
+				}
+				testContainer.SetState(state)
+				addContainerAndSandbox()
 
-			// When
-			request, err := http.NewRequest(http.MethodGet, "/pause/"+testContainer.ID(), http.NoBody)
-			mux.ServeHTTP(recorder, request)
+				// When
+				request, err := http.NewRequest(
+					http.MethodGet,
+					"/pause/"+testContainer.ID(),
+					http.NoBody,
+				)
+				mux.ServeHTTP(recorder, request)
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-			Expect(request).NotTo(BeNil())
-			Expect(recorder.Code).To(BeEquivalentTo(http.StatusInternalServerError))
-		})
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(request).NotTo(BeNil())
+				Expect(recorder.Code).To(BeEquivalentTo(http.StatusInternalServerError))
+			},
+		)
 
-		It("should fail with valid container ID on /pause route with already paused container", func() {
-			// Given
-			state := &oci.ContainerState{
-				State: specs.State{
-					Status: oci.ContainerStatePaused,
-				},
-			}
-			testContainer.SetState(state)
-			addContainerAndSandbox()
+		It(
+			"should fail with valid container ID on /pause route with already paused container",
+			func() {
+				// Given
+				state := &oci.ContainerState{
+					State: specs.State{
+						Status: oci.ContainerStatePaused,
+					},
+				}
+				testContainer.SetState(state)
+				addContainerAndSandbox()
 
-			// When
-			request, err := http.NewRequest(http.MethodGet, "/pause/"+testContainer.ID(), http.NoBody)
-			mux.ServeHTTP(recorder, request)
+				// When
+				request, err := http.NewRequest(
+					http.MethodGet,
+					"/pause/"+testContainer.ID(),
+					http.NoBody,
+				)
+				mux.ServeHTTP(recorder, request)
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-			Expect(request).NotTo(BeNil())
-			Expect(recorder.Code).To(BeEquivalentTo(http.StatusConflict))
-		})
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(request).NotTo(BeNil())
+				Expect(recorder.Code).To(BeEquivalentTo(http.StatusConflict))
+			},
+		)
 
 		It("should fail with empty on /unpause route", func() {
 			// Given
@@ -216,25 +230,32 @@ var _ = t.Describe("Inspect", func() {
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
 
-		It("should fail with valid container ID on /unpause route because update status error", func() {
-			// Given
-			state := &oci.ContainerState{
-				State: specs.State{
-					Status: oci.ContainerStatePaused,
-				},
-			}
-			testContainer.SetState(state)
-			addContainerAndSandbox()
+		It(
+			"should fail with valid container ID on /unpause route because update status error",
+			func() {
+				// Given
+				state := &oci.ContainerState{
+					State: specs.State{
+						Status: oci.ContainerStatePaused,
+					},
+				}
+				testContainer.SetState(state)
+				addContainerAndSandbox()
 
-			// When
-			request, err := http.NewRequest(http.MethodGet, "/unpause/"+testContainer.ID(), http.NoBody)
-			mux.ServeHTTP(recorder, request)
+				// When
+				request, err := http.NewRequest(
+					http.MethodGet,
+					"/unpause/"+testContainer.ID(),
+					http.NoBody,
+				)
+				mux.ServeHTTP(recorder, request)
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-			Expect(request).NotTo(BeNil())
-			Expect(recorder.Code).To(BeEquivalentTo(http.StatusInternalServerError))
-		})
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(request).NotTo(BeNil())
+				Expect(recorder.Code).To(BeEquivalentTo(http.StatusInternalServerError))
+			},
+		)
 
 		It("should fail with valid container ID on /unpause route with running container", func() {
 			// Given
@@ -247,7 +268,11 @@ var _ = t.Describe("Inspect", func() {
 			addContainerAndSandbox()
 
 			// When
-			request, err := http.NewRequest(http.MethodGet, "/unpause/"+testContainer.ID(), http.NoBody)
+			request, err := http.NewRequest(
+				http.MethodGet,
+				"/unpause/"+testContainer.ID(),
+				http.NoBody,
+			)
 			mux.ServeHTTP(recorder, request)
 
 			// Then

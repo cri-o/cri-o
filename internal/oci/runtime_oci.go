@@ -116,7 +116,12 @@ func (w *execCmdWrapper) GetPid() int {
 }
 
 // CreateContainer creates a container.
-func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) (retErr error) {
+func (r *runtimeOCI) CreateContainer(
+	ctx context.Context,
+	c *Container,
+	cgroupParent string,
+	restore bool,
+) (retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -280,7 +285,12 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	defer func() {
 		if retErr != nil {
 			if err := os.Remove(c.logPath); err != nil {
-				log.Warnf(ctx, "Failed to remove log path %s after failing to create container: %v", c.logPath, err)
+				log.Warnf(
+					ctx,
+					"Failed to remove log path %s after failing to create container: %v",
+					c.logPath,
+					err,
+				)
 			}
 		}
 	}()
@@ -479,7 +489,15 @@ func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *runtimeOCI) ExecContainer(
+	ctx context.Context,
+	c *Container,
+	cmd []string,
+	stdin io.Reader,
+	stdout, stderr io.WriteCloser,
+	tty bool,
+	resizeChan <-chan remotecommand.TerminalSize,
+) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -589,7 +607,12 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
-func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
+func (r *runtimeOCI) ExecSyncContainer(
+	ctx context.Context,
+	c *Container,
+	command []string,
+	timeout int64,
+) (*types.ExecSyncResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -761,7 +784,8 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			}
 		}()
 
-		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer && r.config.InfraCtrCPUSet != "" {
+		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer &&
+			r.config.InfraCtrCPUSet != "" {
 			// Update the exec's cgroup
 			containerPid, _, err := c.pid()
 			if err != nil {
@@ -821,7 +845,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	if waitErr != nil {
 		// if we aren't a ExitError, some I/O problems probably occurred
-		if _, ok := errors.AsType[*exec.ExitError](waitErr); !ok { //nolint:errcheck // We only check error type here.
+		if _, ok := errors.AsType[*exec.ExitError]( //nolint:errcheck // type assertion check
+			waitErr,
+		); !ok {
 			return nil, &ExecSyncError{
 				Stdout:   stdoutBuf,
 				Stderr:   stderrBuf,
@@ -884,7 +910,13 @@ func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, 
 	}
 
 	if info.Size() > size {
-		log.Errorf(ctx, "Exec sync output in file %s has size %d which is longer than expected size of %d", path, info.Size(), size)
+		log.Errorf(
+			ctx,
+			"Exec sync output in file %s has size %d which is longer than expected size of %d",
+			path,
+			info.Size(),
+			size,
+		)
 
 		if err := os.Truncate(path, size); err != nil {
 			return nil, err
@@ -895,7 +927,11 @@ func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, 
 }
 
 // UpdateContainer updates container resources.
-func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
+func (r *runtimeOCI) UpdateContainer(
+	ctx context.Context,
+	c *Container,
+	res *rspec.LinuxResources,
+) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -906,7 +942,15 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 		return nil
 	}
 
-	cmd := cmdrunner.Command(c.RuntimePathForPlatform(r), rootFlag, r.root, "update", "--resources", "-", c.ID())
+	cmd := cmdrunner.Command(
+		c.RuntimePathForPlatform(r),
+		rootFlag,
+		r.root,
+		"update",
+		"--resources",
+		"-",
+		c.ID(),
+	)
 
 	var stdout bytes.Buffer
 
@@ -924,14 +968,24 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 	cmd.Stdin = bytes.NewReader(jsonResources)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("updating resources for container %q failed: %v %v: %w", c.ID(), stderr.String(), stdout.String(), err)
+		return fmt.Errorf(
+			"updating resources for container %q failed: %v %v: %w",
+			c.ID(),
+			stderr.String(),
+			stdout.String(),
+			err,
+		)
 	}
 
 	return nil
 }
 
 // StopContainer stops a container. Timeout is given in seconds.
-func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) (retErr error) {
+func (r *runtimeOCI) StopContainer(
+	ctx context.Context,
+	c *Container,
+	timeout int64,
+) (retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -952,7 +1006,9 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	if c.SetAsStopping() {
 		// The API is due to be deprecated. However, the replacement is completely broken, see:
 		//   https://github.com/kubernetes/kubernetes/issues/118638
-		go r.StopLoopForContainer(context.WithoutCancel(ctx), c,
+		go r.StopLoopForContainer(
+			context.WithoutCancel(ctx),
+			c,
 			kwait.NewExponentialBackoffManager( //nolint:staticcheck // Ignore deprecated function warning.
 				stopInitialBackoff,
 				stopMaximumBackoff,
@@ -969,7 +1025,11 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	return nil
 }
 
-func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm kwait.BackoffManager) {
+func (r *runtimeOCI) StopLoopForContainer(
+	ctx context.Context,
+	c *Container,
+	bm kwait.BackoffManager,
+) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1042,14 +1102,21 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 
 	blockedTimer := time.AfterFunc(stopProcessBlockedInterval, func() {
 		if state, err := c.ProcessState(); err == nil && state == "D" {
-			log.Errorf(ctx,
+			log.Errorf(
+				ctx,
 				"Detected process (%d) blocked in uninterruptible sleep for more than %d seconds for container %s",
-				c.state.InitPid, int(time.Since(startTime)/time.Second), c.ID(),
+				c.state.InitPid,
+				int(time.Since(startTime)/time.Second),
+				c.ID(),
 			)
 		} else {
-			log.Warnf(ctx,
+			log.Warnf(
+				ctx,
 				"Detected process (%d) in state %s blocked for more than %d seconds for container %s. One of the child processes might be in uninterruptible sleep.",
-				c.state.InitPid, state, int(time.Since(startTime)/time.Second), c.ID(),
+				c.state.InitPid,
+				state,
+				int(time.Since(startTime)/time.Second),
+				c.ID(),
 			)
 		}
 	})
@@ -1070,7 +1137,12 @@ func (r *runtimeOCI) StopLoopForContainer(ctx context.Context, c *Container, bm 
 			}
 
 		case <-time.After(time.Until(targetTime)):
-			log.Warnf(ctx, "Stopping container %s with stop signal(%s) timed out. Killing...", c.ID(), c.GetStopSignal())
+			log.Warnf(
+				ctx,
+				"Stopping container %s with stop signal(%s) timed out. Killing...",
+				c.ID(),
+				c.GetStopSignal(),
+			)
 			c.SetStopKillLoopBegun()
 
 			goto killContainer
@@ -1197,7 +1269,12 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			// get a spurious exit code 255.
 			waitErr := waitForExitFile(c)
 			if waitErr != nil {
-				log.Errorf(ctx, "Failed to update container status from exit file for %s: %v", c.ID(), waitErr)
+				log.Errorf(
+					ctx,
+					"Failed to update container status from exit file for %s: %v",
+					c.ID(),
+					waitErr,
+				)
 				c.state.Finished = time.Now()
 				c.state.ExitCode = new(int32(255))
 			} else if err := updateContainerStatusFromExitFile(c); err != nil {
@@ -1211,7 +1288,11 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 
 		state := *c.state
 		if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
-			return &state, false, fmt.Errorf("failed to decode container status for %s: %w", c.ID(), err)
+			return &state, false, fmt.Errorf(
+				"failed to decode container status for %s: %w",
+				c.ID(),
+				err,
+			)
 		}
 
 		return &state, false, nil
@@ -1329,7 +1410,11 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeOCI) CgroupStats(ctx context.Context, c *Container, cgroup string) (*stats.CgroupStats, error) {
+func (r *runtimeOCI) CgroupStats(
+	ctx context.Context,
+	c *Container,
+	cgroup string,
+) (*stats.CgroupStats, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1340,7 +1425,11 @@ func (r *runtimeOCI) CgroupStats(ctx context.Context, c *Container, cgroup strin
 }
 
 // DiskStats provides disk usage statistics of a container.
-func (r *runtimeOCI) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskStats, error) {
+func (r *runtimeOCI) DiskStats(
+	ctx context.Context,
+	c *Container,
+	cgroup string,
+) (*stats.DiskStats, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1372,7 +1461,14 @@ func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool)
 }
 
 // AttachContainer attaches IO to a running container.
-func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *runtimeOCI) AttachContainer(
+	ctx context.Context,
+	c *Container,
+	inputStream io.Reader,
+	outputStream, errorStream io.WriteCloser,
+	tty bool,
+	resizeChan <-chan remotecommand.TerminalSize,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1400,7 +1496,11 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 
 	attachSocketPath := filepath.Join(r.config.ContainerAttachSocketDir, c.ID(), "attach")
 
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
+	conn, err := net.DialUnix(
+		"unixpacket",
+		nil,
+		&net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to container %s attach socket: %w", c.ID(), err)
 	}
@@ -1450,7 +1550,9 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 			return nil
 		}
 
-		if _, ok := errors.AsType[utils.DetachError](err); ok { //nolint:errcheck // We only check error type here.
+		if _, ok := errors.AsType[utils.DetachError]( //nolint:errcheck // type assertion check
+			err,
+		); ok {
 			return nil
 		}
 
@@ -1492,7 +1594,8 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 			case event := <-watcher.Events:
 				log.Debugf(ctx, "Event: %v", event)
 
-				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
+				if event.Op&fsnotify.Create == fsnotify.Create ||
+					event.Op&fsnotify.Write == fsnotify.Write {
 					log.Debugf(ctx, "File created %s", event.Name)
 
 					if event.Name == c.LogPath() {
@@ -1634,7 +1737,14 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 			err = ErrNotFound
 		}
 
-		return "", fmt.Errorf("`%v %v` failed: %v %v: %w", r.handler.RuntimePath, strings.Join(runtimeArgs, " "), stderr.String(), stdout.String(), err)
+		return "", fmt.Errorf(
+			"`%v %v` failed: %v %v: %w",
+			r.handler.RuntimePath,
+			strings.Join(runtimeArgs, " "),
+			stderr.String(),
+			stdout.String(),
+			err,
+		)
 	}
 
 	return stdout.String(), nil
@@ -1674,7 +1784,12 @@ func (r *runtimeOCI) defaultRuntimeArgs() []string {
 }
 
 // CheckpointContainer checkpoints a container.
-func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
+func (r *runtimeOCI) CheckpointContainer(
+	ctx context.Context,
+	c *Container,
+	specgen *rspec.Spec,
+	leaveRunning bool,
+) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
@@ -1737,7 +1852,11 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 }
 
 // RestoreContainer restores a container.
-func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupParent, mountLabel string) error {
+func (r *runtimeOCI) RestoreContainer(
+	ctx context.Context,
+	c *Container,
+	cgroupParent, mountLabel string,
+) error {
 	if err := r.checkpointRestoreSupported(c.RuntimePathForPlatform(r)); err != nil {
 		return err
 	}
@@ -1745,7 +1864,10 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupP
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
 	// no sense to try a restore. This is a minimal check if a checkpoint exist.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
-		return fmt.Errorf("a complete checkpoint for this container cannot be found, cannot restore: %w", err)
+		return fmt.Errorf(
+			"a complete checkpoint for this container cannot be found, cannot restore: %w",
+			err,
+		)
 	}
 
 	// remove conmon files
@@ -1837,17 +1959,35 @@ func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
 
 	if r.IsContainerAlive(c) {
 		metrics.Instance().MetricContainersStoppedMonitorCountInc(c.Name())
-		log.Errorf(ctx, "Conmon for container %s is stopped, although the container is running", c.ID())
+		log.Errorf(
+			ctx,
+			"Conmon for container %s is stopped, although the container is running",
+			c.ID(),
+		)
 		c.monitorProcess = nil
 	}
 
 	return nil
 }
 
-func (r *runtimeOCI) ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error) {
+func (r *runtimeOCI) ServeExecContainer(
+	context.Context,
+	*Container,
+	[]string,
+	bool,
+	bool,
+	bool,
+	bool,
+) (string, error) {
 	return "", nil
 }
 
-func (r *runtimeOCI) ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error) {
+func (r *runtimeOCI) ServeAttachContainer(
+	context.Context,
+	*Container,
+	bool,
+	bool,
+	bool,
+) (string, error) {
 	return "", nil
 }

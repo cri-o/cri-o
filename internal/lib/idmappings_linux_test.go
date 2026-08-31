@@ -55,15 +55,30 @@ func TestConvertCRIToOCIMappings(t *testing.T) {
 
 			for i, mapping := range result {
 				if mapping.ContainerID != tc.expected[i].ContainerID {
-					t.Errorf("Mapping %d: expected ContainerID %d, got %d", i, tc.expected[i].ContainerID, mapping.ContainerID)
+					t.Errorf(
+						"Mapping %d: expected ContainerID %d, got %d",
+						i,
+						tc.expected[i].ContainerID,
+						mapping.ContainerID,
+					)
 				}
 
 				if mapping.HostID != tc.expected[i].HostID {
-					t.Errorf("Mapping %d: expected HostID %d, got %d", i, tc.expected[i].HostID, mapping.HostID)
+					t.Errorf(
+						"Mapping %d: expected HostID %d, got %d",
+						i,
+						tc.expected[i].HostID,
+						mapping.HostID,
+					)
 				}
 
 				if mapping.Size != tc.expected[i].Size {
-					t.Errorf("Mapping %d: expected Size %d, got %d", i, tc.expected[i].Size, mapping.Size)
+					t.Errorf(
+						"Mapping %d: expected Size %d, got %d",
+						i,
+						tc.expected[i].Size,
+						mapping.Size,
+					)
 				}
 			}
 		})
@@ -148,29 +163,59 @@ func TestConvertOCIToStorageIDMappings(t *testing.T) {
 
 			for i, uid := range uids {
 				if uid.ContainerID != int(tc.uidMappings[i].ContainerID) {
-					t.Errorf("UID mapping %d: expected ContainerID %d, got %d", i, tc.uidMappings[i].ContainerID, uid.ContainerID)
+					t.Errorf(
+						"UID mapping %d: expected ContainerID %d, got %d",
+						i,
+						tc.uidMappings[i].ContainerID,
+						uid.ContainerID,
+					)
 				}
 
 				if uid.HostID != int(tc.uidMappings[i].HostID) {
-					t.Errorf("UID mapping %d: expected HostID %d, got %d", i, tc.uidMappings[i].HostID, uid.HostID)
+					t.Errorf(
+						"UID mapping %d: expected HostID %d, got %d",
+						i,
+						tc.uidMappings[i].HostID,
+						uid.HostID,
+					)
 				}
 
 				if uid.Size != int(tc.uidMappings[i].Size) {
-					t.Errorf("UID mapping %d: expected Size %d, got %d", i, tc.uidMappings[i].Size, uid.Size)
+					t.Errorf(
+						"UID mapping %d: expected Size %d, got %d",
+						i,
+						tc.uidMappings[i].Size,
+						uid.Size,
+					)
 				}
 			}
 
 			for i, gid := range gids {
 				if gid.ContainerID != int(tc.gidMappings[i].ContainerID) {
-					t.Errorf("GID mapping %d: expected ContainerID %d, got %d", i, tc.gidMappings[i].ContainerID, gid.ContainerID)
+					t.Errorf(
+						"GID mapping %d: expected ContainerID %d, got %d",
+						i,
+						tc.gidMappings[i].ContainerID,
+						gid.ContainerID,
+					)
 				}
 
 				if gid.HostID != int(tc.gidMappings[i].HostID) {
-					t.Errorf("GID mapping %d: expected HostID %d, got %d", i, tc.gidMappings[i].HostID, gid.HostID)
+					t.Errorf(
+						"GID mapping %d: expected HostID %d, got %d",
+						i,
+						tc.gidMappings[i].HostID,
+						gid.HostID,
+					)
 				}
 
 				if gid.Size != int(tc.gidMappings[i].Size) {
-					t.Errorf("GID mapping %d: expected Size %d, got %d", i, tc.gidMappings[i].Size, gid.Size)
+					t.Errorf(
+						"GID mapping %d: expected Size %d, got %d",
+						i,
+						tc.gidMappings[i].Size,
+						gid.Size,
+					)
 				}
 			}
 		})

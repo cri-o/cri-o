@@ -128,7 +128,9 @@ func crioCheck(c *cli.Context) error {
 
 	force := c.Bool("force")
 	if force {
-		logrus.Warn("The `force` option has been set, repair will attempt to remove damaged containers")
+		logrus.Warn(
+			"The `force` option has been set, repair will attempt to remove damaged containers",
+		)
 	}
 
 	logrus.Infof("Attempting to repair storage directory %s", graphRoot)
@@ -146,7 +148,9 @@ func crioCheck(c *cli.Context) error {
 			// storage directory completely while ignoring any running containers. Otherwise,
 			// this will fail if there are any containers currently running.
 			if force {
-				logrus.Warn("The `force` option has been set, storage directory will be forcefully removed")
+				logrus.Warn(
+					"The `force` option has been set, storage directory will be forcefully removed",
+				)
 			}
 
 			logrus.Infof("Wiping storage directory %s", graphRoot)
@@ -157,7 +161,8 @@ func crioCheck(c *cli.Context) error {
 		return errs[0]
 	}
 
-	if len(report.ROLayers) > 0 || len(report.ROImages) > 0 || (!force && len(report.Containers) > 0) {
+	if len(report.ROLayers) > 0 || len(report.ROImages) > 0 ||
+		(!force && len(report.Containers) > 0) {
 		if force {
 			// Any damaged containers would have been deleted at this point.
 			return fmt.Errorf(

@@ -201,9 +201,16 @@ func (s *Sandbox) PidNsPath() string {
 }
 
 // nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath.
-func nsJoin(nsPath string, nsType nsmgr.NSType, currentIface nsmgr.Namespace) (nsmgr.Namespace, error) {
+func nsJoin(
+	nsPath string,
+	nsType nsmgr.NSType,
+	currentIface nsmgr.Namespace,
+) (nsmgr.Namespace, error) {
 	if currentIface != nil {
-		return currentIface, fmt.Errorf("sandbox already has a %s namespace, cannot join another", nsType)
+		return currentIface, fmt.Errorf(
+			"sandbox already has a %s namespace, cannot join another",
+			nsType,
+		)
 	}
 
 	return nsmgr.GetNamespace(nsPath, nsType)

@@ -52,7 +52,10 @@ func (f *fakeCNIPlugin) SetUpPod(ocicni.PodNetwork) ([]ocicni.NetResult, error) 
 	return nil, nil
 }
 
-func (f *fakeCNIPlugin) SetUpPodWithContext(context.Context, ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+func (f *fakeCNIPlugin) SetUpPodWithContext(
+	context.Context,
+	ocicni.PodNetwork,
+) ([]ocicni.NetResult, error) {
 	return nil, nil
 }
 
@@ -66,7 +69,10 @@ func (f *fakeCNIPlugin) GetPodNetworkStatus(ocicni.PodNetwork) ([]ocicni.NetResu
 	return nil, nil
 }
 
-func (f *fakeCNIPlugin) GetPodNetworkStatusWithContext(context.Context, ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+func (f *fakeCNIPlugin) GetPodNetworkStatusWithContext(
+	context.Context,
+	ocicni.PodNetwork,
+) ([]ocicni.NetResult, error) {
 	return nil, nil
 }
 
@@ -417,7 +423,11 @@ func TestStatusPolling(t *testing.T) {
 		time.Sleep(200 * time.Millisecond)
 
 		if calls := fake.gcCalls.Load(); calls != initialGC {
-			t.Fatalf("expected no additional GC calls while healthy, got %d (initial was %d)", calls, initialGC)
+			t.Fatalf(
+				"expected no additional GC calls while healthy, got %d (initial was %d)",
+				calls,
+				initialGC,
+			)
 		}
 	})
 
@@ -493,7 +503,11 @@ func TestStatusPolling(t *testing.T) {
 		}
 
 		if calls := fake.gcCalls.Load(); calls <= initialGC {
-			t.Fatalf("expected GC to run immediately, got %d calls (initial was %d)", calls, initialGC)
+			t.Fatalf(
+				"expected GC to run immediately, got %d calls (initial was %d)",
+				calls,
+				initialGC,
+			)
 		}
 	})
 

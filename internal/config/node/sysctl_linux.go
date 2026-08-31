@@ -31,13 +31,17 @@ func checkFsMayDetachMounts() bool {
 
 	val, err := strconv.ParseInt(str, 10, 64)
 	if err != nil { // should never happen
-		logrus.WithError(err).Warnf("CheckFsMayDetachMounts: file %s, value %q, can't convert to int", file, str)
+		logrus.WithError(err).
+			Warnf("CheckFsMayDetachMounts: file %s, value %q, can't convert to int", file, str)
 
 		return true
 	}
 
 	if val != 1 {
-		checkFsMayDetachMountsErr = fmt.Errorf("fs.may_detach_mounts sysctl: expected 1, got %d; this may result in \"device or resource busy\" errors while stopping or removing containers", val)
+		checkFsMayDetachMountsErr = fmt.Errorf(
+			"fs.may_detach_mounts sysctl: expected 1, got %d; this may result in \"device or resource busy\" errors while stopping or removing containers",
+			val,
+		)
 
 		return false
 	}

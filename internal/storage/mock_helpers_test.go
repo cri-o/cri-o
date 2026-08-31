@@ -13,7 +13,9 @@ import (
 )
 
 // containers/image/storage.storageReference.StringWithinTransport.
-func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.MockStore) mockutils.MockSequence {
+func mockStorageReferenceStringWithinTransport(
+	storeMock *containerstoragemock.MockStore,
+) mockutils.MockSequence {
 	return mockutils.InOrder(
 		storeMock.EXPECT().GraphOptions().Return([]string{}),
 		storeMock.EXPECT().GraphDriverName().Return(""),
@@ -25,7 +27,11 @@ func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.M
 // containers/image/storage.ResolveReference
 // expectedImageName must be in the fully normalized format (reference.Named.String())!
 // resolvedImageID may be "" to simulate a missing image.
-func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTransportMock *criostoragemock.MockStorageTransport, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence { //nolint:unparam // parameters are used for different test scenarios
+func mockResolveReference(
+	storeMock *containerstoragemock.MockStore,
+	storageTransportMock *criostoragemock.MockStorageTransport,
+	expectedImageName, expectedImageID, resolvedImageID string, //nolint:unparam // kept for API consistency
+) mockutils.MockSequence {
 	var namedRef reference.Named
 
 	if expectedImageName != "" {
@@ -60,7 +66,10 @@ func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTran
 // expectedImageName, if not "", must be in the fully normalized format (reference.Named.String())!
 // expectedImageID may be ""
 // resolvedImageID may be "" to simulate a missing image.
-func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence {
+func mockResolveImage(
+	storeMock *containerstoragemock.MockStore,
+	expectedImageName, expectedImageID, resolvedImageID string,
+) mockutils.MockSequence {
 	lookupKey := expectedImageID
 	if lookupKey == "" {
 		lookupKey = expectedImageName
@@ -82,7 +91,9 @@ func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageNa
 }
 
 // containers/image/storage.storageImageSource.getSize.
-func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mockutils.MockSequence {
+func mockStorageImageSourceGetSize(
+	storeMock *containerstoragemock.MockStore,
+) mockutils.MockSequence {
 	return mockutils.InOrder(
 		storeMock.EXPECT().ListImageBigData(gomock.Any()).
 			Return([]string{""}, nil), // A single entry
@@ -93,7 +104,10 @@ func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mo
 }
 
 // containers/image/storage.storageReference.newImage.
-func mockNewImage(storeMock *containerstoragemock.MockStore, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence {
+func mockNewImage(
+	storeMock *containerstoragemock.MockStore,
+	expectedImageName, expectedImageID, resolvedImageID string,
+) mockutils.MockSequence {
 	return mockutils.InOrder(
 		mockResolveImage(storeMock, expectedImageName, expectedImageID, resolvedImageID),
 		storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).

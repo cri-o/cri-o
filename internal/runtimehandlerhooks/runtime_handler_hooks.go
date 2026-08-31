@@ -18,7 +18,12 @@ var (
 
 //nolint:iface // interface duplication is intentional
 type RuntimeHandlerHooks interface {
-	PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error
+	PreCreate(
+		ctx context.Context,
+		specgen *generate.Generator,
+		s *sandbox.Sandbox,
+		c *oci.Container,
+	) error
 	PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error
 	PreStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error
 	PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error

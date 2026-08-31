@@ -107,7 +107,15 @@ type Container interface {
 	SpecAddMount(rspec.Mount)
 
 	// SpecAddAnnotations adds annotations to the spec.
-	SpecAddAnnotations(ctx context.Context, sb SandboxIFace, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
+	SpecAddAnnotations(
+		ctx context.Context,
+		sb SandboxIFace,
+		containerVolume []oci.ContainerVolume,
+		mountPoint, configStopSignal string,
+		imageResult *storage.ImageResult,
+		isSystemd bool,
+		seccompRef, platformRuntimePath string,
+	) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool, bool) error
@@ -129,10 +137,17 @@ type Container interface {
 	SpecSetupCapabilities(*types.Capability, capabilities.Capabilities, bool) error
 
 	// SpecSetPrivileges sets the container's privileges
-	SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, cfg *config.Config) error
+	SpecSetPrivileges(
+		ctx context.Context,
+		securityContext *types.LinuxContainerSecurityContext,
+		cfg *config.Config,
+	) error
 
 	// SpecSetLinuxContainerResources sets the container resources
-	SpecSetLinuxContainerResources(resources *types.LinuxContainerResources, containerMinMemory int64) error
+	SpecSetLinuxContainerResources(
+		resources *types.LinuxContainerResources,
+		containerMinMemory int64,
+	) error
 
 	// PidNamespace returns the pid namespace created by SpecAddNamespaces.
 	PidNamespace() nsmgr.Namespace
@@ -176,7 +191,15 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 }
 
 // SpecAddAnnotation adds all annotations to the spec.
-func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
+func (c *container) SpecAddAnnotations(
+	ctx context.Context,
+	sb SandboxIFace,
+	containerVolumes []oci.ContainerVolume,
+	mountPoint, configStopSignal string,
+	imageResult *storage.ImageResult,
+	isSystemd bool,
+	seccompRef, platformRuntimePath string,
+) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
@@ -239,10 +262,16 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	}
 
 	c.spec.AddAnnotation(annotations.SomeNameOfTheImage, someNameOfThisImage)
-	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID.IDStringForOutOfProcessConsumptionOnly())
+	c.spec.AddAnnotation(
+		annotations.ImageRef,
+		imageResult.ID.IDStringForOutOfProcessConsumptionOnly(),
+	)
 
 	if len(imageResult.RepoDigests) > 0 {
-		c.spec.AddAnnotation(annotations.ImageRepoDigests, strings.Join(imageResult.RepoDigests, ","))
+		c.spec.AddAnnotation(
+			annotations.ImageRepoDigests,
+			strings.Join(imageResult.RepoDigests, ","),
+		)
 	}
 
 	c.spec.AddAnnotation(annotations.Name, c.Name())
@@ -306,7 +335,10 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 		if t, ok := kubeAnnotations[podTerminationGracePeriodLabel]; ok {
 			// currently only supported by systemd, see
 			// https://github.com/opencontainers/runc/pull/2224
-			c.spec.AddAnnotation("org.systemd.property.TimeoutStopUSec", "uint64 "+t+"000000") // sec to usec
+			c.spec.AddAnnotation(
+				"org.systemd.property.TimeoutStopUSec",
+				"uint64 "+t+"000000",
+			) // sec to usec
 		}
 
 		c.spec.AddAnnotation("org.systemd.property.DefaultDependencies", "true")
@@ -326,7 +358,10 @@ func (c *container) Spec() *generate.Generator {
 }
 
 // SetConfig sets the configuration to the container and validates it.
-func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodSandboxConfig) error {
+func (c *container) SetConfig(
+	cfg *types.ContainerConfig,
+	sboxConfig *types.PodSandboxConfig,
+) error {
 	if c.config != nil {
 		return errors.New("config already set")
 	}
@@ -637,7 +672,11 @@ func (c *container) WillRunSystemd() bool {
 	return strings.Contains(entrypoint, "/sbin/init") || (filepath.Base(entrypoint) == "systemd")
 }
 
-func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps capabilities.Capabilities, addInheritableCapabilities bool) error {
+func (c *container) SpecSetupCapabilities(
+	caps *types.Capability,
+	defaultCaps capabilities.Capabilities,
+	addInheritableCapabilities bool,
+) error {
 	// Make sure to remove all ambient capabilities. Kubernetes is not yet ambient capabilities aware
 	// and pods expect that switching to a non-root user results in the capabilities being
 	// dropped. This should be revisited in the future.
@@ -817,13 +856,21 @@ func getOCICapabilitiesList() ([]string, error) {
 	return caps, nil
 }
 
-func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, cfg *config.Config) error {
+func (c *container) SpecSetPrivileges(
+	ctx context.Context,
+	securityContext *types.LinuxContainerSecurityContext,
+	cfg *config.Config,
+) error {
 	specgen := c.Spec()
 	if c.Privileged() {
 		specgen.SetupPrivileged(true)
 	} else {
 		caps := securityContext.GetCapabilities()
-		if err := c.SpecSetupCapabilities(caps, cfg.DefaultCapabilities, cfg.AddInheritableCapabilities); err != nil {
+		if err := c.SpecSetupCapabilities(
+			caps,
+			cfg.DefaultCapabilities,
+			cfg.AddInheritableCapabilities,
+		); err != nil {
 			return err
 		}
 	}
@@ -832,12 +879,19 @@ func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *type
 		const sysAdminCap = "CAP_SYS_ADMIN"
 		for _, cap := range specgen.Config.Process.Capabilities.Bounding {
 			if cap == sysAdminCap {
-				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
+				log.Warnf(
+					ctx,
+					"Setting `noNewPrivileges` flag has no effect because container has %s capability",
+					sysAdminCap,
+				)
 			}
 		}
 
 		if c.Privileged() {
-			log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
+			log.Warnf(
+				ctx,
+				"Setting `noNewPrivileges` flag has no effect because container is privileged",
+			)
 		}
 	}
 
@@ -860,7 +914,10 @@ func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *type
 	return nil
 }
 
-func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContainerResources, containerMinMemory int64) error {
+func (c *container) SpecSetLinuxContainerResources(
+	resources *types.LinuxContainerResources,
+	containerMinMemory int64,
+) error {
 	specgen := c.Spec()
 	specgen.SetLinuxResourcesCPUPeriod(uint64(resources.GetCpuPeriod()))
 	specgen.SetLinuxResourcesCPUQuota(resources.GetCpuQuota())
@@ -875,7 +932,8 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 		specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
 
 		if resources.GetMemorySwapLimitInBytes() != 0 {
-			if resources.GetMemorySwapLimitInBytes() > 0 && resources.GetMemorySwapLimitInBytes() < resources.GetMemoryLimitInBytes() {
+			if resources.GetMemorySwapLimitInBytes() > 0 &&
+				resources.GetMemorySwapLimitInBytes() < resources.GetMemoryLimitInBytes() {
 				return fmt.Errorf(
 					"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
 					c.ID(),
@@ -907,7 +965,10 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 
 	if node.CgroupIsV2() && len(resources.GetUnified()) != 0 {
 		if specgen.Config.Linux.Resources.Unified == nil {
-			specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.GetUnified()))
+			specgen.Config.Linux.Resources.Unified = make(
+				map[string]string,
+				len(resources.GetUnified()),
+			)
 		}
 
 		maps.Copy(specgen.Config.Linux.Resources.Unified, resources.GetUnified())

@@ -72,7 +72,11 @@ type PullOptions struct {
 }
 
 // PullData downloads the artifact into the local storage and returns its data.
-func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]ArtifactData, error) {
+func (s *Store) PullData(
+	ctx context.Context,
+	ref string,
+	opts *PullOptions,
+) ([]ArtifactData, error) {
 	opts = sanitizeOptions(opts)
 
 	log.Infof(ctx, "Pulling OCI artifact from ref: %s", ref)
@@ -86,7 +90,11 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 		return nil, fmt.Errorf("pull artifact: %w", err)
 	}
 
-	blobPaths, err := s.store.BlobMountPaths(ctx, artRef.ToArtifactStoreReference(), &libartTypes.BlobMountPathOptions{})
+	blobPaths, err := s.store.BlobMountPaths(
+		ctx,
+		artRef.ToArtifactStoreReference(),
+		&libartTypes.BlobMountPathOptions{},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("get blob mount paths: %w", err)
 	}
@@ -94,7 +102,10 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 	return s.readBlobData(blobPaths, opts.MaxSize)
 }
 
-func (s *Store) readBlobData(blobPaths []libartTypes.BlobMountPath, maxSize uint64) ([]ArtifactData, error) {
+func (s *Store) readBlobData(
+	blobPaths []libartTypes.BlobMountPath,
+	maxSize uint64,
+) ([]ArtifactData, error) {
 	var res []ArtifactData
 
 	totalSize := uint64(0)
@@ -226,13 +237,23 @@ func (s *Store) PullManifestOnly(
 
 	// Fetch the config blob from remote and write it locally so that
 	// PullConfig can read the OCI image config after this call.
-	configRC, _, err := remoteSrc.GetBlob(ctx, types.BlobInfo{Digest: configInfo.Digest, Size: configInfo.Size}, none.NoCache)
+	configRC, _, err := remoteSrc.GetBlob(
+		ctx,
+		types.BlobInfo{Digest: configInfo.Digest, Size: configInfo.Size},
+		none.NoCache,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("get config blob: %w", err)
 	}
 	defer configRC.Close()
 
-	if _, err := imgDest.PutBlob(ctx, configRC, types.BlobInfo{Digest: configInfo.Digest, Size: configInfo.Size}, none.NoCache, true); err != nil {
+	if _, err := imgDest.PutBlob(
+		ctx,
+		configRC,
+		types.BlobInfo{Digest: configInfo.Digest, Size: configInfo.Size},
+		none.NoCache,
+		true,
+	); err != nil {
 		return nil, fmt.Errorf("store config blob: %w", err)
 	}
 
@@ -315,7 +336,9 @@ type manifestOnlyUnparsed struct {
 
 func (m *manifestOnlyUnparsed) Reference() types.ImageReference { return m.ir }
 
-func (m *manifestOnlyUnparsed) Manifest(_ context.Context) (manifestBlob []byte, mimeType string, err error) {
+func (m *manifestOnlyUnparsed) Manifest(
+	_ context.Context,
+) (manifestBlob []byte, mimeType string, err error) {
 	return m.manifestBytes, m.mimeType, nil
 }
 

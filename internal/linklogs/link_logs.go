@@ -22,7 +22,10 @@ const (
 )
 
 // MountPodLogs bind mounts the kubelet pod log directory under the specified empty dir volume.
-func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel string) error {
+func MountPodLogs(
+	ctx context.Context,
+	kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel string,
+) error {
 	// Validate the empty dir volume name
 	// This uses the same validation as the one in kubernetes
 	// It can be alphanumeric with dashes allowed in between
@@ -43,13 +46,23 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 
 	podLogsPath, err := securejoin.SecureJoin(kubeletPodLogsRootDir, podLogsDirectory)
 	if err != nil {
-		return fmt.Errorf("failed to join %v and %v: %w", kubeletPodLogsRootDir, podLogsDirectory, err)
+		return fmt.Errorf(
+			"failed to join %v and %v: %w",
+			kubeletPodLogsRootDir,
+			podLogsDirectory,
+			err,
+		)
 	}
 
 	log.Infof(ctx, "Mounting from %s to %s for linked logs", podLogsPath, emptyDirLoggingVolumePath)
 
 	if err := mountLogPath(podLogsPath, emptyDirLoggingVolumePath); err != nil {
-		return fmt.Errorf("failed to mount %v to %v: %w", podLogsPath, emptyDirLoggingVolumePath, err)
+		return fmt.Errorf(
+			"failed to mount %v to %v: %w",
+			podLogsPath,
+			emptyDirLoggingVolumePath,
+			err,
+		)
 	}
 
 	if err := label.SetFileLabel(emptyDirLoggingVolumePath, mountLabel); err != nil {
@@ -77,7 +90,11 @@ func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) err
 	return nil
 }
 
-func LinkContainerLogs(ctx context.Context, kubePodUID, emptyDirVolName, id string, metadata *types.ContainerMetadata) error {
+func LinkContainerLogs(
+	ctx context.Context,
+	kubePodUID, emptyDirVolName, id string,
+	metadata *types.ContainerMetadata,
+) error {
 	emptyDirLoggingVolumePath, err := podEmptyDirPath(kubePodUID, emptyDirVolName)
 	if err != nil {
 		return fmt.Errorf("failed to get empty dir path: %w", err)
@@ -97,7 +114,10 @@ func LinkContainerLogs(ctx context.Context, kubePodUID, emptyDirVolName, id stri
 }
 
 func podEmptyDirPath(podUID, emptyDirVolName string) (string, error) {
-	relativePath := strings.Join([]string{podUID, "volumes", kubeletEmptyDirLogDir, emptyDirVolName}, "/")
+	relativePath := strings.Join(
+		[]string{podUID, "volumes", kubeletEmptyDirLogDir, emptyDirVolName},
+		"/",
+	)
 
 	dirPath, err := securejoin.SecureJoin(kubeletPodsRootDir, relativePath)
 	if err != nil {

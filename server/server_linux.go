@@ -60,7 +60,13 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 			}
 
 			// Restart the notifier
-			notifier, err := seccomp.NewNotifier(ctx, s.seccompNotifierChan, id, path, ctr.Annotations())
+			notifier, err := seccomp.NewNotifier(
+				ctx,
+				s.seccompNotifierChan,
+				id,
+				path,
+				ctr.Annotations(),
+			)
 			if err != nil {
 				logrus.Errorf("Unable to run restored notifier: %v", err)
 

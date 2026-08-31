@@ -30,6 +30,12 @@ func (s *Server) cleanupNetns(ctx context.Context, netnsPath string, sb *sandbox
 	if rmErr := os.RemoveAll(netnsPath); rmErr != nil {
 		log.Warnf(ctx, "Failed to remove netns path %s: %v", netnsPath, rmErr)
 	} else {
-		log.Infof(ctx, "Removed netns path %s from pod sandbox %s(%s)", netnsPath, sb.Name(), sb.ID())
+		log.Infof(
+			ctx,
+			"Removed netns path %s from pod sandbox %s(%s)",
+			netnsPath,
+			sb.Name(),
+			sb.ID(),
+		)
 	}
 }

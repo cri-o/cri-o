@@ -14,7 +14,12 @@ import (
 )
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope.
-func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName string, properties ...systemdDbus.Property) (err error) {
+func RunUnderSystemdScope(
+	mgr *dbusmgr.DbusConnManager,
+	pid int,
+	slice, unitName string,
+	properties ...systemdDbus.Property,
+) (err error) {
 	ctx := context.Background()
 	// sanity check
 	if mgr == nil {
@@ -51,7 +56,12 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 		close(ch)
 
 		if s != "done" {
-			return fmt.Errorf("error moving conmon with pid %d to systemd unit %s: got %s", pid, unitName, s)
+			return fmt.Errorf(
+				"error moving conmon with pid %d to systemd unit %s: got %s",
+				pid,
+				unitName,
+				s,
+			)
 		}
 	case <-time.After(time.Minute * 6):
 		// This case is a work around to catch situations where the dbus library sends the

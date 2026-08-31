@@ -74,7 +74,11 @@ type CgroupManager interface {
 	// It attempts to move conmon to the correct cgroup, and set the resources for that cgroup.
 	// It returns the cgroupfs parent that conmon was put into
 	// so that CRI-O can clean the parent cgroup of the newly added conmon once the process terminates (systemd handles this for us)
-	MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (string, error)
+	MoveConmonToCgroup(
+		cid, cgroupParent, conmonCgroup string,
+		pid int,
+		resources *rspec.LinuxResources,
+	) (string, error)
 	// CreateSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It creates a new cgroup for that sandbox, which is useful when spoofing an infra container.
 	CreateSandboxCgroup(sbParent, containerID string) error
@@ -95,7 +99,9 @@ type CgroupManager interface {
 	//   - podManager: the cgroup manager for the pod cgroup
 	//   - containerManagers: a slice of cgroup managers for the container cgroup(s).
 	//     This may include an extra manager if crun creates a sub-cgroup of the container.
-	PodAndContainerCgroupManagers(sbParent, containerID string) (podManager cgroups.Manager, containerManagers []cgroups.Manager, err error)
+	PodAndContainerCgroupManagers(
+		sbParent, containerID string,
+	) (podManager cgroups.Manager, containerManagers []cgroups.Manager, err error)
 }
 
 // New creates a new CgroupManager with defaults.
@@ -133,7 +139,10 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 	}
 }
 
-func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilename string, containerMinMemory int64) error {
+func verifyCgroupHasEnoughMemory(
+	slicePath, memorySubsystemPath, memoryMaxFilename string,
+	containerMinMemory int64,
+) error {
 	// read in the memory limit from memory max file
 	fileData, err := os.ReadFile(filepath.Join(memorySubsystemPath, slicePath, memoryMaxFilename))
 	if err != nil {
@@ -151,7 +160,11 @@ func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilena
 	if strMemory != "" && strMemory != "max" {
 		memoryLimit, err := strconv.ParseInt(strMemory, 10, 64)
 		if err != nil {
-			return fmt.Errorf("error converting cgroup memory value from string to int %q: %w", strMemory, err)
+			return fmt.Errorf(
+				"error converting cgroup memory value from string to int %q: %w",
+				strMemory,
+				err,
+			)
 		}
 		// Compare with the minimum allowed memory limit
 		if err := VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
@@ -165,7 +178,11 @@ func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilena
 // VerifyMemoryIsEnough verifies that the cgroup memory limit is above a specified minimum memory limit.
 func VerifyMemoryIsEnough(memoryLimit, minMemory int64) error {
 	if memoryLimit != 0 && memoryLimit < minMemory {
-		return fmt.Errorf("set memory limit %d too low; should be at least %d bytes", memoryLimit, minMemory)
+		return fmt.Errorf(
+			"set memory limit %d too low; should be at least %d bytes",
+			memoryLimit,
+			minMemory,
+		)
 	}
 
 	return nil
@@ -230,7 +247,10 @@ func createSandboxCgroup(sbParent, containerCgroup string) error {
 		}
 
 		if err := cgroups.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
-			return fmt.Errorf("failed to set sched_load_balance cpuset for newly created cgroup: %w", err)
+			return fmt.Errorf(
+				"failed to set sched_load_balance cpuset for newly created cgroup: %w",
+				err,
+			)
 		}
 	}
 
@@ -311,7 +331,11 @@ func crunContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager
 		return nil, nil
 	}
 	// must be crun, make another LibctrManager. Regardless of cgroup driver, it will be treated as cgroupfs
-	return LibctrManager(filepath.Base(actualContainerCgroup), filepath.Dir(actualContainerCgroup), false)
+	return LibctrManager(
+		filepath.Base(actualContainerCgroup),
+		filepath.Dir(actualContainerCgroup),
+		false,
+	)
 }
 
 // execCgroupManager creates an exec cgroup for placing exec processes.

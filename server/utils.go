@@ -35,7 +35,11 @@ func validateLabels(labels map[string]string) error {
 				k = k[:10]
 			}
 
-			return fmt.Errorf("label key and value greater than maximum size (%d bytes), key: %s", maxLabelSize, k)
+			return fmt.Errorf(
+				"label key and value greater than maximum size (%d bytes), key: %s",
+				maxLabelSize,
+				k,
+			)
 		}
 	}
 
@@ -166,17 +170,34 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 	}
 
 	if cachedID := s.resourceStore.Get(name); cachedID != "" {
-		log.Infof(ctx, "Found %s %s with ID %s in resource cache; using it", resourceType, name, cachedID)
+		log.Infof(
+			ctx,
+			"Found %s %s with ID %s in resource cache; using it",
+			resourceType,
+			name,
+			cachedID,
+		)
 
 		return cachedID, nil
 	}
 
 	watcher, stage := s.resourceStore.WatcherForResource(name)
 	if watcher == nil {
-		return "", fmt.Errorf("error attempting to watch for %s %s: no longer found", resourceType, name)
+		return "", fmt.Errorf(
+			"error attempting to watch for %s %s: no longer found",
+			resourceType,
+			name,
+		)
 	}
 
-	log.Infof(ctx, "Creation of %s %s not yet finished. Currently at stage %v. Waiting up to %v for it to finish", resourceType, name, stage, resourceCreationWaitTime)
+	log.Infof(
+		ctx,
+		"Creation of %s %s not yet finished. Currently at stage %v. Waiting up to %v for it to finish",
+		resourceType,
+		name,
+		stage,
+		resourceCreationWaitTime,
+	)
 	metrics.Instance().MetricResourcesStalledAtStage(stage)
 
 	var err error
@@ -189,7 +210,11 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 	// This is probably overly cautious, but it doesn't hurt to have a way to terminate
 	// independent of the kubelet's signal.
 	case <-time.After(resourceCreationWaitTime):
-		err = fmt.Errorf("waited too long for request to timeout or %s %s to be created", resourceType, name)
+		err = fmt.Errorf(
+			"waited too long for request to timeout or %s %s to be created",
+			resourceType,
+			name,
+		)
 	// If the resource becomes available while we're watching for it, we still need to error on this request.
 	// When we pull the resource from the cache after waiting, we won't run the cleanup funcs.
 	// However, we don't know how long we've been making the kubelet wait for the request, and the request could time out
@@ -205,10 +230,18 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 		case <-ctx.Done():
 		}
 
-		err = fmt.Errorf("the requested %s %s is now ready and will be provided to the kubelet on next retry", resourceType, name)
+		err = fmt.Errorf(
+			"the requested %s %s is now ready and will be provided to the kubelet on next retry",
+			resourceType,
+			name,
+		)
 	}
 
-	return "", fmt.Errorf("kubelet may be retrying requests that are timing out in CRI-O due to system load. Currently at stage %v: %w", stage, err)
+	return "", fmt.Errorf(
+		"kubelet may be retrying requests that are timing out in CRI-O due to system load. Currently at stage %v: %w",
+		stage,
+		err,
+	)
 }
 
 // FilterDisallowedAnnotations filters annotations not on the runtime/workload allowlist from toFilter.
@@ -216,7 +249,10 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 // toFind is used to find the workload for the specific pod or container, toFilter are the annotations
 // for which disallowed annotations will be filtered. They may be the same.
 // After this function, toFilter will no longer contain disallowed or internal annotations.
-func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string, runtimeHandler string) error {
+func (s *Server) FilterDisallowedAnnotations(
+	toFind, toFilter map[string]string,
+	runtimeHandler string,
+) error {
 	// Combine the two lists to create one. Both will ultimately end up filtering, and FilterDisallowedAnnotations
 	// will handle duplicates, if any.
 	// TODO: eventually, this should be in the container package, but it's going through a lot of churn

@@ -14,7 +14,9 @@ import (
 
 // The actual test suite.
 var _ = t.Describe("ImagePull", func() {
-	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
+	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+		"docker.io/library/image:latest",
+	)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Prepare the sut
@@ -33,7 +35,8 @@ var _ = t.Describe("ImagePull", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			pulledRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
-				"docker.io/library/image@sha256:340d9b015b194dc6e2a13938944e0d016e57b9679963fdeb9ce021daac430221")
+				"docker.io/library/image@sha256:340d9b015b194dc6e2a13938944e0d016e57b9679963fdeb9ce021daac430221",
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			gomock.InOrder(

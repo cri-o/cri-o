@@ -66,7 +66,9 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should match image specific annotation for whole pod", func() {
 			// Given
 			gomock.InOrder(
-				implMock.EXPECT().PullData(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifacts, nil),
+				implMock.EXPECT().
+					PullData(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(testArtifacts, nil),
 			)
 
 			// When
@@ -83,7 +85,9 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should match image specific annotation for container", func() {
 			// Given
 			gomock.InOrder(
-				implMock.EXPECT().PullData(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifacts, nil),
+				implMock.EXPECT().
+					PullData(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(testArtifacts, nil),
 			)
 
 			// When
@@ -100,7 +104,9 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should match pod specific annotation", func() {
 			// Given
 			gomock.InOrder(
-				implMock.EXPECT().PullData(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifacts, nil),
+				implMock.EXPECT().
+					PullData(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(testArtifacts, nil),
 			)
 
 			// When
@@ -117,7 +123,9 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should match container specific annotation", func() {
 			// Given
 			gomock.InOrder(
-				implMock.EXPECT().PullData(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifacts, nil),
+				implMock.EXPECT().
+					PullData(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(testArtifacts, nil),
 			)
 
 			// When
@@ -147,7 +155,9 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should fail if artifact pull fails", func() {
 			// Given
 			gomock.InOrder(
-				implMock.EXPECT().PullData(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest),
+				implMock.EXPECT().
+					PullData(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, errTest),
 			)
 
 			// When

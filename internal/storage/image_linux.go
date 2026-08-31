@@ -29,5 +29,10 @@ func moveSelfToCgroup(cgroup string) error {
 
 	unitName := fmt.Sprintf("crio-pull-image-%d.scope", os.Getpid())
 
-	return utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(unshare.IsRootless()), os.Getpid(), slice, unitName)
+	return utils.RunUnderSystemdScope(
+		dbusmgr.NewDbusConnManager(unshare.IsRootless()),
+		os.Getpid(),
+		slice,
+		unitName,
+	)
 }

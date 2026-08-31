@@ -24,7 +24,10 @@ const (
 	CrioOrgRepo          = "cri-o"
 )
 
-func GetCurrentVersionFromReleaseBranch(repo *git.Repo, baseBranchName string) (res semver.Version, err error) {
+func GetCurrentVersionFromReleaseBranch(
+	repo *git.Repo,
+	baseBranchName string,
+) (res semver.Version, err error) {
 	logrus.Infof("Switching to branch: %s", baseBranchName)
 
 	if err := repo.Checkout(baseBranchName); err != nil {

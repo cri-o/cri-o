@@ -55,18 +55,26 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 		parent = sbParent
 	}
 
-	return filepath.Join("/", parent, containerCgroupPath(containerID)) //nolint:gocritic // root-join pattern is intentional
+	return filepath.Join(
+		"/", //nolint:gocritic // root path is intentional
+		parent,
+		containerCgroupPath(containerID),
+	)
 }
 
 // ContainerCgroupAbsolutePath just calls ContainerCgroupPath,
 // because they both return the absolute path.
-func (m *CgroupfsManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {
+func (m *CgroupfsManager) ContainerCgroupAbsolutePath(
+	sbParent, containerID string,
+) (string, error) {
 	return m.ContainerCgroupPath(sbParent, containerID), nil
 }
 
 // ContainerCgroupManager takes the cgroup parent, and container ID.
 // It returns the raw libcontainer cgroup manager for that container.
-func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (cgroups.Manager, error) {
+func (m *CgroupfsManager) ContainerCgroupManager(
+	sbParent, containerID string,
+) (cgroups.Manager, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -97,7 +105,9 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 // ContainerCgroupStats takes the sandbox parent, and container ID.
 // It creates a new cgroup if one does not already exist.
 // It returns the cgroup stats for that container.
-func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*stats.CgroupStats, error) {
+func (m *CgroupfsManager) ContainerCgroupStats(
+	sbParent, containerID string,
+) (*stats.CgroupStats, error) {
 	cgMgr, err := m.ContainerCgroupManager(sbParent, containerID)
 	if err != nil {
 		return nil, err
@@ -119,12 +129,23 @@ func (m *CgroupfsManager) RemoveContainerCgManager(containerID string) {
 // SandboxCgroupPath takes the sandbox parent, sandbox ID, and container minimum memory.
 // It returns the cgroup parent, cgroup path, and error.
 // It also checks if enough memory is available in the given cgroup.
-func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string, containerMinMemory int64) (cgParent, cgPath string, _ error) {
+func (m *CgroupfsManager) SandboxCgroupPath(
+	sbParent, sbID string,
+	containerMinMemory int64,
+) (cgParent, cgPath string, _ error) {
 	if strings.HasSuffix(path.Base(sbParent), ".slice") {
-		return "", "", fmt.Errorf("cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s", sbParent)
+		return "", "", fmt.Errorf(
+			"cri-o configured with cgroupfs cgroup manager, but received systemd slice as parent: %s",
+			sbParent,
+		)
 	}
 
-	if err := verifyCgroupHasEnoughMemory(sbParent, m.memoryPath, m.memoryMaxFile, containerMinMemory); err != nil {
+	if err := verifyCgroupHasEnoughMemory(
+		sbParent,
+		m.memoryPath,
+		m.memoryMaxFile,
+		containerMinMemory,
+	); err != nil {
 		return "", "", err
 	}
 
@@ -187,7 +208,11 @@ func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
 // It attempts to move conmon to the correct cgroup.
 // It returns the cgroupfs parent that conmon was put into
 // so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us).
-func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
+func (*CgroupfsManager) MoveConmonToCgroup(
+	cid, cgroupParent, conmonCgroup string,
+	pid int,
+	resources *rspec.LinuxResources,
+) (cgroupPathToClean string, _ error) {
 	if conmonCgroup != utils.PodCgroupName && conmonCgroup != "" {
 		return "", fmt.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)
 	}
@@ -261,7 +286,9 @@ func (m *CgroupfsManager) RemoveSandboxCgroup(sbParent, containerID string) erro
 
 // PodAndContainerCgroupManagers returns the libcontainer cgroup managers for both the pod and container cgroups.
 // The sbParent is the sandbox parent cgroup, and containerID is the container's ID.
-func (m *CgroupfsManager) PodAndContainerCgroupManagers(sbParent, containerID string) (podManager cgroups.Manager, containerManagers []cgroups.Manager, _ error) {
+func (m *CgroupfsManager) PodAndContainerCgroupManagers(
+	sbParent, containerID string,
+) (podManager cgroups.Manager, containerManagers []cgroups.Manager, _ error) {
 	containerCgroupFullPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
 	if err != nil {
 		return nil, nil, err
@@ -269,12 +296,20 @@ func (m *CgroupfsManager) PodAndContainerCgroupManagers(sbParent, containerID st
 
 	podCgroupFullPath := filepath.Dir(containerCgroupFullPath)
 
-	podManager, err = LibctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), false)
+	podManager, err = LibctrManager(
+		filepath.Base(podCgroupFullPath),
+		filepath.Dir(podCgroupFullPath),
+		false,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	containerManager, err := LibctrManager(filepath.Base(containerCgroupFullPath), filepath.Dir(containerCgroupFullPath), false)
+	containerManager, err := LibctrManager(
+		filepath.Base(containerCgroupFullPath),
+		filepath.Dir(containerCgroupFullPath),
+		false,
+	)
 	if err != nil {
 		return nil, nil, err
 	}

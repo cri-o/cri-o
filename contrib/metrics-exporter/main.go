@@ -136,7 +136,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		Path: "/metrics",
 	}
 
-	metricsReq, err := http.NewRequestWithContext(req.Context(), http.MethodGet, metricsEndpoint.String(), http.NoBody)
+	metricsReq, err := http.NewRequestWithContext(
+		req.Context(),
+		http.MethodGet,
+		metricsEndpoint.String(),
+		http.NoBody,
+	)
 	if err != nil {
 		logrus.Errorf(
 			"Unable to create metrics request %s: %v",

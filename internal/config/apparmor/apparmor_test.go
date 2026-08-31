@@ -34,7 +34,7 @@ var _ = t.Describe("Config", func() {
 		It("should return default profile if both fields are empty", func() {
 			// When
 			profile, err := sut.Apply(&runtimeapi.LinuxContainerSecurityContext{
-				ApparmorProfile: "",
+				ApparmorProfile: "", //nolint:staticcheck // testing deprecated field
 				Apparmor:        &runtimeapi.SecurityProfile{},
 			})
 
@@ -46,7 +46,7 @@ var _ = t.Describe("Config", func() {
 		It("should return profile from new field", func() {
 			// When
 			profile, err := sut.Apply(&runtimeapi.LinuxContainerSecurityContext{
-				ApparmorProfile: "runtime/default",
+				ApparmorProfile: "runtime/default", //nolint:staticcheck // testing deprecated field
 				Apparmor:        &runtimeapi.SecurityProfile{},
 			})
 
@@ -58,7 +58,7 @@ var _ = t.Describe("Config", func() {
 		It("should return error if profile empty", func() {
 			// When
 			_, err := sut.Apply(&runtimeapi.LinuxContainerSecurityContext{
-				ApparmorProfile: "localhost/",
+				ApparmorProfile: "localhost/", //nolint:staticcheck // testing deprecated field
 			})
 
 			// Then
@@ -68,7 +68,7 @@ var _ = t.Describe("Config", func() {
 		It("should not return error if profile provided", func() {
 			// When
 			profile, err := sut.Apply(&runtimeapi.LinuxContainerSecurityContext{
-				ApparmorProfile: "localhost/some-profile",
+				ApparmorProfile: "localhost/some-profile", //nolint:staticcheck // testing deprecated field
 			})
 
 			// Then
@@ -93,7 +93,7 @@ var _ = t.Describe("Config", func() {
 		It("should not return error and respect Apparmor field", func() {
 			// When
 			profile, err := sut.Apply(&runtimeapi.LinuxContainerSecurityContext{
-				ApparmorProfile: "localhost/another-profile",
+				ApparmorProfile: "localhost/another-profile", //nolint:staticcheck // testing deprecated field
 				Apparmor: &runtimeapi.SecurityProfile{
 					ProfileType:  runtimeapi.SecurityProfile_Localhost,
 					LocalhostRef: "localhost/some-profile",
@@ -121,7 +121,7 @@ var _ = t.Describe("Config", func() {
 		It("should not return error if ApparmorProfile is unconfined", func() {
 			// When
 			profile, err := sut.Apply(&runtimeapi.LinuxContainerSecurityContext{
-				ApparmorProfile: "unconfined",
+				ApparmorProfile: "unconfined", //nolint:staticcheck // testing deprecated field
 			})
 
 			// Then

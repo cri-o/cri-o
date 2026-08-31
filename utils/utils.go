@@ -24,7 +24,7 @@ import (
 
 // StatusToExitCode converts wait status code to an exit code.
 func StatusToExitCode(status int) int {
-	return ((status) & 0xff00) >> 8
+	return (status & 0xff00) >> 8
 }
 
 func newProp(name string, units any) systemdDbus.Property {
@@ -205,7 +205,11 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 
 // GeneratePasswd generates a container specific passwd file,
 // iff uid is not defined in the containers /etc/passwd.
-func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir string) (string, error) {
+func GeneratePasswd(
+	username string,
+	uid, gid uint32,
+	homedir, rootfs, rundir string,
+) (string, error) {
 	if _, err := GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
 		return "", nil
 	}
@@ -232,10 +236,24 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 		homedir = "/tmp"
 	}
 
-	pwdContent := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", string(origContent), username, uid, gid, username, homedir)
+	pwdContent := fmt.Sprintf(
+		"%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n",
+		string(origContent),
+		username,
+		uid,
+		gid,
+		username,
+		homedir,
+	)
 	passwdFile := filepath.Join(rundir, "passwd")
 
-	return createAndSecureFile(passwdFile, pwdContent, os.FileMode(stat.Mode), int(stat.Uid), int(stat.Gid))
+	return createAndSecureFile(
+		passwdFile,
+		pwdContent,
+		os.FileMode(stat.Mode),
+		int(stat.Uid),
+		int(stat.Gid),
+	)
 }
 
 // GenerateGroup generates a container specific group file,
@@ -262,7 +280,13 @@ func GenerateGroup(gid uint32, rootfs, rundir string) (string, error) {
 	groupContent := fmt.Sprintf("%s%d:x:%d:\n", string(origContent), gid, gid)
 	groupFile := filepath.Join(rundir, "group")
 
-	return createAndSecureFile(groupFile, groupContent, os.FileMode(stat.Mode), int(stat.Uid), int(stat.Gid))
+	return createAndSecureFile(
+		groupFile,
+		groupContent,
+		os.FileMode(stat.Mode),
+		int(stat.Uid),
+		int(stat.Gid),
+	)
 }
 
 func secureFilePath(rootfs, file string) (string, unix.Stat_t, error) {
@@ -474,7 +498,10 @@ func Sync(path string) error {
 // HandleResizing spawns a goroutine that processes the resize channel, calling
 // resizeFunc for each TerminalSize received from the channel. The resize
 // channel must be closed elsewhere to stop the goroutine.
-func HandleResizing(resize <-chan remotecommand.TerminalSize, resizeFunc func(size remotecommand.TerminalSize)) {
+func HandleResizing(
+	resize <-chan remotecommand.TerminalSize,
+	resizeFunc func(size remotecommand.TerminalSize),
+) {
 	if resize == nil {
 		return
 	}

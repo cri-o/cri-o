@@ -21,7 +21,12 @@ type GomaxprocsHooks struct {
 	fallback int64
 }
 
-func (g *GomaxprocsHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
+func (g *GomaxprocsHooks) PreCreate(
+	ctx context.Context,
+	specgen *generate.Generator,
+	s *sandbox.Sandbox,
+	c *oci.Container,
+) error {
 	log.Infof(ctx, "Run gomaxprocs runtime handler pre-create hook for the container %q", c.ID())
 
 	annotations := s.Annotations()
@@ -29,7 +34,11 @@ func (g *GomaxprocsHooks) PreCreate(ctx context.Context, specgen *generate.Gener
 	// Skip if pod has the skip annotation.
 	skipAnnotation, _ := crioann.GetAnnotationValue(annotations, crioann.SkipGoMaxProcs)
 	if skipAnnotation == "true" {
-		log.Debugf(ctx, "Skipping GOMAXPROCS injection: %s annotation is set", crioann.SkipGoMaxProcs)
+		log.Debugf(
+			ctx,
+			"Skipping GOMAXPROCS injection: %s annotation is set",
+			crioann.SkipGoMaxProcs,
+		)
 
 		return nil
 	}
@@ -38,7 +47,8 @@ func (g *GomaxprocsHooks) PreCreate(ctx context.Context, specgen *generate.Gener
 
 	// Only inject for burstable and best-effort pods.
 	// Guaranteed pods get exclusive CPUs via CPU Manager.
-	if !strings.Contains(cgroupParent, "burstable") && !strings.Contains(cgroupParent, "besteffort") {
+	if !strings.Contains(cgroupParent, "burstable") &&
+		!strings.Contains(cgroupParent, "besteffort") {
 		return nil
 	}
 
@@ -62,7 +72,11 @@ func (g *GomaxprocsHooks) PreCreate(ctx context.Context, specgen *generate.Gener
 	// Skip if the container has a CPU limit (quota > 0). Go 1.25+ auto-detects
 	// GOMAXPROCS from the cgroup quota, so injecting would override that.
 	if cpuQuota > 0 {
-		log.Debugf(ctx, "Skipping GOMAXPROCS injection: container has CPU limit (quota=%d)", cpuQuota)
+		log.Debugf(
+			ctx,
+			"Skipping GOMAXPROCS injection: container has CPU limit (quota=%d)",
+			cpuQuota,
+		)
 
 		return nil
 	}

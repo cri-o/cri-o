@@ -52,7 +52,10 @@ type hostportManagerIPTables struct {
 }
 
 // newHostportManagerIPTables creates a new iptables HostPortManager.
-func newHostportManagerIPTables(ctx context.Context, protocol utiliptables.Protocol) (*hostportManagerIPTables, error) {
+func newHostportManagerIPTables(
+	ctx context.Context,
+	protocol utiliptables.Protocol,
+) (*hostportManagerIPTables, error) {
 	h := &hostportManagerIPTables{
 		iptables: utiliptables.New(ctx, utilexec.New(), protocol),
 	}
@@ -63,7 +66,10 @@ func newHostportManagerIPTables(ctx context.Context, protocol utiliptables.Proto
 	return h, nil
 }
 
-func (hm *hostportManagerIPTables) Add(id, name, podIP string, hostportMappings []*PortMapping) (err error) {
+func (hm *hostportManagerIPTables) Add(
+	id, name, podIP string,
+	hostportMappings []*PortMapping,
+) (err error) {
 	if err := ensureKubeHostportChains(hm.iptables); err != nil {
 		return err
 	}
@@ -231,7 +237,12 @@ func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 	logrus.Info("Ensuring kubelet hostport chains")
 	// Ensure kubeHostportChain
 	if _, err := iptables.EnsureChain(utiliptables.TableNAT, kubeHostportsChain); err != nil {
-		return fmt.Errorf("failed to ensure that %s chain %s exists: %w", utiliptables.TableNAT, kubeHostportsChain, err)
+		return fmt.Errorf(
+			"failed to ensure that %s chain %s exists: %w",
+			utiliptables.TableNAT,
+			kubeHostportsChain,
+			err,
+		)
 	}
 
 	tableChainsNeedJumpServices := []struct {
@@ -251,14 +262,29 @@ func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 		// KUBE-HOSTPORTS chain needs to be appended to the system chains.
 		// This ensures KUBE-SERVICES chain gets processed first.
 		// Since rules in KUBE-HOSTPORTS chain matches broader cases, allow the more specific rules to be processed first.
-		if _, err := iptables.EnsureRule(utiliptables.Append, tc.table, tc.chain, args...); err != nil {
-			return fmt.Errorf("failed to ensure that %s chain %s jumps to %s: %w", tc.table, tc.chain, kubeHostportsChain, err)
+		if _, err := iptables.EnsureRule(
+			utiliptables.Append,
+			tc.table,
+			tc.chain,
+			args...); err != nil {
+			return fmt.Errorf(
+				"failed to ensure that %s chain %s jumps to %s: %w",
+				tc.table,
+				tc.chain,
+				kubeHostportsChain,
+				err,
+			)
 		}
 	}
 
 	// Ensure crioMasqueradeChain
 	if _, err := iptables.EnsureChain(utiliptables.TableNAT, crioMasqueradeChain); err != nil {
-		return fmt.Errorf("failed to ensure that %s chain %s exists: %w", utiliptables.TableNAT, crioMasqueradeChain, err)
+		return fmt.Errorf(
+			"failed to ensure that %s chain %s exists: %w",
+			utiliptables.TableNAT,
+			crioMasqueradeChain,
+			err,
+		)
 	}
 
 	args = []string{
@@ -266,8 +292,18 @@ func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 		"-m", "conntrack", "--ctstate", "DNAT",
 		"-j", string(crioMasqueradeChain),
 	}
-	if _, err := iptables.EnsureRule(utiliptables.Append, utiliptables.TableNAT, utiliptables.ChainPostrouting, args...); err != nil {
-		return fmt.Errorf("failed to ensure that %s chain %s jumps to %s: %w", utiliptables.TableNAT, utiliptables.ChainPostrouting, crioMasqueradeChain, err)
+	if _, err := iptables.EnsureRule(
+		utiliptables.Append,
+		utiliptables.TableNAT,
+		utiliptables.ChainPostrouting,
+		args...); err != nil {
+		return fmt.Errorf(
+			"failed to ensure that %s chain %s jumps to %s: %w",
+			utiliptables.TableNAT,
+			utiliptables.ChainPostrouting,
+			crioMasqueradeChain,
+			err,
+		)
 	}
 
 	return nil
@@ -280,7 +316,9 @@ func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 // WARNING: Please do not change this function. Otherwise, HostportManager may not be able to
 // identify existing iptables chains.
 func getHostportChain(prefix, id string, pm *PortMapping) utiliptables.Chain {
-	hash := sha256.Sum256([]byte(id + strconv.Itoa(int(pm.HostPort)) + string(pm.Protocol) + pm.HostIP))
+	hash := sha256.Sum256(
+		[]byte(id + strconv.Itoa(int(pm.HostPort)) + string(pm.Protocol) + pm.HostIP),
+	)
 	encoded := base32.StdEncoding.EncodeToString(hash[:])
 
 	return utiliptables.Chain(prefix + encoded[:16])
@@ -290,7 +328,9 @@ func getHostportChain(prefix, id string, pm *PortMapping) utiliptables.Chain {
 // return all the hostport related chains and rules
 //
 //nolint:gocritic // unnamedResult: consider giving a name to these results
-func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[utiliptables.Chain]string, []string, error) {
+func getExistingHostportIPTablesRules(
+	iptables utiliptables.Interface,
+) (map[utiliptables.Chain]string, []string, error) {
 	iptablesData := bytes.NewBuffer(nil)
 
 	err := iptables.SaveInto(utiliptables.TableNAT, iptablesData)
@@ -363,7 +403,9 @@ func getChainLines(table utiliptables.Table, save []byte) map[utiliptables.Chain
 			// space delimited. If there is no space, this line will panic.
 			spaceIndex := bytes.Index(line, spaceBytes)
 			if spaceIndex == -1 {
-				panic(fmt.Sprintf("Unexpected chain line in iptables-save output: %v", string(line)))
+				panic(
+					fmt.Sprintf("Unexpected chain line in iptables-save output: %v", string(line)),
+				)
 			}
 
 			chain := utiliptables.Chain(line[1:spaceIndex])

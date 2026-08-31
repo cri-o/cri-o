@@ -99,7 +99,10 @@ func checkIPTablesRules(ipt utiliptables.Interface, expectedRules []string) {
 	matched := sets.New[string]()
 
 	for line := range strings.SplitSeq(raw.String(), "\n") {
-		if strings.HasPrefix(line, "-A KUBE-HOSTPORTS ") || strings.HasPrefix(line, "-A CRIO-HOSTPORTS-MASQ ") || strings.HasPrefix(line, "-A KUBE-HP-") || strings.HasPrefix(line, "-A CRIO-MASQ-") {
+		if strings.HasPrefix(line, "-A KUBE-HOSTPORTS ") ||
+			strings.HasPrefix(line, "-A CRIO-HOSTPORTS-MASQ ") ||
+			strings.HasPrefix(line, "-A KUBE-HP-") ||
+			strings.HasPrefix(line, "-A CRIO-MASQ-") {
 			matched.Insert(line)
 		}
 	}
@@ -107,7 +110,10 @@ func checkIPTablesRules(ipt utiliptables.Interface, expectedRules []string) {
 	unexpectedRules := matched.Difference(expected).UnsortedList()
 	missingRules := expected.Difference(matched).UnsortedList()
 
-	ExpectWithOffset(1, len(unexpectedRules)+len(missingRules)).To(Equal(0), "unexpected rules in iptables-save: %#v, expected rules missing from iptables-save: %#v", unexpectedRules, missingRules)
+	ExpectWithOffset(
+		1,
+		len(unexpectedRules)+len(missingRules),
+	).To(Equal(0), "unexpected rules in iptables-save: %#v, expected rules missing from iptables-save: %#v", unexpectedRules, missingRules)
 }
 
 var _ = t.Describe("hostPortManagerIPTables", func() {
@@ -115,14 +121,20 @@ var _ = t.Describe("hostPortManagerIPTables", func() {
 		fakeIPTables := newFakeIPTables()
 		Expect(ensureKubeHostportChains(fakeIPTables)).To(Succeed())
 
-		_, _, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain("KUBE-HOSTPORTS"))
+		_, _, err := fakeIPTables.getChain(
+			utiliptables.TableNAT,
+			utiliptables.Chain("KUBE-HOSTPORTS"),
+		)
 		Expect(err).ToNot(HaveOccurred())
 
 		builtinChains := []string{"PREROUTING", "OUTPUT"}
 		hostPortJumpRule := "-m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS"
 
 		for _, chainName := range builtinChains {
-			_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain(chainName))
+			_, chain, err := fakeIPTables.getChain(
+				utiliptables.TableNAT,
+				utiliptables.Chain(chainName),
+			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(chain.rules)).To(BeEquivalentTo(1))
 			Expect(chain.rules).To(ContainElement(hostPortJumpRule))
@@ -142,13 +154,29 @@ var _ = t.Describe("hostPortManagerIPTables", func() {
 
 	It("should create hostport chains with distinct names", func() {
 		m := make(map[string]int)
-		chain := getHostportChain("prefix", "testrdma-2", &PortMapping{HostPort: 57119, Protocol: "TCP", ContainerPort: 57119})
+		chain := getHostportChain(
+			"prefix",
+			"testrdma-2",
+			&PortMapping{HostPort: 57119, Protocol: "TCP", ContainerPort: 57119},
+		)
 		m[string(chain)] = 1
-		chain = getHostportChain("prefix", "testrdma-2", &PortMapping{HostPort: 55429, Protocol: "TCP", ContainerPort: 55429})
+		chain = getHostportChain(
+			"prefix",
+			"testrdma-2",
+			&PortMapping{HostPort: 55429, Protocol: "TCP", ContainerPort: 55429},
+		)
 		m[string(chain)] = 1
-		chain = getHostportChain("prefix", "testrdma-2", &PortMapping{HostPort: 56833, Protocol: "TCP", ContainerPort: 56833})
+		chain = getHostportChain(
+			"prefix",
+			"testrdma-2",
+			&PortMapping{HostPort: 56833, Protocol: "TCP", ContainerPort: 56833},
+		)
 		m[string(chain)] = 1
-		chain = getHostportChain("different-prefix", "testrdma-2", &PortMapping{HostPort: 56833, Protocol: "TCP", ContainerPort: 56833})
+		chain = getHostportChain(
+			"different-prefix",
+			"testrdma-2",
+			&PortMapping{HostPort: 56833, Protocol: "TCP", ContainerPort: 56833},
+		)
 		m[string(chain)] = 1
 		Expect(m).To(HaveLen(4))
 	})

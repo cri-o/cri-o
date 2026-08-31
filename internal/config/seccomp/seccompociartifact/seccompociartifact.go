@@ -61,11 +61,22 @@ func (s *SeccompOCIArtifact) TryPull(
 		profileRef = val
 	} else if val, key, ok := v2.GetAnnotationValueWithKey(imageAnnotations, containerKey); ok {
 		baseKey := strings.TrimSuffix(key, "/"+containerName)
-		log.Infof(ctx, "Found image specific seccomp profile annotation for container %s: %s=%s", containerName, baseKey, val)
+		log.Infof(
+			ctx,
+			"Found image specific seccomp profile annotation for container %s: %s=%s",
+			containerName,
+			baseKey,
+			val,
+		)
 		profileRef = val
 	} else if val, key, ok := v2.GetAnnotationValueWithKey(imageAnnotations, SeccompProfilePodAnnotation); ok {
 		baseKey := strings.TrimSuffix(key, "/POD")
-		log.Infof(ctx, "Found image specific seccomp profile annotation for pod: %s=%s", baseKey, val)
+		log.Infof(
+			ctx,
+			"Found image specific seccomp profile annotation for pod: %s=%s",
+			baseKey,
+			val,
+		)
 		profileRef = val
 	}
 

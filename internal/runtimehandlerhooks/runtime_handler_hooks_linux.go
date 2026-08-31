@@ -27,9 +27,14 @@ func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetr
 			annotationMap[v] = ""
 		}
 
-		if strings.Contains(name, HighPerformance) && !highPerformanceAnnotationsSpecified(annotationMap) {
-			log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under "+
-				"allowed_annotations is deprecated since 1.21", HighPerformance)
+		if strings.Contains(name, HighPerformance) &&
+			!highPerformanceAnnotationsSpecified(annotationMap) {
+			log.Warnf(
+				ctx,
+				"The usage of the handler %q without adding high-performance feature annotations under "+
+					"allowed_annotations is deprecated since 1.21",
+				HighPerformance,
+			)
 		}
 	}
 
@@ -38,10 +43,15 @@ func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetr
 
 // Get checks runtime name or the sandbox's annotations for allowed high performance annotations and
 // the config for GOMAXPROCS injection. It returns a single hook, a CompositeHooks chain, or nil.
-func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAnnotations map[string]string) RuntimeHandlerHooks {
+func (hr *HooksRetriever) Get(
+	ctx context.Context,
+	runtimeName string,
+	sandboxAnnotations map[string]string,
+) RuntimeHandlerHooks {
 	var hooks []RuntimeHandlerHooks
 
-	if strings.Contains(runtimeName, HighPerformance) || highPerformanceAnnotationsSpecified(sandboxAnnotations) {
+	if strings.Contains(runtimeName, HighPerformance) ||
+		highPerformanceAnnotationsSpecified(sandboxAnnotations) {
 		runtimeConfig, ok := hr.config.Runtimes[runtimeName]
 		if !ok {
 			// This shouldn't happen because runtime is already validated
@@ -65,7 +75,9 @@ func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAn
 		}
 
 		hooks = append(hooks, hr.highPerformanceHooks)
-	} else if cpuLoadBalancingAllowed(hr.config) {
+	} else if cpuLoadBalancingAllowed(
+		hr.config,
+	) {
 		hooks = append(hooks, &DefaultCPULoadBalanceHooks{
 			CgroupManager: hr.config.CgroupManager(),
 		})

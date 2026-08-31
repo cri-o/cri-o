@@ -13,7 +13,10 @@ import (
 
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
 // sandbox, they should be force deleted.
-func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandboxRequest) (*types.RemovePodSandboxResponse, error) {
+func (s *Server) RemovePodSandbox(
+	ctx context.Context,
+	req *types.RemovePodSandboxRequest,
+) (*types.RemovePodSandboxResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -32,7 +35,12 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 		// If the sandbox isn't found we just return an empty response to adhere
 		// the CRI interface which expects to not error out in not found
 		// cases.
-		log.Warnf(ctx, "Could not get sandbox %s, it's probably been removed already: %v", req.GetPodSandboxId(), err)
+		log.Warnf(
+			ctx,
+			"Could not get sandbox %s, it's probably been removed already: %v",
+			req.GetPodSandboxId(),
+			err,
+		)
 
 		return &types.RemovePodSandboxResponse{}, nil
 	}
@@ -68,7 +76,8 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 	}
 
 	if sb.InfraContainer().Spoofed() {
-		if err := s.config.CgroupManager().RemoveSandboxCgroup(sb.CgroupParent(), sb.ID()); err != nil {
+		if err := s.config.CgroupManager().
+			RemoveSandboxCgroup(sb.CgroupParent(), sb.ID()); err != nil {
 			return err
 		}
 	}

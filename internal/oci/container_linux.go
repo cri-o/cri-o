@@ -89,7 +89,9 @@ func getPidStatData(pid int) (string, string, error) { //nolint:gocritic // Igno
 
 // getPidStatData parses the kernel's /proc/<PID>/stat file,
 // looking for the process state and start time for a given PID.
-func getPidStatDataFromFile(file string) (string, string, error) { //nolint:gocritic // Ignore unnamedResult.
+func getPidStatDataFromFile( //nolint:gocritic // unnamedResult
+	file string,
+) (string, string, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return "", "", err
@@ -119,7 +121,10 @@ func getPidStatDataFromFile(file string) (string, string, error) { //nolint:gocr
 // SetRuntimeUser sets the runtime user for the container.
 func (c *Container) SetRuntimeUser(runtimeSpec *specs.Spec) {
 	if runtimeSpec.Process == nil {
-		logrus.Infof("Container %s is missing process attribute from the runtime specification", c.ID())
+		logrus.Infof(
+			"Container %s is missing process attribute from the runtime specification",
+			c.ID(),
+		)
 
 		return
 	}

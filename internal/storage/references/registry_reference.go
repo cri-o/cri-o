@@ -36,7 +36,9 @@ func RegistryImageReferenceFromRaw(rawNamed reference.Named) RegistryImageRefere
 	if isTagged && isDigested {
 		canonical, err := reference.WithDigest(reference.TrimNamed(rawNamed), canonical.Digest())
 		if err != nil {
-			panic("internal error, reference.WithDigest was not passed a digest, which should not be possible")
+			panic(
+				"internal error, reference.WithDigest was not passed a digest, which should not be possible",
+			)
 		}
 
 		rawNamed = canonical
@@ -46,7 +48,12 @@ func RegistryImageReferenceFromRaw(rawNamed reference.Named) RegistryImageRefere
 	// and as of 2023-10 mockgen creates code that refers to the internal target of the alias,
 	// which doesn’t compile.
 	if reference.IsNameOnly(rawNamed) {
-		panic(fmt.Sprintf("internal error, NewRegistryImageReference with a NameOnly %q", rawNamed.String()))
+		panic(
+			fmt.Sprintf(
+				"internal error, NewRegistryImageReference with a NameOnly %q",
+				rawNamed.String(),
+			),
+		)
 	}
 
 	return RegistryImageReference{privateNamed: rawNamed}

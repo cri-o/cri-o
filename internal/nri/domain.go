@@ -70,7 +70,10 @@ func (t *domainTable) listContainers() []Container {
 	return t.domain.ListContainers()
 }
 
-func (t *domainTable) updateContainers(ctx context.Context, updates []*nri.ContainerUpdate) ([]*nri.ContainerUpdate, error) {
+func (t *domainTable) updateContainers(
+	ctx context.Context,
+	updates []*nri.ContainerUpdate,
+) ([]*nri.ContainerUpdate, error) {
 	var failed []*nri.ContainerUpdate
 
 	for _, u := range updates {
@@ -91,7 +94,10 @@ func (t *domainTable) updateContainers(ctx context.Context, updates []*nri.Conta
 	return nil, nil
 }
 
-func (t *domainTable) evictContainers(ctx context.Context, evict []*nri.ContainerEviction) ([]*nri.ContainerEviction, error) {
+func (t *domainTable) evictContainers(
+	ctx context.Context,
+	evict []*nri.ContainerEviction,
+) ([]*nri.ContainerEviction, error) {
 	var failed []*nri.ContainerEviction
 
 	for _, e := range evict {

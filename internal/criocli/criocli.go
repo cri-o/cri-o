@@ -58,7 +58,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet("checkpoint-restore-container-level-enabled") {
-		config.ContainerLevelEnabled = libconfig.ContainerCheckpointRestoreLevel(ctx.String("checkpoint-restore-container-level-enabled"))
+		config.ContainerLevelEnabled = libconfig.ContainerCheckpointRestoreLevel(
+			ctx.String("checkpoint-restore-container-level-enabled"),
+		)
 	}
 
 	mergeNetworkConfig(config, ctx)
@@ -315,7 +317,9 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet("device-ownership-from-security-context") {
-		config.DeviceOwnershipFromSecurityContext = ctx.Bool("device-ownership-from-security-context")
+		config.DeviceOwnershipFromSecurityContext = ctx.Bool(
+			"device-ownership-from-security-context",
+		)
 	}
 
 	// Decryption
@@ -378,7 +382,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet("absent-mount-sources-to-reject") {
-		config.AbsentMountSourcesToReject = StringSliceTrySplit(ctx, "absent-mount-sources-to-reject")
+		config.AbsentMountSourcesToReject = StringSliceTrySplit(
+			ctx,
+			"absent-mount-sources-to-reject",
+		)
 	}
 
 	// User namespaces
@@ -484,7 +491,11 @@ func mergeRuntimesConfig(config *libconfig.Config, ctx *cli.Context) error {
 		case 7:
 			containerMinMemory = fields[6]
 			if _, err := units.RAMInBytes(containerMinMemory); err != nil {
-				return fmt.Errorf("invalid value %q for --runtimes:container_min_memory: %w", containerMinMemory, err)
+				return fmt.Errorf(
+					"invalid value %q for --runtimes:container_min_memory: %w",
+					containerMinMemory,
+					err,
+				)
 			}
 
 			fallthrough
@@ -682,31 +693,46 @@ func mergeNRIConfig(config *libconfig.Config, ctx *cli.Context) {
 	}
 
 	if ctx.IsSet("nri-validator-reject-oci-hook-adjustment") {
-		config.NRI.DefaultValidator.RejectOCIHookAdjustment = ctx.Bool("nri-validator-reject-oci-hook-adjustment")
+		config.NRI.DefaultValidator.RejectOCIHookAdjustment = ctx.Bool(
+			"nri-validator-reject-oci-hook-adjustment",
+		)
 	}
 
 	if ctx.IsSet("nri-validator-reject-runtime-default-seccomp-adjustment") {
-		config.NRI.DefaultValidator.RejectRuntimeDefaultSeccompAdjustment = ctx.Bool("nri-validator-reject-runtime-default-seccomp-adjustment")
+		config.NRI.DefaultValidator.RejectRuntimeDefaultSeccompAdjustment = ctx.Bool(
+			"nri-validator-reject-runtime-default-seccomp-adjustment",
+		)
 	}
 
 	if ctx.IsSet("nri-validator-reject-unconfined-seccomp-adjustment") {
-		config.NRI.DefaultValidator.RejectUnconfinedSeccompAdjustment = ctx.Bool("nri-validator-reject-unconfined-seccomp-adjustment")
+		config.NRI.DefaultValidator.RejectUnconfinedSeccompAdjustment = ctx.Bool(
+			"nri-validator-reject-unconfined-seccomp-adjustment",
+		)
 	}
 
 	if ctx.IsSet("nri-validator-reject-custom-seccomp-adjustment") {
-		config.NRI.DefaultValidator.RejectCustomSeccompAdjustment = ctx.Bool("nri-validator-reject-custom-seccomp-adjustment")
+		config.NRI.DefaultValidator.RejectCustomSeccompAdjustment = ctx.Bool(
+			"nri-validator-reject-custom-seccomp-adjustment",
+		)
 	}
 
 	if ctx.IsSet("nri-validator-reject-namespace-adjustment") {
-		config.NRI.DefaultValidator.RejectNamespaceAdjustment = ctx.Bool("nri-validator-reject-namespace-adjustment")
+		config.NRI.DefaultValidator.RejectNamespaceAdjustment = ctx.Bool(
+			"nri-validator-reject-namespace-adjustment",
+		)
 	}
 
 	if ctx.IsSet("nri-validator-required-plugins") {
-		config.NRI.DefaultValidator.RequiredPlugins = StringSliceTrySplit(ctx, "nri-validator-required-plugins")
+		config.NRI.DefaultValidator.RequiredPlugins = StringSliceTrySplit(
+			ctx,
+			"nri-validator-required-plugins",
+		)
 	}
 
 	if ctx.IsSet("nri-validator-tolerate-missing-plugins-annotation") {
-		config.NRI.DefaultValidator.TolerateMissingAnnotation = ctx.String("nri-validator-tolerate-missing-plugins-annotation")
+		config.NRI.DefaultValidator.TolerateMissingAnnotation = ctx.String(
+			"nri-validator-tolerate-missing-plugins-annotation",
+		)
 	}
 }
 

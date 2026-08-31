@@ -14,7 +14,10 @@ import (
 )
 
 // RemoveImage removes the image.
-func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest) (*types.RemoveImageResponse, error) {
+func (s *Server) RemoveImage(
+	ctx context.Context,
+	req *types.RemoveImageRequest,
+) (*types.RemoveImageResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -42,7 +45,11 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 
 	imageManager := s.StorageImageManager()
 
-	if matches := imageManager.HeuristicallyTryResolvingStringAsIDPrefix(imageRef); len(matches) > 0 {
+	if matches := imageManager.HeuristicallyTryResolvingStringAsIDPrefix(
+		imageRef,
+	); len(
+		matches,
+	) > 0 {
 		for _, match := range matches {
 			if err := s.volumeInUse(match.ID.IDStringForOutOfProcessConsumptionOnly()); err != nil {
 				return err
@@ -51,7 +58,8 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 
 		for _, match := range matches {
 			if err := match.Server.DeleteImage(s.config.SystemContext, *match.ID); err != nil {
-				if errors.Is(err, storagetypes.ErrImageUnknown) || errors.Is(err, storagetypes.ErrNotAnImage) {
+				if errors.Is(err, storagetypes.ErrImageUnknown) ||
+					errors.Is(err, storagetypes.ErrNotAnImage) {
 					// The RemoveImage RPC is idempotent, and must not return an
 					// error if the image has already been removed. Ref:
 					// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
@@ -78,7 +86,10 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		return err
 	}
 
-	potentialMatches, err := imageService.CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
+	potentialMatches, err := imageService.CandidatesForPotentiallyShortImageName(
+		s.config.SystemContext,
+		imageRef,
+	)
 	if err != nil {
 		return err
 	}
@@ -110,7 +121,8 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 	}
 
 	if !deleted && untagErr != nil {
-		if errors.Is(untagErr, storagetypes.ErrImageUnknown) || errors.Is(untagErr, storagetypes.ErrNotAnImage) {
+		if errors.Is(untagErr, storagetypes.ErrImageUnknown) ||
+			errors.Is(untagErr, storagetypes.ErrNotAnImage) {
 			return nil
 		}
 
@@ -130,7 +142,9 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		return err
 	}
 
-	if err := s.ArtifactStore().Remove(ctx, imageRef); err != nil && !errors.Is(err, ociartifact.ErrNotFound) {
+	if err := s.ArtifactStore().
+		Remove(ctx, imageRef); err != nil &&
+		!errors.Is(err, ociartifact.ErrNotFound) {
 		log.Errorf(ctx, "Unable to remove artifact: %v", err)
 	}
 

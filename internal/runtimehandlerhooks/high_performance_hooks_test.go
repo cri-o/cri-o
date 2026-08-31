@@ -251,7 +251,14 @@ var _ = Describe("high_performance_hooks", func() {
 					irqSMPAffinityFile:        irqSmpAffinityFile,
 					irqSMPAffinityDisabledSet: map[string]struct{}{},
 				}
-				verifySetIRQLoadBalancing(h, true, "00000000,00003003", "00000000,00003003", "ffffffff,ffffcffc", "ffffffff,ffffcffc")
+				verifySetIRQLoadBalancing(
+					h,
+					true,
+					"00000000,00003003",
+					"00000000,00003003",
+					"ffffffff,ffffcffc",
+					"ffffffff,ffffcffc",
+				)
 			})
 			It("from true to false, then false to true", func() {
 				h := &HighPerformanceHooks{
@@ -259,8 +266,22 @@ var _ = Describe("high_performance_hooks", func() {
 					irqSMPAffinityFile:        irqSmpAffinityFile,
 					irqSMPAffinityDisabledSet: map[string]struct{}{},
 				}
-				verifySetIRQLoadBalancing(h, false, "00000000,00003033", "00000000,00003003", "ffffffff,ffffcfcc", "ffffffff,ffffcffc")
-				verifySetIRQLoadBalancing(h, true, "00000000,00003003", "00000000,00003033", "ffffffff,ffffcffc", "ffffffff,ffffcfcc")
+				verifySetIRQLoadBalancing(
+					h,
+					false,
+					"00000000,00003033",
+					"00000000,00003003",
+					"ffffffff,ffffcfcc",
+					"ffffffff,ffffcffc",
+				)
+				verifySetIRQLoadBalancing(
+					h,
+					true,
+					"00000000,00003003",
+					"00000000,00003033",
+					"ffffffff,ffffcffc",
+					"ffffffff,ffffcfcc",
+				)
 			})
 		})
 	})
@@ -288,7 +309,11 @@ var _ = Describe("high_performance_hooks", func() {
 				siblingsSet := cpuset.New(siblings...)
 
 				for sibling := cpu; sibling < cpu+topology; sibling++ {
-					cpuTopologyDir := filepath.Join(testCPUDir, fmt.Sprintf("cpu%d", sibling), "topology")
+					cpuTopologyDir := filepath.Join(
+						testCPUDir,
+						fmt.Sprintf("cpu%d", sibling),
+						"topology",
+					)
 					err := os.MkdirAll(cpuTopologyDir, os.ModePerm)
 					Expect(err).ToNot(HaveOccurred())
 
@@ -335,7 +360,12 @@ var _ = Describe("high_performance_hooks", func() {
 			)
 
 			sbox := baseSandboxBuilder()
-			err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), annotations, &types.PodSandboxMetadata{})
+			err = sbox.SetCRISandbox(
+				sbox.ID(),
+				make(map[string]string),
+				annotations,
+				&types.PodSandboxMetadata{},
+			)
 			Expect(err).ToNot(HaveOccurred())
 			sb, err := sbox.GetSandbox()
 			Expect(err).ToNot(HaveOccurred())
@@ -364,7 +394,11 @@ var _ = Describe("high_performance_hooks", func() {
 			if !enabled {
 				spec := c.Spec()
 
-				housekeepingSiblings, err = h.getHousekeepingCPUs(&spec, sb.Annotations(), c.CRIContainer().GetMetadata().GetName())
+				housekeepingSiblings, err = h.getHousekeepingCPUs(
+					&spec,
+					sb.Annotations(),
+					c.CRIContainer().GetMetadata().GetName(),
+				)
 				if expectFailure {
 					Expect(err).To(HaveOccurred())
 
@@ -406,41 +440,80 @@ var _ = Describe("high_performance_hooks", func() {
 
 		// This should be covered in other tests already, but test this here for completeness and safe measure.
 		Context("with enabled equals to true", func() {
-			It("should not set the irq bit mask with housekeeping CPUs annotation present without disable first", func() {
-				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
-					crioannotations.IRQLoadBalancing: annotationHousekeeping,
-				})
-				startFlags := "00000000,ffffffff"
-				startBanned := "ffffffff,00000000"
+			It(
+				"should not set the irq bit mask with housekeeping CPUs annotation present without disable first",
+				func() {
+					c, sb := createContainerSandbox("4,5,6,7", map[string]string{
+						crioannotations.IRQLoadBalancing: annotationHousekeeping,
+					})
+					startFlags := "00000000,ffffffff"
+					startBanned := "ffffffff,00000000"
 
-				h := &HighPerformanceHooks{
-					irqBalanceConfigFile:      irqBalanceConfigFile,
-					irqSMPAffinityFile:        irqSmpAffinityFile,
-					sysCPUDir:                 sysCPUDir,
-					irqSMPAffinityDisabledSet: map[string]struct{}{},
-				}
+					h := &HighPerformanceHooks{
+						irqBalanceConfigFile:      irqBalanceConfigFile,
+						irqSMPAffinityFile:        irqSmpAffinityFile,
+						sysCPUDir:                 sysCPUDir,
+						irqSMPAffinityDisabledSet: map[string]struct{}{},
+					}
 
-				verifySetIRQLoadBalancing(h, c, sb, true, startFlags, startFlags, startBanned, startBanned, "", false)
-			})
-			It("should set the irq bit mask with housekeeping CPUs annotation present with disable first", func() {
-				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
-					crioannotations.IRQLoadBalancing: annotationHousekeeping,
-				})
-				startFlags := "00000000,ffffffff"
-				startBanned := "ffffffff,00000000"
-				endFlags := "00000000,ffffff1f"
-				endBanned := "ffffffff,000000e0"
+					verifySetIRQLoadBalancing(
+						h,
+						c,
+						sb,
+						true,
+						startFlags,
+						startFlags,
+						startBanned,
+						startBanned,
+						"",
+						false,
+					)
+				},
+			)
+			It(
+				"should set the irq bit mask with housekeeping CPUs annotation present with disable first",
+				func() {
+					c, sb := createContainerSandbox("4,5,6,7", map[string]string{
+						crioannotations.IRQLoadBalancing: annotationHousekeeping,
+					})
+					startFlags := "00000000,ffffffff"
+					startBanned := "ffffffff,00000000"
+					endFlags := "00000000,ffffff1f"
+					endBanned := "ffffffff,000000e0"
 
-				h := &HighPerformanceHooks{
-					irqBalanceConfigFile:      irqBalanceConfigFile,
-					irqSMPAffinityFile:        irqSmpAffinityFile,
-					sysCPUDir:                 sysCPUDir,
-					irqSMPAffinityDisabledSet: map[string]struct{}{},
-				}
+					h := &HighPerformanceHooks{
+						irqBalanceConfigFile:      irqBalanceConfigFile,
+						irqSMPAffinityFile:        irqSmpAffinityFile,
+						sysCPUDir:                 sysCPUDir,
+						irqSMPAffinityDisabledSet: map[string]struct{}{},
+					}
 
-				verifySetIRQLoadBalancing(h, c, sb, false, startFlags, endFlags, startBanned, endBanned, "4", false)
-				verifySetIRQLoadBalancing(h, c, sb, true, endFlags, startFlags, endBanned, startBanned, "", false)
-			})
+					verifySetIRQLoadBalancing(
+						h,
+						c,
+						sb,
+						false,
+						startFlags,
+						endFlags,
+						startBanned,
+						endBanned,
+						"4",
+						false,
+					)
+					verifySetIRQLoadBalancing(
+						h,
+						c,
+						sb,
+						true,
+						endFlags,
+						startFlags,
+						endBanned,
+						startBanned,
+						"",
+						false,
+					)
+				},
+			)
 		})
 
 		Context("with enabled equals to false", func() {
@@ -453,22 +526,47 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{})
-				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,ffffff0f", "ffffffff,00000000", "ffffffff,000000f0", "", false)
+				verifySetIRQLoadBalancing(
+					h,
+					c,
+					sb,
+					false,
+					"00000000,ffffffff",
+					"00000000,ffffff0f",
+					"ffffffff,00000000",
+					"ffffffff,000000f0",
+					"",
+					false,
+				)
 			})
 
-			It("should set the irq bit mask with housekeeping CPUs when no thread siblings files are present", func() {
-				h := &HighPerformanceHooks{
-					irqBalanceConfigFile:      irqBalanceConfigFile,
-					irqSMPAffinityFile:        irqSmpAffinityFile,
-					sysCPUDir:                 sysCPUDir,
-					irqSMPAffinityDisabledSet: map[string]struct{}{},
-				}
+			It(
+				"should set the irq bit mask with housekeeping CPUs when no thread siblings files are present",
+				func() {
+					h := &HighPerformanceHooks{
+						irqBalanceConfigFile:      irqBalanceConfigFile,
+						irqSMPAffinityFile:        irqSmpAffinityFile,
+						sysCPUDir:                 sysCPUDir,
+						irqSMPAffinityDisabledSet: map[string]struct{}{},
+					}
 
-				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
-					crioannotations.IRQLoadBalancing: annotationHousekeeping,
-				})
-				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,ffffff1f", "ffffffff,00000000", "ffffffff,000000e0", "4", false)
-			})
+					c, sb := createContainerSandbox("4,5,6,7", map[string]string{
+						crioannotations.IRQLoadBalancing: annotationHousekeeping,
+					})
+					verifySetIRQLoadBalancing(
+						h,
+						c,
+						sb,
+						false,
+						"00000000,ffffffff",
+						"00000000,ffffff1f",
+						"ffffffff,00000000",
+						"ffffffff,000000e0",
+						"4",
+						false,
+					)
+				},
+			)
 
 			It("should set the irq bit mask with housekeeping CPUs and no siblings", func() {
 				h := &HighPerformanceHooks{
@@ -483,40 +581,79 @@ var _ = Describe("high_performance_hooks", func() {
 				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
 					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,ffffff1f", "ffffffff,00000000", "ffffffff,000000e0", "4", false)
+				verifySetIRQLoadBalancing(
+					h,
+					c,
+					sb,
+					false,
+					"00000000,ffffffff",
+					"00000000,ffffff1f",
+					"ffffffff,00000000",
+					"ffffffff,000000e0",
+					"4",
+					false,
+				)
 			})
 
-			It("should set the irq bit mask with housekeeping CPUs and siblings (topology 2)", func() {
-				h := &HighPerformanceHooks{
-					irqBalanceConfigFile:      irqBalanceConfigFile,
-					irqSMPAffinityFile:        irqSmpAffinityFile,
-					sysCPUDir:                 sysCPUDir,
-					irqSMPAffinityDisabledSet: map[string]struct{}{},
-				}
+			It(
+				"should set the irq bit mask with housekeeping CPUs and siblings (topology 2)",
+				func() {
+					h := &HighPerformanceHooks{
+						irqBalanceConfigFile:      irqBalanceConfigFile,
+						irqSMPAffinityFile:        irqSmpAffinityFile,
+						sysCPUDir:                 sysCPUDir,
+						irqSMPAffinityDisabledSet: map[string]struct{}{},
+					}
 
-				createSysCPUThreadSiblingsDir(sysCPUDir, 64, 2)
+					createSysCPUThreadSiblingsDir(sysCPUDir, 64, 2)
 
-				c, sb := createContainerSandbox("4,5,6,7", map[string]string{
-					crioannotations.IRQLoadBalancing: annotationHousekeeping,
-				})
-				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,ffffff3f", "ffffffff,00000000", "ffffffff,000000c0", "4-5", false)
-			})
+					c, sb := createContainerSandbox("4,5,6,7", map[string]string{
+						crioannotations.IRQLoadBalancing: annotationHousekeeping,
+					})
+					verifySetIRQLoadBalancing(
+						h,
+						c,
+						sb,
+						false,
+						"00000000,ffffffff",
+						"00000000,ffffff3f",
+						"ffffffff,00000000",
+						"ffffffff,000000c0",
+						"4-5",
+						false,
+					)
+				},
+			)
 
-			It("should set the irq bit mask with housekeeping CPUs and siblings (topology 4)", func() {
-				h := &HighPerformanceHooks{
-					irqBalanceConfigFile:      irqBalanceConfigFile,
-					irqSMPAffinityFile:        irqSmpAffinityFile,
-					sysCPUDir:                 sysCPUDir,
-					irqSMPAffinityDisabledSet: map[string]struct{}{},
-				}
+			It(
+				"should set the irq bit mask with housekeeping CPUs and siblings (topology 4)",
+				func() {
+					h := &HighPerformanceHooks{
+						irqBalanceConfigFile:      irqBalanceConfigFile,
+						irqSMPAffinityFile:        irqSmpAffinityFile,
+						sysCPUDir:                 sysCPUDir,
+						irqSMPAffinityDisabledSet: map[string]struct{}{},
+					}
 
-				createSysCPUThreadSiblingsDir(sysCPUDir, 64, 4)
+					createSysCPUThreadSiblingsDir(sysCPUDir, 64, 4)
 
-				c, sb := createContainerSandbox("4-11", map[string]string{
-					crioannotations.IRQLoadBalancing: annotationHousekeeping,
-				})
-				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,fffff0ff", "ffffffff,00000000", "ffffffff,00000f00", "4-7", false)
-			})
+					c, sb := createContainerSandbox("4-11", map[string]string{
+						crioannotations.IRQLoadBalancing: annotationHousekeeping,
+					})
+					verifySetIRQLoadBalancing(
+						h,
+						c,
+						sb,
+						false,
+						"00000000,ffffffff",
+						"00000000,fffff0ff",
+						"ffffffff,00000000",
+						"ffffffff,00000f00",
+						"4-7",
+						false,
+					)
+				},
+			)
 
 			It("should fail with invalid siblings files", func() {
 				h := &HighPerformanceHooks{
@@ -531,7 +668,18 @@ var _ = Describe("high_performance_hooks", func() {
 				c, sb := createContainerSandbox("4-11", map[string]string{
 					crioannotations.IRQLoadBalancing: annotationHousekeeping,
 				})
-				verifySetIRQLoadBalancing(h, c, sb, false, "00000000,ffffffff", "00000000,fffff0ff", "ffffffff,00000000", "ffffffff,00000f00", "4-7", true)
+				verifySetIRQLoadBalancing(
+					h,
+					c,
+					sb,
+					false,
+					"00000000,ffffffff",
+					"00000000,fffff0ff",
+					"ffffffff,00000000",
+					"ffffffff,00000f00",
+					"4-7",
+					true,
+				)
 			})
 		})
 	})
@@ -553,7 +701,9 @@ var _ = Describe("high_performance_hooks", func() {
 
 			if expected != "" {
 				for _, cpu := range []string{"cpu0", "cpu1"} {
-					content, err := os.ReadFile(filepath.Join(cpuDir, cpu, "power", "pm_qos_resume_latency_us"))
+					content, err := os.ReadFile(
+						filepath.Join(cpuDir, cpu, "power", "pm_qos_resume_latency_us"),
+					)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
@@ -562,7 +712,9 @@ var _ = Describe("high_performance_hooks", func() {
 
 			if expected_save != "" {
 				for _, cpu := range []string{"cpu0", "cpu1"} {
-					content, err := os.ReadFile(filepath.Join(cpuSaveDir, cpu, "power", "pm_qos_resume_latency_us"))
+					content, err := os.ReadFile(
+						filepath.Join(cpuSaveDir, cpu, "power", "pm_qos_resume_latency_us"),
+					)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(strings.Trim(string(content), "\n")).To(Equal(expected_save))
 				}
@@ -590,14 +742,22 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				if pmQosResumeLatencyUs != "" {
-					err = os.WriteFile(filepath.Join(powerDir, "pm_qos_resume_latency_us"), []byte(pmQosResumeLatencyUs), 0o644)
+					err = os.WriteFile(
+						filepath.Join(powerDir, "pm_qos_resume_latency_us"),
+						[]byte(pmQosResumeLatencyUs),
+						0o644,
+					)
 					Expect(err).ToNot(HaveOccurred())
 				}
 
 				if pmQosResumeLatencyUsOriginal != "" {
 					powerSaveDir := filepath.Join(cpuSaveDir, cpu, "power")
 					err = os.MkdirAll(powerSaveDir, os.ModePerm)
-					err = os.WriteFile(filepath.Join(powerSaveDir, "pm_qos_resume_latency_us"), []byte(pmQosResumeLatencyUsOriginal), 0o644)
+					err = os.WriteFile(
+						filepath.Join(powerSaveDir, "pm_qos_resume_latency_us"),
+						[]byte(pmQosResumeLatencyUsOriginal),
+						0o644,
+					)
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}
@@ -706,7 +866,9 @@ var _ = Describe("high_performance_hooks", func() {
 
 			if expected != "" {
 				for _, cpu := range []string{"cpu0", "cpu1"} {
-					content, err := os.ReadFile(filepath.Join(cpuDir, cpu, "cpufreq", "scaling_governor"))
+					content, err := os.ReadFile(
+						filepath.Join(cpuDir, cpu, "cpufreq", "scaling_governor"),
+					)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
 				}
@@ -714,7 +876,9 @@ var _ = Describe("high_performance_hooks", func() {
 
 			if expected_save != "" {
 				for _, cpu := range []string{"cpu0", "cpu1"} {
-					content, err := os.ReadFile(filepath.Join(cpuSaveDir, cpu, "cpufreq", "scaling_governor"))
+					content, err := os.ReadFile(
+						filepath.Join(cpuSaveDir, cpu, "cpufreq", "scaling_governor"),
+					)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(strings.Trim(string(content), "\n")).To(Equal(expected_save))
 				}
@@ -742,19 +906,31 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				if scalingGovernor != "" {
-					err = os.WriteFile(filepath.Join(cpufreqDir, "scaling_governor"), []byte(scalingGovernor), 0o644)
+					err = os.WriteFile(
+						filepath.Join(cpufreqDir, "scaling_governor"),
+						[]byte(scalingGovernor),
+						0o644,
+					)
 					Expect(err).ToNot(HaveOccurred())
 				}
 
 				if scalingAvailableGovernors != "" {
-					err = os.WriteFile(filepath.Join(cpufreqDir, "scaling_available_governors"), []byte(scalingAvailableGovernors), 0o644)
+					err = os.WriteFile(
+						filepath.Join(cpufreqDir, "scaling_available_governors"),
+						[]byte(scalingAvailableGovernors),
+						0o644,
+					)
 					Expect(err).ToNot(HaveOccurred())
 				}
 
 				if scalingGovernorOriginal != "" {
 					cpufreqSaveDir := filepath.Join(cpuSaveDir, cpu, "cpufreq")
 					err = os.MkdirAll(cpufreqSaveDir, os.ModePerm)
-					err = os.WriteFile(filepath.Join(cpufreqSaveDir, "scaling_governor"), []byte(scalingGovernorOriginal), 0o644)
+					err = os.WriteFile(
+						filepath.Join(cpufreqSaveDir, "scaling_governor"),
+						[]byte(scalingGovernorOriginal),
+						0o644,
+					)
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}
@@ -783,7 +959,12 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should change the CPU scaling governor", func() {
-				verifySetCPUScalingGovernor(governorPerformance, governorPerformance, governorSchedutil, false)
+				verifySetCPUScalingGovernor(
+					governorPerformance,
+					governorPerformance,
+					governorSchedutil,
+					false,
+				)
 			})
 		})
 
@@ -802,7 +983,12 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should not change the saved CPU scaling governor", func() {
-				verifySetCPUScalingGovernor(governorPerformance, governorPerformance, governorSchedutil, false)
+				verifySetCPUScalingGovernor(
+					governorPerformance,
+					governorPerformance,
+					governorSchedutil,
+					false,
+				)
 			})
 		})
 
@@ -912,12 +1098,20 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBannedCPUConfigFile := filepath.Join(fixturesDir, "orig_irq_banned_cpus")
 
 		verifyRestoreIrqBalanceConfig := func(expectedOrigBannedCPUs, expectedBannedCPUs string) {
-			err = RestoreIrqBalanceConfig(context.TODO(), irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityFile)
+			err = RestoreIrqBalanceConfig(
+				context.TODO(),
+				irqBalanceConfigFile,
+				irqBannedCPUConfigFile,
+				irqSmpAffinityFile,
+			)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqBannedCPUConfigFile)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
-			ExpectWithOffset(1, strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
+			ExpectWithOffset(
+				1,
+				strings.Trim(string(content), "\n"),
+			).To(Equal(expectedOrigBannedCPUs))
 
 			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
@@ -974,11 +1168,14 @@ var _ = Describe("high_performance_hooks", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("should restore irq balance config with content from banned cpu config file", func() {
-				verifyRestoreIrqBalanceConfig("00000000,00000000", "00000000,00000000")
-				Expect(mockSvcMgr.history).To(ContainElement("systemctl is-enabled irqbalance"))
-				Expect(mockSvcMgr.history).To(ContainElement("systemctl restart irqbalance"))
-			})
+			It(
+				"should restore irq balance config with content from banned cpu config file",
+				func() {
+					verifyRestoreIrqBalanceConfig("00000000,00000000", "00000000,00000000")
+					Expect(mockSvcMgr.history).To(ContainElement("systemctl is-enabled irqbalance"))
+					Expect(mockSvcMgr.history).To(ContainElement("systemctl restart irqbalance"))
+				},
+			)
 		})
 	})
 
@@ -1046,7 +1243,10 @@ var _ = Describe("high_performance_hooks", func() {
 				if p.irqBalanceFileExists {
 					err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 					Expect(err).ToNot(HaveOccurred())
-					err = updateIrqBalanceConfigFile(irqBalanceConfigFile, p.calculatedIRQBalanceMask)
+					err = updateIrqBalanceConfigFile(
+						irqBalanceConfigFile,
+						p.calculatedIRQBalanceMask,
+					)
 					Expect(err).ToNot(HaveOccurred())
 				}
 
@@ -1055,31 +1255,58 @@ var _ = Describe("high_performance_hooks", func() {
 
 				// Execute application logic.
 				if !h.handleIRQBalanceRestart(context.TODO(), "container-name") {
-					h.handleIRQBalanceOneShot(context.TODO(), "container-name", p.calculatedIRQBalanceMask)
+					h.handleIRQBalanceOneShot(
+						context.TODO(),
+						"container-name",
+						p.calculatedIRQBalanceMask,
+					)
 				}
 
 				// Verify behavior based on scenario.
 				Expect(mockSvcMgr.history).To(Equal(serviceMgrHistory))
 				Expect(mockCmdRunner.history).To(Equal(cmdRunnerHistory))
 			},
-			Entry("irqbalance is enabled and succeeds",
-				parameters{isServiceEnabled: true, irqBalanceFileExists: true, restartServiceSucceeds: true, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+			Entry(
+				"irqbalance is enabled and succeeds",
+				parameters{
+					isServiceEnabled:         true,
+					irqBalanceFileExists:     true,
+					restartServiceSucceeds:   true,
+					pathLookupError:          false,
+					calculatedIRQBalanceMask: "ffff,ffff",
+				},
 				[]string{
 					"systemctl is-enabled irqbalance",
 					"systemctl restart irqbalance",
 				},
-				[]string{}),
-			Entry("irqbalance is enabled but irqbalance file does not exist",
-				parameters{isServiceEnabled: true, irqBalanceFileExists: false, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				[]string{},
+			),
+			Entry(
+				"irqbalance is enabled but irqbalance file does not exist",
+				parameters{
+					isServiceEnabled:         true,
+					irqBalanceFileExists:     false,
+					restartServiceSucceeds:   false,
+					pathLookupError:          false,
+					calculatedIRQBalanceMask: "ffff,ffff",
+				},
 				[]string{
 					"systemctl is-enabled irqbalance",
 				},
 				[]string{
 					"which irqbalance",
 					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
-				}),
-			Entry("irqbalance is enabled and fails but oneshot works",
-				parameters{isServiceEnabled: true, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				},
+			),
+			Entry(
+				"irqbalance is enabled and fails but oneshot works",
+				parameters{
+					isServiceEnabled:         true,
+					irqBalanceFileExists:     true,
+					restartServiceSucceeds:   false,
+					pathLookupError:          false,
+					calculatedIRQBalanceMask: "ffff,ffff",
+				},
 				[]string{
 					"systemctl is-enabled irqbalance",
 					"systemctl restart irqbalance",
@@ -1087,24 +1314,41 @@ var _ = Describe("high_performance_hooks", func() {
 				[]string{
 					"which irqbalance",
 					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
-				}),
-			Entry("irqbalance is disabled but irqBalance file exists",
-				parameters{isServiceEnabled: false, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: false, calculatedIRQBalanceMask: "ffff,ffff"},
+				},
+			),
+			Entry(
+				"irqbalance is disabled but irqBalance file exists",
+				parameters{
+					isServiceEnabled:         false,
+					irqBalanceFileExists:     true,
+					restartServiceSucceeds:   false,
+					pathLookupError:          false,
+					calculatedIRQBalanceMask: "ffff,ffff",
+				},
 				[]string{
 					"systemctl is-enabled irqbalance",
 				},
 				[]string{
 					"which irqbalance",
 					"IRQBALANCE_BANNED_CPUS=ffff,ffff /usr/bin/irqbalance --oneshot",
-				}),
-			Entry("irqbalance is disabled, oneshot lookup fails",
-				parameters{isServiceEnabled: false, irqBalanceFileExists: true, restartServiceSucceeds: false, pathLookupError: true, calculatedIRQBalanceMask: "ffff,ffff"},
+				},
+			),
+			Entry(
+				"irqbalance is disabled, oneshot lookup fails",
+				parameters{
+					isServiceEnabled:         false,
+					irqBalanceFileExists:     true,
+					restartServiceSucceeds:   false,
+					pathLookupError:          true,
+					calculatedIRQBalanceMask: "ffff,ffff",
+				},
 				[]string{
 					"systemctl is-enabled irqbalance",
 				},
 				[]string{
 					"which irqbalance",
-				}),
+				},
+			),
 		)
 	})
 
@@ -1137,7 +1381,13 @@ var _ = Describe("high_performance_hooks", func() {
 					Expect(err).ToNot(HaveOccurred())
 				}
 
-				_, err = h.updateNewIRQSMPAffinityMask(context.TODO(), "cID", "CName", cpuSetOrDie("2-3"), false)
+				_, err = h.updateNewIRQSMPAffinityMask(
+					context.TODO(),
+					"cID",
+					"CName",
+					cpuSetOrDie("2-3"),
+					false,
+				)
 				if p.irqBalanceFileRO {
 					Expect(err).To(HaveOccurred())
 				} else {
@@ -1314,7 +1564,12 @@ var _ = Describe("high_performance_hooks", func() {
 
 			// initialize sandbox
 			sbox := baseSandboxBuilder()
-			err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{}, &types.PodSandboxMetadata{})
+			err = sbox.SetCRISandbox(
+				sbox.ID(),
+				make(map[string]string),
+				map[string]string{},
+				&types.PodSandboxMetadata{},
+			)
 			sbNoSharedAnnotation, err = sbox.GetSandbox()
 			Expect(err).ToNot(HaveOccurred())
 
@@ -1334,7 +1589,10 @@ var _ = Describe("high_performance_hooks", func() {
 		)
 
 		Context("sharedCPUs && FirstExecCPUAffinity", func() {
-			h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeFirst, sharedCPUs: "3,4"}
+			h := HighPerformanceHooks{
+				execCPUAffinity: config.ExecCPUAffinityTypeFirst,
+				sharedCPUs:      "3,4",
+			}
 
 			Context("with exclusive & shared CPUs", func() {
 				BeforeEach(func() {
@@ -1344,13 +1602,18 @@ var _ = Describe("high_performance_hooks", func() {
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
-					err = h.PreCreate(context.TODO(), g, sb, c)
-					Expect(err).ToNot(HaveOccurred())
+				It(
+					"should inject env variable only to pod with cpu-shared.crio.io annotation",
+					func() {
+						err = h.PreCreate(context.TODO(), g, sb, c)
+						Expect(err).ToNot(HaveOccurred())
 
-					env := g.Config.Process.Env
-					Expect(env).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-2", "OPENSHIFT_SHARED_CPUS=3-4"))
-				})
+						env := g.Config.Process.Env
+						Expect(
+							env,
+						).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-2", "OPENSHIFT_SHARED_CPUS=3-4"))
+					},
+				)
 
 				It("should choose the first CPU in shared CPUs", func() {
 					err := h.PreCreate(context.TODO(), g, sb, c)
@@ -1438,7 +1701,10 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 
 		Context("DefaultExecCPUAffinity", func() {
-			h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeDefault, sharedCPUs: "3,4"}
+			h := HighPerformanceHooks{
+				execCPUAffinity: config.ExecCPUAffinityTypeDefault,
+				sharedCPUs:      "3,4",
+			}
 
 			BeforeEach(func() {
 				g = genExclusiveCPUs
@@ -1481,7 +1747,9 @@ var _ = Describe("high_performance_hooks", func() {
 
 			content, err = os.ReadFile(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(strings.Trim(string(content), "\n")).To(Equal(formatIRQBalanceBannedCPUs(expectedIrqBalance)))
+			Expect(
+				strings.Trim(string(content), "\n"),
+			).To(Equal(formatIRQBalanceBannedCPUs(expectedIrqBalance)))
 		}
 
 		createContainer := func(cpus string) (*oci.Container, error) {
@@ -1520,7 +1788,11 @@ var _ = Describe("high_performance_hooks", func() {
 			// create tests affinity file
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
 			Expect(err).ToNot(HaveOccurred())
-			err = os.WriteFile(irqBalanceConfigFile, []byte(formatIRQBalanceBannedCPUs(bannedCPUFlags)), 0o644)
+			err = os.WriteFile(
+				irqBalanceConfigFile,
+				[]byte(formatIRQBalanceBannedCPUs(bannedCPUFlags)),
+				0o644,
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			sbox := sandbox.NewBuilder()
@@ -1558,7 +1830,10 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 
 		successfulScenario := func(mockCgMgr *cgmgrmock.MockCgroupManager) {
-			mockCgMgr.EXPECT().PodAndContainerCgroupManagers(gomock.Any(), gomock.Any()).Return(nil, nil, nil).AnyTimes()
+			mockCgMgr.EXPECT().
+				PodAndContainerCgroupManagers(gomock.Any(), gomock.Any()).
+				Return(nil, nil, nil).
+				AnyTimes()
 
 			hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 			Expect(hooks).NotTo(BeNil())
@@ -1647,33 +1922,39 @@ var _ = Describe("high_performance_hooks", func() {
 				mockCtrl.Finish()
 			})
 
-			It("should keep the current irq bit mask but return a high performance hooks", func(ctx context.Context) {
-				mockCgMgr.EXPECT().PodAndContainerCgroupManagers(gomock.Any(), gomock.Any()).Return(nil, nil, nil).AnyTimes()
+			It(
+				"should keep the current irq bit mask but return a high performance hooks",
+				func(ctx context.Context) {
+					mockCgMgr.EXPECT().
+						PodAndContainerCgroupManagers(gomock.Any(), gomock.Any()).
+						Return(nil, nil, nil).
+						AnyTimes()
 
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				hph, ok := hooks.(*HighPerformanceHooks)
-				Expect(ok).To(BeTrue())
+					hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+					Expect(hooks).NotTo(BeNil())
+					hph, ok := hooks.(*HighPerformanceHooks)
+					Expect(ok).To(BeTrue())
 
-				hph.irqSMPAffinityFile = irqSmpAffinityFile
-				hph.irqBalanceConfigFile = irqBalanceConfigFile
-				hph.irqSMPAffinityDisabledSet = map[string]struct{}{}
+					hph.irqSMPAffinityFile = irqSmpAffinityFile
+					hph.irqBalanceConfigFile = irqBalanceConfigFile
+					hph.irqSMPAffinityDisabledSet = map[string]struct{}{}
 
-				var wg sync.WaitGroup
-				for cpu := range 16 {
-					wg.Go(func() {
-						defer GinkgoRecover()
+					var wg sync.WaitGroup
+					for cpu := range 16 {
+						wg.Go(func() {
+							defer GinkgoRecover()
 
-						container, err := createContainer(strconv.Itoa(cpu))
-						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
-						Expect(err).ToNot(HaveOccurred())
-					})
-				}
+							container, err := createContainer(strconv.Itoa(cpu))
+							Expect(err).ToNot(HaveOccurred())
+							err = hooks.PreStart(ctx, container, sb)
+							Expect(err).ToNot(HaveOccurred())
+						})
+					}
 
-				wg.Wait()
-				verifySetIRQLoadBalancing(flags, bannedCPUFlags)
-			})
+					wg.Wait()
+					verifySetIRQLoadBalancing(flags, bannedCPUFlags)
+				},
+			)
 		})
 
 		Context("with runtime name hp and sandbox disable annotation", func() {
@@ -1783,67 +2064,73 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 		})
 
-		Context("with runtime name default, CPU balancing annotation present and sandbox without any annotation", func() {
-			var (
-				mockCtrl  *gomock.Controller
-				mockCgMgr *cgmgrmock.MockCgroupManager
-			)
+		Context(
+			"with runtime name default, CPU balancing annotation present and sandbox without any annotation",
+			func() {
+				var (
+					mockCtrl  *gomock.Controller
+					mockCgMgr *cgmgrmock.MockCgroupManager
+				)
 
-			BeforeEach(func() {
-				mockCtrl = gomock.NewController(GinkgoT())
-				mockCgMgr = cgmgrmock.NewMockCgroupManager(mockCtrl)
-				runtimeName = "default"
-				sandboxAnnotations = map[string]string{}
-				cfg = &config.Config{
-					RuntimeConfig: config.RuntimeConfig{
-						IrqBalanceConfigFile: irqBalanceConfigFile,
-						Runtimes: config.Runtimes{
-							"high-performance": {
-								AllowedAnnotations: []string{},
-							},
-							"hp": {
-								AllowedAnnotations: []string{
-									crioannotations.IRQLoadBalancing,
+				BeforeEach(func() {
+					mockCtrl = gomock.NewController(GinkgoT())
+					mockCgMgr = cgmgrmock.NewMockCgroupManager(mockCtrl)
+					runtimeName = "default"
+					sandboxAnnotations = map[string]string{}
+					cfg = &config.Config{
+						RuntimeConfig: config.RuntimeConfig{
+							IrqBalanceConfigFile: irqBalanceConfigFile,
+							Runtimes: config.Runtimes{
+								"high-performance": {
+									AllowedAnnotations: []string{},
 								},
-							},
-							"cpu-balancing-anywhere": {
-								AllowedAnnotations: []string{
-									crioannotations.CPULoadBalancing,
+								"hp": {
+									AllowedAnnotations: []string{
+										crioannotations.IRQLoadBalancing,
+									},
 								},
+								"cpu-balancing-anywhere": {
+									AllowedAnnotations: []string{
+										crioannotations.CPULoadBalancing,
+									},
+								},
+								"default": {},
 							},
-							"default": {},
 						},
+					}
+					cfg.SetCgroupManager(mockCgMgr)
+				})
+
+				AfterEach(func() {
+					mockCtrl.Finish()
+				})
+
+				It(
+					"should yield a DefaultCPULoadBalanceHooks which keeps the old mask",
+					func(ctx context.Context) {
+						hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+						Expect(hooks).NotTo(BeNil())
+						_, ok := hooks.(*DefaultCPULoadBalanceHooks)
+						Expect(ok).To(BeTrue())
+
+						var wg sync.WaitGroup
+						for cpu := range 16 {
+							wg.Go(func() {
+								defer GinkgoRecover()
+
+								container, err := createContainer(strconv.Itoa(cpu))
+								Expect(err).ToNot(HaveOccurred())
+								err = hooks.PreStart(ctx, container, sb)
+								Expect(err).ToNot(HaveOccurred())
+							})
+						}
+
+						wg.Wait()
+						verifySetIRQLoadBalancing(flags, bannedCPUFlags)
 					},
-				}
-				cfg.SetCgroupManager(mockCgMgr)
-			})
-
-			AfterEach(func() {
-				mockCtrl.Finish()
-			})
-
-			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func(ctx context.Context) {
-				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
-				Expect(hooks).NotTo(BeNil())
-				_, ok := (hooks).(*DefaultCPULoadBalanceHooks)
-				Expect(ok).To(BeTrue())
-
-				var wg sync.WaitGroup
-				for cpu := range 16 {
-					wg.Go(func() {
-						defer GinkgoRecover()
-
-						container, err := createContainer(strconv.Itoa(cpu))
-						Expect(err).ToNot(HaveOccurred())
-						err = hooks.PreStart(ctx, container, sb)
-						Expect(err).ToNot(HaveOccurred())
-					})
-				}
-
-				wg.Wait()
-				verifySetIRQLoadBalancing(flags, bannedCPUFlags)
-			})
-		})
+				)
+			},
+		)
 	})
 
 	Describe("getAnnotationValueForContainer", func() {
@@ -1851,7 +2138,11 @@ var _ = Describe("high_performance_hooks", func() {
 			annotations := map[string]string{
 				crioannotations.CPULoadBalancing: "disable",
 			}
-			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container1")
+			v, ok := getAnnotationValueForContainer(
+				annotations,
+				crioannotations.CPULoadBalancing,
+				"container1",
+			)
 			Expect(ok).To(BeTrue())
 			Expect(v).To(Equal("disable"))
 		})
@@ -1861,7 +2152,11 @@ var _ = Describe("high_performance_hooks", func() {
 				crioannotations.CPULoadBalancing:                 "disable",
 				crioannotations.CPULoadBalancing + "/container1": "enable",
 			}
-			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container1")
+			v, ok := getAnnotationValueForContainer(
+				annotations,
+				crioannotations.CPULoadBalancing,
+				"container1",
+			)
 			Expect(ok).To(BeTrue())
 			Expect(v).To(Equal("enable"))
 		})
@@ -1871,14 +2166,22 @@ var _ = Describe("high_performance_hooks", func() {
 				crioannotations.CPULoadBalancing:                 "disable",
 				crioannotations.CPULoadBalancing + "/container1": "enable",
 			}
-			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container2")
+			v, ok := getAnnotationValueForContainer(
+				annotations,
+				crioannotations.CPULoadBalancing,
+				"container2",
+			)
 			Expect(ok).To(BeTrue())
 			Expect(v).To(Equal("disable"))
 		})
 
 		It("should return not found when no annotation exists", func() {
 			annotations := map[string]string{}
-			_, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container1")
+			_, ok := getAnnotationValueForContainer(
+				annotations,
+				crioannotations.CPULoadBalancing,
+				"container1",
+			)
 			Expect(ok).To(BeFalse())
 		})
 
@@ -1886,7 +2189,11 @@ var _ = Describe("high_performance_hooks", func() {
 			annotations := map[string]string{
 				crioannotations.CPULoadBalancing + "/container1": "disable",
 			}
-			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "container1")
+			v, ok := getAnnotationValueForContainer(
+				annotations,
+				crioannotations.CPULoadBalancing,
+				"container1",
+			)
 			Expect(ok).To(BeTrue())
 			Expect(v).To(Equal("disable"))
 		})
@@ -1895,7 +2202,11 @@ var _ = Describe("high_performance_hooks", func() {
 			annotations := map[string]string{
 				crioannotations.CPULoadBalancing: "disable",
 			}
-			v, ok := getAnnotationValueForContainer(annotations, crioannotations.CPULoadBalancing, "")
+			v, ok := getAnnotationValueForContainer(
+				annotations,
+				crioannotations.CPULoadBalancing,
+				"",
+			)
 			Expect(ok).To(BeTrue())
 			Expect(v).To(Equal("disable"))
 		})
@@ -1934,7 +2245,10 @@ var _ = Describe("high_performance_hooks", func() {
 		}
 
 		Context("shouldCPULoadBalancingBeDisabled", func() {
-			testPerContainerTargeting(crioannotations.CPULoadBalancing, shouldCPULoadBalancingBeDisabled)
+			testPerContainerTargeting(
+				crioannotations.CPULoadBalancing,
+				shouldCPULoadBalancingBeDisabled,
+			)
 		})
 
 		Context("shouldCPUQuotaBeDisabled", func() {
@@ -1942,14 +2256,21 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 
 		Context("shouldIRQLoadBalancingBeDisabled", func() {
-			testPerContainerTargeting(crioannotations.IRQLoadBalancing, shouldIRQLoadBalancingBeDisabled)
+			testPerContainerTargeting(
+				crioannotations.IRQLoadBalancing,
+				shouldIRQLoadBalancingBeDisabled,
+			)
 
 			It("should support housekeeping value per container", func() {
 				annotations := map[string]string{
 					crioannotations.IRQLoadBalancing + "/container1": "housekeeping",
 				}
-				Expect(shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container1")).To(BeTrue())
-				Expect(shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container2")).To(BeFalse())
+				Expect(
+					shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container1"),
+				).To(BeTrue())
+				Expect(
+					shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container2"),
+				).To(BeFalse())
 			})
 
 			It("should let container-specific housekeeping override pod-level enable", func() {
@@ -1957,8 +2278,12 @@ var _ = Describe("high_performance_hooks", func() {
 					crioannotations.IRQLoadBalancing:                 "enable",
 					crioannotations.IRQLoadBalancing + "/container1": "housekeeping",
 				}
-				Expect(shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container1")).To(BeTrue())
-				Expect(shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container2")).To(BeFalse())
+				Expect(
+					shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container1"),
+				).To(BeTrue())
+				Expect(
+					shouldIRQLoadBalancingBeDisabled(ctx, annotations, "container2"),
+				).To(BeFalse())
 			})
 		})
 	})

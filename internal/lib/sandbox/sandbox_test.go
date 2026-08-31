@@ -231,9 +231,13 @@ var _ = t.Describe("Sandbox", func() {
 		var testContainer *oci.Container
 
 		BeforeEach(func() {
-			imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
+			imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+				"example.com/some-image:latest",
+			)
 			Expect(err).ToNot(HaveOccurred())
-			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(
+				"2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812",
+			)
 			Expect(err).ToNot(HaveOccurred())
 			testContainer, err = oci.NewContainer("testid", "testname", "",
 				"/container/logs", map[string]string{},

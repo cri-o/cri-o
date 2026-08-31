@@ -56,7 +56,10 @@ var _ = t.Describe("Log", func() {
 		It("should succeed to debug on nil context", func() {
 			// Given
 			// When
-			log.Debugf(nil, msg) //nolint:staticcheck // intentionally passing nil context to test nil handling
+			log.Debugf(
+				nil, //nolint:staticcheck // testing nil context handling
+				msg,
+			)
 
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))

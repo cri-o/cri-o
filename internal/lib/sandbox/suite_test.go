@@ -60,7 +60,12 @@ func beforeEach() {
 	sbox.SetPodLinuxOverhead(nil)
 	sbox.SetPodLinuxResources(nil)
 	sbox.SetCreatedAt(time.Now())
-	err := sbox.SetCRISandbox(sbox.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+	err := sbox.SetCRISandbox(
+		sbox.ID(),
+		make(map[string]string),
+		make(map[string]string),
+		&types.PodSandboxMetadata{},
+	)
 	Expect(err).ToNot(HaveOccurred())
 	sbox.SetPrivileged(false)
 	sbox.SetPortMappings([]*hostport.PortMapping{})

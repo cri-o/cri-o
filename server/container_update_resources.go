@@ -16,7 +16,10 @@ import (
 )
 
 // UpdateContainerResources updates ContainerConfig of the container.
-func (s *Server) UpdateContainerResources(ctx context.Context, req *types.UpdateContainerResourcesRequest) (*types.UpdateContainerResourcesResponse, error) {
+func (s *Server) UpdateContainerResources(
+	ctx context.Context,
+	req *types.UpdateContainerResourcesRequest,
+) (*types.UpdateContainerResourcesResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -27,7 +30,11 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 
 	state := c.State()
 	if state.Status != oci.ContainerStateRunning && state.Status != oci.ContainerStateCreated {
-		return nil, fmt.Errorf("container %s is not running or created state: %s", c.ID(), state.Status)
+		return nil, fmt.Errorf(
+			"container %s is not running or created state: %s",
+			c.ID(),
+			state.Status,
+		)
 	}
 
 	if req.GetLinux() != nil {

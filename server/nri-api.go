@@ -73,14 +73,23 @@ func (a *nriAPI) runPodSandbox(ctx context.Context, criPod *sandbox.Sandbox) err
 	return err
 }
 
-func (a *nriAPI) updatePodSandbox(ctx context.Context, criPod *sandbox.Sandbox, overhead, resources *cri.LinuxContainerResources) error {
+func (a *nriAPI) updatePodSandbox(
+	ctx context.Context,
+	criPod *sandbox.Sandbox,
+	overhead, resources *cri.LinuxContainerResources,
+) error {
 	if !a.isEnabled() {
 		return nil
 	}
 
 	pod := nriPodSandbox(ctx, criPod)
 
-	return a.nri.UpdatePodSandbox(ctx, pod, fromCRILinuxResources(overhead), fromCRILinuxResources(resources))
+	return a.nri.UpdatePodSandbox(
+		ctx,
+		pod,
+		fromCRILinuxResources(overhead),
+		fromCRILinuxResources(resources),
+	)
 }
 
 func (a *nriAPI) stopPodSandbox(ctx context.Context, criPod *sandbox.Sandbox) error {
@@ -103,7 +112,12 @@ func (a *nriAPI) removePodSandbox(ctx context.Context, criPod *sandbox.Sandbox) 
 	return a.nri.RemovePodSandbox(ctx, pod)
 }
 
-func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generator, criPod *sandbox.Sandbox, criCtr *oci.Container) error {
+func (a *nriAPI) createContainer(
+	ctx context.Context,
+	specgen *generate.Generator,
+	criPod *sandbox.Sandbox,
+	criCtr *oci.Container,
+) error {
 	if !a.isEnabled() {
 		return nil
 	}
@@ -128,7 +142,11 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 		nrigen.WithAnnotationFilter(
 			func(values map[string]string) (map[string]string, error) {
 				annotations, handler := criPod.Annotations(), criPod.RuntimeHandler()
-				if err := a.cri.FilterDisallowedAnnotations(annotations, values, handler); err != nil {
+				if err := a.cri.FilterDisallowedAnnotations(
+					annotations,
+					values,
+					handler,
+				); err != nil {
 					return nil, fmt.Errorf("disallowed annotations in NRI adjustment: %w", err)
 				}
 
@@ -143,12 +161,16 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 
 				if mem := r.Memory; mem != nil {
 					if mem.Limit != nil {
-						containerMinMemory, err := a.cri.ContainerServer.Runtime().GetContainerMinMemory(criPod.RuntimeHandler())
+						containerMinMemory, err := a.cri.ContainerServer.Runtime().
+							GetContainerMinMemory(criPod.RuntimeHandler())
 						if err != nil {
 							return err
 						}
 
-						if err := cgmgr.VerifyMemoryIsEnough(*mem.Limit, containerMinMemory); err != nil {
+						if err := cgmgr.VerifyMemoryIsEnough(
+							*mem.Limit,
+							containerMinMemory,
+						); err != nil {
 							return err
 						}
 					}
@@ -215,7 +237,11 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 	return nil
 }
 
-func (a *nriAPI) postCreateContainer(ctx context.Context, criPod *sandbox.Sandbox, criCtr *oci.Container) error {
+func (a *nriAPI) postCreateContainer(
+	ctx context.Context,
+	criPod *sandbox.Sandbox,
+	criCtr *oci.Container,
+) error {
 	if !a.isEnabled() {
 		return nil
 	}
@@ -229,7 +255,11 @@ func (a *nriAPI) postCreateContainer(ctx context.Context, criPod *sandbox.Sandbo
 	return a.nri.PostCreateContainer(ctx, pod, ctr)
 }
 
-func (a *nriAPI) startContainer(ctx context.Context, criPod *sandbox.Sandbox, criCtr *oci.Container) error {
+func (a *nriAPI) startContainer(
+	ctx context.Context,
+	criPod *sandbox.Sandbox,
+	criCtr *oci.Container,
+) error {
 	if !a.isEnabled() {
 		return nil
 	}
@@ -243,7 +273,11 @@ func (a *nriAPI) startContainer(ctx context.Context, criPod *sandbox.Sandbox, cr
 	return a.nri.StartContainer(ctx, pod, ctr)
 }
 
-func (a *nriAPI) postStartContainer(ctx context.Context, criPod *sandbox.Sandbox, criCtr *oci.Container) error {
+func (a *nriAPI) postStartContainer(
+	ctx context.Context,
+	criPod *sandbox.Sandbox,
+	criCtr *oci.Container,
+) error {
 	if !a.isEnabled() {
 		return nil
 	}
@@ -257,7 +291,11 @@ func (a *nriAPI) postStartContainer(ctx context.Context, criPod *sandbox.Sandbox
 	return a.nri.PostStartContainer(ctx, pod, ctr)
 }
 
-func (a *nriAPI) updateContainer(ctx context.Context, criCtr *oci.Container, req *cri.LinuxContainerResources) (*cri.LinuxContainerResources, error) {
+func (a *nriAPI) updateContainer(
+	ctx context.Context,
+	criCtr *oci.Container,
+	req *cri.LinuxContainerResources,
+) (*cri.LinuxContainerResources, error) {
 	if !a.isEnabled() {
 		return req, nil
 	}
@@ -294,7 +332,12 @@ func (a *nriAPI) postUpdateContainer(ctx context.Context, criCtr *oci.Container)
 	return a.nri.PostUpdateContainer(ctx, pod, ctr)
 }
 
-func (a *nriAPI) stopContainer(ctx context.Context, criPod *sandbox.Sandbox, criCtr *oci.Container, updateState bool) error {
+func (a *nriAPI) stopContainer(
+	ctx context.Context,
+	criPod *sandbox.Sandbox,
+	criCtr *oci.Container,
+	updateState bool,
+) error {
 	if !a.isEnabled() {
 		return nil
 	}
@@ -332,7 +375,11 @@ func (a *nriAPI) stopContainer(ctx context.Context, criPod *sandbox.Sandbox, cri
 	return a.nri.StopContainer(ctx, pod, ctr)
 }
 
-func (a *nriAPI) removeContainer(ctx context.Context, criPod *sandbox.Sandbox, criCtr *oci.Container) error {
+func (a *nriAPI) removeContainer(
+	ctx context.Context,
+	criPod *sandbox.Sandbox,
+	criCtr *oci.Container,
+) error {
 	if !a.isEnabled() {
 		return nil
 	}
@@ -346,7 +393,12 @@ func (a *nriAPI) removeContainer(ctx context.Context, criPod *sandbox.Sandbox, c
 	return a.nri.RemoveContainer(ctx, pod, ctr)
 }
 
-func (a *nriAPI) undoCreateContainer(ctx context.Context, specgen *generate.Generator, criPod *sandbox.Sandbox, criCtr *oci.Container) {
+func (a *nriAPI) undoCreateContainer(
+	ctx context.Context,
+	specgen *generate.Generator,
+	criPod *sandbox.Sandbox,
+	criCtr *oci.Container,
+) {
 	if !a.isEnabled() {
 		return
 	}

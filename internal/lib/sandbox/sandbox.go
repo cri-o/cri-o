@@ -345,7 +345,11 @@ func (s *Sandbox) SetStopped(ctx context.Context, createFile bool) {
 	s.stopped = true
 	if createFile {
 		if err := s.createFileInInfraDir(ctx, sbStoppedFilename); err != nil {
-			log.Errorf(ctx, "Failed to create stopped file in container state. Restore may fail: %v", err)
+			log.Errorf(
+				ctx,
+				"Failed to create stopped file in container state. Restore may fail: %v",
+				err,
+			)
 		}
 	}
 }
@@ -396,7 +400,10 @@ func (s *Sandbox) SetNetworkStopped(ctx context.Context, createFile bool) error 
 	s.networkStopped = true
 	if createFile {
 		if err := s.createFileInInfraDir(ctx, sbNetworkStoppedFilename); err != nil {
-			return fmt.Errorf("failed to create state file in container directory. Restores may fail: %w", err)
+			return fmt.Errorf(
+				"failed to create state file in container directory. Restores may fail: %w",
+				err,
+			)
 		}
 	}
 

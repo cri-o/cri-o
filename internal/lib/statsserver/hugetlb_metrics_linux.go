@@ -7,7 +7,10 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-func generateContainerHugetlbMetrics(ctr *oci.Container, hugetlb map[string]cgroups.HugetlbStats) []*types.Metric {
+func generateContainerHugetlbMetrics(
+	ctr *oci.Container,
+	hugetlb map[string]cgroups.HugetlbStats,
+) []*types.Metric {
 	hugetlbMetrics := []*containerMetric{
 		{
 			desc: containerHugetlbUsageBytes,

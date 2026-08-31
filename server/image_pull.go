@@ -29,7 +29,10 @@ import (
 )
 
 // PullImage pulls a image with authentication config.
-func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
+func (s *Server) PullImage(
+	ctx context.Context,
+	req *types.PullImageRequest,
+) (*types.PullImageResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
@@ -71,13 +74,24 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 
 		podID, err := s.PodIDForName(name)
 		if err != nil {
-			log.Debugf(ctx, "PodIDForName(%s) failed during image pull, falling back to host image store: %v", name, err)
+			log.Debugf(
+				ctx,
+				"PodIDForName(%s) failed during image pull, falling back to host image store: %v",
+				name,
+				err,
+			)
 		} else {
 			var sb *libsandbox.Sandbox
 
 			sb, sbErr = s.LookupSandbox(podID)
 			if sbErr != nil {
-				log.Debugf(ctx, "Failed to retrieve sandbox for image %s (podID: %s): %v", name, podID, sbErr)
+				log.Debugf(
+					ctx,
+					"Failed to retrieve sandbox for image %s (podID: %s): %v",
+					name,
+					podID,
+					sbErr,
+				)
 			} else {
 				pullArgs.imageServer, sbErr = s.StorageImageServer(sb)
 				if sbErr != nil {
@@ -90,7 +104,11 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 		// Warn if we use the default ImageServer when we should have a runtimePulled one.
 		r, ok := s.config.Runtimes[img.GetRuntimeHandler()]
 		if ok && r.RuntimePullImage && (err != nil || sbErr != nil) {
-			log.Debugf(ctx, "Runtime handler for image %s is configured for runtime pull, but couldn't get the proper ImageServer", name)
+			log.Debugf(
+				ctx,
+				"Runtime handler for image %s is configured for runtime pull, but couldn't get the proper ImageServer",
+				name,
+			)
 
 			if err != nil {
 				return nil, err
@@ -189,10 +207,20 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		return "", fmt.Errorf("get context for namespace: %w", err)
 	}
 
-	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
+	log.Debugf(
+		ctx,
+		"Using pull policy path for image %s: %q",
+		pullArgs.image,
+		sourceCtx.SignaturePolicyPath,
+	)
 
 	if pullArgs.namespace != "" {
-		authCleanup, err := s.prepareTempAuthFile(ctx, &sourceCtx, pullArgs.image, pullArgs.namespace)
+		authCleanup, err := s.prepareTempAuthFile(
+			ctx,
+			&sourceCtx,
+			pullArgs.image,
+			pullArgs.namespace,
+		)
 		if err != nil {
 			return "", fmt.Errorf("prepare temp auth file: %w", err)
 		}
@@ -226,7 +254,10 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		}
 	}
 
-	remoteCandidates, err := pullArgs.imageServer.CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
+	remoteCandidates, err := pullArgs.imageServer.CandidatesForPotentiallyShortImageName(
+		s.config.SystemContext,
+		pullArgs.image,
+	)
 	if err != nil {
 		return "", err
 	}
@@ -235,7 +266,14 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
 
 	for _, remoteCandidateName := range remoteCandidates {
-		imageRef, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup, pullArgs.imageServer)
+		imageRef, err := s.pullImageCandidate(
+			ctx,
+			&sourceCtx,
+			remoteCandidateName,
+			decryptConfig,
+			cgroup,
+			pullArgs.imageServer,
+		)
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
@@ -270,7 +308,11 @@ func (s *Server) contextForNamespace(namespace string) (imageTypes.SystemContext
 // provided imageRef and namespace. If that's the case, then it moves it to a
 // temporary location for singular usage, modifies the provided system context
 // and returns a cleanup function to remove the file if the pull has been done.
-func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.SystemContext, imageRef, namespace string) (cleanup func(), err error) {
+func (s *Server) prepareTempAuthFile(
+	ctx context.Context,
+	sysCtx *imageTypes.SystemContext,
+	imageRef, namespace string,
+) (cleanup func(), err error) {
 	cleanup = func() {}
 
 	// Normalize the image ref to use the same format as the credential provider, see:
@@ -308,7 +350,11 @@ func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.Sys
 
 	removeAuthFilePath := func() {
 		if err := os.RemoveAll(authFilePath); err != nil {
-			log.Errorf(ctx, "Unable to remove auth file path due to error in temp auth file prep: %v", err)
+			log.Errorf(
+				ctx,
+				"Unable to remove auth file path due to error in temp auth file prep: %v",
+				err,
+			)
 		}
 	}
 
@@ -320,7 +366,12 @@ func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.Sys
 	}
 
 	ext := filepath.Ext(authFilePath)
-	newAuthFileName := fmt.Sprintf("%s-%s%s", strings.TrimSuffix(filepath.Base(authFilePath), ext), uuid.New(), ext)
+	newAuthFileName := fmt.Sprintf(
+		"%s-%s%s",
+		strings.TrimSuffix(filepath.Base(authFilePath), ext),
+		uuid.New(),
+		ext,
+	)
 
 	tempAuthFilePath := filepath.Join(inUseAuthDirPath, newAuthFileName)
 	if err := os.Rename(authFilePath, tempAuthFilePath); err != nil {
@@ -341,7 +392,14 @@ func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.Sys
 	return cleanup, nil
 }
 
-func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string, is storage.ImageServer) (storage.RegistryImageReference, error) {
+func (s *Server) pullImageCandidate(
+	ctx context.Context,
+	sourceCtx *imageTypes.SystemContext,
+	remoteCandidateName storage.RegistryImageReference,
+	decryptConfig *encconfig.DecryptConfig,
+	cgroup string,
+	is storage.ImageServer,
+) (storage.RegistryImageReference, error) {
 	// Collect pull progress metrics
 	progress := make(chan imageTypes.ProgressProperties)
 	defer close(progress)
@@ -352,7 +410,13 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 
 	// Cancel the pull if no progress is made
 	pullCtx, cancel := context.WithCancel(ctx)
-	go consumeImagePullProgress(ctx, cancel, s.ContainerServer.Config().PullProgressTimeout, progress, remoteCandidateName)
+	go consumeImagePullProgress(
+		ctx,
+		cancel,
+		s.ContainerServer.Config().PullProgressTimeout,
+		progress,
+		remoteCandidateName,
+	)
 
 	repoDigest, err := is.PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
@@ -381,7 +445,11 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 // container images the ID is looked up via ImageStatusByName. For OCI artifacts
 // (which are not stored in container storage) it falls back to the artifact
 // store.
-func (s *Server) resolveImageRefToID(ctx context.Context, imageRef storage.RegistryImageReference, is storage.ImageServer) (string, error) {
+func (s *Server) resolveImageRefToID(
+	ctx context.Context,
+	imageRef storage.RegistryImageReference,
+	is storage.ImageServer,
+) (string, error) {
 	// Try resolving as a regular container image first.
 	imageResult, err := is.ImageStatusByName(s.config.SystemContext, imageRef)
 	if err == nil {
@@ -389,9 +457,15 @@ func (s *Server) resolveImageRefToID(ctx context.Context, imageRef storage.Regis
 	}
 
 	// Fall back to the artifact store for OCI artifacts.
-	artifact, artifactErr := s.ArtifactStore().Status(ctx, imageRef.StringForOutOfProcessConsumptionOnly())
+	artifact, artifactErr := s.ArtifactStore().
+		Status(ctx, imageRef.StringForOutOfProcessConsumptionOnly())
 	if artifactErr != nil {
-		return "", fmt.Errorf("resolve pulled image %s: not found in container storage (%w) or artifact store (%w)", imageRef, err, artifactErr)
+		return "", fmt.Errorf(
+			"resolve pulled image %s: not found in container storage (%w) or artifact store (%w)",
+			imageRef,
+			err,
+			artifactErr,
+		)
 	}
 
 	return artifact.CRIImage().GetId(), nil
@@ -401,10 +475,20 @@ func (s *Server) resolveImageRefToID(ctx context.Context, imageRef storage.Regis
 // It also checks if progress is being made within a constant timeout.
 // If the timeout is reached because no progress updates have been made, then
 // the cancel function will be called.
-func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, pullProgressTimeout time.Duration, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
+func consumeImagePullProgress(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	pullProgressTimeout time.Duration,
+	progress <-chan imageTypes.ProgressProperties,
+	remoteCandidateName storage.RegistryImageReference,
+) {
 	timer := time.AfterFunc(pullProgressTimeout, func() {
 		if pullProgressTimeout != 0 {
-			log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", pullProgressTimeout)
+			log.Warnf(
+				ctx,
+				"Timed out on waiting up to %s for image pull progress updates",
+				pullProgressTimeout,
+			)
 			cancel()
 		}
 	})
@@ -474,12 +558,20 @@ func tryIncrementImagePullFailureMetric(img storage.RegistryImageReference, err 
 	metrics.Instance().MetricImagePullsFailuresInc(img, label)
 }
 
-func tryRecordSkippedMetric(ctx context.Context, name storage.RegistryImageReference, someBlobDigest digest.Digest) {
+func tryRecordSkippedMetric(
+	ctx context.Context,
+	name storage.RegistryImageReference,
+	someBlobDigest digest.Digest,
+) {
 	// NOTE: This "layer" identification looks like a digested image reference, but
 	// it isn’t one:
 	// - the digest references a layer or config, not a manifest
 	// - "name" may contain a digest already, so this results in name@manifestDigest@someOtherdigest
-	layer := fmt.Sprintf("%s@%s", name.StringForOutOfProcessConsumptionOnly(), someBlobDigest.String())
+	layer := fmt.Sprintf(
+		"%s@%s",
+		name.StringForOutOfProcessConsumptionOnly(),
+		someBlobDigest.String(),
+	)
 	log.Debugf(ctx, "Skipped layer %s", layer)
 	metrics.Instance().MetricImageLayerReuseInc(layer)
 }

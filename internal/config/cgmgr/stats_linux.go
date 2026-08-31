@@ -60,7 +60,12 @@ func addFdsForProcess(pid int, fdCount, socketCount *uint64) {
 
 	fds, err := os.ReadDir(dirPath)
 	if err != nil {
-		log.Infof(context.Background(), "error while listing directory %q to measure fd count: %v", dirPath, err)
+		log.Infof(
+			context.Background(),
+			"error while listing directory %q to measure fd count: %v",
+			dirPath,
+			err,
+		)
 
 		return
 	}
@@ -91,7 +96,12 @@ func addUlimitsForProcess(pid int, limits *uint64) {
 
 	limitsData, err := os.ReadFile(limitsPath)
 	if err != nil {
-		log.Infof(context.Background(), "error while reading %q to get thread limits: %v", limitsPath, err)
+		log.Infof(
+			context.Background(),
+			"error while reading %q to get thread limits: %v",
+			limitsPath,
+			err,
+		)
 
 		return
 	}

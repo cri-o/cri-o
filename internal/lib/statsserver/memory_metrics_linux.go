@@ -33,7 +33,9 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 		{
 			desc: containerMemoryKernelUsage,
 			valueFunc: func() metricValues {
-				return metricValues{{value: mem.KernelUsage.Usage, metricType: types.MetricType_GAUGE}}
+				return metricValues{
+					{value: mem.KernelUsage.Usage, metricType: types.MetricType_GAUGE},
+				}
 			},
 		},
 		{
@@ -51,7 +53,9 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 		{
 			desc: containerMemoryFailcnt,
 			valueFunc: func() metricValues {
-				return metricValues{{value: mem.Usage.Failcnt, metricType: types.MetricType_COUNTER}}
+				return metricValues{
+					{value: mem.Usage.Failcnt, metricType: types.MetricType_COUNTER},
+				}
 			},
 		},
 		{
@@ -118,7 +122,9 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 }
 
 // computeMemoryMetricValues computes derived memory statistics for metrics.
-func computeMemoryMetricValues(memStats *cgroups.MemoryStats) (workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes uint64) {
+func computeMemoryMetricValues(
+	memStats *cgroups.MemoryStats,
+) (workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes uint64) {
 	var inactiveFileName string
 
 	usageBytes := memStats.Usage.Usage

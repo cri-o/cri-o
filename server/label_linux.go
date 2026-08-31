@@ -20,7 +20,8 @@ func securityLabel(path, secLabel string, shared, maybeRelabel bool) error {
 			if err == nil && currentLabel == canonicalSecLabel {
 				logrus.Debugf(
 					"Skipping relabel for %s, as TrySkipVolumeSELinuxLabel is true and the label of the top level of the volume is already correct",
-					path)
+					path,
+				)
 
 				return nil
 			}

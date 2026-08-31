@@ -184,7 +184,12 @@ func beforeEach() {
 	sbox.SetPodLinuxResources(nil)
 	sbox.SetCreatedAt(createdAt)
 
-	err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+	err = sbox.SetCRISandbox(
+		sbox.ID(),
+		make(map[string]string),
+		make(map[string]string),
+		&types.PodSandboxMetadata{},
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -249,7 +254,13 @@ func mockRuntimeInLibConfig() {
 func mockRuntimeInLibConfigCheckpoint() {
 	trueCMD, err := exec.LookPath("true")
 	Expect(err).NotTo(HaveOccurred())
-	Expect(os.WriteFile("/tmp/fake-runtime", []byte("#!/bin/bash\n\necho flag needs an argument\nexit 0\n"), 0o755)).To(Succeed())
+	Expect(
+		os.WriteFile(
+			"/tmp/fake-runtime",
+			[]byte("#!/bin/bash\n\necho flag needs an argument\nexit 0\n"),
+			0o755,
+		),
+	).To(Succeed())
 
 	config.Runtimes[config.DefaultRuntime] = &libconfig.RuntimeHandler{
 		RuntimePath: "/tmp/fake-runtime",

@@ -41,15 +41,34 @@ import (
 )
 
 func writeCrioGoroutineStacks() {
-	path := filepath.Join(os.TempDir(), fmt.Sprintf("crio-goroutine-stacks-%s.log", criocli.Timestamp()))
+	path := filepath.Join(
+		os.TempDir(),
+		fmt.Sprintf("crio-goroutine-stacks-%s.log", criocli.Timestamp()),
+	)
 	if err := utils.WriteGoroutineStacksToFile(path); err != nil {
 		logrus.Warnf("Failed to write goroutine stacks: %s", err)
 	}
 }
 
-func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, tp *sdktrace.TracerProvider, streamingServer *server.Server, hserver *http.Server, signalled *bool) {
+func catchShutdown(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	gserver *grpc.Server,
+	tp *sdktrace.TracerProvider,
+	streamingServer *server.Server,
+	hserver *http.Server,
+	signalled *bool,
+) {
 	sig := make(chan os.Signal, 2048)
-	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGUSR2, unix.SIGPIPE, signals.Hup)
+	signal.Notify(
+		sig,
+		signals.Interrupt,
+		signals.Term,
+		unix.SIGUSR1,
+		unix.SIGUSR2,
+		unix.SIGPIPE,
+		signals.Hup,
+	)
 
 	go func() {
 		for s := range sig {
@@ -143,7 +162,9 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	app.Version = strings.TrimSpace(strings.ReplaceAll(strings.TrimPrefix(info.String(), "Version: "), "\n", "\n   "))
+	app.Version = strings.TrimSpace(
+		strings.ReplaceAll(strings.TrimPrefix(info.String(), "Version: "), "\n", "\n   "),
+	)
 
 	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
 	if err != nil {
@@ -312,7 +333,9 @@ func main() {
 
 		// TODO: delete this check in future releases
 		if _, ok := os.LookupEnv("CONTAINER_INCLUDED_POD_METRCIS"); ok {
-			logrus.Warnf("CONTAINER_INCLUDED_POD_METRCIS (typo) will be ineffective in future releases. Use CONTAINER_INCLUDED_POD_METRICS instead.")
+			logrus.Warnf(
+				"CONTAINER_INCLUDED_POD_METRCIS (typo) will be ineffective in future releases. Use CONTAINER_INCLUDED_POD_METRICS instead.",
+			)
 		}
 
 		// Print the current configuration.
@@ -378,7 +401,10 @@ func main() {
 				logrus.Error(err)
 			}
 
-			if err := os.MkdirAll(filepath.Dir(config.CleanShutdownSupportedFileName()), 0o755); err != nil {
+			if err := os.MkdirAll(
+				filepath.Dir(config.CleanShutdownSupportedFileName()),
+				0o755,
+			); err != nil {
 				logrus.Errorf("Creating clean shutdown supported parent directory: %v", err)
 			}
 
@@ -407,7 +433,10 @@ func main() {
 		// the event of an unclean shutdown, we might lose track of containers and layers.
 		// We need to call the garbage collection function to clean up the redundant files.
 		if err := crioServer.Store().GarbageCollect(); err != nil {
-			logrus.Errorf("Attempts to clean up unreferenced old container leftovers failed: %v", err)
+			logrus.Errorf(
+				"Attempts to clean up unreferenced old container leftovers failed: %v",
+				err,
+			)
 		}
 
 		v1.RegisterRuntimeServiceServer(grpcServer, crioServer)
@@ -434,7 +463,9 @@ func main() {
 		}
 
 		m := cmux.New(lis)
-		grpcL := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
+		grpcL := m.MatchWithWriters(
+			cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"),
+		)
 		httpL := m.Match(cmux.HTTP1Fast())
 
 		infoMux := crioServer.GetExtendInterfaceMux(c.Bool("enable-profile-unix-socket"))
@@ -463,7 +494,11 @@ func main() {
 			defer close(serverCloseCh)
 
 			if err := m.Serve(); err != nil {
-				if !graceful || !strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
+				if !graceful ||
+					!strings.Contains(
+						strings.ToLower(err.Error()),
+						"use of closed network connection",
+					) {
 					logrus.Errorf("Failed to serve grpc request: %v", err)
 				}
 			}

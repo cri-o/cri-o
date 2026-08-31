@@ -7,7 +7,9 @@ import (
 )
 
 // ConvertOCIToStorageIDMappings converts OCI runtime spec ID mappings to storage ID mappings.
-func ConvertOCIToStorageIDMappings(uidMappings, gidMappings []rspec.LinuxIDMapping) *idtools.IDMappings {
+func ConvertOCIToStorageIDMappings(
+	uidMappings, gidMappings []rspec.LinuxIDMapping,
+) *idtools.IDMappings {
 	if len(uidMappings) == 0 || len(gidMappings) == 0 {
 		return nil
 	}
@@ -16,11 +18,19 @@ func ConvertOCIToStorageIDMappings(uidMappings, gidMappings []rspec.LinuxIDMappi
 	gids := make([]idtools.IDMap, len(gidMappings))
 
 	for i, v := range uidMappings {
-		uids[i] = idtools.IDMap{ContainerID: int(v.ContainerID), HostID: int(v.HostID), Size: int(v.Size)}
+		uids[i] = idtools.IDMap{
+			ContainerID: int(v.ContainerID),
+			HostID:      int(v.HostID),
+			Size:        int(v.Size),
+		}
 	}
 
 	for i, v := range gidMappings {
-		gids[i] = idtools.IDMap{ContainerID: int(v.ContainerID), HostID: int(v.HostID), Size: int(v.Size)}
+		gids[i] = idtools.IDMap{
+			ContainerID: int(v.ContainerID),
+			HostID:      int(v.HostID),
+			Size:        int(v.Size),
+		}
 	}
 
 	return idtools.NewIDMappingsFromMaps(uids, gids)

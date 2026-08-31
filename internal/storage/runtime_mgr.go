@@ -75,7 +75,12 @@ func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) (RuntimeServer
 	return rs, nil
 }
 
-func GetRuntimeServiceManager(ctx context.Context, imageServiceMgr *ImageServiceManager, storageTransport StorageTransport, serverConfig *config.Config) (*RuntimeServiceManager, error) {
+func GetRuntimeServiceManager(
+	ctx context.Context,
+	imageServiceMgr *ImageServiceManager,
+	storageTransport StorageTransport,
+	serverConfig *config.Config,
+) (*RuntimeServiceManager, error) {
 	rs := GetRuntimeService(ctx, imageServiceMgr.imageService, storageTransport)
 
 	runtimeSvc, ok := rs.(*runtimeService)

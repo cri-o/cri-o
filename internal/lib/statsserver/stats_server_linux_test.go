@@ -27,11 +27,19 @@ type fakeRuntimeImpl struct {
 	diskStatsErr   error
 }
 
-func (f *fakeRuntimeImpl) CgroupStats(_ context.Context, _ *oci.Container, _ string) (*stats.CgroupStats, error) {
+func (f *fakeRuntimeImpl) CgroupStats(
+	_ context.Context,
+	_ *oci.Container,
+	_ string,
+) (*stats.CgroupStats, error) {
 	return f.cgroupStats, f.cgroupStatsErr
 }
 
-func (f *fakeRuntimeImpl) DiskStats(_ context.Context, _ *oci.Container, _ string) (*stats.DiskStats, error) {
+func (f *fakeRuntimeImpl) DiskStats(
+	_ context.Context,
+	_ *oci.Container,
+	_ string,
+) (*stats.DiskStats, error) {
 	return f.diskStats, f.diskStatsErr
 }
 
@@ -78,7 +86,12 @@ func newTestSandbox(t *testing.T, id string) *sandbox.Sandbox {
 	b.SetPodLinuxResources(nil)
 	b.SetCreatedAt(time.Now())
 
-	if err := b.SetCRISandbox(id, nil, nil, &types.PodSandboxMetadata{Name: "test-pod", Namespace: "default"}); err != nil {
+	if err := b.SetCRISandbox(
+		id,
+		nil,
+		nil,
+		&types.PodSandboxMetadata{Name: "test-pod", Namespace: "default"},
+	); err != nil {
 		t.Fatalf("SetCRISandbox: %v", err)
 	}
 
@@ -150,7 +163,10 @@ func TestUpdateSandboxContainerStatsError(t *testing.T) {
 	}
 
 	if len(result.GetLinux().GetContainers()) != 0 {
-		t.Errorf("expected 0 container stats (error should skip), got %d", len(result.GetLinux().GetContainers()))
+		t.Errorf(
+			"expected 0 container stats (error should skip), got %d",
+			len(result.GetLinux().GetContainers()),
+		)
 	}
 }
 
@@ -181,7 +197,10 @@ func TestUpdateSandboxDiskStatsError(t *testing.T) {
 	}
 
 	if len(result.GetLinux().GetContainers()) != 1 {
-		t.Fatalf("expected 1 container stats despite disk error, got %d", len(result.GetLinux().GetContainers()))
+		t.Fatalf(
+			"expected 1 container stats despite disk error, got %d",
+			len(result.GetLinux().GetContainers()),
+		)
 	}
 
 	if result.GetLinux().GetContainers()[0].GetCpu() == nil {

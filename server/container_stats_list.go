@@ -9,7 +9,10 @@ import (
 )
 
 // ListContainerStats returns stats of all running containers.
-func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContainerStatsRequest) (*types.ListContainerStatsResponse, error) {
+func (s *Server) ListContainerStats(
+	ctx context.Context,
+	req *types.ListContainerStatsRequest,
+) (*types.ListContainerStatsResponse, error) {
 	stats, err := s.listContainerStats(ctx, req.GetFilter())
 	if err != nil {
 		return nil, err
@@ -21,7 +24,10 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 }
 
 // StreamContainerStats returns a stream of container stats.
-func (s *Server) StreamContainerStats(req *types.StreamContainerStatsRequest, stream types.RuntimeService_StreamContainerStatsServer) error {
+func (s *Server) StreamContainerStats(
+	req *types.StreamContainerStatsRequest,
+	stream types.RuntimeService_StreamContainerStatsServer,
+) error {
 	ctx := stream.Context()
 
 	stats, err := s.listContainerStats(ctx, req.GetFilter())
@@ -42,7 +48,10 @@ func (s *Server) StreamContainerStats(req *types.StreamContainerStatsRequest, st
 }
 
 // listContainerStats returns stats for containers matching the filter.
-func (s *Server) listContainerStats(ctx context.Context, filter *types.ContainerStatsFilter) ([]*types.ContainerStats, error) {
+func (s *Server) listContainerStats(
+	ctx context.Context,
+	filter *types.ContainerStatsFilter,
+) ([]*types.ContainerStats, error) {
 	ctrList, err := s.ContainerServer.ListContainers(
 		func(container *oci.Container) bool {
 			return container.StateNoLock().Status != oci.ContainerStateStopped

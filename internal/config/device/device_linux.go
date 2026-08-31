@@ -68,7 +68,10 @@ func DevicesFromAnnotation(annotation string, allowedDevices []string) ([]Device
 // and the third is the mode the device will be mounted with (optional)
 // It returns a slice of Device structs, ready to be saved or given to a container
 // runtime spec generator.
-func devicesFromStrings(devsFromConfig []string, allowedDevices map[string]struct{}) ([]Device, error) {
+func devicesFromStrings(
+	devsFromConfig []string,
+	allowedDevices map[string]struct{},
+) ([]Device, error) {
 	linuxdevs := make([]Device, 0, len(devsFromConfig))
 
 	for _, d := range devsFromConfig {

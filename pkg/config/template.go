@@ -32,30 +32,75 @@ func assembleTemplateString(displayAllConfig bool, c *Config) string {
 	templateString += crioTemplateString(crioRootConfig, "", displayAllConfig, crioTemplateConfig)
 
 	// [crio.api] configuration
-	templateString += crioTemplateString(crioAPIConfig, templateStringCrioAPI, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioAPIConfig,
+		templateStringCrioAPI,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 
 	// [crio.runtime] configuration
-	templateString += crioTemplateString(crioRuntimeConfig, templateStringCrioRuntime, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioRuntimeConfig,
+		templateStringCrioRuntime,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 
 	// [crio.checkpoint_restore] configuration
-	templateString += crioTemplateString(crioCheckpointRestoreConfig, templateStringCrioCheckpointRestore, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioCheckpointRestoreConfig,
+		templateStringCrioCheckpointRestore,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 
 	// [crio.image] configuration
-	templateString += crioTemplateString(crioImageConfig, templateStringCrioImage, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioImageConfig,
+		templateStringCrioImage,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 
 	// [crio.network] configuration
-	templateString += crioTemplateString(crioNetworkConfig, templateStringCrioNetwork, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioNetworkConfig,
+		templateStringCrioNetwork,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 
 	// [crio.metrics] configuration
-	templateString += crioTemplateString(crioMetricsConfig, templateStringCrioMetrics, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioMetricsConfig,
+		templateStringCrioMetrics,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 
 	// [crio.tracing] configuration
-	templateString += crioTemplateString(crioTracingConfig, templateStringCrioTracing, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioTracingConfig,
+		templateStringCrioTracing,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 	// [crio.nri] configuration
-	templateString += crioTemplateString(crioNRIConfig, templateStringCrioNRI, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioNRIConfig,
+		templateStringCrioNRI,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 
 	// [crio.stats] configuration
-	templateString += crioTemplateString(crioStatsConfig, templateStringCrioStats, displayAllConfig, crioTemplateConfig)
+	templateString += crioTemplateString(
+		crioStatsConfig,
+		templateStringCrioStats,
+		displayAllConfig,
+		crioTemplateConfig,
+	)
 
 	if templateString != "" {
 		templateString = templateStringPrefix + templateStringCrio + templateString
@@ -64,7 +109,12 @@ func assembleTemplateString(displayAllConfig bool, c *Config) string {
 	return templateString
 }
 
-func crioTemplateString(group templateGroup, prefix string, displayAll bool, crioTemplateConfig []*templateConfigValue) string {
+func crioTemplateString(
+	group templateGroup,
+	prefix string,
+	displayAll bool,
+	crioTemplateConfig []*templateConfigValue,
+) string {
 	templateString := ""
 
 	var sb strings.Builder
@@ -314,7 +364,10 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeIrqBalanceConfigRestoreFile,
 			group:          crioRuntimeConfig,
-			isDefaultValue: simpleEqual(dc.IrqBalanceConfigRestoreFile, c.IrqBalanceConfigRestoreFile),
+			isDefaultValue: simpleEqual(
+				dc.IrqBalanceConfigRestoreFile,
+				c.IrqBalanceConfigRestoreFile,
+			),
 		},
 		{
 			templateString: templateStringCrioRuntimeRdtConfigFile,
@@ -339,7 +392,10 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeAddInheritableCapabilities,
 			group:          crioRuntimeConfig,
-			isDefaultValue: simpleEqual(dc.AddInheritableCapabilities, c.AddInheritableCapabilities),
+			isDefaultValue: simpleEqual(
+				dc.AddInheritableCapabilities,
+				c.AddInheritableCapabilities,
+			),
 		},
 		{
 			templateString: templateStringCrioRuntimeDefaultSysctls,
@@ -364,7 +420,10 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeDeviceOwnershipFromSecurityContext,
 			group:          crioRuntimeConfig,
-			isDefaultValue: simpleEqual(dc.DeviceOwnershipFromSecurityContext, c.DeviceOwnershipFromSecurityContext),
+			isDefaultValue: simpleEqual(
+				dc.DeviceOwnershipFromSecurityContext,
+				c.DeviceOwnershipFromSecurityContext,
+			),
 		},
 		{
 			templateString: templateStringCrioRuntimeHooksDir,
@@ -489,7 +548,10 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeAbsentMountSourcesToReject,
 			group:          crioRuntimeConfig,
-			isDefaultValue: slices.Equal(dc.AbsentMountSourcesToReject, c.AbsentMountSourcesToReject),
+			isDefaultValue: slices.Equal(
+				dc.AbsentMountSourcesToReject,
+				c.AbsentMountSourcesToReject,
+			),
 		},
 		{
 			templateString: templateStringCrioRuntimeRuntimesRuntimeHandler,
@@ -624,7 +686,10 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioMetricsCollectors,
 			group:          crioMetricsConfig,
-			isDefaultValue: slices.Equal(dc.MetricsCollectors.ToSlice(), c.MetricsCollectors.ToSlice()),
+			isDefaultValue: slices.Equal(
+				dc.MetricsCollectors.ToSlice(),
+				c.MetricsCollectors.ToSlice(),
+			),
 		},
 		{
 			templateString: templateStringCrioMetricsMetricsHost,
@@ -664,7 +729,10 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioTracingTracingSamplingRatePerMillion,
 			group:          crioTracingConfig,
-			isDefaultValue: simpleEqual(dc.TracingSamplingRatePerMillion, c.TracingSamplingRatePerMillion),
+			isDefaultValue: simpleEqual(
+				dc.TracingSamplingRatePerMillion,
+				c.TracingSamplingRatePerMillion,
+			),
 		},
 		{
 			templateString: templateStringCrioStatsStatsCollectionPeriod,
@@ -709,7 +777,10 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioNRIPluginRegistrationTimeout,
 			group:          crioNRIConfig,
-			isDefaultValue: simpleEqual(dc.NRI.PluginRegistrationTimeout, c.NRI.PluginRegistrationTimeout),
+			isDefaultValue: simpleEqual(
+				dc.NRI.PluginRegistrationTimeout,
+				c.NRI.PluginRegistrationTimeout,
+			),
 		},
 		{
 			templateString: templateStringCrioNRIPluginRequestTimeout,
