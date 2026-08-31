@@ -15,7 +15,7 @@ packages:
       - src: .packit_rpm/cri-o.spec
         dest: cri-o.spec
     actions:
-      get-current-version: "bash -ec 'grep \"^const Version\" internal/version/version.go | cut -d\\\" -f2'"
+      get-current-version: "bash -ec 'grep -E \"^(const|var) Version\" internal/version/version.go | cut -d\\\" -f2'"
       post-upstream-clone:
         # Use the Fedora Rawhide specfile
         - git clone https://src.fedoraproject.org/rpms/cri-o .packit_rpm --depth=1

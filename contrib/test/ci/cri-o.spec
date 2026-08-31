@@ -63,7 +63,6 @@ sed -i 's/install.config: crio.conf/install.config:/' Makefile
 sed -i 's/install.bin: binaries/install.bin:/' Makefile
 sed -i 's/\.gopathok//' Makefile
 sed -i 's/go test/$(GO) test/' Makefile
-sed -i 's/%{version}/%{version}-%{release}/' internal/version/version.go
 sed -i 's/\/local//' contrib/systemd/%{service_name}.service
 
 %build
@@ -76,7 +75,8 @@ popd
 ln -s vendor src
 export GOPATH=$(pwd)/_output:$(pwd)
 export BUILDTAGS="selinux seccomp exclude_graphdriver_btrfs containers_image_ostree_stub containers_image_openpgp"
-make bin/crio bin/pinns
+# Inject the full RPM NVR at link time instead of sed-patching version.go.
+make EXTRA_LDFLAGS="-X github.com/cri-o/cri-o/internal/version.Version=%{version}-%{release}" bin/crio bin/pinns
 
 # build docs
 make GO_MD2MAN=go-md2man docs

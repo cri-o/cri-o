@@ -54,7 +54,10 @@ func ConvertStringToSemver(tag string) (res semver.Version, err error) {
 }
 
 func GetCurrentVersionFromVersionFile(versionFile string) (string, error) {
-	const versionPattern = `const\s+Version\s+=\s+"(.+)"`
+	// Matches both the legacy "const Version" declaration and the "var
+	// Version" declaration used so downstream builds can override the
+	// value via -ldflags -X.
+	const versionPattern = `(?:const|var)\s+Version\s+=\s+"(.+)"`
 
 	content, err := os.ReadFile(versionFile)
 	if err != nil {
