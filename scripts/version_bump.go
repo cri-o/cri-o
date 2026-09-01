@@ -49,7 +49,10 @@ func main() {
 }
 
 func getCurrentVersion(versionFile string) (string, error) {
-	versionPattern := `const\s+Version\s+=\s+"(.+)"`
+	// Matches both the legacy "const Version" declaration and the "var
+	// Version" declaration used so downstream builds can override the
+	// value via -ldflags -X.
+	versionPattern := `(?:const|var)\s+Version\s+=\s+"(.+)"`
 
 	// Read the content of the version file
 	content, err := os.ReadFile(versionFile)
@@ -117,7 +120,10 @@ func updateSpecVersion(specFile, oldVersion, newVersion string) error {
 }
 
 func updateVersion(versionFile, newVersion string) error {
-	versionPattern := `const\s+Version\s+=\s+".+"`
+	// Capture the "const"/"var" keyword and surrounding whitespace so the
+	// replacement doesn't clobber a "var Version" declaration back into a
+	// "const" one.
+	versionPattern := `(const|var)(\s+Version\s+=\s+)".+"`
 
 	// Read the content of the version file
 	content, err := os.ReadFile(versionFile)
@@ -127,7 +133,7 @@ func updateVersion(versionFile, newVersion string) error {
 
 	// Replace the version string with the new version using regex
 	re := regexp.MustCompile(versionPattern)
-	newContent := re.ReplaceAll(content, fmt.Appendf(nil, `const Version = %q`, newVersion))
+	newContent := re.ReplaceAll(content, fmt.Appendf(nil, `${1}${2}%q`, newVersion))
 
 	// Write the updated content back to the version file
 	if err := os.WriteFile(versionFile, newContent, 0o644); err != nil {

@@ -78,6 +78,13 @@ Dependencies:
 			_, err = parseVersionConstant("1.1.1-dev", "biglonggitcommit")
 			Expect(err).ToNot(HaveOccurred())
 		})
+		It("should succeed to parse downstream NVR version strings", func() {
+			v, err := parseVersionConstant("1.35.7-8.git1a2b3c4.el10", "")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(v.Major).To(Equal(uint64(1)))
+			Expect(v.Minor).To(Equal(uint64(35)))
+			Expect(v.Patch).To(Equal(uint64(7)))
+		})
 		It("should succeed to parse the version with a git commit", func() {
 			gitCommit := "\"myfavoritecommit\""
 			v, err := parseVersionConstant(tempVersion, gitCommit)
@@ -185,6 +192,22 @@ Dependencies:
 			Expect(upgrade).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
 		})
+		It("should not wipe when version only differs by NVR release tag", func() {
+			oldVersion := "1.33.13"
+			newVersion := "1.33.13-3.git1a2b3c4.el9"
+
+			tempFileName := tempFileName
+			_ = t.MustTempFile(tempFileName)
+
+			err := writeVersionFile(tempFileName, "", oldVersion)
+			defer os.Remove(tempFileName)
+
+			Expect(err).ToNot(HaveOccurred())
+
+			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
+			Expect(upgrade).To(BeFalse())
+			Expect(err).ToNot(HaveOccurred())
+		})
 		It("should upgrade between versions", func() {
 			oldVersion := "1.14.1"
 			newVersion := tempVersion2
@@ -230,6 +253,21 @@ Dependencies:
 			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
 			Expect(upgrade).To(BeTrue())
 			Expect(err).To(HaveOccurred())
+		})
+	})
+	t.Describe("test build-time version overrides", func() {
+		It("should reflect a value injected into the Version variable via -ldflags -X", func() {
+			// Simulates build-time -ldflags -X injection. Proves Get()
+			// reads from the package-level var, not a stale copy.
+			original := Version
+			defer func() { Version = original }()
+
+			injected := "1.33.13-3.git1a2b3c4.el9"
+			Version = injected
+
+			info, err := Get(false)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(info.Version).To(Equal(injected))
 		})
 	})
 	t.Describe("test generating string from info", func() {
