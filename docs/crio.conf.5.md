@@ -526,10 +526,6 @@ Root path for pod namespace-separated signature policies. The final policy to be
 **image_volumes**="mkdir"
 Controls how image volumes are handled. The valid values are mkdir, bind and ignore; the latter will ignore volumes entirely.
 
-**insecure_registries**=[]
-List of registries to skip TLS verification for pulling images.
-This option is deprecated and no longer effective. Use registries.conf instead.
-
 **big_files_temporary_dir**=""
 Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.
 

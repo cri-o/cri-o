@@ -70,7 +70,6 @@ h
 --imagestore
 --included-pod-metrics
 --infra-ctr-cpuset
---insecure-registry
 --internal-repair
 --internal-wipe
 --irqbalance-config-file

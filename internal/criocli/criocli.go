@@ -181,11 +181,6 @@ func mergeImageConfig(config *libconfig.Config, ctx *cli.Context) {
 		config.SignaturePolicyDir = ctx.String("signature-policy-dir")
 	}
 
-	if ctx.IsSet("insecure-registry") {
-		//nolint:staticcheck // SA1019: InsecureRegistries is deprecated but still supported for backward compatibility
-		config.InsecureRegistries = StringSliceTrySplit(ctx, "insecure-registry")
-	}
-
 	if ctx.IsSet("default-transport") {
 		config.DefaultTransport = ctx.String("default-transport")
 	}
@@ -898,23 +893,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   cli.NewStringSlice(defConf.StorageOptions...),
 			Usage:   "OCI storage driver option.",
 			EnvVars: []string{"CONTAINER_STORAGE_OPT"},
-		},
-		&cli.StringSliceFlag{
-			Name: "insecure-registry",
-			//nolint:staticcheck // SA1019: InsecureRegistries is deprecated but still supported for backward compatibility
-			Value: cli.NewStringSlice(defConf.InsecureRegistries...),
-			Usage: "Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication." + `
-    This option is deprecated. Please use "insecure" in registries.conf instead.
-    1. List of insecure registries can contain an element with CIDR notation to
-       specify a whole subnet.
-    2. Insecure registries accept HTTP or accept HTTPS with certificates from
-       unknown CAs.
-    3. Enabling '--insecure-registry' is useful when running a local registry.
-       However, because its use creates security vulnerabilities, **it should ONLY
-       be enabled for testing purposes**. For increased security, users should add
-       their CA to their system's list of trusted CAs instead of using
-       '--insecure-registry'.`,
-			EnvVars: []string{"CONTAINER_INSECURE_REGISTRY"},
 		},
 		&cli.StringFlag{
 			Name:    "default-transport",

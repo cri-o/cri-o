@@ -562,11 +562,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.SignaturePolicyDir, c.SignaturePolicyDir),
 		},
 		{
-			templateString: templateStringCrioImageInsecureRegistries,
-			group:          crioImageConfig,
-			isDefaultValue: slices.Equal(dc.InsecureRegistries, c.InsecureRegistries),
-		},
-		{
 			templateString: templateStringCrioImageImageVolumes,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.ImageVolumes, c.ImageVolumes),
@@ -1608,15 +1603,6 @@ const templateStringCrioImageSignaturePolicyDir = `# Root path for pod namespace
 # or the concatenated path is non existent, then the signature_policy or system
 # wide policy will be used as fallback. Must be an absolute path.
 {{ $.Comment }}signature_policy_dir = "{{ .SignaturePolicyDir }}"
-
-`
-
-const templateStringCrioImageInsecureRegistries = `# List of registries to skip TLS verification for pulling images. Please
-# consider configuring the registries via /etc/containers/registries.conf before
-# changing them here.
-# This option is deprecated and no longer effective. Use registries.conf file instead.
-{{ $.Comment }}insecure_registries = [
-{{ range $opt := .InsecureRegistries }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
 `
 

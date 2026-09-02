@@ -67,7 +67,6 @@ crio
 [--imagestore]=[value]
 [--included-pod-metrics]=[value]
 [--infra-ctr-cpuset]=[value]
-[--insecure-registry]=[value]
 [--internal-repair]
 [--internal-wipe]
 [--irqbalance-config-file]=[value]
@@ -318,18 +317,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--included-pod-metrics**="": A list of pod metrics to include. Specify the names of the metrics to include in this list.
 
 **--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
-
-**--insecure-registry**="": Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
-    This option is deprecated. Please use "insecure" in registries.conf instead.
-    1. List of insecure registries can contain an element with CIDR notation to
-       specify a whole subnet.
-    2. Insecure registries accept HTTP or accept HTTPS with certificates from
-       unknown CAs.
-    3. Enabling '--insecure-registry' is useful when running a local registry.
-       However, because its use creates security vulnerabilities, **it should ONLY
-       be enabled for testing purposes**. For increased security, users should add
-       their CA to their system's list of trusted CAs instead of using
-       '--insecure-registry'.
 
 **--internal-repair**: If true, CRI-O will check if the container and image storage was corrupted after a sudden restart, and attempt to repair the storage if it was.
 
