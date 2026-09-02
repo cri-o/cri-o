@@ -93,14 +93,23 @@ func (ss *StatsServer) update() {
 // updateUsageNanoCores calculates the usage nano cores by averaging the CPU usage between the timestamps
 // of the old usage and the recently gathered usage.
 func updateUsageNanoCores(old, current *types.CpuUsage) {
-	if old == nil || current == nil || old.GetUsageCoreNanoSeconds() == nil || current.GetUsageCoreNanoSeconds() == nil {
+	if old == nil || current == nil || old.GetUsageCoreNanoSeconds() == nil ||
+		current.GetUsageCoreNanoSeconds() == nil {
 		return
 	}
 
 	nanoSeconds := current.GetTimestamp() - old.GetTimestamp()
 
-	usageNanoCores := uint64(float64(current.GetUsageCoreNanoSeconds().GetValue()-old.GetUsageCoreNanoSeconds().GetValue()) /
-		float64(nanoSeconds) * float64(time.Second/time.Nanosecond))
+	usageNanoCores := uint64(
+		float64(
+			current.GetUsageCoreNanoSeconds().GetValue()-old.GetUsageCoreNanoSeconds().GetValue(),
+		) /
+			float64(
+				nanoSeconds,
+			) * float64(
+			time.Second/time.Nanosecond,
+		),
+	)
 
 	current.UsageNanoCores = &types.UInt64Value{
 		Value: usageNanoCores,
@@ -108,7 +117,10 @@ func updateUsageNanoCores(old, current *types.CpuUsage) {
 }
 
 // populateWritableLayer attempts to populate the container stats writable layer.
-func (ss *StatsServer) populateWritableLayer(stats *types.ContainerStats, container *oci.Container) {
+func (ss *StatsServer) populateWritableLayer(
+	stats *types.ContainerStats,
+	container *oci.Container,
+) {
 	writableLayer, err := ss.writableLayerForContainer(container)
 	if err != nil {
 		logrus.Error(err)
@@ -119,7 +131,9 @@ func (ss *StatsServer) populateWritableLayer(stats *types.ContainerStats, contai
 
 // writableLayerForContainer gathers information about the container's writable layer.
 // It does so by calling into the GraphDriver's endpoint to get the UsedBytes and InodesUsed.
-func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*types.FilesystemUsage, error) {
+func (ss *StatsServer) writableLayerForContainer(
+	container *oci.Container,
+) (*types.FilesystemUsage, error) {
 	writableLayer := &types.FilesystemUsage{
 		Timestamp: time.Now().UnixNano(),
 		FsId:      &types.FilesystemIdentifier{Mountpoint: container.MountPoint()},
@@ -127,17 +141,29 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 
 	driver, err := ss.Store().GraphDriver()
 	if err != nil {
-		return writableLayer, fmt.Errorf("unable to get graph driver for disk usage for container %s: %w", container.ID(), err)
+		return writableLayer, fmt.Errorf(
+			"unable to get graph driver for disk usage for container %s: %w",
+			container.ID(),
+			err,
+		)
 	}
 
 	storageContainer, err := ss.Store().Container(container.ID())
 	if err != nil {
-		return writableLayer, fmt.Errorf("unable to get storage container for disk usage for container %s: %w", container.ID(), err)
+		return writableLayer, fmt.Errorf(
+			"unable to get storage container for disk usage for container %s: %w",
+			container.ID(),
+			err,
+		)
 	}
 
 	usage, err := driver.ReadWriteDiskUsage(storageContainer.LayerID)
 	if err != nil {
-		return writableLayer, fmt.Errorf("unable to get disk usage for container %s: %w", container.ID(), err)
+		return writableLayer, fmt.Errorf(
+			"unable to get disk usage for container %s: %w",
+			container.ID(),
+			err,
+		)
 	}
 
 	writableLayer.UsedBytes = &types.UInt64Value{Value: uint64(usage.Size)}
@@ -195,7 +221,10 @@ func (ss *StatsServer) RemoveStatsForSandbox(sb *sandbox.Sandbox) {
 }
 
 // StatsForContainer returns the stats for the given container.
-func (ss *StatsServer) StatsForContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerStats {
+func (ss *StatsServer) StatsForContainer(
+	c *oci.Container,
+	sb *sandbox.Sandbox,
+) *types.ContainerStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
@@ -212,7 +241,11 @@ func (ss *StatsServer) StatsForContainers(ctrs []*oci.Container) []*types.Contai
 	for _, c := range ctrs {
 		sb := ss.GetSandbox(c.Sandbox())
 		if sb == nil {
-			logrus.Errorf("Unexpectedly failed to get sandbox %s for container %s", c.Sandbox(), c.ID())
+			logrus.Errorf(
+				"Unexpectedly failed to get sandbox %s for container %s",
+				c.Sandbox(),
+				c.ID(),
+			)
 
 			continue
 		}
@@ -227,7 +260,10 @@ func (ss *StatsServer) StatsForContainers(ctrs []*oci.Container) []*types.Contai
 
 // statsForContainer is an internal, non-locking version of StatsForContainer
 // that returns (and occasionally gathers) the stats for the given container.
-func (ss *StatsServer) statsForContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerStats {
+func (ss *StatsServer) statsForContainer(
+	c *oci.Container,
+	sb *sandbox.Sandbox,
+) *types.ContainerStats {
 	if ss.collectionPeriod == 0 {
 		return ss.updateContainerStats(c, sb)
 	}

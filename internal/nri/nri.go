@@ -61,7 +61,12 @@ type API interface {
 	PostStartContainer(context.Context, PodSandbox, Container) error
 
 	// UpdateContainer relays container update requests to NRI.
-	UpdateContainer(context.Context, PodSandbox, Container, *nri.LinuxResources) (*nri.LinuxResources, error)
+	UpdateContainer(
+		context.Context,
+		PodSandbox,
+		Container,
+		*nri.LinuxResources,
+	) (*nri.LinuxResources, error)
 
 	// PostUpdateContainer relays successful container update events to NRI.
 	PostUpdateContainer(context.Context, PodSandbox, Container) error
@@ -173,7 +178,11 @@ func (l *local) RunPodSandbox(ctx context.Context, pod PodSandbox) error {
 	return err
 }
 
-func (l *local) UpdatePodSandbox(ctx context.Context, pod PodSandbox, overhead, resources *nri.LinuxResources) error {
+func (l *local) UpdatePodSandbox(
+	ctx context.Context,
+	pod PodSandbox,
+	overhead, resources *nri.LinuxResources,
+) error {
 	if !l.IsEnabled() {
 		return nil
 	}
@@ -227,7 +236,11 @@ func (l *local) RemovePodSandbox(ctx context.Context, pod PodSandbox) error {
 	return err
 }
 
-func (l *local) CreateContainer(ctx context.Context, pod PodSandbox, ctr Container) (*nri.ContainerAdjustment, error) {
+func (l *local) CreateContainer(
+	ctx context.Context,
+	pod PodSandbox,
+	ctr Container,
+) (*nri.ContainerAdjustment, error) {
 	if !l.IsEnabled() {
 		return nil, nil
 	}
@@ -310,7 +323,12 @@ func (l *local) PostStartContainer(ctx context.Context, pod PodSandbox, ctr Cont
 	return err
 }
 
-func (l *local) UpdateContainer(ctx context.Context, pod PodSandbox, ctr Container, req *nri.LinuxResources) (*nri.LinuxResources, error) {
+func (l *local) UpdateContainer(
+	ctx context.Context,
+	pod PodSandbox,
+	ctr Container,
+	req *nri.LinuxResources,
+) (*nri.LinuxResources, error) {
 	if !l.IsEnabled() {
 		return nil, nil
 	}
@@ -466,7 +484,10 @@ func (l *local) syncPlugin(ctx context.Context, syncFn nri.SyncCB) error {
 	return nil
 }
 
-func (l *local) updateFromPlugin(ctx context.Context, req []*nri.ContainerUpdate) ([]*nri.ContainerUpdate, error) {
+func (l *local) updateFromPlugin(
+	ctx context.Context,
+	req []*nri.ContainerUpdate,
+) ([]*nri.ContainerUpdate, error) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -477,13 +498,19 @@ func (l *local) updateFromPlugin(ctx context.Context, req []*nri.ContainerUpdate
 	return failed, err
 }
 
-func (l *local) applyUpdates(ctx context.Context, updates []*nri.ContainerUpdate) ([]*nri.ContainerUpdate, error) {
+func (l *local) applyUpdates(
+	ctx context.Context,
+	updates []*nri.ContainerUpdate,
+) ([]*nri.ContainerUpdate, error) {
 	failed, err := domains.updateContainers(ctx, updates)
 
 	return failed, err
 }
 
-func (l *local) evictContainers(ctx context.Context, evict []*nri.ContainerEviction) ([]*nri.ContainerEviction, error) {
+func (l *local) evictContainers(
+	ctx context.Context,
+	evict []*nri.ContainerEviction,
+) ([]*nri.ContainerEviction, error) {
 	failed, err := domains.evictContainers(ctx, evict)
 
 	return failed, err

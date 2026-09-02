@@ -34,7 +34,9 @@ var _ = t.Describe("ConmonManager", func() {
 		It("should fail when command fails", func() {
 			// Given
 			gomock.InOrder(
-				runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte{}, errors.New("cmd failed")),
+				runner.EXPECT().
+					CombinedOutput(gomock.Any(), gomock.Any()).
+					Return([]byte{}, errors.New("cmd failed")),
 			)
 
 			// When
@@ -47,7 +49,9 @@ var _ = t.Describe("ConmonManager", func() {
 		It("should fail when output unexpected", func() {
 			// Given
 			gomock.InOrder(
-				runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte("unexpected"), nil),
+				runner.EXPECT().
+					CombinedOutput(gomock.Any(), gomock.Any()).
+					Return([]byte("unexpected"), nil),
 			)
 
 			// When
@@ -60,7 +64,9 @@ var _ = t.Describe("ConmonManager", func() {
 		It("should succeed when output expected", func() {
 			// Given
 			gomock.InOrder(
-				runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte("conmon version 2.2.2"), nil),
+				runner.EXPECT().
+					CombinedOutput(gomock.Any(), gomock.Any()).
+					Return([]byte("conmon version 2.2.2"), nil),
 			)
 
 			// When
@@ -173,7 +179,9 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be false when major version less", func() {
 			// Given
-			runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte{}, errors.New("cmd failed"))
+			runner.EXPECT().
+				CombinedOutput(gomock.Any(), gomock.Any()).
+				Return([]byte{}, errors.New("cmd failed"))
 
 			err := mgr.parseConmonVersion("1.1.2")
 			Expect(err).ToNot(HaveOccurred())
@@ -196,7 +204,9 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be false when minor version less", func() {
 			// Given
-			runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte{}, errors.New("cmd failed"))
+			runner.EXPECT().
+				CombinedOutput(gomock.Any(), gomock.Any()).
+				Return([]byte{}, errors.New("cmd failed"))
 
 			err := mgr.parseConmonVersion("2.0.2")
 			Expect(err).ToNot(HaveOccurred())
@@ -219,7 +229,9 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be false when patch version less", func() {
 			// Given
-			runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte{}, errors.New("cmd failed"))
+			runner.EXPECT().
+				CombinedOutput(gomock.Any(), gomock.Any()).
+				Return([]byte{}, errors.New("cmd failed"))
 
 			err := mgr.parseConmonVersion("2.1.1")
 			Expect(err).ToNot(HaveOccurred())
@@ -252,7 +264,9 @@ var _ = t.Describe("ConmonManager", func() {
 		})
 		It("should be true if feature backported", func() {
 			// Given
-			runner.EXPECT().CombinedOutput(gomock.Any(), gomock.Any()).Return([]byte("--log-global-size-max"), nil)
+			runner.EXPECT().
+				CombinedOutput(gomock.Any(), gomock.Any()).
+				Return([]byte("--log-global-size-max"), nil)
 
 			err := mgr.parseConmonVersion("0.0.0")
 			Expect(err).ToNot(HaveOccurred())

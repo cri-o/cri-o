@@ -113,7 +113,9 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring(`failed to pause container "containerID" before checkpointing`))
+			Expect(
+				err.Error(),
+			).To(ContainSubstring(`failed to pause container "containerID" before checkpointing`))
 		})
 	})
 	t.Describe("ContainerCheckpoint", func() {
@@ -166,7 +168,9 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 
 			gomock.InOrder(
 				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
-				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return([]archive.Change{{Kind: archive.ChangeDelete, Path: "deleted.file"}}, nil),
+				storeMock.EXPECT().
+					Changes(gomock.Any(), gomock.Any()).
+					Return([]archive.Change{{Kind: archive.ChangeDelete, Path: "deleted.file"}}, nil),
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
 				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
 				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).Return(true, nil),
@@ -233,7 +237,9 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
-			Expect(err.Error()).To(Equal(`failed to find container invalid: container with ID starting with invalid not found: ID does not exist`))
+			Expect(
+				err.Error(),
+			).To(Equal(`failed to find container invalid: container with ID starting with invalid not found: ID does not exist`))
 		})
 	})
 	t.Describe("ContainerCheckpoint", func() {
@@ -255,7 +261,9 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
-			Expect(err.Error()).To(ContainSubstring(`not able to read config for container "containerID"`))
+			Expect(
+				err.Error(),
+			).To(ContainSubstring(`not able to read config for container "containerID"`))
 		})
 	})
 })

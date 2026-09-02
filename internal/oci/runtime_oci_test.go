@@ -240,9 +240,13 @@ var _ = t.Describe("UpdateContainerStatus", func() {
 		// Set up a container with a temp directory for exit file.
 		containerDir := t.MustTempDir("container-dir")
 
-		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image-name:latest")
+		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+			"docker.io/library/image-name:latest",
+		)
 		Expect(err).ToNot(HaveOccurred())
-		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(
+			"2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812",
+		)
 		Expect(err).ToNot(HaveOccurred())
 		sut, err := oci.NewContainer("test-fast-exit", "name", "bundlePath", "logPath",
 			map[string]string{}, map[string]string{}, map[string]string{},
@@ -301,9 +305,13 @@ var _ = t.Describe("UpdateContainerStatus", func() {
 		// Set up a container with a temp directory — no exit file will be created.
 		containerDir := t.MustTempDir("container-dir-no-exit")
 
-		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image-name:latest")
+		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+			"docker.io/library/image-name:latest",
+		)
 		Expect(err).ToNot(HaveOccurred())
-		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(
+			"2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812",
+		)
 		Expect(err).ToNot(HaveOccurred())
 		sut, err := oci.NewContainer("test-no-exit", "name", "bundlePath", "logPath",
 			map[string]string{}, map[string]string{}, map[string]string{},
@@ -347,7 +355,10 @@ var _ = t.Describe("UpdateContainerStatus", func() {
 	})
 })
 
-func containerIgnoreSignalCmdrunnerMock(sleepProcess *exec.Cmd, runner *runnerMock.MockCommandRunner) {
+func containerIgnoreSignalCmdrunnerMock(
+	sleepProcess *exec.Cmd,
+	runner *runnerMock.MockCommandRunner,
+) {
 	gomock.InOrder(
 		runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(_ string, _ ...string) any {
@@ -365,7 +376,11 @@ func containerIgnoreSignalCmdrunnerMock(sleepProcess *exec.Cmd, runner *runnerMo
 	)
 }
 
-func waitOnContainerTimeout(sut *oci.Container, stopTimeout, waitTimeout int64, sleepProcess *exec.Cmd) {
+func waitOnContainerTimeout(
+	sut *oci.Container,
+	stopTimeout, waitTimeout int64,
+	sleepProcess *exec.Cmd,
+) {
 	stoppedChan := stopTimeoutWithChannel(context.Background(), sut, stopTimeout)
 
 	select {

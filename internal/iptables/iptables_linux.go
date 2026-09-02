@@ -69,25 +69,36 @@ func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker,
 		return nil, fmt.Errorf("failed to open iptables lock %s: %w", lockfilePath16x, err)
 	}
 
-	if err := wait.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) { //nolint:staticcheck // PollImmediate is deprecated; vendored code has no context at call site
-		if err := grabIptablesFileLock(l.lock16); err != nil {
-			return false, nil
-		}
+	if err := wait.PollImmediate( //nolint:staticcheck // deprecated poll API
+		200*time.Millisecond,
+		2*time.Second,
+		func() (bool, error) {
+			if err := grabIptablesFileLock(l.lock16); err != nil {
+				return false, nil
+			}
 
-		return true, nil
-	}); err != nil {
+			return true, nil
+		},
+	); err != nil {
 		return nil, fmt.Errorf("failed to acquire new iptables lock: %w", err)
 	}
 
 	// Roughly duplicate iptables 1.4.x xtables_lock() function.
-	if err := wait.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) { //nolint:staticcheck // PollImmediate is deprecated; vendored code has no context at call site
-		l.lock14, err = net.ListenUnix("unix", &net.UnixAddr{Name: lockfilePath14x, Net: "unix"})
-		if err != nil {
-			return false, nil
-		}
+	if err := wait.PollImmediate( //nolint:staticcheck // deprecated poll API
+		200*time.Millisecond,
+		2*time.Second,
+		func() (bool, error) {
+			l.lock14, err = net.ListenUnix(
+				"unix",
+				&net.UnixAddr{Name: lockfilePath14x, Net: "unix"},
+			)
+			if err != nil {
+				return false, nil
+			}
 
-		return true, nil
-	}); err != nil {
+			return true, nil
+		},
+	); err != nil {
 		return nil, fmt.Errorf("failed to acquire old iptables lock: %w", err)
 	}
 

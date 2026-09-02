@@ -11,7 +11,10 @@ import (
 )
 
 // ListPodSandbox returns a list of SandBoxes.
-func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRequest) (*types.ListPodSandboxResponse, error) {
+func (s *Server) ListPodSandbox(
+	ctx context.Context,
+	req *types.ListPodSandboxRequest,
+) (*types.ListPodSandboxResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -21,7 +24,10 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 }
 
 // StreamPodSandboxes returns a stream of PodSandboxes.
-func (s *Server) StreamPodSandboxes(req *types.StreamPodSandboxesRequest, stream types.RuntimeService_StreamPodSandboxesServer) error {
+func (s *Server) StreamPodSandboxes(
+	req *types.StreamPodSandboxesRequest,
+	stream types.RuntimeService_StreamPodSandboxesServer,
+) error {
 	ctx := stream.Context()
 
 	pods := s.listPodSandboxes(ctx, req.GetFilter())
@@ -38,7 +44,10 @@ func (s *Server) StreamPodSandboxes(req *types.StreamPodSandboxesRequest, stream
 }
 
 // listPodSandboxes returns a filtered list of PodSandbox objects.
-func (s *Server) listPodSandboxes(ctx context.Context, filter *types.PodSandboxFilter) []*types.PodSandbox {
+func (s *Server) listPodSandboxes(
+	ctx context.Context,
+	filter *types.PodSandboxFilter,
+) []*types.PodSandbox {
 	podList := s.filterSandboxList(ctx, filter, s.ListSandboxes())
 	respList := make([]*types.PodSandbox, 0, len(podList))
 
@@ -60,7 +69,11 @@ func (s *Server) listPodSandboxes(ctx context.Context, filter *types.PodSandboxF
 
 // filterSandboxList applies a protobuf-defined filter to retrieve only intended pod sandboxes. Not matching
 // the filter is not considered an error but will return an empty response.
-func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandboxFilter, podList []*sandbox.Sandbox) []*sandbox.Sandbox {
+func (s *Server) filterSandboxList(
+	ctx context.Context,
+	filter *types.PodSandboxFilter,
+	podList []*sandbox.Sandbox,
+) []*sandbox.Sandbox {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 

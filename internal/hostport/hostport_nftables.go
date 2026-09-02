@@ -57,7 +57,10 @@ func newHostportManagerNFTables(family knftables.Family) (*hostportManagerNFTabl
 	}, nil
 }
 
-func (hm *hostportManagerNFTables) Add(id, name, podIP string, hostportMappings []*PortMapping) (err error) {
+func (hm *hostportManagerNFTables) Add(
+	id, name, podIP string,
+	hostportMappings []*PortMapping,
+) (err error) {
 	// Ensure atomicity for nftables operations
 	hm.mu.Lock()
 	defer hm.mu.Unlock()

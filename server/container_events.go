@@ -26,7 +26,10 @@ func (c *containerEventConn) wait() {
 }
 
 // GetContainerEvents sends the stream of container events to clients.
-func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.RuntimeService_GetContainerEventsServer) error {
+func (s *Server) GetContainerEvents(
+	_ *types.GetEventsRequest,
+	ces types.RuntimeService_GetContainerEventsServer,
+) error {
 	if !s.ContainerServer.Config().EnablePodEvents {
 		return nil
 	}

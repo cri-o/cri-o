@@ -98,7 +98,7 @@ linters:
     # - err113
     # - errname
     # - exhaustive
-    # - exhaustruct
+    # - exhaustruct_v5
     # - forbidigo
     # - funcorder
     # - funlen
@@ -169,8 +169,11 @@ linters:
 formatters:
   enable:
     - gci
+    - gofmt
     - gofumpt
     - goimports
+    - golines
+    - swaggo
   settings:
     gci:
       sections:

@@ -176,7 +176,12 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		// treated differently for different runtimes.
 		runtimeSvc, err2 := s.StorageRuntimeServer(nil)
 		if err2 != nil {
-			log.Warnf(ctx, "Error getting runtime service for %s: %v, ignoring", containers[i].ID, err2)
+			log.Warnf(
+				ctx,
+				"Error getting runtime service for %s: %v, ignoring",
+				containers[i].ID,
+				err2,
+			)
 
 			continue
 		}
@@ -189,7 +194,11 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		}
 
 		if !storage.IsCrioContainer(&metadata) {
-			log.Debugf(ctx, "Container %s determined to not be a CRI-O container or sandbox", containers[i].ID)
+			log.Debugf(
+				ctx,
+				"Container %s determined to not be a CRI-O container or sandbox",
+				containers[i].ID,
+			)
 
 			continue
 		}
@@ -203,7 +212,13 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(containers[i].ImageID)
 			if err != nil {
-				log.Warnf(ctx, "Error parsing image ID %q of container %q: %v, ignoring", containers[i].ImageID, containers[i].ID, err)
+				log.Warnf(
+					ctx,
+					"Error parsing image ID %q of container %q: %v, ignoring",
+					containers[i].ImageID,
+					containers[i].ID,
+					err,
+				)
 
 				continue
 			}
@@ -236,7 +251,9 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		log.Warnf(ctx, "Could not restore sandbox %s: %v", sbID, err)
 
 		for _, n := range names[sbID] {
-			if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+			if err := s.ContainerServer.Store().
+				DeleteContainer(n); err != nil &&
+				!errors.Is(err, storageTypes.ErrNotAContainer) {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the infra container name and the pod name for future use
@@ -247,7 +264,11 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 			}
 		}
 		// Go through the containers and delete any container that was under the deleted pod
-		log.Warnf(ctx, "Deleting all containers under sandbox %s since it could not be restored", sbID)
+		log.Warnf(
+			ctx,
+			"Deleting all containers under sandbox %s since it could not be restored",
+			sbID,
+		)
 
 		for k, v := range podContainers {
 			if v.PodID != sbID {
@@ -255,7 +276,9 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 			}
 
 			for _, n := range names[k] {
-				if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+				if err := s.ContainerServer.Store().
+					DeleteContainer(n); err != nil &&
+					!errors.Is(err, storageTypes.ErrNotAContainer) {
 					log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 				}
 				// Release the container name for future use
@@ -280,7 +303,9 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		log.Warnf(ctx, "Could not restore container %s: %v", containerID, err)
 
 		for _, n := range names[containerID] {
-			if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+			if err := s.ContainerServer.Store().
+				DeleteContainer(n); err != nil &&
+				!errors.Is(err, storageTypes.ErrNotAContainer) {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the container name
@@ -292,7 +317,11 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	// pod known to us using CNI GC
 	err = s.networkGC(context.Background(), knownPods)
 	if err != nil {
-		log.Errorf(ctx, "Garbage collect stale network resources during server startup failed: %v", err)
+		log.Errorf(
+			ctx,
+			"Garbage collect stale network resources during server startup failed: %v",
+			err,
+		)
 	}
 
 	// Cleanup the deletedPods in the networking plugin
@@ -433,10 +462,21 @@ func New(
 		return nil, err
 	}
 
-	if strings.ToLower(strings.TrimSpace(config.IrqBalanceConfigRestoreFile)) != irqBalanceConfigRestoreDisable {
-		log.Infof(ctx, "Attempting to restore irqbalance config from %s", config.IrqBalanceConfigRestoreFile)
+	if strings.ToLower(
+		strings.TrimSpace(config.IrqBalanceConfigRestoreFile),
+	) != irqBalanceConfigRestoreDisable {
+		log.Infof(
+			ctx,
+			"Attempting to restore irqbalance config from %s",
+			config.IrqBalanceConfigRestoreFile,
+		)
 
-		err = runtimehandlerhooks.RestoreIrqBalanceConfig(context.TODO(), config.IrqBalanceConfigFile, config.IrqBalanceConfigRestoreFile, runtimehandlerhooks.IrqSmpAffinityProcFile)
+		err = runtimehandlerhooks.RestoreIrqBalanceConfig(
+			context.TODO(),
+			config.IrqBalanceConfigFile,
+			config.IrqBalanceConfigRestoreFile,
+			runtimehandlerhooks.IrqSmpAffinityProcFile,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -449,7 +489,10 @@ func New(
 	} else {
 		hostportManager, err = hostport.NewMetaHostportManager(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("%w (use --disable-hostport-mapping to disable HostPort handling)", err)
+			return nil, fmt.Errorf(
+				"%w (use --disable-hostport-mapping to disable HostPort handling)",
+				err,
+			)
 		}
 	}
 
@@ -459,7 +502,10 @@ func New(
 	}
 
 	if idMappings != nil {
-		log.Errorf(ctx, "Configuration options 'uid_mappings' and 'gid_mappings' are deprecated, and will be replaced with native Kubernetes support for user namespaces in the future")
+		log.Errorf(
+			ctx,
+			"Configuration options 'uid_mappings' and 'gid_mappings' are deprecated, and will be replaced with native Kubernetes support for user namespaces in the future",
+		)
 	}
 
 	if os.Getenv(rootlessEnvName) == "" {
@@ -473,7 +519,12 @@ func New(
 		return nil, err
 	}
 
-	artifactStore, err := ociartifact.NewStore(containerServer.Store().GraphRoot(), config.AdditionalArtifactStores, config.SystemContext, defaultImageServer.PinnedImageRegexps())
+	artifactStore, err := ociartifact.NewStore(
+		containerServer.Store().GraphRoot(),
+		config.AdditionalArtifactStores,
+		config.SystemContext,
+		defaultImageServer.PinnedImageRegexps(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -548,7 +599,15 @@ func New(
 	if config.StreamEnableTLS {
 		log.Debugf(ctx, "TLS enabled for streaming server")
 
-		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh, config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA, config.GetTLSMinVersion(), config.GetTLSCipherSuites())
+		certConf, err := cert.NewCertConfig(
+			ctx,
+			s.stream.streamServerCloseCh,
+			config.StreamTLSCert,
+			config.StreamTLSKey,
+			config.StreamTLSCA,
+			config.GetTLSMinVersion(),
+			config.GetTLSCipherSuites(),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -582,7 +641,10 @@ func New(
 	go func() {
 		defer close(s.stream.streamServerCloseCh)
 
-		if err := s.stream.streamServer.Start(true); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := s.stream.streamServer.Start(
+			true,
+		); err != nil &&
+			!errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf(ctx, "Failed to start streaming server: %v", err)
 		}
 	}()
@@ -592,11 +654,15 @@ func New(
 	s.startReloadWatcher(ctx)
 
 	if s.config.AutoReloadRegistries {
-		go s.startWatcherForMirrorRegistries(ctx, s.config.SystemContext.SystemRegistriesConfDirPath)
+		go s.startWatcherForMirrorRegistries(
+			ctx,
+			s.config.SystemContext.SystemRegistriesConfDirPath,
+		)
 	}
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
-		if err := metrics.New(&s.config.MetricsConfig, &s.config.APIConfig).Start(ctx, s.monitorsChan); err != nil {
+		if err := metrics.New(&s.config.MetricsConfig, &s.config.APIConfig).
+			Start(ctx, s.monitorsChan); err != nil {
 			return nil, err
 		}
 	} else {
@@ -659,7 +725,9 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			if err != nil {
 				log.Errorf(ctx, "Failed to get image server during config reload: %v", err)
 			} else {
-				imageService.UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
+				imageService.UpdatePinnedImagesList(
+					append(s.config.PinnedImages, s.config.PauseImage),
+				)
 				s.artifactStore.SetPinnedImageRegexps(imageService.PinnedImageRegexps())
 			}
 
@@ -720,7 +788,11 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage
 		// If so, we rebooted, and we should wipe containers.
 		shouldWipeContainers, err = version.ShouldCrioWipe(s.config.VersionFile)
 		if err != nil {
-			log.Warnf(ctx, "Error encountered when checking whether cri-o should wipe containers: %v", err)
+			log.Warnf(
+				ctx,
+				"Error encountered when checking whether cri-o should wipe containers: %v",
+				err,
+			)
 		}
 	}
 
@@ -753,7 +825,8 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage
 	// disk usage gets too high.
 	if shouldWipeImages {
 		for img := range imageMapToDelete {
-			if err := s.ContainerServer.StorageImageManager().DeleteImage(ctx, s.config.SystemContext, img); err != nil {
+			if err := s.ContainerServer.StorageImageManager().
+				DeleteImage(ctx, s.config.SystemContext, img); err != nil {
 				log.Warnf(ctx, "Failed to remove image %s: %v", img, err)
 			}
 		}
@@ -816,7 +889,10 @@ func (s *Server) removeInfraContainer(ctx context.Context, c *oci.Container) {
 	s.RemoveInfraContainer(ctx, c)
 }
 
-func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID string) (*sandbox.Sandbox, error) {
+func (s *Server) getPodSandboxFromRequest(
+	ctx context.Context,
+	podSandboxID string,
+) (*sandbox.Sandbox, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -826,7 +902,11 @@ func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID stri
 
 	sandboxID, err := s.ContainerServer.PodIDIndex().Get(podSandboxID)
 	if err != nil {
-		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %w", podSandboxID, err)
+		return nil, fmt.Errorf(
+			"PodSandbox with ID starting with %s not found: %w",
+			podSandboxID,
+			err,
+		)
 	}
 
 	sb := s.getSandbox(ctx, sandboxID)
@@ -933,7 +1013,10 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	}
 }
 
-func (s *Server) getSandboxStatuses(ctx context.Context, sandboxID string) (*types.PodSandboxStatus, error) {
+func (s *Server) getSandboxStatuses(
+	ctx context.Context,
+	sandboxID string,
+) (*types.PodSandboxStatus, error) {
 	sandboxStatusRequest := &types.PodSandboxStatusRequest{PodSandboxId: sandboxID}
 
 	sandboxStatus, err := s.PodSandboxStatus(ctx, sandboxStatusRequest)
@@ -948,8 +1031,15 @@ func (s *Server) getSandboxStatuses(ctx context.Context, sandboxID string) (*typ
 	return sandboxStatus.GetStatus(), nil
 }
 
-func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([]*types.ContainerStatus, error) {
-	listContainerRequest := &types.ListContainersRequest{Filter: &types.ContainerFilter{LabelSelector: map[string]string{kubetypes.KubernetesPodUIDLabel: sandboxUID}}}
+func (s *Server) getContainerStatuses(
+	ctx context.Context,
+	sandboxUID string,
+) ([]*types.ContainerStatus, error) {
+	listContainerRequest := &types.ListContainersRequest{
+		Filter: &types.ContainerFilter{
+			LabelSelector: map[string]string{kubetypes.KubernetesPodUIDLabel: sandboxUID},
+		},
+	}
 
 	containers, err := s.ListContainers(ctx, listContainerRequest)
 	if err != nil {
@@ -976,8 +1066,13 @@ func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([
 	return containerStatuses, nil
 }
 
-func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxID string) ([]*types.ContainerStatus, error) {
-	listContainerRequest := &types.ListContainersRequest{Filter: &types.ContainerFilter{PodSandboxId: sandboxID}}
+func (s *Server) getContainerStatusesFromSandboxID(
+	ctx context.Context,
+	sandboxID string,
+) ([]*types.ContainerStatus, error) {
+	listContainerRequest := &types.ListContainersRequest{
+		Filter: &types.ContainerFilter{PodSandboxId: sandboxID},
+	}
 
 	containers, err := s.ListContainers(ctx, listContainerRequest)
 	if err != nil {
@@ -987,7 +1082,10 @@ func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxI
 	containerStatuses := make([]*types.ContainerStatus, 0, len(containers.GetContainers()))
 
 	for _, cc := range containers.GetContainers() {
-		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.GetId(), Verbose: false}
+		containerStatusRequest := &types.ContainerStatusRequest{
+			ContainerId: cc.GetId(),
+			Verbose:     false,
+		}
 
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
 		if isNotFound(err) {
@@ -1004,14 +1102,24 @@ func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxI
 	return containerStatuses, nil
 }
 
-func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container, eventType types.ContainerEventType) {
+func (s *Server) generateCRIEvent(
+	ctx context.Context,
+	container *oci.Container,
+	eventType types.ContainerEventType,
+) {
 	// returning no error if the Evented PLEG feature is not enabled
 	if !s.config.EnablePodEvents {
 		return
 	}
 
 	if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, container); err != nil {
-		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to update the container status %s: %v", eventType, container.ID(), err)
+		log.Errorf(
+			ctx,
+			"GenerateCRIEvent: event type: %s, failed to update the container status %s: %v",
+			eventType,
+			container.ID(),
+			err,
+		)
 
 		return
 	}
@@ -1020,20 +1128,35 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 		return
 	}
 
-	sandboxStatuses, err := s.getSandboxStatuses(ctx, s.ContainerServer.GetSandbox(container.Sandbox()).ID())
+	sandboxStatuses, err := s.getSandboxStatuses(
+		ctx,
+		s.ContainerServer.GetSandbox(container.Sandbox()).ID(),
+	)
 	if isNotFound(err) {
 		return
 	}
 
 	if err != nil {
-		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get sandbox statuses of the pod %s: %v", eventType, sandboxStatuses.GetMetadata().GetUid(), err)
+		log.Errorf(
+			ctx,
+			"GenerateCRIEvent: event type: %s, failed to get sandbox statuses of the pod %s: %v",
+			eventType,
+			sandboxStatuses.GetMetadata().GetUid(),
+			err,
+		)
 
 		return
 	}
 
 	containerStatuses, err := s.getContainerStatuses(ctx, sandboxStatuses.GetMetadata().GetUid())
 	if err != nil {
-		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get container statuses of the pod %s: %v", eventType, sandboxStatuses.GetMetadata().GetUid(), err)
+		log.Errorf(
+			ctx,
+			"GenerateCRIEvent: event type: %s, failed to get container statuses of the pod %s: %v",
+			eventType,
+			sandboxStatuses.GetMetadata().GetUid(),
+			err,
+		)
 
 		return
 	}
@@ -1042,7 +1165,12 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: container.ID(), ContainerEventType: eventType, CreatedAt: time.Now().UnixNano(), PodSandboxStatus: sandboxStatuses, ContainersStatuses: containerStatuses}:
 		log.Debugf(ctx, "Container event %s generated for %s", eventType, container.ID())
 	default:
-		log.Errorf(ctx, "GenerateCRIEvent: failed to generate event %s for container %s", eventType, container.ID())
+		log.Errorf(
+			ctx,
+			"GenerateCRIEvent: failed to generate event %s for container %s",
+			eventType,
+			container.ID(),
+		)
 		metrics.Instance().MetricContainersEventsDroppedInc()
 
 		return
@@ -1067,7 +1195,10 @@ func isNotFound(err error) bool {
 // It then delegates the monitoring task to watchAndReloadMirrorRegistriesConfiguration.
 func (s *Server) startWatcherForMirrorRegistries(ctx context.Context, registriesConfDDir string) {
 	if registriesConfDDir == "" {
-		log.Infof(ctx, "No registries.conf.d directory specified, defaulting to /etc/containers/registries.conf.d")
+		log.Infof(
+			ctx,
+			"No registries.conf.d directory specified, defaulting to /etc/containers/registries.conf.d",
+		)
 
 		registriesConfDDir = defaultRegistriesConfDDir
 	}
@@ -1090,7 +1221,10 @@ func (s *Server) startWatcherForMirrorRegistries(ctx context.Context, registries
 	s.watchAndReloadMirrorRegistriesConfiguration(ctx, watcher)
 }
 
-func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context, watcher *fsnotify.Watcher) {
+func (s *Server) watchAndReloadMirrorRegistriesConfiguration(
+	ctx context.Context,
+	watcher *fsnotify.Watcher,
+) {
 	var timer *time.Timer
 
 	reloadChannel := make(chan string, 1)

@@ -50,11 +50,16 @@ func ConnectRuntime() (*runtime, error) {
 
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),                  //nolint:staticcheck,nolintlint // deprecated but needed for blocking dial
-		grpc.FailOnNonTempDialError(true), //nolint:staticcheck,nolintlint // deprecated but needed for error handling
+		grpc.WithBlock(), //nolint:staticcheck // deprecated but needed for blocking dial
+		grpc.FailOnNonTempDialError( //nolint:staticcheck // deprecated but needed for error handling
+			true,
+		),
 	}
 
-	cc, err := grpc.DialContext(ctx, *crioSocket, dialOpts...) //nolint:staticcheck,nolintlint // deprecated but needed for context-based dial
+	cc, err := grpc.DialContext( //nolint:staticcheck // deprecated but needed for context-based dial
+		ctx,
+		*crioSocket,
+		dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("runtime connection failed: %w", err)
 	}
@@ -315,7 +320,9 @@ func (r *runtime) RemovePod(pod string) error {
 	return nil
 }
 
-func (r *runtime) ListContainers(namespace string) (running, other, readyPods, otherPods []string, err error) {
+func (r *runtime) ListContainers(
+	namespace string,
+) (running, other, readyPods, otherPods []string, err error) {
 	readyPods, otherPods, err = r.ListPods(namespace)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -431,7 +438,10 @@ func WithSecurityContext(c *cri.LinuxContainerSecurityContext) ContainerOption {
 	}
 }
 
-func (r *runtime) CreateContainer(pod, name, uid string, options ...ContainerOption) (string, error) {
+func (r *runtime) CreateContainer(
+	pod, name, uid string,
+	options ...ContainerOption,
+) (string, error) {
 	podConfig, ok := r.podConfigs[pod]
 	if !ok {
 		return "", fmt.Errorf("failed to create container %s:%s=%s, no pod config found",

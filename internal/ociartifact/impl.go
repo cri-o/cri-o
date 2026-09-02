@@ -21,17 +21,30 @@ type Impl interface {
 	// GetManifestFromRef fetches the raw manifest bytes and its MIME type
 	// from the given image reference. If instanceDigest is non-nil, it
 	// retrieves that specific manifest instance rather than the root manifest.
-	GetManifestFromRef(context.Context, types.ImageReference, *types.SystemContext, *digest.Digest) ([]byte, string, error)
+	GetManifestFromRef(
+		context.Context,
+		types.ImageReference,
+		*types.SystemContext,
+		*digest.Digest,
+	) ([]byte, string, error)
 }
 
 // defaultImpl is the default implementation for the OCI artifact handling.
 type defaultImpl struct{}
 
-func (*defaultImpl) ChooseInstance(list manifest.List, sys *types.SystemContext) (digest.Digest, error) {
+func (*defaultImpl) ChooseInstance(
+	list manifest.List,
+	sys *types.SystemContext,
+) (digest.Digest, error) {
 	return list.ChooseInstance(sys)
 }
 
-func (*defaultImpl) GetManifestFromRef(ctx context.Context, ref types.ImageReference, sys *types.SystemContext, instanceDigest *digest.Digest) (manifestBlob []byte, mimeType string, err error) {
+func (*defaultImpl) GetManifestFromRef(
+	ctx context.Context,
+	ref types.ImageReference,
+	sys *types.SystemContext,
+	instanceDigest *digest.Digest,
+) (manifestBlob []byte, mimeType string, err error) {
 	src, err := ref.NewImageSource(ctx, sys)
 	if err != nil {
 		return nil, "", fmt.Errorf("create image source: %w", err)

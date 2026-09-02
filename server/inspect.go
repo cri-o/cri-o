@@ -61,7 +61,12 @@ var (
 	errSandboxNotFound = errors.New("sandbox for container not found")
 )
 
-func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFunc, getInfraContainerFunc func(ctx context.Context, id string) *oci.Container, getSandboxFunc func(ctx context.Context, id string) *sandbox.Sandbox) (types.ContainerInfo, error) {
+func (s *Server) getContainerInfo(
+	ctx context.Context,
+	id string,
+	getContainerFunc, getInfraContainerFunc func(ctx context.Context, id string) *oci.Container,
+	getSandboxFunc func(ctx context.Context, id string) *sandbox.Sandbox,
+) (types.ContainerInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -177,127 +182,164 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		}
 	}))
 
-	mux.Get(InspectContainersEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		ctx := context.TODO()
-		containerID := chi.URLParam(req, "id")
+	mux.Get(
+		InspectContainersEndpoint+"/{id}",
+		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := context.TODO()
+			containerID := chi.URLParam(req, "id")
 
-		ci, err := s.getContainerInfo(ctx, containerID, s.GetContainer, s.getInfraContainer, s.getSandbox)
-		if err != nil {
-			switch {
-			case errors.Is(err, errCtrNotFound):
-				http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
-			case errors.Is(err, errCtrStateNil):
-				http.Error(w, "can't find container state for container with id "+containerID, http.StatusInternalServerError)
-			case errors.Is(err, errSandboxNotFound):
-				http.Error(w, "can't find the sandbox for container id "+containerID, http.StatusNotFound)
-			default:
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+			ci, err := s.getContainerInfo(
+				ctx,
+				containerID,
+				s.GetContainer,
+				s.getInfraContainer,
+				s.getSandbox,
+			)
+			if err != nil {
+				switch {
+				case errors.Is(err, errCtrNotFound):
+					http.Error(
+						w,
+						"can't find the container with id "+containerID,
+						http.StatusNotFound,
+					)
+				case errors.Is(err, errCtrStateNil):
+					http.Error(
+						w,
+						"can't find container state for container with id "+containerID,
+						http.StatusInternalServerError,
+					)
+				case errors.Is(err, errSandboxNotFound):
+					http.Error(
+						w,
+						"can't find the sandbox for container id "+containerID,
+						http.StatusNotFound,
+					)
+				default:
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+
+				return
 			}
 
-			return
-		}
+			js, err := json.Marshal(ci)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 
-		js, err := json.Marshal(ci)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 
-			return
-		}
+			w.Header().Set("Content-Type", "application/json")
 
-		w.Header().Set("Content-Type", "application/json")
+			if _, err := w.Write(js); err != nil {
+				logrus.Errorf("Unable to write response JSON: %v", err)
+			}
+		}),
+	)
 
-		if _, err := w.Write(js); err != nil {
-			logrus.Errorf("Unable to write response JSON: %v", err)
-		}
-	}))
+	mux.Get(
+		InspectPauseEndpoint+"/{id}",
+		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			containerID := chi.URLParam(req, "id")
+			ctx := context.TODO()
+			ctr := s.GetContainer(ctx, containerID)
 
-	mux.Get(InspectPauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		containerID := chi.URLParam(req, "id")
-		ctx := context.TODO()
-		ctr := s.GetContainer(ctx, containerID)
+			if ctr == nil {
+				http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
 
-		if ctr == nil {
-			http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
+				return
+			}
 
-			return
-		}
+			ctrStatus := ctr.State().Status
+			if ctrStatus != oci.ContainerStateRunning && ctrStatus != oci.ContainerStateCreated {
+				http.Error(
+					w,
+					fmt.Sprintf(
+						"container is not in running or created state, now is %s",
+						ctrStatus,
+					),
+					http.StatusConflict,
+				)
 
-		ctrStatus := ctr.State().Status
-		if ctrStatus != oci.ContainerStateRunning && ctrStatus != oci.ContainerStateCreated {
-			http.Error(w,
-				fmt.Sprintf("container is not in running or created state, now is %s", ctrStatus),
-				http.StatusConflict)
+				return
+			}
 
-			return
-		}
+			if err := s.ContainerServer.Runtime().PauseContainer(s.stream.ctx, ctr); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 
-		if err := s.ContainerServer.Runtime().PauseContainer(s.stream.ctx, ctr); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 
-			return
-		}
+			if err := s.ContainerServer.Runtime().
+				UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 
-		if err := s.ContainerServer.Runtime().UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 
-			return
-		}
+			w.Header().Set("Content-Type", "text/html")
 
-		w.Header().Set("Content-Type", "text/html")
+			if _, err := w.Write([]byte("200 OK")); err != nil {
+				logrus.Errorf("Unable to write response JSON: %v", err)
+			}
+		}),
+	)
 
-		if _, err := w.Write([]byte("200 OK")); err != nil {
-			logrus.Errorf("Unable to write response JSON: %v", err)
-		}
-	}))
+	mux.Get(
+		InspectUnpauseEndpoint+"/{id}",
+		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			containerID := chi.URLParam(req, "id")
+			ctx := context.TODO()
+			ctr := s.GetContainer(ctx, containerID)
 
-	mux.Get(InspectUnpauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		containerID := chi.URLParam(req, "id")
-		ctx := context.TODO()
-		ctr := s.GetContainer(ctx, containerID)
+			if ctr == nil {
+				http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
 
-		if ctr == nil {
-			http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
+				return
+			}
 
-			return
-		}
+			ctrStatus := ctr.State().Status
+			if ctrStatus != oci.ContainerStatePaused {
+				http.Error(w,
+					fmt.Sprintf("container is not in paused state, now is %s", ctrStatus),
+					http.StatusConflict)
 
-		ctrStatus := ctr.State().Status
-		if ctrStatus != oci.ContainerStatePaused {
-			http.Error(w,
-				fmt.Sprintf("container is not in paused state, now is %s", ctrStatus),
-				http.StatusConflict)
+				return
+			}
 
-			return
-		}
+			if err := s.ContainerServer.Runtime().UnpauseContainer(s.stream.ctx, ctr); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 
-		if err := s.ContainerServer.Runtime().UnpauseContainer(s.stream.ctx, ctr); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 
-			return
-		}
+			if err := s.ContainerServer.Runtime().
+				UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 
-		if err := s.ContainerServer.Runtime().UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 
-			return
-		}
+			w.Header().Set("Content-Type", "text/html")
 
-		w.Header().Set("Content-Type", "text/html")
+			if _, err := w.Write([]byte("200 OK")); err != nil {
+				logrus.Errorf("Unable to write response JSON: %v", err)
+			}
+		}),
+	)
 
-		if _, err := w.Write([]byte("200 OK")); err != nil {
-			logrus.Errorf("Unable to write response JSON: %v", err)
-		}
-	}))
+	mux.Get(
+		InspectGoRoutinesEndpoint,
+		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("Content-Type", "text/plain")
 
-	mux.Get(InspectGoRoutinesEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
+			if err := utils.WriteGoroutineStacksTo(w); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 
-		if err := utils.WriteGoroutineStacksTo(w); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-
-			return
-		}
-	}))
+				return
+			}
+		}),
+	)
 
 	mux.Get(InspectHeapEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")

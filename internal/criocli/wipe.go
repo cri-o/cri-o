@@ -96,7 +96,9 @@ func crioWipe(c *cli.Context) error {
 		return nil
 	}
 
-	logrus.Infof("Internal wipe not set, meaning crio wipe will wipe. In the future, all wipes after reboot will happen when starting the crio server.")
+	logrus.Infof(
+		"Internal wipe not set, meaning crio wipe will wipe. In the future, all wipes after reboot will happen when starting the crio server.",
+	)
 
 	// if we should not wipe, exit with no error
 	if !shouldWipeContainers {
@@ -105,7 +107,9 @@ func crioWipe(c *cli.Context) error {
 		// However, now, we cannot expect users to have version-file-persist after having upgraded
 		// to this version. Skip the wipe, for now, and log about it.
 		if shouldWipeImages {
-			logrus.Infof("Legacy version-file path found, but new version-file-persist path not. Skipping wipe")
+			logrus.Infof(
+				"Legacy version-file path found, but new version-file-persist path not. Skipping wipe",
+			)
 		}
 
 		logrus.Infof("Version unchanged and node not rebooted; no wipe needed")

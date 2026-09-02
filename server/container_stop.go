@@ -17,7 +17,10 @@ import (
 )
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
-func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequest) (*types.StopContainerResponse, error) {
+func (s *Server) StopContainer(
+	ctx context.Context,
+	req *types.StopContainerRequest,
+) (*types.StopContainerResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -32,7 +35,12 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 			return &types.StopContainerResponse{}, nil
 		}
 
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
+		return nil, status.Errorf(
+			codes.NotFound,
+			"could not find container %q: %v",
+			req.GetContainerId(),
+			err,
+		)
 	}
 
 	if err := s.stopContainer(ctx, c, req.GetTimeout()); err != nil {
@@ -67,7 +75,12 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	return nil
 }
 
-func (s *Server) postStopCleanup(ctx context.Context, ctr *oci.Container, sb *sandbox.Sandbox, hooks runtimehandlerhooks.RuntimeHandlerHooks) {
+func (s *Server) postStopCleanup(
+	ctx context.Context,
+	ctr *oci.Container,
+	sb *sandbox.Sandbox,
+	hooks runtimehandlerhooks.RuntimeHandlerHooks,
+) {
 	runtimeSvc, err := s.StorageRuntimeServer(sb)
 	if err != nil {
 		log.Errorf(ctx, "Failed to get runtime service for container %s: %v", ctr.ID(), err)

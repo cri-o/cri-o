@@ -361,9 +361,13 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with invalid metadata", func() {
 			// Given
-			manifest := bytes.Replace(testManifest,
-				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`),
-				[]byte(`"io.kubernetes.cri-o.Metadata": "",`), 1,
+			manifest := bytes.Replace(
+				testManifest,
+				[]byte(
+					`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`,
+				),
+				[]byte(`"io.kubernetes.cri-o.Metadata": "",`),
+				1,
 			)
 			gomock.InOrder(
 				storeMock.EXPECT().
@@ -517,9 +521,15 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with empty metadata name", func() {
 			// Given
-			manifest := bytes.Replace(testManifest,
-				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`),
-				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"namespace\":\"default\",\"uid\":\"abc123\"}",`), 1,
+			manifest := bytes.Replace(
+				testManifest,
+				[]byte(
+					`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`,
+				),
+				[]byte(
+					`"io.kubernetes.cri-o.Metadata": "{\"namespace\":\"default\",\"uid\":\"abc123\"}",`,
+				),
+				1,
 			)
 			gomock.InOrder(
 				storeMock.EXPECT().
@@ -537,9 +547,15 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail with empty metadata uid", func() {
 			// Given
-			manifest := bytes.Replace(testManifest,
-				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`),
-				[]byte(`"io.kubernetes.cri-o.Metadata": "{\"name\":\"test\",\"namespace\":\"default\"}",`), 1,
+			manifest := bytes.Replace(
+				testManifest,
+				[]byte(
+					`"io.kubernetes.cri-o.Metadata": "{\"name\":\"testpod\",\"namespace\":\"default\",\"uid\":\"test-uid-123\",\"attempt\":0}",`,
+				),
+				[]byte(
+					`"io.kubernetes.cri-o.Metadata": "{\"name\":\"test\",\"namespace\":\"default\"}",`,
+				),
+				1,
 			)
 			gomock.InOrder(
 				storeMock.EXPECT().

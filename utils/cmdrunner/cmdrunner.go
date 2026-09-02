@@ -89,7 +89,11 @@ func (c *prependableCommandRunner) Command(cmd string, args ...string) *exec.Cmd
 // CommandContext creates an exec.Cmd object. If prependCmd is defined, the command will be prependCmd
 // and the args will be prependArgs + cmd + args.
 // Otherwise, cmd and args will be as inputted.
-func (c *prependableCommandRunner) CommandContext(ctx context.Context, cmd string, args ...string) *exec.Cmd {
+func (c *prependableCommandRunner) CommandContext(
+	ctx context.Context,
+	cmd string,
+	args ...string,
+) *exec.Cmd {
 	realCmd := cmd
 	realArgs := args
 

@@ -7,14 +7,20 @@ import (
 )
 
 // ListPodSandboxStats returns stats of all sandboxes.
-func (s *Server) ListPodSandboxStats(ctx context.Context, req *types.ListPodSandboxStatsRequest) (*types.ListPodSandboxStatsResponse, error) {
+func (s *Server) ListPodSandboxStats(
+	ctx context.Context,
+	req *types.ListPodSandboxStatsRequest,
+) (*types.ListPodSandboxStatsResponse, error) {
 	return &types.ListPodSandboxStatsResponse{
 		Stats: s.listPodSandboxStats(ctx, req.GetFilter()),
 	}, nil
 }
 
 // StreamPodSandboxStats returns a stream of pod sandbox stats.
-func (s *Server) StreamPodSandboxStats(req *types.StreamPodSandboxStatsRequest, stream types.RuntimeService_StreamPodSandboxStatsServer) error {
+func (s *Server) StreamPodSandboxStats(
+	req *types.StreamPodSandboxStatsRequest,
+	stream types.RuntimeService_StreamPodSandboxStatsServer,
+) error {
 	ctx := stream.Context()
 
 	stats := s.listPodSandboxStats(ctx, req.GetFilter())
@@ -31,7 +37,10 @@ func (s *Server) StreamPodSandboxStats(req *types.StreamPodSandboxStatsRequest, 
 }
 
 // listPodSandboxStats returns stats for sandboxes matching the filter.
-func (s *Server) listPodSandboxStats(ctx context.Context, filter *types.PodSandboxStatsFilter) []*types.PodSandboxStats {
+func (s *Server) listPodSandboxStats(
+	ctx context.Context,
+	filter *types.PodSandboxStatsFilter,
+) []*types.PodSandboxStats {
 	sboxList := s.ListSandboxes()
 
 	if filter != nil {

@@ -44,7 +44,10 @@ func (c *RuntimeConfig) Sysctls() ([]Sysctl, error) {
 		// 'key=value'
 		trimmed := strings.TrimSpace(split[0]) + "=" + strings.TrimSpace(split[1])
 		if trimmed != sysctl {
-			return nil, fmt.Errorf("'%s' is invalid, extra spaces found: format should be key=value", sysctl)
+			return nil, fmt.Errorf(
+				"'%s' is invalid, extra spaces found: format should be key=value",
+				sysctl,
+			)
 		}
 
 		sysctls = append(sysctls, Sysctl{key: split[0], value: split[1]})

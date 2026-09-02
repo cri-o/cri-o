@@ -377,7 +377,11 @@ func (b *sandboxBuilder) SetDNSConfig(dnsConfig *types.DNSConfig) {
 
 // SetCRISandbox sets the CRISandbox.
 // TODO: Consider breaking this to separate Create and Update functions.
-func (b *sandboxBuilder) SetCRISandbox(id string, labels, annotations map[string]string, metadata *types.PodSandboxMetadata) error {
+func (b *sandboxBuilder) SetCRISandbox(
+	id string,
+	labels, annotations map[string]string,
+	metadata *types.PodSandboxMetadata,
+) error {
 	b.validations.setValidation(validationSetCRISandbox)
 
 	if b.sandboxRef.createdAt.IsZero() {

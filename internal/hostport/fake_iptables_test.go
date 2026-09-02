@@ -29,8 +29,16 @@ var _ = t.Describe("RestoreFlushRules", func() {
 	It("should succeed", func() {
 		iptables := newFakeIPTables()
 		rules := [][]string{
-			{"-A", "KUBE-HOSTPORTS", "-m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-5N7UH5JAXCVP5UJR"},
-			{"-A", "POSTROUTING", "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"},
+			{
+				"-A",
+				"KUBE-HOSTPORTS",
+				"-m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-5N7UH5JAXCVP5UJR",
+			},
+			{
+				"-A",
+				"POSTROUTING",
+				"-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE",
+			},
 		}
 		natRules := bytes.NewBuffer(nil)
 		writeLine(natRules, "*nat")
@@ -38,14 +46,24 @@ var _ = t.Describe("RestoreFlushRules", func() {
 		for _, rule := range rules {
 			_, err := iptables.EnsureChain(utiliptables.TableNAT, utiliptables.Chain(rule[1]))
 			Expect(err).NotTo(HaveOccurred())
-			_, err = iptables.ensureRule(utiliptables.RulePosition(rule[0]), utiliptables.TableNAT, utiliptables.Chain(rule[1]), rule[2])
+			_, err = iptables.ensureRule(
+				utiliptables.RulePosition(rule[0]),
+				utiliptables.TableNAT,
+				utiliptables.Chain(rule[1]),
+				rule[2],
+			)
 			Expect(err).NotTo(HaveOccurred())
 
 			writeLine(natRules, utiliptables.MakeChainLine(utiliptables.Chain(rule[1])))
 		}
 
 		writeLine(natRules, "COMMIT")
-		err := iptables.Restore(utiliptables.TableNAT, natRules.Bytes(), utiliptables.NoFlushTables, utiliptables.RestoreCounters)
+		err := iptables.Restore(
+			utiliptables.TableNAT,
+			natRules.Bytes(),
+			utiliptables.NoFlushTables,
+			utiliptables.RestoreCounters,
+		)
 		Expect(err).NotTo(HaveOccurred())
 
 		natTable, ok := iptables.tables[string(utiliptables.TableNAT)]

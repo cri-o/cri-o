@@ -245,7 +245,7 @@ func (i *Info) String() string {
 
 		case reflect.Slice:
 			// Only expecting []string here; ignore other slices.
-			if s, ok := value.Interface().([]string); ok {
+			if s, ok := reflect.TypeAssert[[]string](value); ok {
 				const sep = "\n  "
 
 				valueString = sep + strings.Join(s, sep)

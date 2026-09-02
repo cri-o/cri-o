@@ -5,7 +5,13 @@ import (
 )
 
 func mountLogPath(podLogsPath, emptyDirLoggingVolumePath string) error {
-	return unix.Mount(podLogsPath, emptyDirLoggingVolumePath, "bind", unix.MS_BIND|unix.MS_RDONLY, "")
+	return unix.Mount(
+		podLogsPath,
+		emptyDirLoggingVolumePath,
+		"bind",
+		unix.MS_BIND|unix.MS_RDONLY,
+		"",
+	)
 }
 
 func unmountLogPath(emptyDirLoggingVolumePath string) error {

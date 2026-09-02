@@ -23,7 +23,10 @@ import (
 
 // checkIfCheckpointOCIImage returns checks if the input refers to a checkpoint image.
 // It returns the StorageImageID of the image the input resolves to, nil otherwise.
-func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*storage.StorageImageID, error) {
+func (s *Server) checkIfCheckpointOCIImage(
+	ctx context.Context,
+	input string,
+) (*storage.StorageImageID, error) {
 	if input == "" {
 		return nil, nil
 	}
@@ -88,7 +91,11 @@ func (s *Server) CRImportCheckpoint(
 		// WARNING: This hard-codes an assumption that SignaturePolicyPath set specifically for the namespace is never less restrictive
 		// than the default system-wide policy, i.e. that if an image is successfully pulled, it always conforms to the system-wide policy.
 		if systemCtx.SignaturePolicyPath != "" {
-			return "", fmt.Errorf("namespaced signature policy %s defined for pods in namespace %s; signature validation is not supported for container restore", systemCtx.SignaturePolicyPath, sb.Metadata().GetNamespace())
+			return "", fmt.Errorf(
+				"namespaced signature policy %s defined for pods in namespace %s; signature validation is not supported for container restore",
+				systemCtx.SignaturePolicyPath,
+				sb.Metadata().GetNamespace(),
+			)
 		}
 
 		log.Debugf(ctx, "Restoring from oci image %s", inputImage)
@@ -99,7 +106,8 @@ func (s *Server) CRImportCheckpoint(
 		}
 
 		// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
-		mountPoint, err = imageServer.GetStore().MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
+		mountPoint, err = imageServer.GetStore().
+			MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
 		if err != nil {
 			return "", err
 		}
@@ -108,8 +116,14 @@ func (s *Server) CRImportCheckpoint(
 
 		defer func() {
 			// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
-			if _, err := imageServer.GetStore().UnmountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), true); err != nil {
-				log.Errorf(ctx, "Could not unmount checkpoint image %s: %q", restoreStorageImageID, err)
+			if _, err := imageServer.GetStore().
+				UnmountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), true); err != nil {
+				log.Errorf(
+					ctx,
+					"Could not unmount checkpoint image %s: %q",
+					restoreStorageImageID,
+					err,
+				)
 			}
 		}()
 	} else {
@@ -117,7 +131,11 @@ func (s *Server) CRImportCheckpoint(
 		// tarball to a temporary directory
 		archiveFile, err := os.Open(inputImage)
 		if err != nil {
-			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", inputImage, err)
+			return "", fmt.Errorf(
+				"failed to open checkpoint archive %s for import: %w",
+				inputImage,
+				err,
+			)
 		}
 		defer func(f *os.File) {
 			if err := f.Close(); err != nil {
@@ -171,7 +189,10 @@ func (s *Server) CRImportCheckpoint(
 
 	originalAnnotations := make(map[string]string)
 
-	if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
+	if err := json.Unmarshal(
+		[]byte(dumpSpec.Annotations[annotations.Annotations]),
+		&originalAnnotations,
+	); err != nil {
 		return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
 	}
 
@@ -357,7 +378,10 @@ func (s *Server) CRImportCheckpoint(
 	}
 
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		return "", fmt.Errorf("kubelet may be retrying requests that are timing out in CRI-O due to system load: %w", err)
+		return "", fmt.Errorf(
+			"kubelet may be retrying requests that are timing out in CRI-O due to system load: %w",
+			err,
+		)
 	}
 
 	defer func() {
@@ -419,7 +443,11 @@ func (s *Server) CRImportCheckpoint(
 	newContainer.SetCheckpointedAt(config.CheckpointedAt)
 
 	if isContextError(ctx.Err()) {
-		log.Infof(ctx, "RestoreCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+		log.Infof(
+			ctx,
+			"RestoreCtr: context was either canceled or the deadline was exceeded: %v",
+			ctx.Err(),
+		)
 
 		return "", ctx.Err()
 	}

@@ -16,13 +16,21 @@ import (
 )
 
 // PodSandboxStatus returns the Status of the PodSandbox.
-func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStatusRequest) (*types.PodSandboxStatusResponse, error) {
+func (s *Server) PodSandboxStatus(
+	ctx context.Context,
+	req *types.PodSandboxStatusRequest,
+) (*types.PodSandboxStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
 	sb, err := s.getPodSandboxFromRequest(ctx, req.GetPodSandboxId())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.GetPodSandboxId(), err)
+		return nil, status.Errorf(
+			codes.NotFound,
+			"could not find pod %q: %v",
+			req.GetPodSandboxId(),
+			err,
+		)
 	}
 
 	rStatus := sb.State()
@@ -44,7 +52,12 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 
 		containerStatuses, err = s.getContainerStatusesFromSandboxID(ctx, req.GetPodSandboxId())
 		if err != nil {
-			return nil, status.Errorf(codes.Unknown, "could not get container statuses of the sandbox Id %q: %v", req.GetPodSandboxId(), err)
+			return nil, status.Errorf(
+				codes.Unknown,
+				"could not get container statuses of the sandbox Id %q: %v",
+				req.GetPodSandboxId(),
+				err,
+			)
 		}
 	}
 

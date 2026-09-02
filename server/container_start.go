@@ -15,7 +15,10 @@ import (
 )
 
 // StartContainer starts the container.
-func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRequest) (res *types.StartContainerResponse, retErr error) {
+func (s *Server) StartContainer(
+	ctx context.Context,
+	req *types.StartContainerRequest,
+) (res *types.StartContainerResponse, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -23,7 +26,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
+		return nil, status.Errorf(
+			codes.NotFound,
+			"could not find container %q: %v",
+			req.GetContainerId(),
+			err,
+		)
 	}
 
 	if c.Restore() {

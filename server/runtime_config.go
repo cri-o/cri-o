@@ -7,7 +7,10 @@ import (
 )
 
 // RuntimeConfig returns configuration information of the runtime.
-func (s *Server) RuntimeConfig(_ context.Context, req *types.RuntimeConfigRequest) (*types.RuntimeConfigResponse, error) {
+func (s *Server) RuntimeConfig(
+	_ context.Context,
+	req *types.RuntimeConfigRequest,
+) (*types.RuntimeConfigResponse, error) {
 	resp := &types.RuntimeConfigResponse{
 		Linux: &types.LinuxRuntimeConfiguration{
 			CgroupDriver: s.getCgroupDriver(),

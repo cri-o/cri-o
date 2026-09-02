@@ -30,7 +30,11 @@ var _ = Describe("Utils", func() {
 
 		DescribeTable("testing cpu mask",
 			func(c TestData) {
-				mask, invMask, err := calcIRQSMPAffinityMask(cpuSetOrDie(c.input.cpus), c.input.mask, c.input.set)
+				mask, invMask, err := calcIRQSMPAffinityMask(
+					cpuSetOrDie(c.input.cpus),
+					c.input.mask,
+					c.input.set,
+				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mask).To(Equal(c.expected.mask))
 				Expect(invMask).To(Equal(c.expected.invMask))
@@ -85,7 +89,9 @@ var _ = Describe("Utils", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					// we should replace the line in place
-					Expect(curLineCount).To(Equal(refLineCount), "irqbalance file grown from %d to %d lines", refLineCount, curLineCount)
+					Expect(
+						curLineCount,
+					).To(Equal(refLineCount), "irqbalance file grown from %d to %d lines", refLineCount, curLineCount)
 				}
 			})
 		})

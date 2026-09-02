@@ -13,7 +13,10 @@ import (
 )
 
 // PortForward prepares a streaming endpoint to forward ports from a PodSandbox.
-func (s *Server) PortForward(ctx context.Context, req *types.PortForwardRequest) (*types.PortForwardResponse, error) {
+func (s *Server) PortForward(
+	ctx context.Context,
+	req *types.PortForwardRequest,
+) (*types.PortForwardResponse, error) {
 	resp, err := s.getPortForward(req)
 	if err != nil {
 		return nil, errors.New("unable to prepare portforward endpoint")
@@ -22,7 +25,12 @@ func (s *Server) PortForward(ctx context.Context, req *types.PortForwardRequest)
 	return resp, nil
 }
 
-func (s *StreamService) PortForward(ctx context.Context, podSandboxID string, port int32, stream io.ReadWriteCloser) error {
+func (s *StreamService) PortForward(
+	ctx context.Context,
+	podSandboxID string,
+	port int32,
+	stream io.ReadWriteCloser,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -62,5 +70,6 @@ func (s *StreamService) PortForward(ctx context.Context, podSandboxID string, po
 		)
 	}
 
-	return s.runtimeServer.ContainerServer.Runtime().PortForwardContainer(ctx, sb.InfraContainer(), netNsPath, port, stream)
+	return s.runtimeServer.ContainerServer.Runtime().
+		PortForwardContainer(ctx, sb.InfraContainer(), netNsPath, port, stream)
 }

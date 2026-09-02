@@ -34,12 +34,17 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 	}
 
 	// Mutate our newly created spec to find the customizations that are needed for conmon
-	if err := r.config.Workloads.MutateSpecGivenAnnotations(InfraContainerName, &g, c.Annotations()); err != nil {
+	if err := r.config.Workloads.MutateSpecGivenAnnotations(
+		InfraContainerName,
+		&g,
+		c.Annotations(),
+	); err != nil {
 		return err
 	}
 
 	// Move conmon to specified cgroup
-	conmonCgroupfsPath, err := r.config.CgroupManager().MoveConmonToCgroup(c.ID(), cgroupParent, r.handler.MonitorCgroup, pid, g.Config.Linux.Resources)
+	conmonCgroupfsPath, err := r.config.CgroupManager().
+		MoveConmonToCgroup(c.ID(), cgroupParent, r.handler.MonitorCgroup, pid, g.Config.Linux.Resources)
 	if err != nil {
 		return err
 	}

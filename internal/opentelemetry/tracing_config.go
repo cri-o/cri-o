@@ -24,7 +24,11 @@ func Tracer() trace.Tracer {
 }
 
 // InitTracing configures opentelemetry exporter and tracer provider.
-func InitTracing(ctx context.Context, collectorAddress string, samplingRate int) (*sdktrace.TracerProvider, []otelgrpc.Option, error) {
+func InitTracing(
+	ctx context.Context,
+	collectorAddress string,
+	samplingRate int,
+) (*sdktrace.TracerProvider, []otelgrpc.Option, error) {
 	var tp *sdktrace.TracerProvider
 
 	hostname, err := os.Hostname()
@@ -60,7 +64,10 @@ func InitTracing(ctx context.Context, collectorAddress string, samplingRate int)
 		sdktrace.WithSpanProcessor(bsp),
 		sdktrace.WithResource(res),
 	)
-	tmp := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	tmp := propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
 
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(tmp)

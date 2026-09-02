@@ -81,7 +81,11 @@ var _ = t.Describe("DataStore", func() {
 				Return(digest.Digest(""), errTest)
 
 			// When
-			res, err := dataStore.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
+			res, err := dataStore.PullData(
+				context.Background(),
+				"quay.io/crio/nginx-seccomp:v2",
+				nil,
+			)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -107,7 +111,11 @@ var _ = t.Describe("DataStore", func() {
 				Return(nil, errTest)
 
 			// When
-			res, err := dataStore.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
+			res, err := dataStore.PullData(
+				context.Background(),
+				"quay.io/crio/nginx-seccomp:v2",
+				nil,
+			)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -136,7 +144,11 @@ var _ = t.Describe("DataStore", func() {
 				Return(nil, errTest)
 
 			// When
-			res, err := dataStore.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
+			res, err := dataStore.PullData(
+				context.Background(),
+				"quay.io/crio/nginx-seccomp:v2",
+				nil,
+			)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -167,7 +179,11 @@ var _ = t.Describe("DataStore", func() {
 				Return(largeData, nil)
 
 			// When
-			res, err := dataStore.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
+			res, err := dataStore.PullData(
+				context.Background(),
+				"quay.io/crio/nginx-seccomp:v2",
+				nil,
+			)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -198,7 +214,11 @@ var _ = t.Describe("DataStore", func() {
 				Return(blobData, nil)
 
 			// When
-			res, err := dataStore.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", nil)
+			res, err := dataStore.PullData(
+				context.Background(),
+				"quay.io/crio/nginx-seccomp:v2",
+				nil,
+			)
 
 			// Then
 			Expect(err).NotTo(HaveOccurred())
@@ -224,9 +244,13 @@ var _ = t.Describe("DataStore", func() {
 				Return(nil, nil)
 
 			// When
-			res, err := dataStore.PullData(context.Background(), "quay.io/crio/nginx-seccomp:v2", &datastore.PullOptions{
-				CopyOptions: &libimage.CopyOptions{},
-			})
+			res, err := dataStore.PullData(
+				context.Background(),
+				"quay.io/crio/nginx-seccomp:v2",
+				&datastore.PullOptions{
+					CopyOptions: &libimage.CopyOptions{},
+				},
+			)
 
 			// Then
 			Expect(err).NotTo(HaveOccurred())

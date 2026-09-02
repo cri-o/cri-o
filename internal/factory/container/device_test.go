@@ -435,7 +435,9 @@ containerEdits:
 
 				if err == nil {
 					Expect(sut.Spec().Config.Process.Env).Should(ContainElements(test.expectEnv))
-					Expect(sut.Spec().Config.Linux.Devices).Should(ContainElements(test.expectDevices))
+					Expect(
+						sut.Spec().Config.Linux.Devices,
+					).Should(ContainElements(test.expectDevices))
 				}
 			})
 		}

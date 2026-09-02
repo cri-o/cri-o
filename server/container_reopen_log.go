@@ -11,7 +11,10 @@ import (
 )
 
 // ReopenContainerLog reopens the containers log file.
-func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContainerLogRequest) (*types.ReopenContainerLogResponse, error) {
+func (s *Server) ReopenContainerLog(
+	ctx context.Context,
+	req *types.ReopenContainerLogRequest,
+) (*types.ReopenContainerLogResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 

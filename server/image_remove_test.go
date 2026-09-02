@@ -18,7 +18,9 @@ const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d9246
 
 // The actual test suite.
 var _ = t.Describe("ImageRemove", func() {
-	resolvedImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
+	resolvedImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+		"docker.io/library/image:latest",
+	)
 	Expect(err).ToNot(HaveOccurred())
 
 	storageID, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)

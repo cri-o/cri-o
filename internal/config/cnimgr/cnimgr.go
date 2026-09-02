@@ -31,7 +31,11 @@ type CNIManager struct {
 	validPodList PodNetworkLister
 }
 
-func New(defaultNetwork, networkDir string, gracePeriod time.Duration, pluginDirs ...string) (*CNIManager, error) {
+func New(
+	defaultNetwork, networkDir string,
+	gracePeriod time.Duration,
+	pluginDirs ...string,
+) (*CNIManager, error) {
 	// Init CNI plugin
 	plugin, err := ocicni.InitCNI(
 		defaultNetwork, networkDir, pluginDirs...,
@@ -71,12 +75,19 @@ func (c *CNIManager) pollContinuously(ctx context.Context) {
 	c.pollUntilReady(ctx)
 
 	if c.gracePeriod <= 0 {
-		logrus.Infof("Continuous CNI STATUS monitoring is disabled (cni_status_grace_period is %v)", c.gracePeriod)
+		logrus.Infof(
+			"Continuous CNI STATUS monitoring is disabled (cni_status_grace_period is %v)",
+			c.gracePeriod,
+		)
 
 		return
 	}
 
-	logrus.Infof("Continuous CNI STATUS monitoring enabled (grace period: %v, poll interval: %v)", c.gracePeriod, c.monitorPollInterval)
+	logrus.Infof(
+		"Continuous CNI STATUS monitoring enabled (grace period: %v, poll interval: %v)",
+		c.gracePeriod,
+		c.monitorPollInterval,
+	)
 
 	// Phase 2: slow poll to continuously monitor plugin health.
 	// If the plugin becomes unhealthy, lastError is set so that
@@ -99,7 +110,11 @@ func (c *CNIManager) statusPollFunc(ctx context.Context, isStartup bool) (bool, 
 		if !isStartup && c.lastError == nil {
 			if c.firstFailureTime.IsZero() {
 				c.firstFailureTime = time.Now()
-				logrus.Warnf("CNI plugin status check failed, will report unhealthy after grace period (%v): %v", c.gracePeriod, err)
+				logrus.Warnf(
+					"CNI plugin status check failed, will report unhealthy after grace period (%v): %v",
+					c.gracePeriod,
+					err,
+				)
 			}
 
 			if time.Since(c.firstFailureTime) < c.gracePeriod {

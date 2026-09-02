@@ -75,7 +75,10 @@ var _ = t.Describe("DeviceConfig", func() {
 		It("should fail if one invalid device", func() {
 			// Given
 			// When
-			d, err := device.DevicesFromAnnotation("/dev/true,/dev/invalid", []string{"/dev/null", "/dev/invalid"})
+			d, err := device.DevicesFromAnnotation(
+				"/dev/true,/dev/invalid",
+				[]string{"/dev/null", "/dev/invalid"},
+			)
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(d).To(BeEmpty())

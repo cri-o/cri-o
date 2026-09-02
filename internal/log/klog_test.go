@@ -43,7 +43,12 @@ var _ = t.Describe("Log", func() {
 	It("should fill missing value", func() {
 		// Given
 		// When
-		klog.InfoS(msg, "key1", "val1", "key2") //nolint:loggercheck // intentionally passing odd number of args to test missing value handling
+		klog.InfoS(
+			msg,
+			"key1", //nolint:loggercheck // testing missing value handling
+			"val1",
+			"key2",
+		)
 
 		// Then
 		Expect(buf.String()).To(ContainSubstring(msg))

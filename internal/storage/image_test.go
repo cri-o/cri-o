@@ -256,7 +256,10 @@ var _ = t.Describe("Image", func() {
 			gomock.InOrder()
 
 			// When
-			refs, err := sut.CandidatesForPotentiallyShortImageName(ctx, testNormalizedImageWithTagAndDigest)
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
+				ctx,
+				testNormalizedImageWithTagAndDigest,
+			)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -288,7 +291,12 @@ var _ = t.Describe("Image", func() {
 				},
 			}
 			// Create an empty file for the registries config path
-			sut, err := storage.GetImageService(context.Background(), storeMock, storageTransportMock, config)
+			sut, err := storage.GetImageService(
+				context.Background(),
+				storeMock,
+				storageTransportMock,
+				config,
+			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sut).NotTo(BeNil())
 
@@ -304,7 +312,11 @@ var _ = t.Describe("Image", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 
-			errString := fmt.Sprintf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", testImageName, "/dev/null")
+			errString := fmt.Sprintf(
+				"short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q",
+				testImageName,
+				"/dev/null",
+			)
 			Expect(err.Error()).To(Equal(errString))
 			Expect(refs).To(BeNil())
 		})
@@ -357,18 +369,26 @@ var _ = t.Describe("Image", func() {
 			namedRef = reference.TagNameOnly(namedRef)
 			expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, "")
 			Expect(err).ToNot(HaveOccurred())
-			resolvedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, testSHA256)
+			resolvedRef, err := istorage.Transport.NewStoreReference(
+				storeMock,
+				namedRef,
+				testSHA256,
+			)
 			Expect(err).ToNot(HaveOccurred())
 			mockutils.InOrder(
 				storageTransportMock.EXPECT().ResolveReference(expectedRef).
 					Return(resolvedRef,
 						&cs.Image{
-							ID:    testSHA256,
-							Names: []string{testNormalizedImageName, "localhost/b:latest", "localhost/c:latest"},
+							ID: testSHA256,
+							Names: []string{
+								testNormalizedImageName,
+								"localhost/b:latest",
+								"localhost/c:latest",
+							},
 						},
 						nil),
-
-				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest"}).
+				storeMock.EXPECT().
+					RemoveNames(testSHA256, []string{"docker.io/library/image:latest"}).
 					Return(t.TestError),
 			)
 
@@ -391,7 +411,11 @@ var _ = t.Describe("Image", func() {
 			namedRef = reference.TagNameOnly(namedRef)
 			expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, "")
 			Expect(err).ToNot(HaveOccurred())
-			resolvedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, testSHA256)
+			resolvedRef, err := istorage.Transport.NewStoreReference(
+				storeMock,
+				namedRef,
+				testSHA256,
+			)
 			Expect(err).ToNot(HaveOccurred())
 			// Given
 			mockutils.InOrder(
@@ -517,7 +541,10 @@ var _ = t.Describe("Image", func() {
 			mockutils.InOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{
-						{ID: testSHA256, Names: []string{"a:latest", "b:notlatest", "c@sha256:" + testSHA256}},
+						{
+							ID:    testSHA256,
+							Names: []string{"a:latest", "b:notlatest", "c@sha256:" + testSHA256},
+						},
 						{ID: testSHA256},
 					},
 					nil),
@@ -547,20 +574,23 @@ var _ = t.Describe("Image", func() {
 			Expect(res).To(BeNil())
 		})
 
-		It("should fail to list multiple images without filter on invalid image ID in results", func() {
-			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Images().Return(
-					[]cs.Image{{ID: ""}}, nil),
-			)
+		It(
+			"should fail to list multiple images without filter on invalid image ID in results",
+			func() {
+				// Given
+				gomock.InOrder(
+					storeMock.EXPECT().Images().Return(
+						[]cs.Image{{ID: ""}}, nil),
+				)
 
-			// When
-			res, err := sut.ListImages(&types.SystemContext{})
+				// When
+				res, err := sut.ListImages(&types.SystemContext{})
 
-			// Then
-			Expect(err).To(HaveOccurred())
-			Expect(res).To(BeNil())
-		})
+				// Then
+				Expect(err).To(HaveOccurred())
+				Expect(res).To(BeNil())
+			},
+		)
 
 		It("should fail to list multiple images without filter on append", func() {
 			// Given
@@ -583,7 +613,9 @@ var _ = t.Describe("Image", func() {
 	t.Describe("PullImage", func() {
 		It("should fail on invalid policy path", func() {
 			// Given
-			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+				"localhost/busybox:latest",
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
@@ -598,7 +630,9 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on copy image", func() {
 			// Given
-			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+				"localhost/busybox:latest",
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
@@ -613,7 +647,9 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on canonical copy image", func() {
 			// Given
-			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox@sha256:" + testSHA256)
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+				"localhost/busybox@sha256:" + testSHA256,
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
@@ -628,7 +664,9 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on cancelled context", func() {
 			// Given
-			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+				"localhost/busybox:latest",
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
@@ -647,7 +685,9 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on timed out context", func() {
 			// Given
-			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+				"localhost/busybox:latest",
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
@@ -667,7 +707,11 @@ var _ = t.Describe("Image", func() {
 
 	t.Describe("CompileRegexpsForPinnedImages", func() {
 		It("should return regexps for exact patterns", func() {
-			patterns := []string{"quay.io/crio/pause:latest", "docker.io/crio/sandbox:latest", "registry.k8s.io/pause:3.10.1"}
+			patterns := []string{
+				"quay.io/crio/pause:latest",
+				"docker.io/crio/sandbox:latest",
+				"registry.k8s.io/pause:3.10.1",
+			}
 			regexps := storage.CompileRegexpsForPinnedImages(patterns)
 			Expect(regexps).To(HaveLen(len(patterns)))
 			Expect(regexps[0].MatchString("quay.io/crio/pause:latest")).To(BeTrue())

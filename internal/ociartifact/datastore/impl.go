@@ -19,8 +19,16 @@ type Impl interface {
 
 // LibartifactStore is the interface for the underlying artifact store.
 type LibartifactStore interface {
-	Pull(ctx context.Context, ref libartifact.ArtifactReference, opts libimage.CopyOptions) (digest.Digest, error)
-	BlobMountPaths(ctx context.Context, asr libartifact.ArtifactStoreReference, opts *libartTypes.BlobMountPathOptions) ([]libartTypes.BlobMountPath, error)
+	Pull(
+		ctx context.Context,
+		ref libartifact.ArtifactReference,
+		opts libimage.CopyOptions,
+	) (digest.Digest, error)
+	BlobMountPaths(
+		ctx context.Context,
+		asr libartifact.ArtifactStoreReference,
+		opts *libartTypes.BlobMountPathOptions,
+	) ([]libartTypes.BlobMountPath, error)
 	List(ctx context.Context) (libartifact.ArtifactList, error)
 	Remove(ctx context.Context, asr libartifact.ArtifactStoreReference) (*digest.Digest, error)
 }

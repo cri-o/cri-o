@@ -51,7 +51,11 @@ func run() error {
 
 		sv, err := utils.GetCurrentVersionFromReleaseBranch(repo, baseBranchName) // returns "x.y.z"
 		if err != nil {
-			return fmt.Errorf("unable to read current version from release branch %q: %w", baseBranchName, err)
+			return fmt.Errorf(
+				"unable to read current version from release branch %q: %w",
+				baseBranchName,
+				err,
+			)
 		}
 
 		// Bump up the patch version
@@ -93,7 +97,8 @@ func updateVersionAndCreatePR(
 			return fmt.Errorf("unable to rebase branch %q: %w", newBranch, err)
 		}
 
-		if err := command.NewWithWorkDir(repo.Dir(), "git", "push", "-f").RunSilentSuccess(); err != nil {
+		if err := command.NewWithWorkDir(repo.Dir(), "git", "push", "-f").
+			RunSilentSuccess(); err != nil {
 			return fmt.Errorf("unable to force push to remote: %q: %w", newBranch, err)
 		}
 
@@ -213,7 +218,11 @@ func updateDependenciesYAML(oldVersion, newVersion string) error {
 
 	const developmentVersion = "name: development version\n    version: "
 
-	modifiedContent := bytes.ReplaceAll(content, []byte(developmentVersion+oldVersion), []byte(developmentVersion+newVersion))
+	modifiedContent := bytes.ReplaceAll(
+		content,
+		[]byte(developmentVersion+oldVersion),
+		[]byte(developmentVersion+newVersion),
+	)
 
 	err = os.WriteFile(utils.DependenciesYAMLFile, modifiedContent, 0o644)
 	if err != nil {

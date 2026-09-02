@@ -20,7 +20,11 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
-func (b *sandboxBuilder) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) error {
+func (b *sandboxBuilder) InitInfraContainer(
+	serverConfig *libconfig.Config,
+	podContainer *storage.ContainerInfo,
+	sandboxIDMappings *idtools.IDMappings,
+) error {
 	var err error
 
 	b.infra, err = container.New()
@@ -54,7 +58,11 @@ func (b *sandboxBuilder) InitInfraContainer(serverConfig *libconfig.Config, podC
 	}
 
 	// Add capabilities from crio.conf if default_capabilities is defined
-	if err := b.infra.SpecSetupCapabilities(&types.Capability{}, serverConfig.DefaultCapabilities, serverConfig.AddInheritableCapabilities); err != nil {
+	if err := b.infra.SpecSetupCapabilities(
+		&types.Capability{},
+		serverConfig.DefaultCapabilities,
+		serverConfig.AddInheritableCapabilities,
+	); err != nil {
 		return err
 	}
 
@@ -93,7 +101,10 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	return cmd, nil
 }
 
-func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) (retErr error) {
+func (b *sandboxBuilder) createResolvConf(
+	podContainer *storage.ContainerInfo,
+	sandboxIDMappings *idtools.IDMappings,
+) (retErr error) {
 	// set DNS options
 	b.sandboxRef.resolvPath = podContainer.RunDir + "/resolv.conf"
 
@@ -110,7 +121,10 @@ func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, s
 	defer func() {
 		if retErr != nil {
 			if err := os.Remove(b.sandboxRef.resolvPath); err != nil {
-				retErr = fmt.Errorf("failed to remove resolvPath after failing to create it: %w", retErr)
+				retErr = fmt.Errorf(
+					"failed to remove resolvPath after failing to create it: %w",
+					retErr,
+				)
 			}
 		}
 	}()
@@ -119,14 +133,25 @@ func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, s
 		return err
 	}
 
-	if err := label.Relabel(b.sandboxRef.resolvPath, podContainer.MountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
+	if err := label.Relabel(
+		b.sandboxRef.resolvPath,
+		podContainer.MountLabel,
+		false,
+	); err != nil &&
+		!errors.Is(err, unix.ENOTSUP) {
 		return err
 	}
 
 	if sandboxIDMappings != nil {
 		rootPair := sandboxIDMappings.RootPair()
 		if err := os.Chown(b.sandboxRef.resolvPath, rootPair.UID, rootPair.GID); err != nil {
-			return fmt.Errorf("cannot chown %s to %d:%d: %w", b.sandboxRef.resolvPath, rootPair.UID, rootPair.GID, err)
+			return fmt.Errorf(
+				"cannot chown %s to %d:%d: %w",
+				b.sandboxRef.resolvPath,
+				rootPair.UID,
+				rootPair.GID,
+				err,
+			)
 		}
 	}
 

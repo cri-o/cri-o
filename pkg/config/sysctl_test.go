@@ -79,18 +79,21 @@ var _ = t.Describe("Sysctl", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	It("should fail to validate not whitelisted sysctl without host NET and IPC namespaces", func() {
-		// Given
-		sut.DefaultSysctls = []string{"a=b"}
-		sysctls, err := sut.Sysctls()
-		Expect(err).ToNot(HaveOccurred())
+	It(
+		"should fail to validate not whitelisted sysctl without host NET and IPC namespaces",
+		func() {
+			// Given
+			sut.DefaultSysctls = []string{"a=b"}
+			sysctls, err := sut.Sysctls()
+			Expect(err).ToNot(HaveOccurred())
 
-		// When
-		err = sysctls[0].Validate(false, false)
+			// When
+			err = sysctls[0].Validate(false, false)
 
-		// Then
-		Expect(err).To(HaveOccurred())
-	})
+			// Then
+			Expect(err).To(HaveOccurred())
+		},
+	)
 
 	It("should fail to validate whitelisted sysctl with enabled host NET namespace", func() {
 		// Given
@@ -131,18 +134,21 @@ var _ = t.Describe("Sysctl", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should succeed to validate whitelisted kernel sysctl with disabled host NET and IPC namespaces", func() {
-		// Given
-		sut.DefaultSysctls = []string{"kernel.sem=32001 1 1"}
-		sysctls, err := sut.Sysctls()
-		Expect(err).ToNot(HaveOccurred())
+	It(
+		"should succeed to validate whitelisted kernel sysctl with disabled host NET and IPC namespaces",
+		func() {
+			// Given
+			sut.DefaultSysctls = []string{"kernel.sem=32001 1 1"}
+			sysctls, err := sut.Sysctls()
+			Expect(err).ToNot(HaveOccurred())
 
-		// When
-		err = sysctls[0].Validate(false, false)
+			// When
+			err = sysctls[0].Validate(false, false)
 
-		// Then
-		Expect(err).ToNot(HaveOccurred())
-	})
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		},
+	)
 
 	It("should fail to validate whitelisted kernel sysctl with enabled host IPC namespace", func() {
 		// Given

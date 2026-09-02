@@ -31,7 +31,9 @@ var _ = t.Describe("Config", func() {
 
 	runtimeValidConfig := func() *config.Config {
 		sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
-			RuntimePath: validFilePath, RuntimeType: config.DefaultRuntimeType, ContainerMinMemory: "12MiB",
+			RuntimePath:        validFilePath,
+			RuntimeType:        config.DefaultRuntimeType,
+			ContainerMinMemory: "12MiB",
 		}
 		sut.PinnsPath = validFilePath
 		sut.NamespacesDir = os.TempDir()
@@ -284,17 +286,20 @@ var _ = t.Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("./relative/path"))
 		})
 
-		It("should fail with mix of absolute and relative paths in additional_artifact_stores", func() {
-			// Given
-			sut.AdditionalArtifactStores = []string{"/valid/store", "relative/path"}
+		It(
+			"should fail with mix of absolute and relative paths in additional_artifact_stores",
+			func() {
+				// Given
+				sut.AdditionalArtifactStores = []string{"/valid/store", "relative/path"}
 
-			// When
-			err := sut.RuntimeConfig.Validate(nil, false)
+				// When
+				err := sut.RuntimeConfig.Validate(nil, false)
 
-			// Then
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("relative/path"))
-		})
+				// Then
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("relative/path"))
+			},
+		)
 
 		It("should fail with dot-dot traversal in additional_artifact_stores", func() {
 			// Given
@@ -308,17 +313,20 @@ var _ = t.Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("'..'"))
 		})
 
-		It("should fail with path containing special characters in additional_artifact_stores", func() {
-			// Given
-			sut.AdditionalArtifactStores = []string{"/var/lib/store@v1"}
+		It(
+			"should fail with path containing special characters in additional_artifact_stores",
+			func() {
+				// Given
+				sut.AdditionalArtifactStores = []string{"/var/lib/store@v1"}
 
-			// When
-			err := sut.RuntimeConfig.Validate(nil, false)
+				// When
+				err := sut.RuntimeConfig.Validate(nil, false)
 
-			// Then
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("must be absolute"))
-		})
+				// Then
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("must be absolute"))
+			},
+		)
 
 		It("should fail with consecutive slashes in additional_artifact_stores", func() {
 			// Given
@@ -344,16 +352,19 @@ var _ = t.Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("must not be empty"))
 		})
 
-		It("should succeed with double dots within a filename in additional_artifact_stores", func() {
-			// Given
-			sut.AdditionalArtifactStores = []string{"/var/lib/foo..bar"}
+		It(
+			"should succeed with double dots within a filename in additional_artifact_stores",
+			func() {
+				// Given
+				sut.AdditionalArtifactStores = []string{"/var/lib/foo..bar"}
 
-			// When
-			err := sut.RuntimeConfig.Validate(nil, false)
+				// When
+				err := sut.RuntimeConfig.Validate(nil, false)
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-		})
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+			},
+		)
 
 		It("should fail with single dot component in additional_artifact_stores", func() {
 			// Given
@@ -379,16 +390,19 @@ var _ = t.Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("trailing slash"))
 		})
 
-		It("should succeed with path at exactly 256 characters in additional_artifact_stores", func() {
-			// Given
-			sut.AdditionalArtifactStores = []string{"/" + strings.Repeat("a", 255)}
+		It(
+			"should succeed with path at exactly 256 characters in additional_artifact_stores",
+			func() {
+				// Given
+				sut.AdditionalArtifactStores = []string{"/" + strings.Repeat("a", 255)}
 
-			// When
-			err := sut.RuntimeConfig.Validate(nil, false)
+				// When
+				err := sut.RuntimeConfig.Validate(nil, false)
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-		})
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+			},
+		)
 
 		It("should fail with path exceeding 256 characters in additional_artifact_stores", func() {
 			// Given
@@ -500,16 +514,19 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should inherit default value if invalid runtime container minimum memory limit is set", func() {
-			// Given
-			sut.Runtimes[config.DefaultRuntime].ContainerMinMemory = "123invalid"
+		It(
+			"should inherit default value if invalid runtime container minimum memory limit is set",
+			func() {
+				// Given
+				sut.Runtimes[config.DefaultRuntime].ContainerMinMemory = "123invalid"
 
-			// When
-			err := sut.RuntimeConfig.Validate(nil, false)
+				// When
+				err := sut.RuntimeConfig.Validate(nil, false)
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-		})
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+			},
+		)
 
 		It("should fail on wrong invalid device specification", func() {
 			// Given
@@ -579,7 +596,9 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on non existing runtime binary", func() {
 			// Given
-			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{RuntimePath: "not-existing"}
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath: "not-existing",
+			}
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, true)
@@ -696,7 +715,9 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// Given
-			cgm, _ := cgmgr.SetCgroupManager("cgroupfs") //nolint:errcheck // error not relevant in test setup
+			cgm, _ := cgmgr.SetCgroupManager( //nolint:errcheck // test setup
+				"cgroupfs",
+			)
 			runtimeConfig := *config.DefaultRuntimeConfig(cgm)
 
 			// When
@@ -785,19 +806,22 @@ var _ = t.Describe("Config", func() {
 			Expect(cmdrunner.GetPrependedCmd()).To(Equal(executable))
 		})
 
-		It("should not configure a taskset prefix for cmdrunner for an empty InfraCtrCPUSet", func() {
-			// Given
-			cmdrunner.ResetPrependedCmd()
+		It(
+			"should not configure a taskset prefix for cmdrunner for an empty InfraCtrCPUSet",
+			func() {
+				// Given
+				cmdrunner.ResetPrependedCmd()
 
-			sut.InfraCtrCPUSet = ""
+				sut.InfraCtrCPUSet = ""
 
-			// When
-			err := sut.RuntimeConfig.Validate(nil, false)
+				// When
+				err := sut.RuntimeConfig.Validate(nil, false)
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-			Expect(cmdrunner.GetPrependedCmd()).To(Equal(""))
-		})
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cmdrunner.GetPrependedCmd()).To(Equal(""))
+			},
+		)
 	})
 
 	t.Describe("ValidateRuntimes", func() {
@@ -897,8 +921,12 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			Expect(sut.Runtimes[config.DefaultRuntime].AllowedAnnotations).To(ContainElement(v2.Devices))
-			Expect(sut.Runtimes[config.DefaultRuntime].DisallowedAnnotations).NotTo(ContainElement(v2.Devices))
+			Expect(
+				sut.Runtimes[config.DefaultRuntime].AllowedAnnotations,
+			).To(ContainElement(v2.Devices))
+			Expect(
+				sut.Runtimes[config.DefaultRuntime].DisallowedAnnotations,
+			).NotTo(ContainElement(v2.Devices))
 		})
 
 		It("should allow no_sync_log for implicit default runtime", func() {
@@ -935,7 +963,9 @@ var _ = t.Describe("Config", func() {
 			err := sut.Runtimes["kata"].ValidateNoSyncLog()
 
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError("no_sync_log is only allowed with runtime type 'oci', runtime type is 'vm'"))
+			Expect(
+				err,
+			).To(MatchError("no_sync_log is only allowed with runtime type 'oci', runtime type is 'vm'"))
 		})
 
 		It("should disallow stream_websockets for the 'oci' runtime", func() {
@@ -945,10 +975,14 @@ var _ = t.Describe("Config", func() {
 				StreamWebsockets: true,
 			}
 
-			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(
+				config.DefaultRuntime,
+			)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError(`only the 'runtime_type = "pod"' supports websocket streaming, not "oci" (runtime "crun")`))
+			Expect(
+				err,
+			).To(MatchError(`only the 'runtime_type = "pod"' supports websocket streaming, not "oci" (runtime "crun")`))
 		})
 
 		It("should allow 'stream_websockets == false' for the 'oci' runtime", func() {
@@ -958,7 +992,9 @@ var _ = t.Describe("Config", func() {
 				StreamWebsockets: false,
 			}
 
-			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(
+				config.DefaultRuntime,
+			)
 
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -990,7 +1026,9 @@ var _ = t.Describe("Config", func() {
 				MonitorPath:      fileName,
 			}
 
-			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(
+				config.DefaultRuntime,
+			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
 		})
@@ -1006,26 +1044,33 @@ var _ = t.Describe("Config", func() {
 				MonitorPath:      fileName,
 			}
 
-			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(
+				config.DefaultRuntime,
+			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeFalse())
 		})
 
-		It("should not disable streaming websockets if conmon-rs is version is not retrievable", func() {
-			fileName := conmonrsFakeBinary("exit 1")
-			defer os.RemoveAll(fileName)
+		It(
+			"should not disable streaming websockets if conmon-rs is version is not retrievable",
+			func() {
+				fileName := conmonrsFakeBinary("exit 1")
+				defer os.RemoveAll(fileName)
 
-			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
-				RuntimePath:      validFilePath,
-				RuntimeType:      config.RuntimeTypePod,
-				StreamWebsockets: true,
-				MonitorPath:      fileName,
-			}
+				sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+					RuntimePath:      validFilePath,
+					RuntimeType:      config.RuntimeTypePod,
+					StreamWebsockets: true,
+					MonitorPath:      fileName,
+				}
 
-			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(config.DefaultRuntime)
-			Expect(err).To(HaveOccurred())
-			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
-		})
+				err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(
+					config.DefaultRuntime,
+				)
+				Expect(err).To(HaveOccurred())
+				Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
+			},
+		)
 	})
 
 	t.Describe("ValidateConmonPath", func() {
@@ -1165,7 +1210,9 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("registry.k8s.io/pause:latest"))
+			Expect(
+				ref.StringForOutOfProcessConsumptionOnly(),
+			).To(Equal("registry.k8s.io/pause:latest"))
 		})
 
 		It("should succeed with a short name", func() {
@@ -1180,7 +1227,9 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/short:notlatest"))
+			Expect(
+				ref.StringForOutOfProcessConsumptionOnly(),
+			).To(Equal("docker.io/library/short:notlatest"))
 		})
 
 		It("should fail with an invalid value", func() {
@@ -1799,31 +1848,37 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("ValidateRuntimeVMBinaryPattern", func() {
-		It("should succeed when using RuntimeTypeVM and runtime_path follows the containerd pattern", func() {
-			// Given
-			sut.Runtimes["kata"] = &config.RuntimeHandler{
-				RuntimePath: "containerd-shim-kata-qemu-v2", RuntimeType: config.RuntimeTypeVM,
-			}
+		It(
+			"should succeed when using RuntimeTypeVM and runtime_path follows the containerd pattern",
+			func() {
+				// Given
+				sut.Runtimes["kata"] = &config.RuntimeHandler{
+					RuntimePath: "containerd-shim-kata-qemu-v2", RuntimeType: config.RuntimeTypeVM,
+				}
 
-			// When
-			ok := sut.Runtimes["kata"].ValidateRuntimeVMBinaryPattern()
+				// When
+				ok := sut.Runtimes["kata"].ValidateRuntimeVMBinaryPattern()
 
-			// Then
-			Expect(ok).To(BeTrue())
-		})
+				// Then
+				Expect(ok).To(BeTrue())
+			},
+		)
 
-		It("should succeed when using RuntimeTypeVM and runtime_path is a containerd-shim binary with v1 suffix", func() {
-			// Given
-			sut.Runtimes["runsc"] = &config.RuntimeHandler{
-				RuntimePath: "containerd-shim-runsc-v1", RuntimeType: config.RuntimeTypeVM,
-			}
+		It(
+			"should succeed when using RuntimeTypeVM and runtime_path is a containerd-shim binary with v1 suffix",
+			func() {
+				// Given
+				sut.Runtimes["runsc"] = &config.RuntimeHandler{
+					RuntimePath: "containerd-shim-runsc-v1", RuntimeType: config.RuntimeTypeVM,
+				}
 
-			// When
-			ok := sut.Runtimes["runsc"].ValidateRuntimeVMBinaryPattern()
+				// When
+				ok := sut.Runtimes["runsc"].ValidateRuntimeVMBinaryPattern()
 
-			// Then
-			Expect(ok).To(BeTrue())
-		})
+				// Then
+				Expect(ok).To(BeTrue())
+			},
+		)
 
 		It("should succeed with gVisor runtime handler (v1 shim with config path)", func() {
 			// Given
@@ -1842,38 +1897,44 @@ var _ = t.Describe("Config", func() {
 			Expect(errPath).ToNot(HaveOccurred())
 		})
 
-		It("should fail when using RuntimeTypeVM and runtime_path does not follow the containerd pattern", func() {
-			// Given
-			sut.Runtimes["kata"] = &config.RuntimeHandler{
-				RuntimePath: "kata-runtime", RuntimeType: config.RuntimeTypeVM,
-			}
-
-			// When
-			ok := sut.Runtimes["kata"].ValidateRuntimeVMBinaryPattern()
-
-			// Then
-			Expect(ok).To(BeFalse())
-		})
-
-		It("should fail when the binary name only contains the containerd-shim pattern as a substring", func() {
-			// Given the pattern is anchored, near-miss names that embed
-			// containerd-shim-* as a prefix or suffix must not match.
-			for _, name := range []string{
-				"my-containerd-shim-kata-v2",
-				"containerd-shim-runsc-v1.bak",
-				"containerd-shim",
-			} {
-				sut.Runtimes["runsc"] = &config.RuntimeHandler{
-					RuntimePath: name, RuntimeType: config.RuntimeTypeVM,
+		It(
+			"should fail when using RuntimeTypeVM and runtime_path does not follow the containerd pattern",
+			func() {
+				// Given
+				sut.Runtimes["kata"] = &config.RuntimeHandler{
+					RuntimePath: "kata-runtime", RuntimeType: config.RuntimeTypeVM,
 				}
 
 				// When
-				ok := sut.Runtimes["runsc"].ValidateRuntimeVMBinaryPattern()
+				ok := sut.Runtimes["kata"].ValidateRuntimeVMBinaryPattern()
 
 				// Then
-				Expect(ok).To(BeFalse(), "expected %q to be rejected", name)
-			}
-		})
+				Expect(ok).To(BeFalse())
+			},
+		)
+
+		It(
+			"should fail when the binary name only contains the containerd-shim pattern as a substring",
+			func() {
+				// Given the pattern is anchored, near-miss names that embed
+				// containerd-shim-* as a prefix or suffix must not match.
+				for _, name := range []string{
+					"my-containerd-shim-kata-v2",
+					"containerd-shim-runsc-v1.bak",
+					"containerd-shim",
+				} {
+					sut.Runtimes["runsc"] = &config.RuntimeHandler{
+						RuntimePath: name, RuntimeType: config.RuntimeTypeVM,
+					}
+
+					// When
+					ok := sut.Runtimes["runsc"].ValidateRuntimeVMBinaryPattern()
+
+					// Then
+					Expect(ok).To(BeFalse(), "expected %q to be rejected", name)
+				}
+			},
+		)
 	})
 
 	t.Describe("ValidateRuntimeConfigPath", func() {
@@ -1884,54 +1945,69 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			err := sut.Runtimes[config.DefaultRuntime].ValidateRuntimeConfigPath(config.DefaultRuntime)
+			err := sut.Runtimes[config.DefaultRuntime].ValidateRuntimeConfigPath(
+				config.DefaultRuntime,
+			)
 
 			// Then
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should fail with VM runtime type and runtime_config_path points to an invalid path", func() {
-			// Given
-			sut.Runtimes["kata"] = &config.RuntimeHandler{
-				RuntimeConfigPath: invalidPath, RuntimeType: config.RuntimeTypeVM,
-			}
+		It(
+			"should fail with VM runtime type and runtime_config_path points to an invalid path",
+			func() {
+				// Given
+				sut.Runtimes["kata"] = &config.RuntimeHandler{
+					RuntimeConfigPath: invalidPath, RuntimeType: config.RuntimeTypeVM,
+				}
 
-			// When
-			err := sut.Runtimes["kata"].ValidateRuntimeConfigPath("kata")
+				// When
+				err := sut.Runtimes["kata"].ValidateRuntimeConfigPath("kata")
 
-			// Then
-			Expect(err).To(HaveOccurred())
-		})
+				// Then
+				Expect(err).To(HaveOccurred())
+			},
+		)
 
-		It("should succeed with VM runtime type and runtime_config_path points to a valid path", func() {
-			// Given
-			sut.Runtimes["kata"] = &config.RuntimeHandler{
-				RuntimeConfigPath: validFilePath, RuntimeType: config.RuntimeTypeVM,
-			}
+		It(
+			"should succeed with VM runtime type and runtime_config_path points to a valid path",
+			func() {
+				// Given
+				sut.Runtimes["kata"] = &config.RuntimeHandler{
+					RuntimeConfigPath: validFilePath, RuntimeType: config.RuntimeTypeVM,
+				}
 
-			// When
-			err := sut.Runtimes["kata"].ValidateRuntimeConfigPath("kata")
+				// When
+				err := sut.Runtimes["kata"].ValidateRuntimeConfigPath("kata")
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-		})
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+			},
+		)
 
-		It("should succeed with empty runtime type and runtime_config_path when inheriting from default", func() {
-			// Given
-			sut.Runtimes["inherited"] = &config.RuntimeHandler{
-				RuntimeConfigPath: invalidPath, RuntimeType: "invalid", InheritDefaultRuntime: true,
-			}
-			// When
-			err := sut.ValidateRuntimes()
+		It(
+			"should succeed with empty runtime type and runtime_config_path when inheriting from default",
+			func() {
+				// Given
+				sut.Runtimes["inherited"] = &config.RuntimeHandler{
+					RuntimeConfigPath:     invalidPath,
+					RuntimeType:           "invalid",
+					InheritDefaultRuntime: true,
+				}
+				// When
+				err := sut.ValidateRuntimes()
 
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-			Expect(sut.Runtimes).To(HaveKey(sut.DefaultRuntime))
-			Expect(sut.Runtimes).To(HaveKey("inherited"))
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sut.Runtimes).To(HaveKey(sut.DefaultRuntime))
+				Expect(sut.Runtimes).To(HaveKey("inherited"))
 
-			// When
-			Expect(sut.Runtimes["inherited"].RuntimePath).To(Equal(sut.Runtimes[sut.DefaultRuntime].RuntimePath))
-		})
+				// When
+				Expect(
+					sut.Runtimes["inherited"].RuntimePath,
+				).To(Equal(sut.Runtimes[sut.DefaultRuntime].RuntimePath))
+			},
+		)
 	})
 
 	t.Describe("RuntimeHandlerFeatures", func() {

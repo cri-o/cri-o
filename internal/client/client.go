@@ -105,7 +105,10 @@ func (c *crioClientImpl) DaemonInfo(ctx context.Context) (types.CrioInfo, error)
 
 // ContainerInfo returns container info by querying
 // the cri-o container endpoint.
-func (c *crioClientImpl) ContainerInfo(ctx context.Context, id string) (*types.ContainerInfo, error) {
+func (c *crioClientImpl) ContainerInfo(
+	ctx context.Context,
+	id string,
+) (*types.ContainerInfo, error) {
 	body, err := c.doGetRequest(ctx, server.InspectContainersEndpoint+"/"+id)
 	if err != nil {
 		return nil, err

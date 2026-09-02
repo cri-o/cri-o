@@ -12,13 +12,21 @@ import (
 )
 
 // ExecSync runs a command in a container synchronously.
-func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*types.ExecSyncResponse, error) {
+func (s *Server) ExecSync(
+	ctx context.Context,
+	req *types.ExecSyncRequest,
+) (*types.ExecSyncResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
 	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
+		return nil, status.Errorf(
+			codes.NotFound,
+			"could not find container %q: %v",
+			req.GetContainerId(),
+			err,
+		)
 	}
 
 	if err := c.Living(); err != nil {

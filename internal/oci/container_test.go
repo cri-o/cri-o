@@ -46,8 +46,12 @@ var _ = t.Describe("Container", func() {
 		Expect(len(sut.Annotations())).To(BeEquivalentTo(1))
 		Expect(len(sut.CrioAnnotations())).To(BeEquivalentTo(1))
 		Expect(sut.UserRequestedImage()).To(Equal("image"))
-		Expect(sut.SomeNameOfTheImage().StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/image-name:latest"))
-		Expect(sut.ImageID().IDStringForOutOfProcessConsumptionOnly()).To(Equal("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"))
+		Expect(
+			sut.SomeNameOfTheImage().StringForOutOfProcessConsumptionOnly(),
+		).To(Equal("docker.io/library/image-name:latest"))
+		Expect(
+			sut.ImageID().IDStringForOutOfProcessConsumptionOnly(),
+		).To(Equal("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"))
 		Expect(sut.Sandbox()).To(Equal("sandbox"))
 		Expect(sut.Dir()).To(Equal("dir"))
 		Expect(sut.CheckpointPath()).To(Equal("dir/checkpoint"))
@@ -154,7 +158,9 @@ var _ = t.Describe("Container", func() {
 
 	It("should succeed to set restore is oci image", func() {
 		// Given
-		storageImageID, err := storage.ParseStorageImageIDFromOutOfProcessData("1111111111111111111111111111111111111111111111111111111111111111")
+		storageImageID, err := storage.ParseStorageImageIDFromOutOfProcessData(
+			"1111111111111111111111111111111111111111111111111111111111111111",
+		)
 		Expect(err).ToNot(HaveOccurred())
 
 		// When
@@ -299,12 +305,18 @@ var _ = t.Describe("Container", func() {
 		Expect(containerResources.GetLinux().GetCpusetMems()).To(Equal(cpusetMems))
 		Expect(containerResources.GetLinux().GetOomScoreAdj()).To(Equal(int64(oomScoreAdj)))
 		Expect(containerResources.GetLinux().GetMemoryLimitInBytes()).To(Equal(memoryLimitInBytes))
-		Expect(containerResources.GetLinux().GetMemorySwapLimitInBytes()).To(Equal(memorySwapLimitInBytes))
+		Expect(
+			containerResources.GetLinux().GetMemorySwapLimitInBytes(),
+		).To(Equal(memorySwapLimitInBytes))
 		Expect(containerResources.GetLinux().GetUnified()).To(Equal(unified))
 
 		for i := range len(containerResources.GetLinux().GetHugepageLimits()) {
-			Expect(containerResources.GetLinux().GetHugepageLimits()[i].GetPageSize()).To(Equal(hugepageLimits[i].Pagesize))
-			Expect(containerResources.GetLinux().GetHugepageLimits()[i].GetLimit()).To(Equal(hugepageLimits[i].Limit))
+			Expect(
+				containerResources.GetLinux().GetHugepageLimits()[i].GetPageSize(),
+			).To(Equal(hugepageLimits[i].Pagesize))
+			Expect(
+				containerResources.GetLinux().GetHugepageLimits()[i].GetLimit(),
+			).To(Equal(hugepageLimits[i].Limit))
 		}
 	})
 
@@ -353,7 +365,9 @@ var _ = t.Describe("Container", func() {
 		Expect(containerResources.GetLinux().GetCpusetCpus()).To(Equal(cpusetCpus))
 		Expect(containerResources.GetLinux().GetCpusetMems()).To(Equal(cpusetMems))
 		Expect(containerResources.GetLinux().GetMemoryLimitInBytes()).To(Equal(memoryLimitInBytes))
-		Expect(containerResources.GetLinux().GetMemorySwapLimitInBytes()).To(Equal(memorySwapLimitInBytes))
+		Expect(
+			containerResources.GetLinux().GetMemorySwapLimitInBytes(),
+		).To(Equal(memorySwapLimitInBytes))
 		Expect(containerResources.GetLinux().GetUnified()).To(BeEmpty())
 		Expect(containerResources.GetLinux().GetHugepageLimits()).To(BeEmpty())
 	})
@@ -646,7 +660,9 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when there are no parenthesis", func() {
-			contents := []byte("1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52")
+			contents := []byte(
+				"1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52",
+			)
 			Expect(os.WriteFile(statFile, contents, 0o644)).To(Succeed())
 
 			// When
@@ -668,7 +684,9 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(HaveOccurred())
 		})
 		It("should succeed to get start time", func() {
-			contents := []byte("1 (2) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52")
+			contents := []byte(
+				"1 (2) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52",
+			)
 			Expect(os.WriteFile(statFile, contents, 0o644)).To(Succeed())
 
 			// When
@@ -1059,7 +1077,14 @@ var _ = t.Describe("Container", func() {
 
 var _ = t.Describe("SpoofedContainer", func() {
 	It("should succeed to get the container fields", func() {
-		sut := oci.NewSpoofedContainer("id", "name", map[string]string{"key": "label"}, "sbox", time.Now(), "dir")
+		sut := oci.NewSpoofedContainer(
+			"id",
+			"name",
+			map[string]string{"key": "label"},
+			"sbox",
+			time.Now(),
+			"dir",
+		)
 		// Given
 		// When
 		// Then

@@ -161,7 +161,9 @@ func (c *ContainerServer) Config() *libconfig.Config {
 }
 
 // StorageRuntimeServer gets the runtime server for the ContainerServer.
-func (c *ContainerServer) StorageRuntimeServer(sb storage.SandboxInfo) (storage.RuntimeServer, error) {
+func (c *ContainerServer) StorageRuntimeServer(
+	sb storage.SandboxInfo,
+) (storage.RuntimeServer, error) {
 	if sb == nil {
 		return c.storageRuntimeSvcMgr.GetRuntimeService(nil)
 	}
@@ -193,13 +195,21 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 	if config.InternalRepair && ShutdownWasUnclean(config) {
 		graphRoot := store.GraphRoot()
-		log.Warnf(ctx, "Checking storage directory %s for errors because of unclean shutdown", graphRoot)
+		log.Warnf(
+			ctx,
+			"Checking storage directory %s for errors because of unclean shutdown",
+			graphRoot,
+		)
 
 		wipeStorage := false
 
 		report, err := store.Check(checkQuick())
 		if err == nil && CheckReportHasErrors(report) {
-			log.Warnf(ctx, "Attempting to repair storage directory %s because of unclean shutdown", graphRoot)
+			log.Warnf(
+				ctx,
+				"Attempting to repair storage directory %s because of unclean shutdown",
+				graphRoot,
+			)
 
 			if errs := store.Repair(report, cstorage.RepairEverything()); len(errs) > 0 {
 				wipeStorage = true
@@ -223,7 +233,12 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		return nil, err
 	}
 
-	storageRuntimeServiceMgr, err := storage.GetRuntimeServiceManager(ctx, storageImageServiceMgr, nil, config)
+	storageRuntimeServiceMgr, err := storage.GetRuntimeServiceManager(
+		ctx,
+		storageImageServiceMgr,
+		nil,
+		config,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +282,10 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 }
 
 // LoadSandbox loads a sandbox from the disk into the sandbox store.
-func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandbox.Sandbox, retErr error) {
+func (c *ContainerServer) LoadSandbox(
+	ctx context.Context,
+	id string,
+) (sb *sandbox.Sandbox, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -334,21 +352,42 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	spp := m.Annotations[annotations.SeccompProfilePath]
 
 	kubeAnnotations := make(map[string]string)
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
-		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Annotations, err)
+	if err := json.Unmarshal(
+		[]byte(m.Annotations[annotations.Annotations]),
+		&kubeAnnotations,
+	); err != nil {
+		return nil, fmt.Errorf(
+			"error unmarshalling %s annotation: %w",
+			annotations.Annotations,
+			err,
+		)
 	}
 
 	portMappings := []*hostport.PortMapping{}
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.PortMappings]), &portMappings); err != nil {
-		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PortMappings, err)
+	if err := json.Unmarshal(
+		[]byte(m.Annotations[annotations.PortMappings]),
+		&portMappings,
+	); err != nil {
+		return nil, fmt.Errorf(
+			"error unmarshalling %s annotation: %w",
+			annotations.PortMappings,
+			err,
+		)
 	}
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
 
 	nsOpts := types.NamespaceOption{}
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
-		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.NamespaceOptions, err)
+	if err := json.Unmarshal(
+		[]byte(m.Annotations[annotations.NamespaceOptions]),
+		&nsOpts,
+	); err != nil {
+		return nil, fmt.Errorf(
+			"error unmarshalling %s annotation: %w",
+			annotations.NamespaceOptions,
+			err,
+		)
 	}
 
 	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
@@ -365,14 +404,22 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	podLinuxOverhead := types.LinuxContainerResources{}
 	if v, found := v2.GetAnnotationValue(m.Annotations, v2.PodLinuxOverhead); found {
 		if err := json.Unmarshal([]byte(v), &podLinuxOverhead); err != nil {
-			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", v2.PodLinuxOverhead, err)
+			return nil, fmt.Errorf(
+				"error unmarshalling %s annotation: %w",
+				v2.PodLinuxOverhead,
+				err,
+			)
 		}
 	}
 
 	podLinuxResources := types.LinuxContainerResources{}
 	if v, found := v2.GetAnnotationValue(m.Annotations, v2.PodLinuxResources); found {
 		if err := json.Unmarshal([]byte(v), &podLinuxResources); err != nil {
-			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", v2.PodLinuxResources, err)
+			return nil, fmt.Errorf(
+				"error unmarshalling %s annotation: %w",
+				v2.PodLinuxResources,
+				err,
+			)
 		}
 	}
 
@@ -464,7 +511,28 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if !wasSpoofed {
 		stopSignal, _ := v2.GetAnnotationValue(m.Annotations, v2.StopSignal)
 
-		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.UserRequestedImage], nil, nil, "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, stopSignal)
+		scontainer, err = oci.NewContainer(
+			m.Annotations[annotations.ContainerID],
+			cname,
+			sandboxPath,
+			m.Annotations[annotations.LogPath],
+			labels,
+			m.Annotations,
+			kubeAnnotations,
+			m.Annotations[annotations.UserRequestedImage],
+			nil,
+			nil,
+			"",
+			nil,
+			id,
+			false,
+			false,
+			false,
+			sb.RuntimeHandler(),
+			sandboxDir,
+			created,
+			stopSignal,
+		)
 		if err != nil {
 			return sb, err
 		}
@@ -477,7 +545,10 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 
 	// Restore ID mappings from the OCI spec if user namespace is in use
 	if m.Linux != nil && len(m.Linux.UIDMappings) > 0 && len(m.Linux.GIDMappings) > 0 {
-		if mappings := ConvertOCIToStorageIDMappings(m.Linux.UIDMappings, m.Linux.GIDMappings); mappings != nil {
+		if mappings := ConvertOCIToStorageIDMappings(
+			m.Linux.UIDMappings,
+			m.Linux.GIDMappings,
+		); mappings != nil {
 			scontainer.SetIDMappings(mappings)
 			log.Debugf(ctx, "Restored ID mappings for sandbox %s from OCI spec", id)
 		}
@@ -522,7 +593,11 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	// We write back the state because it is possible that crio did not have a chance to
 	// read the exit file and persist exit code into the state on reboot.
 	if err := c.ContainerStateToDisk(ctx, scontainer); err != nil {
-		return sb, fmt.Errorf("failed to write container %q state to disk: %w", scontainer.ID(), err)
+		return sb, fmt.Errorf(
+			"failed to write container %q state to disk: %w",
+			scontainer.ID(),
+			err,
+		)
 	}
 
 	sb.SetCreated()
@@ -576,7 +651,8 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	}
 
 	// Do not interact with containers of others
-	if manager, ok := m.Annotations[annotations.ContainerManager]; ok && manager != constants.ContainerManagerCRIO {
+	if manager, ok := m.Annotations[annotations.ContainerManager]; ok &&
+		manager != constants.ContainerManagerCRIO {
 		return ErrIsNonCrioContainer
 	}
 
@@ -605,7 +681,10 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 
 	sb := c.GetSandbox(m.Annotations[annotations.SandboxID])
 	if sb == nil {
-		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations[annotations.SandboxID])
+		return fmt.Errorf(
+			"could not get sandbox with id %s, skipping",
+			m.Annotations[annotations.SandboxID],
+		)
 	}
 
 	tty := isTrue(m.Annotations[annotations.TTY])
@@ -632,7 +711,12 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	if s, ok := m.Annotations[annotations.SomeNameOfTheImage]; ok && s != "" {
 		name, err := references.ParseRegistryImageReferenceFromOutOfProcessData(s)
 		if err != nil {
-			return fmt.Errorf("invalid %s annotation %q: %w", annotations.SomeNameOfTheImage, s, err)
+			return fmt.Errorf(
+				"invalid %s annotation %q: %w",
+				annotations.SomeNameOfTheImage,
+				s,
+				err,
+			)
 		}
 
 		someNameOfTheImage = &name
@@ -660,7 +744,10 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	}
 
 	kubeAnnotations := make(map[string]string)
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
+	if err := json.Unmarshal(
+		[]byte(m.Annotations[annotations.Annotations]),
+		&kubeAnnotations,
+	); err != nil {
 		return err
 	}
 
@@ -674,7 +761,28 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		someRepoDigest = strings.SplitN(repoDigests, ",", 2)[0]
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, userRequestedImage, someNameOfTheImage, imageID, someRepoDigest, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, stopSignal)
+	ctr, err := oci.NewContainer(
+		id,
+		name,
+		containerPath,
+		m.Annotations[annotations.LogPath],
+		labels,
+		m.Annotations,
+		kubeAnnotations,
+		userRequestedImage,
+		someNameOfTheImage,
+		imageID,
+		someRepoDigest,
+		&metadata,
+		sb.ID(),
+		tty,
+		stdin,
+		stdinOnce,
+		sb.RuntimeHandler(),
+		containerDir,
+		created,
+		stopSignal,
+	)
 	if err != nil {
 		return err
 	}
@@ -710,7 +818,10 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 func restoreVolumes(m *rspec.Spec, ctr *oci.Container) error {
 	if m.Annotations[annotations.Volumes] != "" {
 		containerVolumes := []oci.ContainerVolume{}
-		if err := json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+		if err := json.Unmarshal(
+			[]byte(m.Annotations[annotations.Volumes]),
+			&containerVolumes,
+		); err != nil {
 			return fmt.Errorf("failed to unmarshal container volumes: %w", err)
 		}
 
@@ -903,7 +1014,9 @@ func (c *ContainerServer) listContainers() []*oci.Container {
 
 // ListContainers returns a list of all containers stored by the server state
 // that match the given filter function.
-func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) ([]*oci.Container, error) {
+func (c *ContainerServer) ListContainers(
+	filters ...func(*oci.Container) bool,
+) ([]*oci.Container, error) {
 	containers := c.listContainers()
 	if len(filters) == 0 {
 		return containers, nil
@@ -988,7 +1101,10 @@ func (c *ContainerServer) ListSandboxes() []*sandbox.Sandbox {
 	return c.state.sandboxes.List()
 }
 
-func (c *ContainerServer) UpdateContainerLinuxResources(ctr *oci.Container, resources *rspec.LinuxResources) {
+func (c *ContainerServer) UpdateContainerLinuxResources(
+	ctr *oci.Container,
+	resources *rspec.LinuxResources,
+) {
 	updatedSpec := ctr.Spec()
 	if updatedSpec.Linux == nil {
 		updatedSpec.Linux = &rspec.Linux{}
@@ -1164,7 +1280,12 @@ func (c *ContainerServer) probeMonitorProcesses(ctx context.Context) {
 		for _, ctr := range c.listContainers() {
 			err := c.runtime.ProbeMonitor(ctx, ctr)
 			if err != nil {
-				log.Errorf(ctx, "Error handling container monitor for container %s: %v", ctr.ID(), err)
+				log.Errorf(
+					ctx,
+					"Error handling container monitor for container %s: %v",
+					ctr.ID(),
+					err,
+				)
 			}
 		}
 

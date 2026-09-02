@@ -29,7 +29,11 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	// Unlink logs if they were linked
 	sbAnnotations := sb.Annotations()
 	if emptyDirVolName, ok := v2.GetAnnotationValue(sbAnnotations, v2.LinkLogs); ok {
-		if err := linklogs.UnmountPodLogs(ctx, sb.Labels()[kubeletTypes.KubernetesPodUIDLabel], emptyDirVolName); err != nil {
+		if err := linklogs.UnmountPodLogs(
+			ctx,
+			sb.Labels()[kubeletTypes.KubernetesPodUIDLabel],
+			emptyDirVolName,
+		); err != nil {
 			log.Warnf(ctx, "Failed to unlink logs: %v", err)
 		}
 	}
@@ -85,7 +89,12 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	}
 
 	podInfraContainer := sb.InfraContainer()
-	if err := s.stopContainer(ctx, podInfraContainer, totalTimeout); err != nil && !errors.Is(err, storage.ErrContainerUnknown) && !errors.Is(err, oci.ErrContainerStopped) {
+	if err := s.stopContainer(
+		ctx,
+		podInfraContainer,
+		totalTimeout,
+	); err != nil && !errors.Is(err, storage.ErrContainerUnknown) &&
+		!errors.Is(err, oci.ErrContainerStopped) {
 		return fmt.Errorf("failed to stop infra container for pod sandbox %s: %w", sb.ID(), err)
 	}
 
@@ -107,7 +116,11 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	if podInfraContainer.Spoofed() {
 		// event generation would be needed in case of a spoofed infra container where there is no
 		// exit process that hits the handleExit() code.
-		s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_STOPPED_EVENT)
+		s.generateCRIEvent(
+			ctx,
+			sb.InfraContainer(),
+			types.ContainerEventType_CONTAINER_STOPPED_EVENT,
+		)
 	}
 
 	return nil

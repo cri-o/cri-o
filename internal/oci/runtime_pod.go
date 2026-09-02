@@ -120,14 +120,22 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 	}, nil
 }
 
-func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupParent string, restore bool) error {
+func (r *runtimePod) CreateContainer(
+	ctx context.Context,
+	c *Container,
+	cgroupParent string,
+	restore bool,
+) error {
 	// If this container is the infra container or spoofed,
 	// then it is the pod container and we move conmonrs
 	// to the right configured cgroup.
 	if c.IsInfra() || c.Spoofed() {
 		v, err := r.client.Version(ctx, &conmonClient.VersionConfig{Verbose: false})
 		if err != nil {
-			return fmt.Errorf("failed to get version of client before moving server to cgroup: %w", err)
+			return fmt.Errorf(
+				"failed to get version of client before moving server to cgroup: %w",
+				err,
+			)
 		}
 
 		if v.Tag == "" {
@@ -156,12 +164,17 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	}
 
 	createConfig := &conmonClient.CreateContainerConfig{
-		ID:           c.ID(),
-		BundlePath:   c.bundlePath,
-		Terminal:     c.terminal,
-		Stdin:        c.stdin,
-		ExitPaths:    []string{filepath.Join(r.oci.config.ContainerExitsDir, c.ID()), c.exitFilePath()},
-		OOMExitPaths: []string{filepath.Join(c.bundlePath, "oom")}, // Keep in sync with location in oci.UpdateContainerStatus()
+		ID:         c.ID(),
+		BundlePath: c.bundlePath,
+		Terminal:   c.terminal,
+		Stdin:      c.stdin,
+		ExitPaths: []string{
+			filepath.Join(r.oci.config.ContainerExitsDir, c.ID()),
+			c.exitFilePath(),
+		},
+		OOMExitPaths: []string{
+			filepath.Join(c.bundlePath, "oom"),
+		}, // Keep in sync with location in oci.UpdateContainerStatus()
 		LogDrivers: []conmonClient.ContainerLogDriver{
 			{
 				Type:    conmonClient.LogDriverTypeContainerRuntimeInterface,
@@ -226,11 +239,24 @@ func (r *runtimePod) RestoreContainer(
 	return r.oci.RestoreContainer(ctx, c, cgroupParent, mountLabel)
 }
 
-func (r *runtimePod) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *runtimePod) ExecContainer(
+	ctx context.Context,
+	c *Container,
+	cmd []string,
+	stdin io.Reader,
+	stdout, stderr io.WriteCloser,
+	tty bool,
+	resizeChan <-chan remotecommand.TerminalSize,
+) error {
 	return r.oci.ExecContainer(ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
 }
 
-func (r *runtimePod) ExecSyncContainer(ctx context.Context, c *Container, cmd []string, timeout int64) (*types.ExecSyncResponse, error) {
+func (r *runtimePod) ExecSyncContainer(
+	ctx context.Context,
+	c *Container,
+	cmd []string,
+	timeout int64,
+) (*types.ExecSyncResponse, error) {
 	if c.Spoofed() {
 		return nil, nil
 	}
@@ -263,7 +289,11 @@ func (r *runtimePod) ExecSyncContainer(ctx context.Context, c *Container, cmd []
 	}, nil
 }
 
-func (r *runtimePod) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
+func (r *runtimePod) UpdateContainer(
+	ctx context.Context,
+	c *Container,
+	res *rspec.LinuxResources,
+) error {
 	return r.oci.UpdateContainer(ctx, c, res)
 }
 
@@ -297,15 +327,30 @@ func (r *runtimePod) UnpauseContainer(ctx context.Context, c *Container) error {
 	return r.oci.UnpauseContainer(ctx, c)
 }
 
-func (r *runtimePod) CgroupStats(ctx context.Context, c *Container, cgroup string) (*stats.CgroupStats, error) {
+func (r *runtimePod) CgroupStats(
+	ctx context.Context,
+	c *Container,
+	cgroup string,
+) (*stats.CgroupStats, error) {
 	return r.oci.CgroupStats(ctx, c, cgroup)
 }
 
-func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string) (*stats.DiskStats, error) {
+func (r *runtimePod) DiskStats(
+	ctx context.Context,
+	c *Container,
+	cgroup string,
+) (*stats.DiskStats, error) {
 	return r.oci.DiskStats(ctx, c, cgroup)
 }
 
-func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (r *runtimePod) AttachContainer(
+	ctx context.Context,
+	c *Container,
+	inputStream io.Reader,
+	outputStream, errorStream io.WriteCloser,
+	tty bool,
+	resizeChan <-chan remotecommand.TerminalSize,
+) error {
 	attachSocketPath := filepath.Join(r.serverDir, c.ID(), "attach")
 	libpodResize := make(chan resize.TerminalSize, 1)
 
@@ -350,7 +395,13 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 	})
 }
 
-func (r *runtimePod) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+func (r *runtimePod) PortForwardContainer(
+	ctx context.Context,
+	c *Container,
+	netNsPath string,
+	port int32,
+	stream io.ReadWriteCloser,
+) error {
 	return r.oci.PortForwardContainer(ctx, c, netNsPath, port, stream)
 }
 
@@ -368,7 +419,12 @@ func (r *runtimePod) ProbeMonitor(ctx context.Context, c *Container) error {
 	return r.oci.ProbeMonitor(ctx, c)
 }
 
-func (r *runtimePod) ServeExecContainer(ctx context.Context, c *Container, cmd []string, tty, stdin, stdout, stderr bool) (string, error) {
+func (r *runtimePod) ServeExecContainer(
+	ctx context.Context,
+	c *Container,
+	cmd []string,
+	tty, stdin, stdout, stderr bool,
+) (string, error) {
 	res, err := r.client.ServeExecContainer(ctx, &conmonClient.ServeExecContainerConfig{
 		ID:      c.ID(),
 		Command: cmd,
@@ -384,7 +440,11 @@ func (r *runtimePod) ServeExecContainer(ctx context.Context, c *Container, cmd [
 	return res.URL, nil
 }
 
-func (r *runtimePod) ServeAttachContainer(ctx context.Context, c *Container, stdin, stdout, stderr bool) (string, error) {
+func (r *runtimePod) ServeAttachContainer(
+	ctx context.Context,
+	c *Container,
+	stdin, stdout, stderr bool,
+) (string, error) {
 	res, err := r.client.ServeAttachContainer(ctx, &conmonClient.ServeAttachContainerConfig{
 		ID:     c.ID(),
 		Stdin:  stdin,

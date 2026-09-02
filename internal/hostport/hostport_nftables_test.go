@@ -72,7 +72,10 @@ func checkNFTablesElements(nft *knftables.Fake, expectedElements []string) {
 	unexpectedElements := matched.Difference(expected).UnsortedList()
 	missingElements := expected.Difference(matched).UnsortedList()
 
-	ExpectWithOffset(1, len(unexpectedElements)+len(missingElements)).To(Equal(0), "unexpected elements in nftables dump: %#v, expected elements missing from nftables dump: %#v", unexpectedElements, missingElements)
+	ExpectWithOffset(
+		1,
+		len(unexpectedElements)+len(missingElements),
+	).To(Equal(0), "unexpected elements in nftables dump: %#v, expected elements missing from nftables dump: %#v", unexpectedElements, missingElements)
 }
 
 var _ = t.Describe("hostPortManagerNFTables", func() {

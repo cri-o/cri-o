@@ -66,7 +66,11 @@ func (c *ContainerServer) ContainerCheckpoint(
 	// the processes if possible. If the cgroup is already frozen by runc/crun
 	// CRIU will not change the freezer status.
 	if err = c.runtime.PauseContainer(ctx, ctr); err != nil {
-		return "", fmt.Errorf("failed to pause container %q before checkpointing: %w", ctr.ID(), err)
+		return "", fmt.Errorf(
+			"failed to pause container %q before checkpointing: %w",
+			ctr.ID(),
+			err,
+		)
 	}
 
 	defer func() {
@@ -88,14 +92,28 @@ func (c *ContainerServer) ContainerCheckpoint(
 
 	if opts.TargetFile != "" {
 		if err := c.prepareCheckpointExport(ctr); err != nil {
-			return "", fmt.Errorf("failed to write config dumps for container %s: %w", ctr.ID(), err)
+			return "", fmt.Errorf(
+				"failed to write config dumps for container %s: %w",
+				ctr.ID(),
+				err,
+			)
 		}
 	}
 
-	if err := c.runtime.CheckpointContainer(ctx, ctr, specgen.Config, opts.KeepRunning); err != nil {
+	if err := c.runtime.CheckpointContainer(
+		ctx,
+		ctr,
+		specgen.Config,
+		opts.KeepRunning,
+	); err != nil {
 		// in the case of an error, clean up any leftover CRIU images
 		if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
-			log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
+			log.Warnf(
+				ctx,
+				"Unable to remove checkpoint directory %s: %v",
+				ctr.CheckpointPath(),
+				err,
+			)
 		}
 
 		return "", fmt.Errorf("failed to checkpoint container %s: %w", ctr.ID(), err)
@@ -103,13 +121,22 @@ func (c *ContainerServer) ContainerCheckpoint(
 
 	if opts.TargetFile != "" {
 		if err := c.exportCheckpoint(ctx, ctr, specgen.Config, opts.TargetFile); err != nil {
-			return "", fmt.Errorf("failed to write file system changes of container %s: %w", ctr.ID(), err)
+			return "", fmt.Errorf(
+				"failed to write file system changes of container %s: %w",
+				ctr.ID(),
+				err,
+			)
 		}
 
 		defer func() {
 			// clean up checkpoint directory
 			if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
-				log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
+				log.Warnf(
+					ctx,
+					"Unable to remove checkpoint directory %s: %v",
+					ctr.CheckpointPath(),
+					err,
+				)
 			}
 		}()
 	}
@@ -119,12 +146,21 @@ func (c *ContainerServer) ContainerCheckpoint(
 		if err != nil {
 			// don't abort in case of error - we can use the default runtime
 			// handler here (sb == nil), to at least try and stop the container.
-			log.Warnf(ctx, "Failed to lookup sandbox %s for checkpoint cleanup: %v", ctr.Sandbox(), err)
+			log.Warnf(
+				ctx,
+				"Failed to lookup sandbox %s for checkpoint cleanup: %v",
+				ctr.Sandbox(),
+				err,
+			)
 		}
 
 		runtimeSvc, err := c.StorageRuntimeServer(sb)
 		if err != nil {
-			return "", fmt.Errorf("failed to get runtime service for container %s: %w", ctr.ID(), err)
+			return "", fmt.Errorf(
+				"failed to get runtime service for container %s: %w",
+				ctr.ID(),
+				err,
+			)
 		}
 
 		if err := runtimeSvc.StopContainer(ctx, ctr.ID()); err != nil {
@@ -179,7 +215,11 @@ func skipBindMount(mountPath string, specgen *rspec.Spec) bool {
 
 // getDiff returns the file system differences
 // Copied from libpod/diff.go and simplified for the checkpoint use case.
-func (c *ContainerServer) getDiff(ctx context.Context, id string, specgen *rspec.Spec) (rchanges []archive.Change, err error) {
+func (c *ContainerServer) getDiff(
+	ctx context.Context,
+	id string,
+	specgen *rspec.Spec,
+) (rchanges []archive.Change, err error) {
 	layerID, err := c.GetContainerTopLayerID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -302,7 +342,11 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	}
 
 	if len(externalBindMounts) > 0 {
-		if _, err := metadata.WriteJSONFile(externalBindMounts, ctr.Dir(), "bind.mounts"); err != nil {
+		if _, err := metadata.WriteJSONFile(
+			externalBindMounts,
+			ctr.Dir(),
+			"bind.mounts",
+		); err != nil {
 			return fmt.Errorf("error writing 'bind.mounts' for %q: %w", ctr.ID(), err)
 		}
 	}
@@ -310,7 +354,12 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	return nil
 }
 
-func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Container, specgen *rspec.Spec, export string) error {
+func (c *ContainerServer) exportCheckpoint(
+	ctx context.Context,
+	ctr *oci.Container,
+	specgen *rspec.Spec,
+	export string,
+) error {
 	id := ctr.ID()
 	dest := ctr.Dir()
 	log.Debugf(ctx, "Exporting checkpoint image of container %q to %q", id, dest)
@@ -346,7 +395,11 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 	if err == nil {
 		src, err := os.Open(specgen.Annotations[annotations.LogPath])
 		if err != nil {
-			return fmt.Errorf("error opening log file %q: %w", specgen.Annotations[annotations.LogPath], err)
+			return fmt.Errorf(
+				"error opening log file %q: %w",
+				specgen.Annotations[annotations.LogPath],
+				err,
+			)
 		}
 
 		defer src.Close()

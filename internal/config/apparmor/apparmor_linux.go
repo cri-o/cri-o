@@ -110,12 +110,14 @@ func (c *Config) IsEnabled() bool {
 // TODO: Clean off deprecated AppArmorProfile usage.
 func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, error) {
 	// Runtime default profile
-	if p.GetApparmor() != nil && p.GetApparmor().GetProfileType() == runtimeapi.SecurityProfile_RuntimeDefault {
+	if p.GetApparmor() != nil &&
+		p.GetApparmor().GetProfileType() == runtimeapi.SecurityProfile_RuntimeDefault {
 		return c.defaultProfile, nil
 	}
 
 	//nolint:staticcheck // see deprecation TODO above
-	if p.GetApparmor() == nil && p.GetApparmorProfile() == "" || p.GetApparmorProfile() == v1.DeprecatedAppArmorBetaProfileRuntimeDefault {
+	if p.GetApparmor() == nil && p.GetApparmorProfile() == "" ||
+		p.GetApparmorProfile() == v1.DeprecatedAppArmorBetaProfileRuntimeDefault {
 		return c.defaultProfile, nil
 	}
 
@@ -130,15 +132,23 @@ func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, err
 	}
 
 	//nolint:staticcheck // see deprecation TODO above
-	if p.GetApparmor() == nil && strings.EqualFold(p.GetApparmorProfile(), v1.DeprecatedAppArmorBetaProfileNameUnconfined) {
+	if p.GetApparmor() == nil &&
+		strings.EqualFold(p.GetApparmorProfile(), v1.DeprecatedAppArmorBetaProfileNameUnconfined) {
 		securityProfile = v1.DeprecatedAppArmorBetaProfileNameUnconfined
 	}
 
-	if p.GetApparmor() != nil && strings.EqualFold(p.GetApparmor().GetProfileType().String(), v1.DeprecatedAppArmorBetaProfileNameUnconfined) {
+	if p.GetApparmor() != nil &&
+		strings.EqualFold(
+			p.GetApparmor().GetProfileType().String(),
+			v1.DeprecatedAppArmorBetaProfileNameUnconfined,
+		) {
 		securityProfile = v1.DeprecatedAppArmorBetaProfileNameUnconfined
 	}
 
-	securityProfile = strings.TrimPrefix(securityProfile, v1.DeprecatedAppArmorBetaProfileNamePrefix)
+	securityProfile = strings.TrimPrefix(
+		securityProfile,
+		v1.DeprecatedAppArmorBetaProfileNamePrefix,
+	)
 	if securityProfile == "" {
 		return "", errors.New("empty localhost AppArmor profile is forbidden")
 	}

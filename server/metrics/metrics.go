@@ -402,7 +402,10 @@ func (m *Metrics) MetricImagePullsSkippedBytesAdd(add float64) {
 	c.Add(add)
 }
 
-func (m *Metrics) MetricImagePullsFailuresInc(image references.RegistryImageReference, label string) {
+func (m *Metrics) MetricImagePullsFailuresInc(
+	image references.RegistryImageReference,
+	label string,
+) {
 	c, err := m.metricImagePullsFailureTotal.GetMetricWithLabelValues(label)
 	if err != nil {
 		logrus.Warnf("Unable to write image pull failures total metric: %v", err)
@@ -429,7 +432,10 @@ func (m *Metrics) MetricImagePullsSuccessesInc(name references.RegistryImageRefe
 }
 
 func (m *Metrics) MetricImagePullsBytesAdd(add float64, mediatype string, size int64) {
-	c, err := m.metricImagePullsBytesTotal.GetMetricWithLabelValues(mediatype, GetSizeBucket(float64(size)))
+	c, err := m.metricImagePullsBytesTotal.GetMetricWithLabelValues(
+		mediatype,
+		GetSizeBucket(float64(size)),
+	)
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls bytes metric: %v", err)
 
@@ -531,13 +537,25 @@ func (m *Metrics) startEndpoint(
 		if m.config.MetricsCert != "" && m.config.MetricsKey != "" {
 			log.Infof(ctx, "Serving metrics on %s using HTTPS", address)
 
-			if err = cert.GenerateSelfSignedCertKey(ctx, m.config.MetricsCert, m.config.MetricsKey); err != nil {
+			if err = cert.GenerateSelfSignedCertKey(
+				ctx,
+				m.config.MetricsCert,
+				m.config.MetricsKey,
+			); err != nil {
 				log.Fatalf(ctx, "Generating self-signed cert/key: %v", err)
 			}
 
 			var cc *cert.Config
 
-			cc, err = cert.NewCertConfig(ctx, stop, m.config.MetricsCert, m.config.MetricsKey, "", m.apiConfig.GetTLSMinVersion(), m.apiConfig.GetTLSCipherSuites())
+			cc, err = cert.NewCertConfig(
+				ctx,
+				stop,
+				m.config.MetricsCert,
+				m.config.MetricsKey,
+				"",
+				m.apiConfig.GetTLSMinVersion(),
+				m.apiConfig.GetTLSCipherSuites(),
+			)
 			if err != nil {
 				log.Fatalf(ctx, "Creating key pair reloader: %v", err)
 			}

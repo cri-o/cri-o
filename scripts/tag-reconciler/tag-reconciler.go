@@ -44,16 +44,27 @@ func run() error {
 	for _, minorVersion := range version.ReleaseMinorVersions {
 		baseBranchName := utils.BranchPrefix + minorVersion // Creates "release-x.y" format.
 
-		sv, err := utils.GetCurrentVersionFromReleaseBranch(repo, baseBranchName) // Returns "x.y.z" format.
+		sv, err := utils.GetCurrentVersionFromReleaseBranch(
+			repo,
+			baseBranchName,
+		) // Returns "x.y.z" format.
 		if err != nil {
-			return fmt.Errorf("unable to read current version from release branch %q: %w", baseBranchName, err)
+			return fmt.Errorf(
+				"unable to read current version from release branch %q: %w",
+				baseBranchName,
+				err,
+			)
 		}
 
 		currentReleaseVersion := utils.VersionPrefix + sv.String()
 
 		exists, err := hasCurrentReleaseVersionTag(repo, baseBranchName, currentReleaseVersion)
 		if err != nil {
-			return fmt.Errorf("unable to retrieve version for release branch %q: %w", minorVersion, err)
+			return fmt.Errorf(
+				"unable to retrieve version for release branch %q: %w",
+				minorVersion,
+				err,
+			)
 		}
 
 		if !exists {
@@ -77,23 +88,32 @@ func pushTagToRemote(repo *git.Repo, tag, remote string) error {
 
 	logrus.Infof("Pushing tag to origin: %s", tag)
 
-	if err := command.NewWithWorkDir(repo.Dir(), "git", "push", remote, "tag", tag).RunSilentSuccess(); err != nil {
+	if err := command.NewWithWorkDir(repo.Dir(), "git", "push", remote, "tag", tag).
+		RunSilentSuccess(); err != nil {
 		return fmt.Errorf("unable to run git push: %w", err)
 	}
 
 	logrus.Infof("Running GitHub `test` workflow")
 
-	if err := command.NewWithWorkDir(repo.Dir(), "gh", "workflow", "run", "test", "--ref", tag).RunSilentSuccess(); err != nil {
+	if err := command.NewWithWorkDir(repo.Dir(), "gh", "workflow", "run", "test", "--ref", tag).
+		RunSilentSuccess(); err != nil {
 		return fmt.Errorf("unable to run GitHub workflow: %w", err)
 	}
 
 	return nil
 }
 
-func hasCurrentReleaseVersionTag(repo *git.Repo, baseBranchName, tag string) (exists bool, err error) {
+func hasCurrentReleaseVersionTag(
+	repo *git.Repo,
+	baseBranchName, tag string,
+) (exists bool, err error) {
 	existingTags, err := repo.TagsForBranch(baseBranchName)
 	if err != nil {
-		return false, fmt.Errorf("unable to read remote tags for branch %q: %w", baseBranchName, err)
+		return false, fmt.Errorf(
+			"unable to read remote tags for branch %q: %w",
+			baseBranchName,
+			err,
+		)
 	}
 
 	return slices.Contains(existingTags, tag), nil

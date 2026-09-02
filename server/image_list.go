@@ -12,7 +12,10 @@ import (
 )
 
 // ListImages lists existing images.
-func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (*types.ListImagesResponse, error) {
+func (s *Server) ListImages(
+	ctx context.Context,
+	req *types.ListImagesRequest,
+) (*types.ListImagesResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -27,7 +30,10 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 }
 
 // StreamImages returns a stream of images.
-func (s *Server) StreamImages(req *types.StreamImagesRequest, stream types.ImageService_StreamImagesServer) error {
+func (s *Server) StreamImages(
+	req *types.StreamImagesRequest,
+	stream types.ImageService_StreamImagesServer,
+) error {
 	ctx := stream.Context()
 
 	images, err := s.listImages(ctx, req.GetFilter())
@@ -48,7 +54,10 @@ func (s *Server) StreamImages(req *types.StreamImagesRequest, stream types.Image
 }
 
 // listImages returns a filtered list of images.
-func (s *Server) listImages(ctx context.Context, filter *types.ImageFilter) ([]*types.Image, error) {
+func (s *Server) listImages(
+	ctx context.Context,
+	filter *types.ImageFilter,
+) ([]*types.Image, error) {
 	if filter != nil {
 		if filterImage := filter.GetImage(); filterImage != nil && filterImage.GetImage() != "" {
 			// Historically CRI-O has interpreted the "filter" as a single image to look up.

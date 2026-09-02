@@ -88,7 +88,13 @@ type Interface interface {
 	// rules. If it is unable to create the canary chains (either initially or after
 	// a reload) it will log an error and stop monitoring.
 	// (This function should be called from a goroutine.)
-	Monitor(canary Chain, tables []Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{})
+	Monitor(
+		canary Chain,
+		tables []Table,
+		reloadFunc func(),
+		interval time.Duration,
+		stopCh <-chan struct{},
+	)
 	// HasRandomFully reveals whether `-j MASQUERADE` takes the
 	// `--random-fully` option.  This is helpful to work around a
 	// Linux kernel bug that sometimes causes multiple flows to get
@@ -219,7 +225,12 @@ type runner struct {
 
 // newInternal returns a new Interface which will exec iptables, and allows the
 // caller to change the iptables-restore lockfile path.
-func newInternal(ctx context.Context, exec utilexec.Interface, protocol Protocol, lockfilePath14x, lockfilePath16x string) Interface {
+func newInternal(
+	ctx context.Context,
+	exec utilexec.Interface,
+	protocol Protocol,
+	lockfilePath14x, lockfilePath16x string,
+) Interface {
 	if lockfilePath16x == "" {
 		lockfilePath16x = LockfilePath16x
 	}
@@ -310,7 +321,12 @@ func (runner *runner) DeleteChain(table Table, chain Chain) error {
 }
 
 // EnsureRule is part of Interface.
-func (runner *runner) EnsureRule(position RulePosition, table Table, chain Chain, args ...string) (bool, error) {
+func (runner *runner) EnsureRule(
+	position RulePosition,
+	table Table,
+	chain Chain,
+	args ...string,
+) (bool, error) {
 	fullArgs := makeFullArgs(table, chain, args...)
 
 	runner.mu.Lock()
@@ -385,14 +401,21 @@ func (runner *runner) SaveInto(table Table, buffer *bytes.Buffer) error {
 
 	err := cmd.Run()
 	if err != nil {
-		stderrBuffer.WriteTo(buffer) //nolint:errcheck // ignore error, since we need to return the original error
+		stderrBuffer.WriteTo( //nolint:errcheck // best effort
+			buffer,
+		)
 	}
 
 	return err
 }
 
 // Restore is part of Interface.
-func (runner *runner) Restore(table Table, data []byte, flush FlushFlag, counters RestoreCountersFlag) error {
+func (runner *runner) Restore(
+	table Table,
+	data []byte,
+	flush FlushFlag,
+	counters RestoreCountersFlag,
+) error {
 	// setup args
 	args := []string{"-T", string(table)}
 
@@ -412,7 +435,12 @@ type iptablesLocker interface {
 }
 
 // restoreInternal is the shared part of Restore/RestoreAll.
-func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFlag, counters RestoreCountersFlag) error {
+func (runner *runner) restoreInternal(
+	args []string,
+	data []byte,
+	flush FlushFlag,
+	counters RestoreCountersFlag,
+) error {
 	runner.mu.Lock()
 	defer runner.mu.Unlock()
 
@@ -448,7 +476,12 @@ func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFla
 	// run the command and return the output or an error including the output and error
 	fullArgs := append(runner.restoreWaitFlag, args...) //nolint:gocritic
 	iptablesRestoreCmd := iptablesRestoreCommand(runner.protocol)
-	log.Debugf(context.Background(), "Running (command=%q arguments=%q)", iptablesRestoreCmd, fullArgs)
+	log.Debugf(
+		context.Background(),
+		"Running (command=%q arguments=%q)",
+		iptablesRestoreCmd,
+		fullArgs,
+	)
 	cmd := runner.exec.Command(iptablesRestoreCmd, fullArgs...)
 	cmd.SetStdin(bytes.NewBuffer(data))
 
@@ -526,9 +559,18 @@ func trimhex(s string) string {
 // Executes the rule check without using the "-C" flag, instead parsing iptables-save.
 // Present for compatibility with <1.4.11 versions of iptables.  This is full
 // of hack and half-measures.  We should nix this ASAP.
-func (runner *runner) checkRuleWithoutCheck(table Table, chain Chain, args ...string) (bool, error) {
+func (runner *runner) checkRuleWithoutCheck(
+	table Table,
+	chain Chain,
+	args ...string,
+) (bool, error) {
 	iptablesSaveCmd := iptablesSaveCommand(runner.protocol)
-	log.Debugf(context.Background(), "Running (command=%q table=%q)", iptablesSaveCmd, string(table))
+	log.Debugf(
+		context.Background(),
+		"Running (command=%q table=%q)",
+		iptablesSaveCmd,
+		string(table),
+	)
 
 	out, err := runner.exec.Command(iptablesSaveCmd, "-t", string(table)).CombinedOutput()
 	if err != nil {
@@ -571,7 +613,12 @@ func (runner *runner) checkRuleWithoutCheck(table Table, chain Chain, args ...st
 			return true, nil
 		}
 
-		log.Debugf(context.Background(), "fields is not a superset of args (fields=%+v arguments=%+v)", fields, args)
+		log.Debugf(
+			context.Background(),
+			"fields is not a superset of args (fields=%+v arguments=%+v)",
+			fields,
+			args,
+		)
 	}
 
 	return false, nil
@@ -610,52 +657,94 @@ const (
 )
 
 // Monitor is part of Interface.
-func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{}) {
+func (runner *runner) Monitor(
+	canary Chain,
+	tables []Table,
+	reloadFunc func(),
+	interval time.Duration,
+	stopCh <-chan struct{},
+) {
 	for {
-		_ = utilwait.PollImmediateUntil(interval, func() (bool, error) { //nolint:errcheck,staticcheck // deprecated poll API, error intentionally ignored
-			for _, table := range tables {
-				if _, err := runner.EnsureChain(table, canary); err != nil {
-					log.Errorf(context.Background(), "Could not set up iptables canary: %s (table=%+v chain=%q)", err, table, canary)
+		_ = utilwait.PollImmediateUntil( //nolint:errcheck,staticcheck // deprecated poll API, error intentionally ignored
+			interval,
+			func() (bool, error) {
+				for _, table := range tables {
+					if _, err := runner.EnsureChain(table, canary); err != nil {
+						log.Errorf(
+							context.Background(),
+							"Could not set up iptables canary: %s (table=%+v chain=%q)",
+							err,
+							table,
+							canary,
+						)
 
-					return false, nil
-				}
-			}
-
-			return true, nil
-		}, stopCh)
-
-		// Poll until stopCh is closed or iptables is flushed
-		err := utilwait.PollUntil(interval, func() (bool, error) { //nolint:staticcheck // deprecated poll API
-			if exists, err := runner.ChainExists(tables[0], canary); exists {
-				return false, nil
-			} else if isResourceError(err) {
-				log.Errorf(context.Background(), "Could not check for iptables canary: %s (table=%q chain=%q)", err, tables[0], canary)
-
-				return false, nil
-			}
-
-			log.Debugf(context.Background(), "IPTables canary deleted (table=%q chain=%q)", tables[0], canary)
-			// Wait for the other canaries to be deleted too before returning
-			// so we don't start reloading too soon.
-			err := utilwait.PollImmediate(iptablesFlushPollTime, iptablesFlushTimeout, func() (bool, error) { //nolint:staticcheck // deprecated poll API
-				for i := 1; i < len(tables); i++ {
-					if exists, err := runner.ChainExists(tables[i], canary); exists || isResourceError(err) {
 						return false, nil
 					}
 				}
 
 				return true, nil
-			})
-			if err != nil {
-				log.Warnf(context.Background(), "Inconsistent iptables state detected: %s", err)
-			}
+			},
+			stopCh,
+		)
 
-			return true, nil
-		}, stopCh)
+		// Poll until stopCh is closed or iptables is flushed
+		err := utilwait.PollUntil( //nolint:staticcheck // deprecated poll API
+			interval,
+			func() (bool, error) {
+				if exists, err := runner.ChainExists(tables[0], canary); exists {
+					return false, nil
+				} else if isResourceError(err) {
+					log.Errorf(
+						context.Background(),
+						"Could not check for iptables canary: %s (table=%q chain=%q)",
+						err,
+						tables[0],
+						canary,
+					)
+
+					return false, nil
+				}
+
+				log.Debugf(
+					context.Background(),
+					"IPTables canary deleted (table=%q chain=%q)",
+					tables[0],
+					canary,
+				)
+				// Wait for the other canaries to be deleted too before returning
+				// so we don't start reloading too soon.
+				err := utilwait.PollImmediate( //nolint:staticcheck // deprecated poll API
+					iptablesFlushPollTime,
+					iptablesFlushTimeout,
+					func() (bool, error) {
+						for i := 1; i < len(tables); i++ {
+							if exists, err := runner.ChainExists(
+								tables[i],
+								canary,
+							); exists ||
+								isResourceError(err) {
+								return false, nil
+							}
+						}
+
+						return true, nil
+					},
+				)
+				if err != nil {
+					log.Warnf(context.Background(), "Inconsistent iptables state detected: %s", err)
+				}
+
+				return true, nil
+			},
+			stopCh,
+		)
 		if err != nil {
 			// stopCh was closed
 			for _, table := range tables {
-				_ = runner.DeleteChain(table, canary) //nolint:errcheck // best-effort cleanup during shutdown
+				_ = runner.DeleteChain( //nolint:errcheck // best effort cleanup
+					table,
+					canary,
+				)
 			}
 
 			return
@@ -717,7 +806,11 @@ func getIPTablesVersion(exec utilexec.Interface, protocol Protocol) (*utilversio
 
 	version, err := utilversion.ParseGeneric(match[1])
 	if err != nil {
-		return nil, fmt.Errorf("iptables version %q is not a valid version string: %w", match[1], err)
+		return nil, fmt.Errorf(
+			"iptables version %q is not a valid version string: %w",
+			match[1],
+			err,
+		)
 	}
 
 	return version, nil
@@ -738,7 +831,11 @@ func getIPTablesWaitFlag(version *utilversion.Version) []string {
 }
 
 // Checks if iptables-restore has a "wait" flag.
-func getIPTablesRestoreWaitFlag(version *utilversion.Version, exec utilexec.Interface, protocol Protocol) []string {
+func getIPTablesRestoreWaitFlag(
+	version *utilversion.Version,
+	exec utilexec.Interface,
+	protocol Protocol,
+) []string {
 	if version.AtLeast(WaitRestoreMinVersion) {
 		return []string{WaitString, WaitSecondsValue, WaitIntervalString, WaitIntervalUsecondsValue}
 	}
@@ -747,13 +844,21 @@ func getIPTablesRestoreWaitFlag(version *utilversion.Version, exec utilexec.Inte
 	// --version, assume it also supports --wait
 	vstring, err := getIPTablesRestoreVersionString(exec, protocol)
 	if err != nil || vstring == "" {
-		log.Warnf(context.Background(), "Couldn't get iptables-restore version; assuming it doesn't support --wait: %q", err)
+		log.Warnf(
+			context.Background(),
+			"Couldn't get iptables-restore version; assuming it doesn't support --wait: %q",
+			err,
+		)
 
 		return nil
 	}
 
 	if _, err := utilversion.ParseGeneric(vstring); err != nil {
-		log.Warnf(context.Background(), "Couldn't parse iptables-restore version; assuming it doesn't support --wait: %q", err)
+		log.Warnf(
+			context.Background(),
+			"Couldn't parse iptables-restore version; assuming it doesn't support --wait: %q",
+			err,
+		)
 
 		return nil
 	}

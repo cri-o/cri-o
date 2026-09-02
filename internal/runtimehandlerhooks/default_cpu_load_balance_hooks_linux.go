@@ -23,21 +23,38 @@ type DefaultCPULoadBalanceHooks struct {
 }
 
 // No-op.
-func (*DefaultCPULoadBalanceHooks) PreCreate(context.Context, *generate.Generator, *sandbox.Sandbox, *oci.Container) error {
+func (*DefaultCPULoadBalanceHooks) PreCreate(
+	context.Context,
+	*generate.Generator,
+	*sandbox.Sandbox,
+	*oci.Container,
+) error {
 	return nil
 }
 
 // No-op.
-func (*DefaultCPULoadBalanceHooks) PreStart(context.Context, *oci.Container, *sandbox.Sandbox) error {
+func (*DefaultCPULoadBalanceHooks) PreStart(
+	context.Context,
+	*oci.Container,
+	*sandbox.Sandbox,
+) error {
 	return nil
 }
 
 // No-op.
-func (*DefaultCPULoadBalanceHooks) PreStop(context.Context, *oci.Container, *sandbox.Sandbox) error {
+func (*DefaultCPULoadBalanceHooks) PreStop(
+	context.Context,
+	*oci.Container,
+	*sandbox.Sandbox,
+) error {
 	return nil
 }
 
-func (d *DefaultCPULoadBalanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
+func (d *DefaultCPULoadBalanceHooks) PostStop(
+	ctx context.Context,
+	c *oci.Container,
+	s *sandbox.Sandbox,
+) error {
 	// Disable cpuset.sched_load_balance for all stale cgroups.
 	// This way, cpumanager can ignore stopped containers, but the running ones will still have exclusive access.
 	if c.Spoofed() || node.CgroupIsV2() {

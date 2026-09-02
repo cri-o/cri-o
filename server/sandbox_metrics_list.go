@@ -7,14 +7,20 @@ import (
 )
 
 // ListPodSandboxMetrics lists all pod sandbox metrics.
-func (s *Server) ListPodSandboxMetrics(ctx context.Context, req *types.ListPodSandboxMetricsRequest) (*types.ListPodSandboxMetricsResponse, error) {
+func (s *Server) ListPodSandboxMetrics(
+	ctx context.Context,
+	req *types.ListPodSandboxMetricsRequest,
+) (*types.ListPodSandboxMetricsResponse, error) {
 	return &types.ListPodSandboxMetricsResponse{
 		PodMetrics: s.listPodSandboxMetrics(),
 	}, nil
 }
 
 // StreamPodSandboxMetrics returns a stream of pod sandbox metrics.
-func (s *Server) StreamPodSandboxMetrics(_ *types.StreamPodSandboxMetricsRequest, stream types.RuntimeService_StreamPodSandboxMetricsServer) error {
+func (s *Server) StreamPodSandboxMetrics(
+	_ *types.StreamPodSandboxMetricsRequest,
+	stream types.RuntimeService_StreamPodSandboxMetricsServer,
+) error {
 	metrics := s.listPodSandboxMetrics()
 	for i := 0; i < len(metrics); i += streamChunkSize {
 		end := min(i+streamChunkSize, len(metrics))

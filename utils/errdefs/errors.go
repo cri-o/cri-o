@@ -39,7 +39,9 @@ var (
 	ErrAlreadyExists      = errors.New("already exists")
 	ErrFailedPrecondition = errors.New("failed precondition")
 	ErrUnavailable        = errors.New("unavailable")
-	ErrNotImplemented     = errors.New("not implemented") // represents not supported and unimplemented
+	ErrNotImplemented     = errors.New(
+		"not implemented",
+	) // represents not supported and unimplemented
 )
 
 // IsInvalidArgument returns true if the error is due to an invalid argument.

@@ -14,7 +14,11 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
-func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container, serverConfig *config.Config) error {
+func (c *container) SpecAddNamespaces(
+	sb SandboxIFace,
+	targetCtr *oci.Container,
+	serverConfig *config.Config,
+) error {
 	// Join the namespace paths for the pod sandbox container.
 	if err := ConfigureGeneratorGivenNamespacePaths(sb.NamespacePaths(), &c.spec); err != nil {
 		return fmt.Errorf("failed to configure namespaces in container create: %w", err)
@@ -38,13 +42,20 @@ func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container,
 		pidNsPath := sb.PidNsPath()
 		if pidNsPath == "" {
 			if sb.NamespaceOptions().GetPid() != types.NamespaceMode_POD {
-				return errors.New("pod level PID namespace requested for the container, but pod sandbox was not similarly configured, and does not have an infra container")
+				return errors.New(
+					"pod level PID namespace requested for the container, but pod sandbox was not similarly configured, and does not have an infra container",
+				)
 			}
 
-			return errors.New("PID namespace requested, but sandbox infra container unexpectedly invalid")
+			return errors.New(
+				"PID namespace requested, but sandbox infra container unexpectedly invalid",
+			)
 		}
 
-		if err := c.spec.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), pidNsPath); err != nil {
+		if err := c.spec.AddOrReplaceLinuxNamespace(
+			string(rspec.PIDNamespace),
+			pidNsPath,
+		); err != nil {
 			return fmt.Errorf("updating container PID namespace to pod: %w", err)
 		}
 	case types.NamespaceMode_TARGET:
@@ -62,8 +73,15 @@ func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container,
 			return fmt.Errorf("target PID namespace from proc: %w", err)
 		}
 
-		if err := c.spec.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), ns.Path()); err != nil {
-			return fmt.Errorf("updating container PID namespace to target %s: %w", targetCtr.ID(), err)
+		if err := c.spec.AddOrReplaceLinuxNamespace(
+			string(rspec.PIDNamespace),
+			ns.Path(),
+		); err != nil {
+			return fmt.Errorf(
+				"updating container PID namespace to target %s: %w",
+				targetCtr.ID(),
+				err,
+			)
 		}
 
 		c.pidns = ns
@@ -74,7 +92,10 @@ func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container,
 
 // ConfigureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
 // to add or replace the defaults to these paths.
-func ConfigureGeneratorGivenNamespacePaths(managedNamespaces []*namespace.ManagedNamespace, g *generate.Generator) error {
+func ConfigureGeneratorGivenNamespacePaths(
+	managedNamespaces []*namespace.ManagedNamespace,
+	g *generate.Generator,
+) error {
 	typeToSpec := map[nsmgr.NSType]rspec.LinuxNamespaceType{
 		nsmgr.IPCNS:  rspec.IPCNamespace,
 		nsmgr.NETNS:  rspec.NetworkNamespace,

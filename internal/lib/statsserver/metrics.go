@@ -131,7 +131,9 @@ var availableMetricDescriptors = map[string][]*types.MetricDescriptor{
 }
 
 // PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
-func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
+func (ss *StatsServer) PopulateMetricDescriptors(
+	includedKeys []string,
+) map[string][]*types.MetricDescriptor {
 	descriptorsMap := map[string][]*types.MetricDescriptor{
 		"": alwaysOnMetrics,
 	}

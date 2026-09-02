@@ -56,7 +56,13 @@ func setSize(fd uintptr, size remotecommand.TerminalSize) error {
 	return unix.IoctlSetWinsize(int(fd), unix.TIOCSWINSZ, winsize)
 }
 
-func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resizeChan <-chan remotecommand.TerminalSize, c *Container) error {
+func ttyCmd(
+	execCmd *exec.Cmd,
+	stdin io.Reader,
+	stdout io.WriteCloser,
+	resizeChan <-chan remotecommand.TerminalSize,
+	c *Container,
+) error {
 	starter := &ptyStarter{cmd: execCmd}
 
 	pid, err := c.StartExecCmd(starter, true)

@@ -28,7 +28,13 @@ type Config struct {
 	CipherSuites []uint16
 }
 
-func NewCertConfig(ctx context.Context, doneChan chan struct{}, certPath, keyPath, caPath string, minVersion uint16, cipherSuites []uint16) (*Config, error) {
+func NewCertConfig(
+	ctx context.Context,
+	doneChan chan struct{},
+	certPath, keyPath, caPath string,
+	minVersion uint16,
+	cipherSuites []uint16,
+) (*Config, error) {
 	cc := &Config{
 		TLSCert:      certPath,
 		TLSKey:       keyPath,
@@ -161,7 +167,8 @@ func GenerateSelfSignedCertKey(ctx context.Context, certPath, keyPath string) er
 	_, errCertPath := os.Stat(certPath)
 
 	_, errKeyPath := os.Stat(keyPath)
-	if errCertPath != nil && os.IsNotExist(errCertPath) && errKeyPath != nil && os.IsNotExist(errKeyPath) {
+	if errCertPath != nil && os.IsNotExist(errCertPath) && errKeyPath != nil &&
+		os.IsNotExist(errKeyPath) {
 		log.Infof(ctx, "Metrics key and cert path does not exist, generating self-signed")
 
 		hostname, err := os.Hostname()

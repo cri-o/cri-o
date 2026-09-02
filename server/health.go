@@ -20,7 +20,13 @@ var (
 
 func (s *Server) checkCRIHealth(ctx context.Context, timeout time.Duration) error {
 	// Validate that a CRI connection is possible using the socket path.
-	rrs, err := cri.NewRemoteRuntimeService(ctx, s.ContainerServer.Config().Listen, timeout, nil, false)
+	rrs, err := cri.NewRemoteRuntimeService(
+		ctx,
+		s.ContainerServer.Config().Listen,
+		timeout,
+		nil,
+		false,
+	)
 	if err != nil {
 		return fmt.Errorf("create remote runtime service: %w", err)
 	}
@@ -46,7 +52,13 @@ func (s *Server) checkCRIHealth(ctx context.Context, timeout time.Duration) erro
 	for _, c := range response.GetStatus().GetConditions() {
 		if c.GetType() == "NetworkReady" {
 			if !cniPluginInitialized.Load() {
-				log.Warnf(ctx, "CNI plugin not yet initialized. Ignoring NetworkReady status: %v, message: %s, reason: %s", c.GetStatus(), c.GetMessage(), c.GetReason())
+				log.Warnf(
+					ctx,
+					"CNI plugin not yet initialized. Ignoring NetworkReady status: %v, message: %s, reason: %s",
+					c.GetStatus(),
+					c.GetMessage(),
+					c.GetReason(),
+				)
 
 				continue
 			}

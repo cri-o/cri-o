@@ -36,7 +36,11 @@ func New(conmonPath string) (*ConmonManager, error) {
 
 	fields := strings.Fields(string(out))
 	if len(fields) < 3 {
-		return nil, fmt.Errorf("conmon version output too short: expected three fields, got %d in %s", len(fields), out)
+		return nil, fmt.Errorf(
+			"conmon version output too short: expected three fields, got %d in %s",
+			len(fields),
+			out,
+		)
 	}
 
 	c := new(ConmonManager)
@@ -67,7 +71,8 @@ func (c *ConmonManager) initializeSupportsLogGlobalSizeMax(conmonPath string) {
 		// Read help output as a fallback in case the feature was backported to conmon,
 		// but the version wasn't bumped.
 		helpOutput, err := cmdrunner.CombinedOutput(conmonPath, "--help")
-		c.supportsLogGlobalSizeMax = err == nil && bytes.Contains(helpOutput, []byte("--log-global-size-max"))
+		c.supportsLogGlobalSizeMax = err == nil &&
+			bytes.Contains(helpOutput, []byte("--log-global-size-max"))
 	}
 
 	verb := "does not"

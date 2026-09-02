@@ -120,18 +120,34 @@ func TestContainerEvents(stdT *testing.T) {
 	require.NotNil(t, p.WaitEvent(RunPodEvent(pod), timeout), "pod creation event")
 
 	ctr := t.createContainer(pod)
-	require.NotNil(t, p.WaitEvent(CreateContainerEvent(pod, ctr), timeout), "container creation event")
-	require.NotNil(t, p.WaitEvent(PostCreateContainerEvent(pod, ctr), timeout), "container post-creation event")
+	require.NotNil(
+		t,
+		p.WaitEvent(CreateContainerEvent(pod, ctr), timeout),
+		"container creation event",
+	)
+	require.NotNil(
+		t,
+		p.WaitEvent(PostCreateContainerEvent(pod, ctr), timeout),
+		"container post-creation event",
+	)
 
 	t.startContainer(ctr)
 	require.NotNil(t, p.WaitEvent(StartContainerEvent(pod, ctr), timeout), "container start event")
-	require.NotNil(t, p.WaitEvent(PostStartContainerEvent(pod, ctr), timeout), "container post-start event")
+	require.NotNil(
+		t,
+		p.WaitEvent(PostStartContainerEvent(pod, ctr), timeout),
+		"container post-start event",
+	)
 
 	t.stopContainer(ctr)
 	require.NotNil(t, p.WaitEvent(StopContainerEvent(pod, ctr), timeout), "container stop event")
 
 	t.removeContainer(ctr)
-	require.NotNil(t, p.WaitEvent(RemoveContainerEvent(pod, ctr), timeout), "container removal event")
+	require.NotNil(
+		t,
+		p.WaitEvent(RemoveContainerEvent(pod, ctr), timeout),
+		"container removal event",
+	)
 
 	t.stopPod(pod)
 	t.removePod(pod)
@@ -262,7 +278,11 @@ func TestAnnotationInjection(stdT *testing.T) {
 	t.Setup(stdT)
 	t.StartPlugins(WaitForPluginSync)
 	pod, ctr := t.runContainer()
-	require.NotNil(t, t.plugins[0].WaitEvent(PostCreateContainerEvent(pod, ctr), eventTimeout), "container post-creation event")
+	require.NotNil(
+		t,
+		t.plugins[0].WaitEvent(PostCreateContainerEvent(pod, ctr), eventTimeout),
+		"container post-creation event",
+	)
 
 	require.NotNil(t, annotated, "received post-create event")
 	require.Equal(t, annotated.GetAnnotations()[testKey], testValue, "annotation updated")
@@ -354,7 +374,11 @@ func TestMemsetAdjustment(stdT *testing.T) {
 	)
 }
 
-func testXxxsetAdjustment(stdT *testing.T, adjust func() *api.ContainerAdjustment, testScript, expectedResult string) {
+func testXxxsetAdjustment(
+	stdT *testing.T,
+	adjust func() *api.ContainerAdjustment,
+	testScript, expectedResult string,
+) {
 	handler := func(*plugin, *api.PodSandbox, *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
 		return adjust(), nil, nil
 	}
@@ -436,7 +460,12 @@ func TestMemsetAdjustmentUpdate(stdT *testing.T) {
 	)
 }
 
-func testXxxsetAdjustmentUpdate(stdT *testing.T, adjust func() *api.ContainerAdjustment, update func(string) *api.ContainerUpdate, testScript, expectedAdjustResult, expectedUpdateResult string) {
+func testXxxsetAdjustmentUpdate(
+	stdT *testing.T,
+	adjust func() *api.ContainerAdjustment,
+	update func(string) *api.ContainerUpdate,
+	testScript, expectedAdjustResult, expectedUpdateResult string,
+) {
 	skipTestForCondition(stdT,
 		map[string]bool{
 			"no runtime connection":           crio == nil,

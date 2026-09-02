@@ -68,7 +68,12 @@ type Store struct {
 }
 
 // NewStore creates a new OCI artifact store.
-func NewStore(rootPath string, additionalPaths []string, systemContext *types.SystemContext, pinnedImageRegexps []*regexp.Regexp) (*Store, error) {
+func NewStore(
+	rootPath string,
+	additionalPaths []string,
+	systemContext *types.SystemContext,
+	pinnedImageRegexps []*regexp.Regexp,
+) (*Store, error) {
 	storePath := filepath.Join(rootPath, "artifacts")
 
 	store, err := libart.NewArtifactStore(storePath, systemContext)
@@ -84,7 +89,12 @@ func NewStore(rootPath string, additionalPaths []string, systemContext *types.Sy
 
 		addStore, err := libart.NewArtifactStore(addPath, systemContext)
 		if err != nil {
-			log.Warnf(context.Background(), "Skipping additional artifact store %q: %v", addPath, err)
+			log.Warnf(
+				context.Background(),
+				"Skipping additional artifact store %q: %v",
+				addPath,
+				err,
+			)
 
 			continue
 		}
@@ -131,7 +141,12 @@ func (s *Store) Pull(
 			for _, add := range s.additionalStores {
 				art, inspErr := add.store.Inspect(ctx, artRef)
 				if inspErr == nil {
-					log.Infof(ctx, "Artifact %s already exists in additional store %s, skipping pull", strRef, add.path)
+					log.Infof(
+						ctx,
+						"Artifact %s already exists in additional store %s, skipping pull",
+						strRef,
+						add.path,
+					)
 					// Force-pinned: additional stores are read-only and not subject to GC.
 					dgst := s.newArtifact(ctx, art, add.path, true).Digest()
 
@@ -139,7 +154,12 @@ func (s *Store) Pull(
 				}
 
 				if !errors.Is(inspErr, ErrNotFound) {
-					log.Warnf(ctx, "Failed to inspect artifact in additional store %q, pulling into main store: %v", add.path, inspErr)
+					log.Warnf(
+						ctx,
+						"Failed to inspect artifact in additional store %q, pulling into main store: %v",
+						add.path,
+						inspErr,
+					)
 				}
 			}
 		}
@@ -167,7 +187,12 @@ func (s *Store) Pull(
 func (s *Store) EnsureNotContainerImage(ctx context.Context, ref types.ImageReference) error {
 	// Fetch the top-level manifest (or manifest list) for the given reference.
 	// Passing nil as the instance digest retrieves the root manifest.
-	manifestBytes, mimeType, err := s.impl.GetManifestFromRef(ctx, ref, s.libartifactStore.SystemContext(), nil)
+	manifestBytes, mimeType, err := s.impl.GetManifestFromRef(
+		ctx,
+		ref,
+		s.libartifactStore.SystemContext(),
+		nil,
+	)
 	if err != nil {
 		return fmt.Errorf("get manifest from ref: %w", err)
 	}
@@ -187,7 +212,12 @@ func (s *Store) EnsureNotContainerImage(ctx context.Context, ref types.ImageRefe
 			return fmt.Errorf("choose manifest instance: %w", err)
 		}
 
-		manifestBytes, mimeType, err = s.impl.GetManifestFromRef(ctx, ref, s.libartifactStore.SystemContext(), &instanceDigest)
+		manifestBytes, mimeType, err = s.impl.GetManifestFromRef(
+			ctx,
+			ref,
+			s.libartifactStore.SystemContext(),
+			&instanceDigest,
+		)
 		if err != nil {
 			return fmt.Errorf("get instance manifest: %w", err)
 		}
@@ -328,7 +358,11 @@ func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
 }
 
 // BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
-func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]libartTypes.BlobMountPath, error) {
+func (s *Store) BlobMountPaths(
+	ctx context.Context,
+	artifact *Artifact,
+	sys *types.SystemContext,
+) ([]libartTypes.BlobMountPath, error) {
 	// The rootPath is now inherently known by the artifact itself
 	rootPath := artifact.RootPath()
 

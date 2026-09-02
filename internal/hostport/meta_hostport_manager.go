@@ -32,7 +32,11 @@ func NewMetaHostportManager(ctx context.Context) (HostPortManager, error) {
 	nftv4, nftErr := newHostportManagerNFTables(knftables.IPv4Family)
 
 	if iptv4 == nil && nftv4 == nil {
-		return nil, fmt.Errorf("can't create HostPortManager: no support for iptables (%w) or nftables (%w)", iptErr, nftErr)
+		return nil, fmt.Errorf(
+			"can't create HostPortManager: no support for iptables (%w) or nftables (%w)",
+			iptErr,
+			nftErr,
+		)
 	}
 
 	// IPv6 may fail if there's no kernel support, or no ip6tables binaries.
@@ -51,7 +55,10 @@ func NewMetaHostportManager(ctx context.Context) (HostPortManager, error) {
 
 // internal metaHostportManager constructor; requires that at least one of the
 // sub-managers is non-nil.
-func newMetaHostportManagerInternal(iptv4, iptv6 *hostportManagerIPTables, nftv4, nftv6 *hostportManagerNFTables) HostPortManager {
+func newMetaHostportManagerInternal(
+	iptv4, iptv6 *hostportManagerIPTables,
+	nftv4, nftv6 *hostportManagerNFTables,
+) HostPortManager {
 	mh := &metaHostportManager{
 		managers: make(map[utilnet.IPFamily]*hostportManagers),
 	}
@@ -132,7 +139,11 @@ func (mh *metaHostportManager) Add(id, name, podIP string, hostportMappings []*P
 	logrus.Infof("Deleting UDP conntrack entries for IPv%s: %v", family, conntrackPortsToRemove)
 
 	for _, port := range conntrackPortsToRemove {
-		err = deleteConntrackEntriesForDstPort(uint16(port), unix.IPPROTO_UDP, netlinkFamily[family])
+		err = deleteConntrackEntriesForDstPort(
+			uint16(port),
+			unix.IPPROTO_UDP,
+			netlinkFamily[family],
+		)
 		if err != nil {
 			logrus.Errorf("Failed to clear udp conntrack for port %d, error: %v", port, err)
 		}
@@ -177,7 +188,10 @@ func (mh *metaHostportManager) Remove(id string, hostportMappings []*PortMapping
 }
 
 // filterHostportMappings returns only the PortMappings that apply to family.
-func filterHostportMappings(hostportMappings []*PortMapping, family utilnet.IPFamily) []*PortMapping {
+func filterHostportMappings(
+	hostportMappings []*PortMapping,
+	family utilnet.IPFamily,
+) []*PortMapping {
 	mappings := []*PortMapping{}
 
 	for _, pm := range hostportMappings {

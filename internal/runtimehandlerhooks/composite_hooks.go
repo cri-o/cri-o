@@ -21,7 +21,12 @@ type CompositeHooks struct {
 	hooks []RuntimeHandlerHooks
 }
 
-func (c *CompositeHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, cont *oci.Container) error {
+func (c *CompositeHooks) PreCreate(
+	ctx context.Context,
+	specgen *generate.Generator,
+	s *sandbox.Sandbox,
+	cont *oci.Container,
+) error {
 	for _, h := range c.hooks {
 		if err := h.PreCreate(ctx, specgen, s, cont); err != nil {
 			return err
@@ -31,7 +36,11 @@ func (c *CompositeHooks) PreCreate(ctx context.Context, specgen *generate.Genera
 	return nil
 }
 
-func (c *CompositeHooks) PreStart(ctx context.Context, cont *oci.Container, s *sandbox.Sandbox) error {
+func (c *CompositeHooks) PreStart(
+	ctx context.Context,
+	cont *oci.Container,
+	s *sandbox.Sandbox,
+) error {
 	for _, h := range c.hooks {
 		if err := h.PreStart(ctx, cont, s); err != nil {
 			return err
@@ -41,7 +50,11 @@ func (c *CompositeHooks) PreStart(ctx context.Context, cont *oci.Container, s *s
 	return nil
 }
 
-func (c *CompositeHooks) PreStop(ctx context.Context, cont *oci.Container, s *sandbox.Sandbox) error {
+func (c *CompositeHooks) PreStop(
+	ctx context.Context,
+	cont *oci.Container,
+	s *sandbox.Sandbox,
+) error {
 	for _, h := range c.hooks {
 		if err := h.PreStop(ctx, cont, s); err != nil {
 			return err
@@ -51,7 +64,11 @@ func (c *CompositeHooks) PreStop(ctx context.Context, cont *oci.Container, s *sa
 	return nil
 }
 
-func (c *CompositeHooks) PostStop(ctx context.Context, cont *oci.Container, s *sandbox.Sandbox) error {
+func (c *CompositeHooks) PostStop(
+	ctx context.Context,
+	cont *oci.Container,
+	s *sandbox.Sandbox,
+) error {
 	for _, h := range c.hooks {
 		if err := h.PostStop(ctx, cont, s); err != nil {
 			return err

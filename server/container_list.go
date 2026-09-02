@@ -33,7 +33,11 @@ func filterContainer(c *types.Container, filter *types.ContainerFilter) bool {
 
 // filterContainerList applies a protobuf-defined filter to retrieve only intended containers. Not matching
 // the filter is not considered an error but will return an empty response.
-func (s *Server) filterContainerList(ctx context.Context, filter *types.ContainerFilter, origCtrList []*oci.Container) []*oci.Container {
+func (s *Server) filterContainerList(
+	ctx context.Context,
+	filter *types.ContainerFilter,
+	origCtrList []*oci.Container,
+) []*oci.Container {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Filter using container id and pod id first.
@@ -70,7 +74,10 @@ func (s *Server) filterContainerList(ctx context.Context, filter *types.Containe
 }
 
 // ListContainers lists all containers by filters.
-func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRequest) (*types.ListContainersResponse, error) {
+func (s *Server) ListContainers(
+	ctx context.Context,
+	req *types.ListContainersRequest,
+) (*types.ListContainersResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -85,7 +92,10 @@ func (s *Server) ListContainers(ctx context.Context, req *types.ListContainersRe
 }
 
 // StreamContainers returns a stream of containers.
-func (s *Server) StreamContainers(req *types.StreamContainersRequest, stream types.RuntimeService_StreamContainersServer) error {
+func (s *Server) StreamContainers(
+	req *types.StreamContainersRequest,
+	stream types.RuntimeService_StreamContainersServer,
+) error {
 	ctx := stream.Context()
 
 	ctrs, err := s.listContainers(ctx, req.GetFilter())
@@ -106,7 +116,10 @@ func (s *Server) StreamContainers(req *types.StreamContainersRequest, stream typ
 }
 
 // listContainers returns a filtered list of Container objects.
-func (s *Server) listContainers(ctx context.Context, filter *types.ContainerFilter) ([]*types.Container, error) {
+func (s *Server) listContainers(
+	ctx context.Context,
+	filter *types.ContainerFilter,
+) ([]*types.Container, error) {
 	ctrList, err := s.ContainerServer.ListContainers()
 	if err != nil {
 		return nil, err

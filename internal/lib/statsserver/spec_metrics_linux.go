@@ -20,31 +20,55 @@ func generateContainerSpecMetrics(ctr *oci.Container) []*types.Metric {
 		{
 			desc: containerSpecMemoryLimitBytes,
 			valueFunc: func() metricValues {
-				return metricValues{{value: specMemoryValue(resources.GetLinux().GetMemoryLimitInBytes()), metricType: types.MetricType_GAUGE}}
+				return metricValues{
+					{
+						value:      specMemoryValue(resources.GetLinux().GetMemoryLimitInBytes()),
+						metricType: types.MetricType_GAUGE,
+					},
+				}
 			},
 		},
 		{
 			desc: containerSpecMemorySwapLimitBytes,
 			valueFunc: func() metricValues {
-				return metricValues{{value: specMemoryValue(resources.GetLinux().GetMemorySwapLimitInBytes()), metricType: types.MetricType_GAUGE}}
+				return metricValues{
+					{
+						value: specMemoryValue(
+							resources.GetLinux().GetMemorySwapLimitInBytes(),
+						),
+						metricType: types.MetricType_GAUGE,
+					},
+				}
 			},
 		},
 		{
 			desc: containerSpecCpuShares,
 			valueFunc: func() metricValues {
-				return metricValues{{value: uint64(resources.GetLinux().GetCpuShares()), metricType: types.MetricType_GAUGE}}
+				return metricValues{
+					{
+						value:      uint64(resources.GetLinux().GetCpuShares()),
+						metricType: types.MetricType_GAUGE,
+					},
+				}
 			},
 		},
 		{
 			desc: containerSpecCpuPeriod,
 			valueFunc: func() metricValues {
-				return metricValues{{value: uint64(resources.GetLinux().GetCpuPeriod()), metricType: types.MetricType_GAUGE}}
+				return metricValues{
+					{
+						value:      uint64(resources.GetLinux().GetCpuPeriod()),
+						metricType: types.MetricType_GAUGE,
+					},
+				}
 			},
 		},
 		{
 			desc: containerStartTimeSeconds,
 			valueFunc: func() metricValues {
-				return metricValues{{value: uint64(ctr.CreatedAt().Unix()), metricType: types.MetricType_GAUGE}}
+				return metricValues{
+					{value: uint64(ctr.CreatedAt().Unix()), metricType: types.MetricType_GAUGE},
+				}
 			},
 		},
 	}
@@ -52,7 +76,12 @@ func generateContainerSpecMetrics(ctr *oci.Container) []*types.Metric {
 		specMetrics = append(specMetrics, &containerMetric{
 			desc: containerSpecCpuQuota,
 			valueFunc: func() metricValues {
-				return metricValues{{value: uint64(resources.GetLinux().GetCpuQuota()), metricType: types.MetricType_GAUGE}}
+				return metricValues{
+					{
+						value:      uint64(resources.GetLinux().GetCpuQuota()),
+						metricType: types.MetricType_GAUGE,
+					},
+				}
 			},
 		})
 	}

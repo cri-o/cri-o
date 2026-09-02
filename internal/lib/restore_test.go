@@ -53,7 +53,9 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
-			Expect(err.Error()).To(Equal(`failed to find container invalid: container with ID starting with invalid not found: ID does not exist`))
+			Expect(
+				err.Error(),
+			).To(Equal(`failed to find container invalid: container with ID starting with invalid not found: ID does not exist`))
 		})
 	})
 	t.Describe("ContainerRestore", func() {
@@ -142,7 +144,11 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			defer os.RemoveAll("checkpoint")
 
-			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
+			inventory, err := os.OpenFile(
+				"checkpoint/inventory.img",
+				os.O_RDONLY|os.O_CREATE,
+				0o644,
+			)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
@@ -167,7 +173,15 @@ var _ = t.Describe("ContainerRestore", func() {
 				ID: containerID,
 			}
 
-			Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{},"mounts":[{"type":"not-bind"},{"type":"bind","source":"/"}]}`), 0o644)).To(Succeed())
+			Expect(
+				os.WriteFile(
+					"config.json",
+					[]byte(
+						`{"linux":{},"process":{},"mounts":[{"type":"not-bind"},{"type":"bind","source":"/"}]}`,
+					),
+					0o644,
+				),
+			).To(Succeed())
 			addContainerAndSandbox()
 
 			myContainer.SetStateAndSpoofPid(&oci.ContainerState{
@@ -184,7 +198,13 @@ var _ = t.Describe("ContainerRestore", func() {
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
 			)
 
-			err := os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
+			err := os.WriteFile(
+				"spec.dump",
+				[]byte(
+					`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`,
+				),
+				0o644,
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			defer os.RemoveAll("spec.dump")
@@ -199,7 +219,11 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			defer os.RemoveAll("checkpoint")
 
-			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
+			inventory, err := os.OpenFile(
+				"checkpoint/inventory.img",
+				os.O_RDONLY|os.O_CREATE,
+				0o644,
+			)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
@@ -224,7 +248,12 @@ var _ = t.Describe("ContainerRestore", func() {
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
-				IncludeFiles:     []string{"spec.dump", "config.dump", "checkpoint", "deleted.files"},
+				IncludeFiles: []string{
+					"spec.dump",
+					"config.dump",
+					"checkpoint",
+					"deleted.files",
+				},
 			})
 			Expect(err).ToNot(HaveOccurred())
 			_, err = io.Copy(outFile, input)
@@ -254,7 +283,9 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore from OCI images", func() {
 		It("should fail with failed to restore", func() {
 			// Given
-			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(
+				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			config := &metadata.ContainerConfig{
@@ -278,13 +309,21 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			gomock.InOrder(
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
-				storeMock.EXPECT().MountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), gomock.Any(), gomock.Any()).
+				storeMock.EXPECT().
+					MountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), gomock.Any(), gomock.Any()).
 					Return("", nil),
-				storeMock.EXPECT().UnmountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), true).
+				storeMock.EXPECT().
+					UnmountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), true).
 					Return(false, nil),
 			)
 
-			err = os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
+			err = os.WriteFile(
+				"spec.dump",
+				[]byte(
+					`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`,
+				),
+				0o644,
+			)
 			Expect(err).ToNot(HaveOccurred())
 
 			defer os.RemoveAll("spec.dump")
@@ -299,7 +338,11 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			defer os.RemoveAll("checkpoint")
 
-			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
+			inventory, err := os.OpenFile(
+				"checkpoint/inventory.img",
+				os.O_RDONLY|os.O_CREATE,
+				0o644,
+			)
 			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
@@ -363,9 +406,13 @@ var _ = t.Describe("ContainerRestore", func() {
 })
 
 func setupInfraContainerWithPid(pid int, bundle string) {
-	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
+	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+		"example.com/some-image:latest",
+	)
 	Expect(err).ToNot(HaveOccurred())
-	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(
+		"2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812",
+	)
 	Expect(err).ToNot(HaveOccurred())
 	testContainer, err := oci.NewContainer("testid", "testname", bundle,
 		"/container/logs", map[string]string{},

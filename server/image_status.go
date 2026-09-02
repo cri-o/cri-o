@@ -19,7 +19,10 @@ import (
 )
 
 // ImageStatus returns the status of the image.
-func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest) (*types.ImageStatusResponse, error) {
+func (s *Server) ImageStatus(
+	ctx context.Context,
+	req *types.ImageStatusRequest,
+) (*types.ImageStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -94,7 +97,10 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 
 // storageImageStatus calls ImageStatus for a k8s ImageSpec.
 // Returns (nil, nil) if image was not found.
-func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) (*pkgstorage.ImageResult, error) {
+func (s *Server) storageImageStatus(
+	ctx context.Context,
+	spec *types.ImageSpec,
+) (*pkgstorage.ImageResult, error) {
 	// Use the default store here: Images managed by the runtime are ignored, to
 	// avoid confusion at the Kubernetes level, as we can't report multiple image
 	// satuses depending on the runtime being used.
@@ -120,10 +126,18 @@ func (s *Server) storageImageStatus(ctx context.Context, spec *types.ImageSpec) 
 		return status, nil
 	}
 
-	potentialMatches, err := imageService.CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.GetImage())
+	potentialMatches, err := imageService.CandidatesForPotentiallyShortImageName(
+		s.config.SystemContext,
+		spec.GetImage(),
+	)
 	if err != nil {
 		if len(spec.GetImage()) >= 3 && isHexString(spec.GetImage()) {
-			log.Debugf(ctx, "CandidatesForPotentiallyShortImageName failed for %q, but input looks like digest/ID: %v", spec.GetImage(), err)
+			log.Debugf(
+				ctx,
+				"CandidatesForPotentiallyShortImageName failed for %q, but input looks like digest/ID: %v",
+				spec.GetImage(),
+				err,
+			)
 
 			return nil, nil
 		}

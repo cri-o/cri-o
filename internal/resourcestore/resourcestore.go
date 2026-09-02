@@ -166,7 +166,11 @@ func (rc *ResourceStore) Get(name string) string {
 // a newly created resource, and functions to clean up that newly created resource.
 // It adds the Resource to the ResourceStore. It expects name to be unique, and
 // returns an error if a duplicate name is detected.
-func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleaner *ResourceCleaner) error {
+func (rc *ResourceStore) Put(
+	name string,
+	resource IdentifiableCreatable,
+	cleaner *ResourceCleaner,
+) error {
 	rc.mutex.Lock()
 	defer rc.mutex.Unlock()
 

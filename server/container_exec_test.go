@@ -86,11 +86,22 @@ var _ = t.Describe("ContainerExec", func() {
 			})
 
 			// When
-			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{"/bin/sh"},
-				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
+			err := testStreamService.Exec(
+				context.Background(),
+				testContainer.ID(),
+				[]string{"/bin/sh"},
+				nil,
+				nil,
+				nil,
+				false,
+				make(chan remotecommand.TerminalSize),
+			)
 
 			// Then - Should succeed because container is running
-			Expect(err).To(HaveOccurred()) // Will fail trying to actually exec but won't fail the Living() check
+			Expect(
+				err,
+			).To(HaveOccurred())
+			// Will fail trying to actually exec but won't fail the Living() check
 			Expect(err.Error()).NotTo(ContainSubstring("container is not created or running"))
 		})
 
@@ -120,8 +131,16 @@ var _ = t.Describe("ContainerExec", func() {
 			})
 
 			// When
-			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{"/bin/sh"},
-				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
+			err := testStreamService.Exec(
+				context.Background(),
+				testContainer.ID(),
+				[]string{"/bin/sh"},
+				nil,
+				nil,
+				nil,
+				false,
+				make(chan remotecommand.TerminalSize),
+			)
 
 			// Then - Should fail the Living() check
 			Expect(err).To(HaveOccurred())

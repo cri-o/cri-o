@@ -26,7 +26,10 @@ const (
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error.
-func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, retErr error) {
+func (s *Server) networkStart(
+	ctx context.Context,
+	sb *sandbox.Sandbox,
+) (podIPs []string, result cnitypes.Result, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -70,14 +73,25 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 
 	_, err = s.config.CNIPlugin().SetUpPodWithContext(startCtx, podNetwork)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create pod network sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		return nil, nil, fmt.Errorf(
+			"failed to create pod network sandbox %s(%s): %w",
+			sb.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 	// metric about the CNI network setup operation
 	metrics.Instance().MetricOperationsLatencySet("network_setup_pod", podSetUpStart)
 
-	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatusWithContext(startCtx, podNetwork)
+	podNetworkStatus, err := s.config.CNIPlugin().
+		GetPodNetworkStatusWithContext(startCtx, podNetwork)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get network status for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		return nil, nil, fmt.Errorf(
+			"failed to get network status for pod sandbox %s(%s): %w",
+			sb.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
 	// only one cnitypes.Result is returned since newPodNetwork sets Networks list empty
@@ -86,7 +100,12 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 
 	network, err := cnicurrent.GetResult(result)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		return nil, nil, fmt.Errorf(
+			"failed to get network JSON for pod sandbox %s(%s): %w",
+			sb.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
 	// only do portmapping to the first IP of each IP family
@@ -121,7 +140,12 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 
 			err = s.hostportManager.Add(sbID, sbName, ip.String(), sbPortMappings)
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+				return nil, nil, fmt.Errorf(
+					"failed to add hostport mapping for sandbox %s(%s): %w",
+					sb.Name(),
+					sb.ID(),
+					err,
+				)
 			}
 		}
 	}
@@ -150,12 +174,22 @@ func (s *Server) getSandboxIPs(ctx context.Context, sb *sandbox.Sandbox) ([]stri
 
 	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatus(podNetwork)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get network status for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		return nil, fmt.Errorf(
+			"failed to get network status for pod sandbox %s(%s): %w",
+			sb.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
 	res, err := cnicurrent.GetResult(podNetworkStatus[0].Result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get network JSON for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		return nil, fmt.Errorf(
+			"failed to get network JSON for pod sandbox %s(%s): %w",
+			sb.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
 	podIPs := make([]string, 0, len(res.IPs))
@@ -187,7 +221,12 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 
 	podNetwork, err := s.newPodNetwork(ctx, sb)
 	if err != nil {
-		return fmt.Errorf("failed to create pod network for sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		return fmt.Errorf(
+			"failed to create pod network for sandbox %s(%s): %w",
+			sb.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
 	// Check if the network namespace file exists and is valid before attempting CNI teardown.
@@ -200,21 +239,36 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 		// 1) infra container process died
 		// 2) namespace not properly initialized
 		// 3) namespace was already cleaned up
-		log.Warnf(ctx, "Network namespace path is empty for pod sandbox %s(%s), attempting CNI teardown with cached info",
-			sb.Name(), sb.ID())
+		log.Warnf(
+			ctx,
+			"Network namespace path is empty for pod sandbox %s(%s), attempting CNI teardown with cached info",
+			sb.Name(),
+			sb.ID(),
+		)
 
 		netnsValid = false
 	} else {
 		if _, statErr := os.Stat(podNetwork.NetNS); statErr != nil {
 			// Network namespace file doesn't exist, but we should still attempt CNI teardown
-			log.Debugf(ctx, "Network namespace file %s does not exist for pod sandbox %s(%s), attempting CNI teardown with cached info",
-				podNetwork.NetNS, sb.Name(), sb.ID())
+			log.Debugf(
+				ctx,
+				"Network namespace file %s does not exist for pod sandbox %s(%s), attempting CNI teardown with cached info",
+				podNetwork.NetNS,
+				sb.Name(),
+				sb.ID(),
+			)
 
 			netnsValid = false
 		} else if validateErr := s.validateNetworkNamespace(podNetwork.NetNS); validateErr != nil {
 			// Network namespace file exists but is invalid (e.g., corrupted or fake file)
-			log.Warnf(ctx, "Network namespace file %s is invalid for pod sandbox %s(%s): %v, removing and attempting CNI teardown with cached info",
-				podNetwork.NetNS, sb.Name(), sb.ID(), validateErr)
+			log.Warnf(
+				ctx,
+				"Network namespace file %s is invalid for pod sandbox %s(%s): %v, removing and attempting CNI teardown with cached info",
+				podNetwork.NetNS,
+				sb.Name(),
+				sb.ID(),
+				validateErr,
+			)
 			s.cleanupNetns(ctx, podNetwork.NetNS, sb)
 
 			netnsValid = false
@@ -225,7 +279,13 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
 		if !netnsValid {
 			// This is expected when the network namespace is missing/invalid.
-			log.Debugf(ctx, "CNI teardown failed due to missing/invalid network namespace for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+			log.Debugf(
+				ctx,
+				"CNI teardown failed due to missing/invalid network namespace for pod sandbox %s(%s): %v",
+				sb.Name(),
+				sb.ID(),
+				err,
+			)
 
 			// Clean up CNI result files even when NetNS is invalid.
 			s.cleanupCNIResultFiles(ctx, sb.ID())
@@ -233,7 +293,13 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 			return sb.SetNetworkStopped(ctx, true)
 		}
 
-		log.Warnf(ctx, "Failed to destroy network for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), err)
+		log.Warnf(
+			ctx,
+			"Failed to destroy network for pod sandbox %s(%s): %v",
+			sb.Name(),
+			sb.ID(),
+			err,
+		)
 
 		// If the network namespace exists but CNI teardown failed, try to clean it up.
 		if podNetwork.NetNS != "" && netnsValid {
@@ -248,10 +314,21 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 
 		// Even if CNI teardown failed, mark network as stopped to prevent retry loops.
 		if setErr := sb.SetNetworkStopped(ctx, true); setErr != nil {
-			log.Warnf(ctx, "Failed to set network stopped for pod sandbox %s(%s): %v", sb.Name(), sb.ID(), setErr)
+			log.Warnf(
+				ctx,
+				"Failed to set network stopped for pod sandbox %s(%s): %v",
+				sb.Name(),
+				sb.ID(),
+				setErr,
+			)
 		}
 
-		return fmt.Errorf("network teardown failed for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		return fmt.Errorf(
+			"network teardown failed for pod sandbox %s(%s): %w",
+			sb.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
 	return sb.SetNetworkStopped(ctx, true)
@@ -273,13 +350,21 @@ func (s *Server) cleanupCNIResultFiles(ctx context.Context, containerID string) 
 			if err := os.Remove(filePath); err != nil {
 				log.Warnf(ctx, "Failed to remove CNI result file %s: %v", filePath, err)
 			} else {
-				log.Infof(ctx, "Cleaned up CNI result file %s for container %s", entry.Name(), containerID)
+				log.Infof(
+					ctx,
+					"Cleaned up CNI result file %s for container %s",
+					entry.Name(),
+					containerID,
+				)
 			}
 		}
 	}
 }
 
-func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni.PodNetwork, error) {
+func (s *Server) newPodNetwork(
+	ctx context.Context,
+	sb *sandbox.Sandbox,
+) (ocicni.PodNetwork, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 

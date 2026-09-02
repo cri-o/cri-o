@@ -14,14 +14,22 @@ import (
 )
 
 // CheckpointContainer checkpoints a container.
-func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointContainerRequest) (*types.CheckpointContainerResponse, error) {
+func (s *Server) CheckpointContainer(
+	ctx context.Context,
+	req *types.CheckpointContainerRequest,
+) (*types.CheckpointContainerResponse, error) {
 	if !s.config.CheckpointContainerEnabled() {
 		return nil, errors.New("checkpoint/restore support not available")
 	}
 
 	_, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
+		return nil, status.Errorf(
+			codes.NotFound,
+			"could not find container %q: %v",
+			req.GetContainerId(),
+			err,
+		)
 	}
 
 	log.Infof(ctx, "Checkpointing container: %s", req.GetContainerId())

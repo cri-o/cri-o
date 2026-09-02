@@ -20,7 +20,10 @@ import (
 
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
-func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainerRequest) (*types.RemoveContainerResponse, error) {
+func (s *Server) RemoveContainer(
+	ctx context.Context,
+	req *types.RemoveContainerRequest,
+) (*types.RemoveContainerResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -35,7 +38,12 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 			return &types.RemoveContainerResponse{}, nil
 		}
 
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
+		return nil, status.Errorf(
+			codes.NotFound,
+			"could not find container %q: %v",
+			req.GetContainerId(),
+			err,
+		)
 	}
 
 	sb := s.getSandbox(ctx, c.Sandbox())
@@ -52,7 +60,11 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 	return &types.RemoveContainerResponse{}, nil
 }
 
-func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container) error {
+func (s *Server) removeContainerInPod(
+	ctx context.Context,
+	sb *sandbox.Sandbox,
+	c *oci.Container,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -68,10 +80,18 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	}
 
 	if err := s.ContainerServer.Runtime().DeleteContainer(ctx, c); err != nil {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
+		return fmt.Errorf(
+			"failed to delete container %s in pod sandbox %s: %w",
+			c.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
-	if err := os.Remove(filepath.Join(s.config.ContainerExitsDir, c.ID())); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(
+		filepath.Join(s.config.ContainerExitsDir, c.ID()),
+	); err != nil &&
+		!os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove container exit file %s: %w", c.ID(), err)
 	}
 
@@ -82,15 +102,29 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 		return fmt.Errorf("failed to get runtime service for container %s: %w", c.Name(), err)
 	}
 
-	if err := runtimeSvc.DeleteContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
+	if err := runtimeSvc.DeleteContainer(
+		ctx,
+		c.ID(),
+	); err != nil &&
+		!errors.Is(err, storage.ErrContainerUnknown) {
+		return fmt.Errorf(
+			"failed to delete container %s in pod sandbox %s: %w",
+			c.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
 	s.ReleaseContainerName(ctx, c.Name())
 	s.removeContainer(ctx, c)
 
 	if err := s.ContainerServer.CtrIDIndex().Delete(c.ID()); err != nil {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %w", c.Name(), sb.ID(), err)
+		return fmt.Errorf(
+			"failed to delete container %s in pod sandbox %s from index: %w",
+			c.Name(),
+			sb.ID(),
+			err,
+		)
 	}
 
 	sb.RemoveContainer(ctx, c)

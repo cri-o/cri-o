@@ -17,7 +17,13 @@ import (
 )
 
 // PortForwardContainer forwards the specified port into the provided container.
-func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
+func (r *runtimeOCI) PortForwardContainer(
+	ctx context.Context,
+	c *Container,
+	netNsPath string,
+	port int32,
+	stream io.ReadWriteCloser,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -44,7 +50,12 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 
 		conn, err := d.DialContext(ctx, "tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
-			return fmt.Errorf("failed to connect to localhost:%d inside namespace %s: %w", port, c.ID(), err)
+			return fmt.Errorf(
+				"failed to connect to localhost:%d inside namespace %s: %w",
+				port,
+				c.ID(),
+				err,
+			)
 		}
 		defer conn.Close()
 

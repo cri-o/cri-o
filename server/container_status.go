@@ -24,13 +24,21 @@ const (
 )
 
 // ContainerStatus returns status of the container.
-func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatusRequest) (*types.ContainerStatusResponse, error) {
+func (s *Server) ContainerStatus(
+	ctx context.Context,
+	req *types.ContainerStatusRequest,
+) (*types.ContainerStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
 	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
+		return nil, status.Errorf(
+			codes.NotFound,
+			"could not find container %q: %v",
+			req.GetContainerId(),
+			err,
+		)
 	}
 
 	containerID := c.ID()
@@ -158,7 +166,10 @@ type containerInfoCheckpointRestore struct {
 	Restored       bool      `json:"restored"`
 }
 
-func (s *Server) createContainerInfo(ctx context.Context, container *oci.Container) (map[string]string, error) {
+func (s *Server) createContainerInfo(
+	ctx context.Context,
+	container *oci.Container,
+) (map[string]string, error) {
 	sb, err := s.LookupSandbox(container.Sandbox())
 	if err != nil {
 		// Do not treat lookup failures as an error.

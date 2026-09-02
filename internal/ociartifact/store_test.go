@@ -45,15 +45,25 @@ func (f *fakeImageRef) StringWithinTransport() string           { return f.ref.S
 func (f *fakeImageRef) DockerReference() reference.Named        { return f.ref }
 func (f *fakeImageRef) PolicyConfigurationIdentity() string     { return "" }
 func (f *fakeImageRef) PolicyConfigurationNamespaces() []string { return nil }
-func (f *fakeImageRef) NewImage(_ context.Context, _ *types.SystemContext) (types.ImageCloser, error) {
+
+func (f *fakeImageRef) NewImage(
+	_ context.Context,
+	_ *types.SystemContext,
+) (types.ImageCloser, error) {
 	return nil, nil
 }
 
-func (f *fakeImageRef) NewImageSource(_ context.Context, _ *types.SystemContext) (types.ImageSource, error) {
+func (f *fakeImageRef) NewImageSource(
+	_ context.Context,
+	_ *types.SystemContext,
+) (types.ImageSource, error) {
 	return nil, nil
 }
 
-func (f *fakeImageRef) NewImageDestination(_ context.Context, _ *types.SystemContext) (types.ImageDestination, error) {
+func (f *fakeImageRef) NewImageDestination(
+	_ context.Context,
+	_ *types.SystemContext,
+) (types.ImageDestination, error) {
 	return nil, nil
 }
 func (f *fakeImageRef) DeleteImage(_ context.Context, _ *types.SystemContext) error { return nil }
@@ -109,7 +119,9 @@ func makeDockerV2S1SignedManifest() []byte {
 			map[string]any{"blobSum": testDigest},
 		},
 		"history": []any{
-			map[string]any{"v1Compatibility": `{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}`},
+			map[string]any{
+				"v1Compatibility": `{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}`,
+			},
 		},
 	})
 	if err != nil {
@@ -370,7 +382,10 @@ var _ = t.Describe("Store", func() {
 				implMock.EXPECT().
 					GetManifestFromRef(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(
-						makeOCIManifest(specs.MediaTypeImageConfig, "application/vnd.example.artifact"),
+						makeOCIManifest(
+							specs.MediaTypeImageConfig,
+							"application/vnd.example.artifact",
+						),
 						specs.MediaTypeImageManifest,
 						nil,
 					),
@@ -645,7 +660,9 @@ var _ = t.Describe("Store", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(arts).To(HaveLen(1))
 			Expect(arts[0].Reference()).To(Equal("docker.io/coredns/coredns:1.14.4"))
-			Expect(arts[0].CRIImage().GetRepoTags()).To(ConsistOf("docker.io/coredns/coredns:1.14.4"))
+			Expect(
+				arts[0].CRIImage().GetRepoTags(),
+			).To(ConsistOf("docker.io/coredns/coredns:1.14.4"))
 		})
 	})
 
@@ -718,21 +735,24 @@ var _ = t.Describe("Store", func() {
 				Expect(arts[0].RootPath()).To(Equal(addStorePath1))
 			})
 
-			It("should return artifacts from main store when no additional stores configured", func() {
-				// Given (no SetFakeAdditionalStores call)
-				mainStoreMock.EXPECT().
-					List(gomock.Any()).
-					Return(libartifact.ArtifactList{makeLibArtifact("docker.io/library/nginx:latest")}, nil)
+			It(
+				"should return artifacts from main store when no additional stores configured",
+				func() {
+					// Given (no SetFakeAdditionalStores call)
+					mainStoreMock.EXPECT().
+						List(gomock.Any()).
+						Return(libartifact.ArtifactList{makeLibArtifact("docker.io/library/nginx:latest")}, nil)
 
-				// When
-				arts, err := store.List(context.Background())
+					// When
+					arts, err := store.List(context.Background())
 
-				// Then
-				Expect(err).NotTo(HaveOccurred())
-				Expect(arts).To(HaveLen(1))
-				Expect(arts[0].CRIImage().GetPinned()).To(BeFalse())
-				Expect(arts[0].RootPath()).To(Equal(store.RootPath()))
-			})
+					// Then
+					Expect(err).NotTo(HaveOccurred())
+					Expect(arts).To(HaveLen(1))
+					Expect(arts[0].CRIImage().GetPinned()).To(BeFalse())
+					Expect(arts[0].RootPath()).To(Equal(store.RootPath()))
+				},
+			)
 
 			It("should merge artifacts from additional and main stores", func() {
 				// Given
@@ -836,25 +856,28 @@ var _ = t.Describe("Store", func() {
 		})
 
 		t.Describe("Status", func() {
-			It("should find artifact in additional store first with correct pinning and RootPath", func() {
-				// Given
-				store.SetFakeAdditionalStores(ociartifact.FakeAdditionalStore{
-					Path:  addStorePath1,
-					Store: addStoreMock1,
-				})
-				addStoreMock1.EXPECT().
-					Inspect(gomock.Any(), gomock.Any()).
-					Return(makeLibArtifact("docker.io/library/nginx:latest"), nil)
+			It(
+				"should find artifact in additional store first with correct pinning and RootPath",
+				func() {
+					// Given
+					store.SetFakeAdditionalStores(ociartifact.FakeAdditionalStore{
+						Path:  addStorePath1,
+						Store: addStoreMock1,
+					})
+					addStoreMock1.EXPECT().
+						Inspect(gomock.Any(), gomock.Any()).
+						Return(makeLibArtifact("docker.io/library/nginx:latest"), nil)
 
-				// When
-				art, err := store.Status(context.Background(), "docker.io/library/nginx:latest")
+					// When
+					art, err := store.Status(context.Background(), "docker.io/library/nginx:latest")
 
-				// Then
-				Expect(err).NotTo(HaveOccurred())
-				Expect(art.Reference()).To(Equal("docker.io/library/nginx:latest"))
-				Expect(art.RootPath()).To(Equal(addStorePath1))
-				Expect(art.CRIImage().GetPinned()).To(BeTrue())
-			})
+					// Then
+					Expect(err).NotTo(HaveOccurred())
+					Expect(art.Reference()).To(Equal("docker.io/library/nginx:latest"))
+					Expect(art.RootPath()).To(Equal(addStorePath1))
+					Expect(art.CRIImage().GetPinned()).To(BeTrue())
+				},
+			)
 
 			It("should fall back to main store when not in additional stores", func() {
 				// Given
@@ -962,30 +985,40 @@ var _ = t.Describe("Store", func() {
 		})
 
 		t.Describe("Pull", func() {
-			artifactManifest := makeOCIManifest(specs.MediaTypeImageConfig, "application/vnd.test.artifact")
+			artifactManifest := makeOCIManifest(
+				specs.MediaTypeImageConfig,
+				"application/vnd.test.artifact",
+			)
 
-			It("should skip pull when artifact exists in additional store and return correct digest", func() {
-				// Given
-				store.SetFakeAdditionalStores(ociartifact.FakeAdditionalStore{
-					Path:  addStorePath1,
-					Store: addStoreMock1,
-				})
-				mainStoreMock.EXPECT().SystemContext().Return(nil)
-				implMock.EXPECT().
-					GetManifestFromRef(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(artifactManifest, specs.MediaTypeImageManifest, nil)
-				addStoreMock1.EXPECT().
-					Inspect(gomock.Any(), gomock.Any()).
-					Return(makeLibArtifact("docker.io/library/nginx:latest"), nil)
+			It(
+				"should skip pull when artifact exists in additional store and return correct digest",
+				func() {
+					// Given
+					store.SetFakeAdditionalStores(ociartifact.FakeAdditionalStore{
+						Path:  addStorePath1,
+						Store: addStoreMock1,
+					})
+					mainStoreMock.EXPECT().SystemContext().Return(nil)
+					implMock.EXPECT().
+						GetManifestFromRef(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(artifactManifest, specs.MediaTypeImageManifest, nil)
+					addStoreMock1.EXPECT().
+						Inspect(gomock.Any(), gomock.Any()).
+						Return(makeLibArtifact("docker.io/library/nginx:latest"), nil)
 
-				// When
-				dgst, err := store.Pull(context.Background(), newFakeImageRef(), &libimage.CopyOptions{})
+					// When
+					dgst, err := store.Pull(
+						context.Background(),
+						newFakeImageRef(),
+						&libimage.CopyOptions{},
+					)
 
-				// Then
-				Expect(err).NotTo(HaveOccurred())
-				Expect(dgst).NotTo(BeNil())
-				Expect(*dgst).To(Equal(digest.Digest(testDigest)))
-			})
+					// Then
+					Expect(err).NotTo(HaveOccurred())
+					Expect(dgst).NotTo(BeNil())
+					Expect(*dgst).To(Equal(digest.Digest(testDigest)))
+				},
+			)
 
 			It("should fall through to normal pull when artifact not in additional store", func() {
 				// Given
@@ -1005,7 +1038,11 @@ var _ = t.Describe("Store", func() {
 					Return(digest.Digest(testDigest), nil)
 
 				// When
-				dgst, err := store.Pull(context.Background(), newFakeImageRef(), &libimage.CopyOptions{})
+				dgst, err := store.Pull(
+					context.Background(),
+					newFakeImageRef(),
+					&libimage.CopyOptions{},
+				)
 
 				// Then
 				Expect(err).NotTo(HaveOccurred())
@@ -1031,7 +1068,11 @@ var _ = t.Describe("Store", func() {
 					Return(digest.Digest(testDigest), nil)
 
 				// When
-				dgst, err := store.Pull(context.Background(), newFakeImageRef(), &libimage.CopyOptions{})
+				dgst, err := store.Pull(
+					context.Background(),
+					newFakeImageRef(),
+					&libimage.CopyOptions{},
+				)
 
 				// Then
 				Expect(err).NotTo(HaveOccurred())
@@ -1058,11 +1099,15 @@ var _ = t.Describe("Store", func() {
 				addStoreMock1.EXPECT().
 					Inspect(gomock.Any(), gomock.Any()).
 					Return(makeLibArtifact("docker.io/library/nginx:latest"), nil)
-				// addStoreMock2.Inspect is NOT expected (gomock strict mode
-				// will fail the test if it gets called unexpectedly).
+					// addStoreMock2.Inspect is NOT expected (gomock strict mode
+					// will fail the test if it gets called unexpectedly).
 
 				// When
-				dgst, err := store.Pull(context.Background(), newFakeImageRef(), &libimage.CopyOptions{})
+				dgst, err := store.Pull(
+					context.Background(),
+					newFakeImageRef(),
+					&libimage.CopyOptions{},
+				)
 
 				// Then
 				Expect(err).NotTo(HaveOccurred())
@@ -1081,7 +1126,11 @@ var _ = t.Describe("Store", func() {
 					Return(digest.Digest(testDigest), nil)
 
 				// When
-				dgst, err := store.Pull(context.Background(), newFakeImageRef(), &libimage.CopyOptions{})
+				dgst, err := store.Pull(
+					context.Background(),
+					newFakeImageRef(),
+					&libimage.CopyOptions{},
+				)
 
 				// Then
 				Expect(err).NotTo(HaveOccurred())

@@ -56,7 +56,11 @@ type runtimePulledImageService struct {
 }
 
 // GetRuntimePulledImageService creates a new runtimePulledImageService instance.
-func GetRuntimePulledImageService(ctx context.Context, imageService *imageService, rootPath string) (*runtimePulledImageService, error) {
+func GetRuntimePulledImageService(
+	ctx context.Context,
+	imageService *imageService,
+	rootPath string,
+) (*runtimePulledImageService, error) {
 	// Create a new OCI artifact store for pulling the artifact.
 	// We make the store point to a dedicated location to avoid any risk of
 	// mixing the pulled artifacts with regular container images.
@@ -80,7 +84,9 @@ func GetRuntimePulledImageService(ctx context.Context, imageService *imageServic
 }
 
 // ListImages returns list of known images.
-func (i *runtimePulledImageService) ListImages(systemContext *types.SystemContext) ([]ImageResult, error) {
+func (i *runtimePulledImageService) ListImages(
+	systemContext *types.SystemContext,
+) ([]ImageResult, error) {
 	log.Debugf(i.ctx, "runtimePulledImageService.ListImages() start")
 	defer log.Debugf(i.ctx, "runtimePulledImageService.ListImages() end")
 
@@ -96,7 +102,10 @@ func (i *runtimePulledImageService) ListImages(systemContext *types.SystemContex
 }
 
 // ImageStatusByID returns status of a single image.
-func (i *runtimePulledImageService) ImageStatusByID(systemContext *types.SystemContext, id StorageImageID) (*ImageResult, error) {
+func (i *runtimePulledImageService) ImageStatusByID(
+	systemContext *types.SystemContext,
+	id StorageImageID,
+) (*ImageResult, error) {
 	log.Debugf(i.ctx, "runtimePulledImageService.ImageStatusByID() start")
 	defer log.Debugf(i.ctx, "runtimePulledImageService.ImageStatusByID() end")
 
@@ -115,7 +124,10 @@ func (i *runtimePulledImageService) ImageStatusByID(systemContext *types.SystemC
 }
 
 // ImageStatusByName returns status of an image tagged with name.
-func (i *runtimePulledImageService) ImageStatusByName(systemContext *types.SystemContext, name RegistryImageReference) (*ImageResult, error) {
+func (i *runtimePulledImageService) ImageStatusByName(
+	systemContext *types.SystemContext,
+	name RegistryImageReference,
+) (*ImageResult, error) {
 	log.Debugf(i.ctx, "runtimePulledImageService.ImageStatusByName() start")
 	defer log.Debugf(i.ctx, "runtimePulledImageService.ImageStatusByName() end")
 
@@ -146,7 +158,11 @@ func (i *runtimePulledImageService) ImageStatusByName(systemContext *types.Syste
 // For this runtime, the image management is done by the runtime itself.
 // CRI-O has nothing to do with the image, and must actually avoid
 // pulling it, as it may fail if the image is encrypted for instance.
-func (i *runtimePulledImageService) PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (RegistryImageReference, error) {
+func (i *runtimePulledImageService) PullImage(
+	ctx context.Context,
+	imageName RegistryImageReference,
+	options *ImageCopyOptions,
+) (RegistryImageReference, error) {
 	log.Debugf(i.ctx, "runtimePulledImageService.PullImage() start")
 	defer log.Debugf(i.ctx, "runtimePulledImageService.PullImage() end")
 
@@ -180,14 +196,22 @@ func (i *runtimePulledImageService) PullImage(ctx context.Context, imageName Reg
 		return RegistryImageReference{}, fmt.Errorf("unable to pull OCI artifact: %w", err)
 	}
 
-	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), *artifactManifestDigest)
+	canonicalRef, err := reference.WithDigest(
+		reference.TrimNamed(imageName.Raw()),
+		*artifactManifestDigest,
+	)
 	if err != nil {
 		return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
 	}
 
 	imageRef := references.RegistryImageReferenceFromRaw(canonicalRef)
 
-	entry, err := i.buildCachedImageRefs(ctx, *artifactManifestDigest, imageName, imageName.StringForOutOfProcessConsumptionOnly())
+	entry, err := i.buildCachedImageRefs(
+		ctx,
+		*artifactManifestDigest,
+		imageName,
+		imageName.StringForOutOfProcessConsumptionOnly(),
+	)
 	if err != nil {
 		return RegistryImageReference{}, fmt.Errorf("unable to pull image or OCI artifact: %w", err)
 	}
@@ -256,7 +280,9 @@ func (i *runtimePulledImageService) loadKnownImagesFromStore(ctx context.Context
 	restoredCount := 0
 
 	for _, artifact := range artifacts {
-		imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(artifact.CanonicalName())
+		imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(
+			artifact.CanonicalName(),
+		)
 		if err != nil {
 			log.Warnf(ctx, "Skipping artifact %q: could not parse canonical reference: %v",
 				artifact.Digest(), err)
@@ -292,18 +318,29 @@ func (i *runtimePulledImageService) loadKnownImagesFromStore(ctx context.Context
 		restoredCount++
 	}
 
-	log.Infof(ctx, "RuntimePulledImageService: restored %d/%d image(s) from artifact store into cache",
-		restoredCount, len(artifacts))
+	log.Infof(
+		ctx,
+		"RuntimePulledImageService: restored %d/%d image(s) from artifact store into cache",
+		restoredCount,
+		len(artifacts),
+	)
 }
 
 // DeleteImage deletes a storage image (impacting all its tags).
-func (i *runtimePulledImageService) DeleteImage(systemContext *types.SystemContext, id StorageImageID) error {
+func (i *runtimePulledImageService) DeleteImage(
+	systemContext *types.SystemContext,
+	id StorageImageID,
+) error {
 	log.Debugf(i.ctx, "runtimePulledImageService.DeleteImage() start")
 	defer log.Debugf(i.ctx, "runtimePulledImageService.DeleteImage() end")
 
 	err := i.store.Remove(i.ctx, id.IDStringForOutOfProcessConsumptionOnly())
 	if err != nil {
-		return fmt.Errorf("failed to delete image with ID %s: %w", id.IDStringForOutOfProcessConsumptionOnly(), err)
+		return fmt.Errorf(
+			"failed to delete image with ID %s: %w",
+			id.IDStringForOutOfProcessConsumptionOnly(),
+			err,
+		)
 	}
 
 	// remove the image from our cache
@@ -323,13 +360,20 @@ func (i *runtimePulledImageService) DeleteImage(systemContext *types.SystemConte
 
 // UntagImage removes a name from the specified image, and if it was
 // the only name the image had, removes the image.
-func (i *runtimePulledImageService) UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error {
+func (i *runtimePulledImageService) UntagImage(
+	systemContext *types.SystemContext,
+	name RegistryImageReference,
+) error {
 	log.Debugf(i.ctx, "runtimePulledImageService.UntagImage() start")
 	defer log.Debugf(i.ctx, "runtimePulledImageService.UntagImage() end")
 
 	err := i.store.Remove(i.ctx, name.StringForOutOfProcessConsumptionOnly())
 	if err != nil {
-		return fmt.Errorf("failed to untag image %s: %w", name.StringForOutOfProcessConsumptionOnly(), err)
+		return fmt.Errorf(
+			"failed to untag image %s: %w",
+			name.StringForOutOfProcessConsumptionOnly(),
+			err,
+		)
 	}
 
 	// remove the image from our cache
@@ -353,16 +397,24 @@ func (i *runtimePulledImageService) GetStore() storage.Store {
 // HeuristicallyTryResolvingStringAsIDPrefix checks if heuristicInput could be a valid image ID or a prefix, and returns
 // a StorageImageID if so, or nil if the input can be something else.
 // DO NOT CALL THIS from in-process callers who know what their input is and don't NEED to involve heuristics.
-func (i *runtimePulledImageService) HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput string) *StorageImageID {
+func (i *runtimePulledImageService) HeuristicallyTryResolvingStringAsIDPrefix(
+	heuristicInput string,
+) *StorageImageID {
 	log.Debugf(i.ctx, "runtimePulledImageService.HeuristicallyTryResolvingStringAsIDPrefix() start")
-	defer log.Debugf(i.ctx, "runtimePulledImageService.HeuristicallyTryResolvingStringAsIDPrefix() end")
+	defer log.Debugf(
+		i.ctx,
+		"runtimePulledImageService.HeuristicallyTryResolvingStringAsIDPrefix() end",
+	)
 
 	i.knownImagesLock.RLock()
 	defer i.knownImagesLock.RUnlock()
 
 	if len(heuristicInput) >= minimumTruncatedIDLength {
 		for index := range i.knownImages {
-			if strings.HasPrefix(i.knownImages[index].imageResult.ID.IDStringForOutOfProcessConsumptionOnly(), heuristicInput) {
+			if strings.HasPrefix(
+				i.knownImages[index].imageResult.ID.IDStringForOutOfProcessConsumptionOnly(),
+				heuristicInput,
+			) {
 				id := i.knownImages[index].imageResult.ID
 
 				return &id
@@ -377,9 +429,15 @@ func (i *runtimePulledImageService) HeuristicallyTryResolvingStringAsIDPrefix(he
 // It will only return an empty slice if err != nil.
 // For this implementation of ImageServer, nothing specific is needed here.
 // Name resolution can be done with the underlying storage image server.
-func (i *runtimePulledImageService) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]RegistryImageReference, error) {
+func (i *runtimePulledImageService) CandidatesForPotentiallyShortImageName(
+	systemContext *types.SystemContext,
+	imageName string,
+) ([]RegistryImageReference, error) {
 	log.Debugf(i.ctx, "runtimePulledImageService.CandidatesForPotentiallyShortImageName() start")
-	defer log.Debugf(i.ctx, "runtimePulledImageService.CandidatesForPotentiallyShortImageName() end")
+	defer log.Debugf(
+		i.ctx,
+		"runtimePulledImageService.CandidatesForPotentiallyShortImageName() end",
+	)
 
 	return i.storageImageServer.CandidatesForPotentiallyShortImageName(systemContext, imageName)
 }
@@ -406,7 +464,12 @@ func (i *runtimePulledImageService) PinnedImageRegexps() []*regexp.Regexp {
 // - systemContext: server's system context for the given namespace, notably it might have a customized SignaturePolicyPath.
 // - userSpecifiedImage: a RegistryImageReference that expresses users’ _intended_ image.
 // - imageID: A StorageImageID of the image.
-func (i *runtimePulledImageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error {
+func (i *runtimePulledImageService) IsRunningImageAllowed(
+	ctx context.Context,
+	systemContext *types.SystemContext,
+	userSpecifiedImage RegistryImageReference,
+	imageID StorageImageID,
+) error {
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
 		return fmt.Errorf("get default policy: %w", err)
@@ -423,11 +486,22 @@ func (i *runtimePulledImageService) IsRunningImageAllowed(ctx context.Context, s
 		}
 	}()
 
-	if err := i.checkSignature(ctx, systemContext, policyContext, userSpecifiedImage, imageID); err != nil {
+	if err := i.checkSignature(
+		ctx,
+		systemContext,
+		policyContext,
+		userSpecifiedImage,
+		imageID,
+	); err != nil {
 		return fmt.Errorf("checking signature of %q: %w", userSpecifiedImage, err)
 	}
 
-	log.Debugf(ctx, "Is allowed to run config image %s (policy path: %q)", userSpecifiedImage, systemContext.SignaturePolicyPath)
+	log.Debugf(
+		ctx,
+		"Is allowed to run config image %s (policy path: %q)",
+		userSpecifiedImage,
+		systemContext.SignaturePolicyPath,
+	)
 
 	return nil
 }
@@ -435,10 +509,20 @@ func (i *runtimePulledImageService) IsRunningImageAllowed(ctx context.Context, s
 // checkSignature verifies the image signature against the artifact store.
 // Unlike imageService.checkSignature, this reads the image from the OCI layout
 // in the artifact store rather than from local containers/storage.
-func (i *runtimePulledImageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error {
+func (i *runtimePulledImageService) checkSignature(
+	ctx context.Context,
+	sys *types.SystemContext,
+	policyContext *signature.PolicyContext,
+	userSpecifiedImage RegistryImageReference,
+	imageID StorageImageID,
+) error {
 	userSpecifiedImageRef, err := docker.NewReference(userSpecifiedImage.Raw())
 	if err != nil {
-		return fmt.Errorf("creating docker:// reference for %q: %w", userSpecifiedImage.Raw().String(), err)
+		return fmt.Errorf(
+			"creating docker:// reference for %q: %w",
+			userSpecifiedImage.Raw().String(),
+			err,
+		)
 	}
 
 	// imageID is authoritative, but it may be a deduplicated image with several manifests,
@@ -479,7 +563,10 @@ func (i *runtimePulledImageService) checkSignature(ctx context.Context, sys *typ
 		unparsedInstance = cimage.UnparsedInstance(storageSource, &instanceDigest)
 	}
 
-	mixedUnparsedInstance := cimage.UnparsedInstanceWithReference(unparsedInstance, userSpecifiedImageRef)
+	mixedUnparsedInstance := cimage.UnparsedInstanceWithReference(
+		unparsedInstance,
+		userSpecifiedImageRef,
+	)
 
 	allowed, err := policyContext.IsRunningImageAllowed(ctx, mixedUnparsedInstance)
 	if err != nil {
@@ -487,7 +574,9 @@ func (i *runtimePulledImageService) checkSignature(ctx context.Context, sys *typ
 	}
 
 	if !allowed {
-		panic("Internal inconsistency: IsRunningImageAllowed returned !allowed and no error when checking image signature")
+		panic(
+			"Internal inconsistency: IsRunningImageAllowed returned !allowed and no error when checking image signature",
+		)
 	}
 
 	return nil
@@ -498,7 +587,10 @@ func (i *runtimePulledImageService) checkSignature(ctx context.Context, sys *typ
 // The config is retrieved as part of the PullImage process, and stored in our
 // in-memory list of known images, so that it can be returned here without
 // pulling anything.
-func (i *runtimePulledImageService) GetConfigForImage(ctx context.Context, imageName string) (*v1.Image, error) {
+func (i *runtimePulledImageService) GetConfigForImage(
+	ctx context.Context,
+	imageName string,
+) (*v1.Image, error) {
 	log.Debugf(i.ctx, "runtimePulledImageService.GetConfigForImage() start")
 	defer log.Debugf(i.ctx, "runtimePulledImageService.GetConfigForImage() end")
 

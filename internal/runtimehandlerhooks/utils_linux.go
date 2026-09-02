@@ -106,7 +106,11 @@ func isAllBitSet(in []byte) bool {
 // calcIRQSMPAffinityMask takes cpuset containerCPUSet that needs to change irq affinity mask and
 // the current mask string, as well as bool set. It then returns an updated mask string and inverted mask, with those
 // CPUs enabled or disable in the mask.
-func calcIRQSMPAffinityMask(containerCPUSet cpuset.CPUSet, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
+func calcIRQSMPAffinityMask(
+	containerCPUSet cpuset.CPUSet,
+	current string,
+	set bool,
+) (cpuMask, bannedCPUMask string, err error) {
 	// only ascii string supported
 	if !isASCII(current) {
 		return "", "", fmt.Errorf("non ascii character detected: %s", current)

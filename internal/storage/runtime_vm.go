@@ -25,7 +25,12 @@ type runtimePulledRuntimeService struct {
 	ctx                context.Context
 }
 
-func (r *runtimePulledRuntimeService) createContainerOrPodSandbox(containerID string, template *runtimeContainerMetadataTemplate, idMappingsOptions *storage.IDMappingOptions, labelOptions []string) (ci ContainerInfo, retErr error) {
+func (r *runtimePulledRuntimeService) createContainerOrPodSandbox(
+	containerID string,
+	template *runtimeContainerMetadataTemplate,
+	idMappingsOptions *storage.IDMappingOptions,
+	labelOptions []string,
+) (ci ContainerInfo, retErr error) {
 	if template.podName == "" || template.podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
 	}
@@ -57,7 +62,9 @@ func (r *runtimePulledRuntimeService) createContainerOrPodSandbox(containerID st
 	// Pull out a copy of the image's configuration.
 	is, ok := r.storageImageServer.(*runtimePulledImageService)
 	if !ok {
-		return ContainerInfo{}, errors.New("internal error: RuntimeServiceVM bound to default image server")
+		return ContainerInfo{}, errors.New(
+			"internal error: RuntimeServiceVM bound to default image server",
+		)
 	}
 
 	imageConfig, err := is.GetConfigForImage(r.ctx, template.userRequestedImage)
@@ -91,12 +98,23 @@ func (r *runtimePulledRuntimeService) createContainerOrPodSandbox(containerID st
 	// as we don't actually want to create this container with a local image.
 	imageID := ""
 
-	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, imageID, "", string(mdata), &coptions)
+	container, err := r.storageImageServer.GetStore().
+		CreateContainer(containerID, names, imageID, "", string(mdata), &coptions)
 	if err != nil {
 		if metadata.Pod {
-			logrus.Debugf("Failed to create pod sandbox %s(%s): %v", metadata.PodName, metadata.PodID, err)
+			logrus.Debugf(
+				"Failed to create pod sandbox %s(%s): %v",
+				metadata.PodName,
+				metadata.PodID,
+				err,
+			)
 		} else {
-			logrus.Debugf("Failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
+			logrus.Debugf(
+				"Failed to create container %s(%s): %v",
+				metadata.ContainerName,
+				containerID,
+				err,
+			)
 		}
 
 		return ContainerInfo{}, err
@@ -119,7 +137,11 @@ func (r *runtimePulledRuntimeService) createContainerOrPodSandbox(containerID st
 		if retErr != nil {
 			if err2 := r.storageImageServer.GetStore().DeleteContainer(container.ID); err2 != nil {
 				if metadata.Pod {
-					logrus.Debugf("%v deleting partially-created pod sandbox %q", err2, container.ID)
+					logrus.Debugf(
+						"%v deleting partially-created pod sandbox %q",
+						err2,
+						container.ID,
+					)
 				} else {
 					logrus.Debugf("%v deleting partially-created container %q", err2, container.ID)
 				}
@@ -175,14 +197,46 @@ func (r *runtimePulledRuntimeService) createContainerOrPodSandbox(containerID st
 	}, nil
 }
 
-func (r *runtimePulledRuntimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID string, pauseImage RegistryImageReference, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
+func (r *runtimePulledRuntimeService) CreatePodSandbox(
+	systemContext *types.SystemContext,
+	podName, podID string,
+	pauseImage RegistryImageReference,
+	imageAuthFile, containerName, metadataName, uid, namespace string,
+	attempt uint32,
+	idMappingsOptions *storage.IDMappingOptions,
+	labelOptions []string,
+	privileged bool,
+) (ContainerInfo, error) {
 	// For runtime doing image management, we create the pod sandbox using the
 	// same underlying service as for regular containers, because image handling
 	// is done for the containers, not for the pod sandbox.
-	return r.runtimeServiceOCI.CreatePodSandbox(systemContext, podName, podID, pauseImage, imageAuthFile, containerName, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, privileged)
+	return r.runtimeServiceOCI.CreatePodSandbox(
+		systemContext,
+		podName,
+		podID,
+		pauseImage,
+		imageAuthFile,
+		containerName,
+		metadataName,
+		uid,
+		namespace,
+		attempt,
+		idMappingsOptions,
+		labelOptions,
+		privileged,
+	)
 }
 
-func (r *runtimePulledRuntimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
+func (r *runtimePulledRuntimeService) CreateContainer(
+	systemContext *types.SystemContext,
+	podName, podID, userRequestedImage string,
+	imageID StorageImageID,
+	containerName, containerID, metadataName string,
+	attempt uint32,
+	idMappingsOptions *storage.IDMappingOptions,
+	labelOptions []string,
+	privileged bool,
+) (ContainerInfo, error) {
 	return r.createContainerOrPodSandbox(containerID, &runtimeContainerMetadataTemplate{
 		podName:            podName,
 		podID:              podID,
@@ -201,11 +255,16 @@ func (r *runtimePulledRuntimeService) DeleteContainer(ctx context.Context, idOrN
 	return r.runtimeServiceOCI.DeleteContainer(ctx, idOrName)
 }
 
-func (r *runtimePulledRuntimeService) SetContainerMetadata(idOrName string, metadata *RuntimeContainerMetadata) error {
+func (r *runtimePulledRuntimeService) SetContainerMetadata(
+	idOrName string,
+	metadata *RuntimeContainerMetadata,
+) error {
 	return r.runtimeServiceOCI.SetContainerMetadata(idOrName, metadata)
 }
 
-func (r *runtimePulledRuntimeService) GetContainerMetadata(idOrName string) (RuntimeContainerMetadata, error) {
+func (r *runtimePulledRuntimeService) GetContainerMetadata(
+	idOrName string,
+) (RuntimeContainerMetadata, error) {
 	return r.runtimeServiceOCI.GetContainerMetadata(idOrName)
 }
 
@@ -229,7 +288,11 @@ func (r *runtimePulledRuntimeService) GetRunDir(id string) (string, error) {
 // service to pull and manage images, and its store to manage containers based
 // on those images.
 // The provided ImageServer must be an instance of runtimePulledImageService.
-func GetRuntimePulledRuntimeService(ctx context.Context, runtimeService RuntimeServer, storageImageServer ImageServer) RuntimeServer {
+func GetRuntimePulledRuntimeService(
+	ctx context.Context,
+	runtimeService RuntimeServer,
+	storageImageServer ImageServer,
+) RuntimeServer {
 	return &runtimePulledRuntimeService{
 		runtimeServiceOCI:  runtimeService,
 		storageImageServer: storageImageServer,

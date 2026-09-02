@@ -157,7 +157,20 @@ type ContainerMonitorProcess struct {
 // may have NO RELATIONSHIP to the users’ requested image name (and, which
 // should be fixed eventually, may be a repo@digest combination which has never
 // existed on a registry).
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, someNameOfTheImage *references.RegistryImageReference, imageID *storage.StorageImageID, someRepoDigest string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(
+	id, name, bundlePath, logPath string,
+	labels, crioAnnotations, annotations map[string]string,
+	userRequestedImage string,
+	someNameOfTheImage *references.RegistryImageReference,
+	imageID *storage.StorageImageID,
+	someRepoDigest string,
+	md *types.ContainerMetadata,
+	sandbox string,
+	terminal, stdin, stdinOnce bool,
+	runtimeHandler, dir string,
+	created time.Time,
+	stopSignal string,
+) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 
@@ -207,7 +220,13 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 	return c, nil
 }
 
-func NewSpoofedContainer(id, name string, labels map[string]string, sandbox string, created time.Time, dir string) *Container {
+func NewSpoofedContainer(
+	id, name string,
+	labels map[string]string,
+	sandbox string,
+	created time.Time,
+	dir string,
+) *Container {
 	state := &ContainerState{}
 	state.Created = created
 	state.Started = created
@@ -336,7 +355,12 @@ func (c *Container) FromDisk() error {
 			return err
 		}
 
-		logrus.Infof("PID information for container %s updated to %d %s", c.ID(), tmpState.InitPid, tmpState.InitStartTime)
+		logrus.Infof(
+			"PID information for container %s updated to %d %s",
+			c.ID(),
+			tmpState.InitPid,
+			tmpState.InitStartTime,
+		)
 	}
 
 	c.state = tmpState
@@ -349,7 +373,11 @@ func (c *Container) FromDisk() error {
 // These values should be set once, and not changed again.
 func (cstate *ContainerState) SetInitPid(pid int) error {
 	if cstate.InitPid != 0 || cstate.InitStartTime != "" {
-		return fmt.Errorf("pid and start time already initialized: %d %s", cstate.InitPid, cstate.InitStartTime)
+		return fmt.Errorf(
+			"pid and start time already initialized: %d %s",
+			cstate.InitPid,
+			cstate.InitStartTime,
+		)
 	}
 
 	cstate.InitPid = pid
@@ -615,7 +643,11 @@ func (c *Container) pid() (int, string, error) { //nolint:gocritic // Ignore unn
 			return 0, "", ErrNotFound
 		}
 
-		return 0, "", fmt.Errorf("error checking if process %d is running: %w", c.state.InitPid, err)
+		return 0, "", fmt.Errorf(
+			"error checking if process %d is running: %w",
+			c.state.InitPid,
+			err,
+		)
 	}
 
 	state, err := c.verifyPid()
@@ -649,7 +681,9 @@ func (c *Container) verifyPid() (string, error) {
 	if c.state.InitStartTime != startTime {
 		return "", fmt.Errorf(
 			"PID %d is running but has start time of %s, whereas the saved start time is %s. PID wrap may have occurred",
-			c.state.InitPid, startTime, c.state.InitStartTime,
+			c.state.InitPid,
+			startTime,
+			c.state.InitStartTime,
 		)
 	}
 
@@ -837,10 +871,13 @@ func (c *Container) SetResources(s *specs.Spec) {
 
 		resourceStatus.Linux.HugepageLimits = []*types.HugepageLimit{}
 		for _, entry := range linuxResources.HugepageLimits {
-			resourceStatus.Linux.HugepageLimits = append(resourceStatus.Linux.HugepageLimits, &types.HugepageLimit{
-				PageSize: entry.Pagesize,
-				Limit:    entry.Limit,
-			})
+			resourceStatus.Linux.HugepageLimits = append(
+				resourceStatus.Linux.HugepageLimits,
+				&types.HugepageLimit{
+					PageSize: entry.Pagesize,
+					Limit:    entry.Limit,
+				},
+			)
 		}
 
 		c.resources = resourceStatus
@@ -885,7 +922,12 @@ func (c *Container) StartExecCmd(cmd ExecStarter, shouldKill bool) (int, error) 
 	}
 
 	pid := cmd.GetPid()
-	logrus.Debugf("Started and tracking exec PID %d for container %s (should kill = %t) ...", pid, c.ID(), shouldKill)
+	logrus.Debugf(
+		"Started and tracking exec PID %d for container %s (should kill = %t) ...",
+		pid,
+		c.ID(),
+		shouldKill,
+	)
 	c.execPIDs[pid] = shouldKill
 
 	return pid, nil
@@ -929,7 +971,12 @@ func (c *Container) KillExecPIDs() {
 				sig = syscall.SIGKILL
 			}
 
-			logrus.Debugf("Stopping exec PID %d for container %s with signal %s ...", pid, c.ID(), unix.SignalName(sig))
+			logrus.Debugf(
+				"Stopping exec PID %d for container %s with signal %s ...",
+				pid,
+				c.ID(),
+				unix.SignalName(sig),
+			)
 
 			if err := syscall.Kill(pid, sig); err != nil && !errors.Is(err, syscall.ESRCH) {
 				unkilled[pid] = shouldKill
@@ -972,7 +1019,11 @@ func (c *Container) SetMonitorProcess(ctx context.Context) {
 		// We can't verify the conmon process when ContainerMonitorProcess is nil
 		// because without pidStartTime, we are not sure whether the process of
 		// the pid is actually the conmon process or a different process.
-		log.Debugf(ctx, "Skipping loading conmon process for container %s: the container may have existed before cri-o updated or cri-o couldn't verify conmon process", c.ID())
+		log.Debugf(
+			ctx,
+			"Skipping loading conmon process for container %s: the container may have existed before cri-o updated or cri-o couldn't verify conmon process",
+			c.ID(),
+		)
 
 		return
 	}
