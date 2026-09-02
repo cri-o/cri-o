@@ -25,6 +25,7 @@ import (
 	"github.com/cri-o/cri-o/utils"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/idtools"
@@ -461,7 +462,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		// If using a kernel separated container runtime, the process label should be set to container_kvm_t
 		// Keep in mind that kata does *not* apply any process label to containers within the VM
 		if podIsKernelSeparated {
-			processLabel, err = KVMLabel(processLabel)
+			processLabel, err = selinux.SetProcessKind(processLabel, selinux.ProcessKindKVM)
 			if err != nil {
 				return nil, err
 			}
