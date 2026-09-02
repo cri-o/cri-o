@@ -62,8 +62,21 @@ type ContainerServer struct {
 	state     *containerServerState
 	config    *libconfig.Config
 
+	// mountOperationsInProgress deduplicates concurrent MountImage calls for the
+	// same image ID, avoiding lock contention in containers/storage when many
+	// pods mount the same image volume simultaneously.
+	mountOperationsInProgress map[string]*mountOperation
+	mountOperationsLock       sync.Mutex
+
 	// monitorCh is used to signal the monitor goroutine to exit.
 	monitorCh chan struct{}
+}
+
+// mountOperation deduplicates concurrent MountImage calls for the same image.
+type mountOperation struct {
+	wg         sync.WaitGroup
+	mountPoint string
+	err        error
 }
 
 // Runtime returns the oci runtime for the ContainerServer.
@@ -74,6 +87,53 @@ func (c *ContainerServer) Runtime() *oci.Runtime {
 // Store returns the Store for the ContainerServer.
 func (c *ContainerServer) Store() cstorage.Store {
 	return c.store
+}
+
+// MountImageByID deduplicates concurrent MountImage calls for the same image
+// ID. Concurrent callers mounting the same image coalesce into a single
+// MountImage call through the containers/storage lock chain, avoiding the
+// serialization bottleneck when many pods mount the same image volume.
+//
+// This means the containers/storage mount ref count will be 1 instead of N for
+// N concurrent callers. All existing UnmountImage call sites use force=true, so
+// the lower ref count has no effect on cleanup.
+func (c *ContainerServer) MountImageByID(ctx context.Context, imageID string) (string, error) {
+	mountOp, inProgress := func() (*mountOperation, bool) {
+		c.mountOperationsLock.Lock()
+		defer c.mountOperationsLock.Unlock()
+
+		op, exists := c.mountOperationsInProgress[imageID]
+		if !exists {
+			op = &mountOperation{}
+			c.mountOperationsInProgress[imageID] = op
+			op.wg.Add(1)
+		}
+
+		return op, exists
+	}()
+
+	if !inProgress {
+		mountOp.err = errors.New("mountImage was aborted by a Go panic")
+
+		defer func() {
+			c.mountOperationsLock.Lock()
+			delete(c.mountOperationsInProgress, imageID)
+			mountOp.wg.Done()
+			c.mountOperationsLock.Unlock()
+		}()
+
+		options := []string{"ro", "noexec", "nosuid", "nodev"}
+		mountOp.mountPoint, mountOp.err = c.store.MountImage(imageID, options, "")
+
+		if mountOp.err == nil {
+			log.Infof(ctx, "Image mounted to: %s", mountOp.mountPoint)
+		}
+	} else {
+		log.Debugf(ctx, "Waiting for in-progress mount of image %s", imageID)
+		mountOp.wg.Wait()
+	}
+
+	return mountOp.mountPoint, mountOp.err
 }
 
 // StorageImageServer returns the ImageServer for the ContainerServer.
@@ -179,8 +239,9 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 			sandboxes:       memorystore.New[*sandbox.Sandbox](),
 			processLevels:   make(map[string]int),
 		},
-		config:    config,
-		monitorCh: make(chan struct{}),
+		config:                    config,
+		mountOperationsInProgress: make(map[string]*mountOperation),
+		monitorCh:                 make(chan struct{}),
 	}
 	c.StatsServer = statsserver.New(ctx, c)
 
