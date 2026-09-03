@@ -199,7 +199,7 @@ func (s *Server) createContainerInfo(
 		if s.config.CheckpointRestore() {
 			localContainerInfoCheckpointRestore := containerInfoCheckpointRestore{
 				CheckpointedAt: container.CheckpointedAt(),
-				Restored:       container.Restore(),
+				Restored:       container.Restore() || container.Restored(),
 			}
 			info := struct {
 				containerInfo
