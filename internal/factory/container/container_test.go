@@ -17,6 +17,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -814,6 +815,10 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SpecSetLinuxContainerResources(resources, minMemory)).NotTo(Succeed())
 		})
 		It("Set memory limit to both swap and RAM when only MemoryLimit is set", func() {
+			if !node.CgroupHasMemorySwap() {
+				Skip("requires cgroup memory swap support")
+			}
+
 			// Given
 			resources := &types.LinuxContainerResources{
 				MemoryLimitInBytes: 4096,
@@ -827,6 +832,10 @@ var _ = t.Describe("Container", func() {
 			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.GetMemoryLimitInBytes()))
 		})
 		It("Set memory limits appropriately when Limit and SwapLimit are set", func() {
+			if !node.CgroupHasMemorySwap() {
+				Skip("requires cgroup memory swap support")
+			}
+
 			// Given
 			resources := &types.LinuxContainerResources{
 				MemoryLimitInBytes:     4096,
