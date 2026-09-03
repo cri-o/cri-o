@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 03 Sep 2026 06:44:52 UTC for commit [03c9266][0]._
+_Generated on Thu, 03 Sep 2026 12:27:47 UTC for commit [b8de038][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/03c9266b8f563c7c83ecd1dea418edb0f02d2158
+[0]: https://github.com/cri-o/cri-o/commit/b8de038f13b979d8d5df1ad9c42554d1755284b3
 
 ## Outdated Dependencies
 
@@ -22,7 +22,7 @@ _Generated on Thu, 03 Sep 2026 06:44:52 UTC for commit [03c9266][0]._
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                 | v5.3.2                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.3                                 | v1.4.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                                | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260902153201-effc0cdcebe3 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260903120227-384aba90c7de | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                 | v0.4.1                             | true   | true             |
 | github.com/moby/sys/userns                                                  | v0.1.0                                 | v0.2.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.28.3                                | v2.32.1                            | true   | true             |
@@ -66,7 +66,7 @@ _Generated on Thu, 03 Sep 2026 06:44:52 UTC for commit [03c9266][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.239                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.240                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.15.0                            | false  | true             |
@@ -273,7 +273,7 @@ _Generated on Thu, 03 Sep 2026 06:44:52 UTC for commit [03c9266][0]._
 | github.com/blang/semver/v4                                                  | v4.0.0                                 |                                    | true   | true             |
 | github.com/brianvoe/gofakeit/v7                                             | v7.12.1                                | v7.16.0                            | false  | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                 | v1.6.1                             | false  | true             |
-| github.com/buildkite/agent/v3                                               | v3.104.0                               | v3.137.2                           | false  | true             |
+| github.com/buildkite/agent/v3                                               | v3.104.0                               | v3.138.0                           | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.15.0                                | v0.18.0                            | false  | true             |
 | github.com/buildkite/interpolate                                            | v0.1.5                                 |                                    | false  | true             |
 | github.com/buildkite/roko                                                   | v1.4.0                                 |                                    | false  | true             |
@@ -396,7 +396,7 @@ _Generated on Thu, 03 Sep 2026 06:44:52 UTC for commit [03c9266][0]._
 | github.com/go-openapi/loads                                                 | v0.23.3                                | v0.25.2                            | false  | true             |
 | github.com/go-openapi/runtime                                               | v0.29.3                                | v0.33.1                            | false  | true             |
 | github.com/go-openapi/spec                                                  | v0.22.4                                | v1.0.0                             | false  | true             |
-| github.com/go-openapi/strfmt                                                | v0.26.0                                | v0.27.0                            | false  | true             |
+| github.com/go-openapi/strfmt                                                | v0.26.0                                | v0.27.1                            | false  | true             |
 | github.com/go-openapi/swag                                                  | v0.25.5                                | v0.29.1                            | false  | true             |
 | github.com/go-openapi/swag/cmdutils                                         | v0.25.5                                | v0.29.1                            | false  | true             |
 | github.com/go-openapi/swag/conv                                             | v0.25.5                                | v0.29.1                            | false  | true             |
@@ -484,7 +484,7 @@ _Generated on Thu, 03 Sep 2026 06:44:52 UTC for commit [03c9266][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260902153201-effc0cdcebe3 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260903120227-384aba90c7de | true   | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                 | v1.20.0                            | false  | true             |
