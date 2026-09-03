@@ -341,6 +341,11 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 
 // Shutdown attempts to shut down the server's storage cleanly.
 func (s *Server) Shutdown(ctx context.Context) error {
+	// Stop NRI first so no error return below can bypass listener cleanup.
+	// stop is idempotent and nil-safe, so Shutdown remains safe to call
+	// on a server whose NRI was never started or already stopped.
+	s.nri.stop()
+
 	s.config.CNIManagerShutdown()
 	s.resourceStore.Close()
 
@@ -621,10 +626,14 @@ func New(
 	}
 
 	if err := s.nri.start(); err != nil {
+		s.nri.stop()
+
 		return nil, err
 	}
 
 	if err := watchdog.New(s.checkCRIHealth).Start(ctx); err != nil {
+		s.nri.stop()
+
 		return nil, fmt.Errorf("start systemd watchdog: %w", err)
 	}
 
