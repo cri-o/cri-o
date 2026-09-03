@@ -101,6 +101,19 @@ type Server struct {
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
 
 	artifactStore *ociartifact.Store
+
+	// reloadWatcherDone closes to ask the SIGHUP reload watcher to exit.
+	// reloadWatcherStopped closes once that watcher has exited.
+	// Both are owned by startReloadWatcher and joined by stopReloadWatcher.
+	reloadWatcherDone     chan struct{}
+	reloadWatcherStopped  chan struct{}
+	reloadWatcherStopOnce sync.Once
+
+	// sighupReload performs one configuration reload for a SIGHUP
+	// notification. It is nil in production, in which case s.config.Reload
+	// is used; tests set it to observe HUP delivery without running the
+	// full production reload.
+	sighupReload func(ctx context.Context) error
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -341,6 +354,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 
 // Shutdown attempts to shut down the server's storage cleanly.
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.stopReloadWatcher()
 	s.config.CNIManagerShutdown()
 	s.resourceStore.Close()
 
@@ -597,6 +611,7 @@ func New(
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
 		if err := metrics.New(&s.config.MetricsConfig, &s.config.APIConfig).Start(ctx, s.monitorsChan); err != nil {
+			s.stopReloadWatcher()
 			return nil, err
 		}
 	} else {
@@ -606,12 +621,14 @@ func New(
 	if s.config.Seccomp().IsDisabled() {
 		log.Infof(ctx, "Seccomp is disabled. Not starting notifier watcher")
 	} else if err := s.startSeccompNotifierWatcher(ctx); err != nil {
+		s.stopReloadWatcher()
 		return nil, fmt.Errorf("start seccomp notifier watcher: %w", err)
 	}
 
 	// Set up our NRI adaptation.
 	api, err := nriIf.New(s.config.NRI.WithTracing(s.config.EnableTracing))
 	if err != nil {
+		s.stopReloadWatcher()
 		return nil, fmt.Errorf("failed to create NRI interface: %w", err)
 	}
 
@@ -621,10 +638,12 @@ func New(
 	}
 
 	if err := s.nri.start(); err != nil {
+		s.stopReloadWatcher()
 		return nil, err
 	}
 
 	if err := watchdog.New(s.checkCRIHealth).Start(ctx); err != nil {
+		s.stopReloadWatcher()
 		return nil, fmt.Errorf("start systemd watchdog: %w", err)
 	}
 
@@ -632,17 +651,51 @@ func New(
 }
 
 // startReloadWatcher starts a new SIGHUP go routine.
+// The watcher exits when stopReloadWatcher closes the Server-owned done
+// channel or when ctx is canceled, so a discarded Server never strands it.
 func (s *Server) startReloadWatcher(ctx context.Context) {
 	// Setup the signal notifier
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, signals.Hup)
+	s.serveReloadNotifications(ctx, ch)
+}
+
+// serveReloadNotifications serves configuration reloads for notifications
+// received on ch until stopReloadWatcher closes the Server-owned done
+// channel or ctx is canceled. Production passes the signal.Notify channel
+// created in startReloadWatcher; tests pass a synthetic channel and deliver
+// notifications directly, proving HUP wiring without signaling the test
+// process. signal.Stop is owned by the watcher goroutine and is a no-op for
+// channels that were never registered.
+func (s *Server) serveReloadNotifications(ctx context.Context, ch chan os.Signal) {
+	done := make(chan struct{})
+	stopped := make(chan struct{})
+	s.reloadWatcherDone = done
+	s.reloadWatcherStopped = stopped
+	s.reloadWatcherStopOnce = sync.Once{}
+
+	// s.config.Reload in production; tests override sighupReload to observe
+	// HUP delivery without running the full production reload.
+	reload := s.sighupReload
+	if reload == nil {
+		reload = s.config.Reload
+	}
 
 	go func() {
-		for {
-			// Block until the signal is received
-			<-ch
+		defer signal.Stop(ch)
+		defer close(stopped)
 
-			if err := s.config.Reload(ctx); err != nil {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ctx.Done():
+				return
+			// Block until the signal is received
+			case <-ch:
+			}
+
+			if err := reload(ctx); err != nil {
 				log.Errorf(ctx, "Unable to reload configuration: %v", err)
 
 				continue
@@ -675,6 +728,23 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 	}()
 
 	log.Infof(ctx, "Registered SIGHUP reload watcher")
+}
+
+// stopReloadWatcher asks the SIGHUP reload watcher to exit and waits for it.
+// It is idempotent and safe on a Server that never started the watcher.
+func (s *Server) stopReloadWatcher() {
+	if s == nil {
+		return
+	}
+
+	done := s.reloadWatcherDone
+	stopped := s.reloadWatcherStopped
+	if done == nil || stopped == nil {
+		return
+	}
+
+	s.reloadWatcherStopOnce.Do(func() { close(done) })
+	<-stopped
 }
 
 func useDefaultUmask(ctx context.Context) {
