@@ -7,6 +7,7 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
@@ -20,7 +21,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/utils"
 )
 
 // runtimePod is the Runtime interface implementation relying on conmon-rs to
@@ -32,6 +32,11 @@ type runtimePod struct {
 	oci       *runtimeOCI
 	client    *conmonClient.ConmonClient
 	serverDir string
+	// attachFunc invokes the conmon attach RPC. Nil means use
+	// client.AttachContainer. Overridden in tests to simulate conmon
+	// without a real server; the stub must start a vendored resize
+	// receiver exactly like conmon does before dialing.
+	attachFunc func(ctx context.Context, cfg *conmonClient.AttachConfig) error
 }
 
 // newRuntimePod creates a new runtimePod instance.
@@ -305,18 +310,66 @@ func (r *runtimePod) DiskStats(ctx context.Context, c *Container, cgroup string)
 	return r.oci.DiskStats(ctx, c, cgroup)
 }
 
+// bridgePodAttachResize bridges upstream cri-streaming resize events to the
+// downstream libpod resize channel with an attach-scoped lifetime.
+//
+// Both resize.HandleResizing helpers (utils and go.podman.io/common) only exit
+// when their input channel is closed, and conmon-rs never closes the
+// downstream channel, so the caller owns that lifecycle. The returned cleanup
+// stops and joins the bridge before closing downstream, so a blocked bridge
+// send can never race with the close. Cleanup must run on every attach return
+// (normal completion and dial failure alike) to release the vendored resize
+// receiver started by conmon-rs before dialing the attach socket.
+func bridgePodAttachResize(upstream <-chan remotecommand.TerminalSize) (downstream <-chan resize.TerminalSize, cleanup func()) {
+	ch := make(chan resize.TerminalSize, 1)
+	downstream = ch
+	bridgeDone := make(chan struct{})
+
+	var wg sync.WaitGroup
+	if upstream != nil {
+		wg.Go(func() {
+			for {
+				select {
+				case <-bridgeDone:
+					return
+				case size, ok := <-upstream:
+					if !ok {
+						return
+					}
+
+					if size.Height < 1 || size.Width < 1 {
+						continue
+					}
+
+					event := resize.TerminalSize{Height: size.Height, Width: size.Width}
+					select {
+					case ch <- event:
+					case <-bridgeDone:
+						return
+					}
+				}
+			}
+		})
+	}
+
+	var once sync.Once
+
+	cleanup = func() {
+		once.Do(func() {
+			close(bridgeDone)
+			wg.Wait()
+			close(ch)
+		})
+	}
+
+	return downstream, cleanup
+}
+
 func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	attachSocketPath := filepath.Join(r.serverDir, c.ID(), "attach")
-	libpodResize := make(chan resize.TerminalSize, 1)
 
-	utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
-		var libpodEvent resize.TerminalSize
-
-		libpodEvent.Height = size.Height
-
-		libpodEvent.Width = size.Width
-		libpodResize <- libpodEvent
-	})
+	libpodResize, cleanupResize := bridgePodAttachResize(resizeChan)
+	defer cleanupResize()
 
 	var (
 		stdin          *conmonClient.In
@@ -335,7 +388,7 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 		stderr = &conmonClient.Out{WriteCloser: errorStream}
 	}
 
-	return r.client.AttachContainer(ctx, &conmonClient.AttachConfig{
+	cfg := &conmonClient.AttachConfig{
 		ID:                c.ID(),
 		SocketPath:        attachSocketPath,
 		Tty:               tty,
@@ -347,7 +400,13 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 			Stdout: stdout,
 			Stderr: stderr,
 		},
-	})
+	}
+
+	if r.attachFunc != nil {
+		return r.attachFunc(ctx, cfg)
+	}
+
+	return r.client.AttachContainer(ctx, cfg)
 }
 
 func (r *runtimePod) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
