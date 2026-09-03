@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 03 Sep 2026 16:18:07 UTC for commit [c75266a][0]._
+_Generated on Thu, 03 Sep 2026 20:14:26 UTC for commit [39d524a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c75266abf9cf305f111152eb73a062a76605feef
+[0]: https://github.com/cri-o/cri-o/commit/39d524aec4d15760d8ca912dc43d36901d1d7663
 
 ## Outdated Dependencies
 
@@ -66,7 +66,7 @@ _Generated on Thu, 03 Sep 2026 16:18:07 UTC for commit [c75266a][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.240                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.242                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.15.0                            | false  | true             |
@@ -383,7 +383,7 @@ _Generated on Thu, 03 Sep 2026 16:18:07 UTC for commit [c75266a][0]._
 | github.com/go-git/go-git/v5                                                 | v5.18.0                                | v5.19.2                            | false  | true             |
 | github.com/go-ini/ini                                                       | v1.67.0                                | v1.67.3                            | false  | true             |
 | github.com/go-jose/go-jose/v3                                               | v3.0.4                                 | v3.0.5                             | false  | true             |
-| github.com/go-jose/go-jose/v4                                               | v4.1.4                                 |                                    | false  | true             |
+| github.com/go-jose/go-jose/v4                                               | v4.1.4                                 | v4.1.5                             | false  | true             |
 | github.com/go-kit/kit                                                       | v0.8.0                                 | v0.13.0                            | false  | true             |
 | github.com/go-logfmt/logfmt                                                 | v0.4.0                                 | v0.6.1                             | false  | true             |
 | github.com/go-logr/logr                                                     | v1.4.3                                 | v1.4.4                             | true   | true             |
@@ -396,7 +396,7 @@ _Generated on Thu, 03 Sep 2026 16:18:07 UTC for commit [c75266a][0]._
 | github.com/go-openapi/loads                                                 | v0.23.3                                | v0.25.2                            | false  | true             |
 | github.com/go-openapi/runtime                                               | v0.29.3                                | v0.33.2                            | false  | true             |
 | github.com/go-openapi/spec                                                  | v0.22.4                                | v1.0.0                             | false  | true             |
-| github.com/go-openapi/strfmt                                                | v0.26.0                                | v0.27.1                            | false  | true             |
+| github.com/go-openapi/strfmt                                                | v0.26.0                                | v0.27.2                            | false  | true             |
 | github.com/go-openapi/swag                                                  | v0.25.5                                | v0.29.1                            | false  | true             |
 | github.com/go-openapi/swag/cmdutils                                         | v0.25.5                                | v0.29.1                            | false  | true             |
 | github.com/go-openapi/swag/conv                                             | v0.25.5                                | v0.29.1                            | false  | true             |
@@ -439,7 +439,7 @@ _Generated on Thu, 03 Sep 2026 16:18:07 UTC for commit [c75266a][0]._
 | github.com/google/go-intervals                                              | v0.0.2                                 |                                    | false  | true             |
 | github.com/google/go-querystring                                            | v1.2.0                                 |                                    | false  | true             |
 | github.com/google/gofuzz                                                    | v1.2.0                                 |                                    | false  | true             |
-| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936     | v0.0.0-20260902005441-ca85771921e4 | false  | true             |
+| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936     | v0.0.0-20260903180319-d6c3cb2f37ec | false  | true             |
 | github.com/google/renameio                                                  | v1.0.1                                 |                                    | true   | true             |
 | github.com/google/s2a-go                                                    | v0.1.9                                 |                                    | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                                 |                                    | true   | true             |
