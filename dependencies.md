@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 02 Sep 2026 19:42:50 UTC for commit [f9bf8ea][0]._
+_Generated on Thu, 03 Sep 2026 00:48:42 UTC for commit [7d31e0f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f9bf8ea4a95b418a6346e2dd5ebef261d6fa4b51
+[0]: https://github.com/cri-o/cri-o/commit/7d31e0f74a672805774c814cb1fe6a6b9a79b6cc
 
 ## Outdated Dependencies
 
@@ -66,7 +66,7 @@ _Generated on Wed, 02 Sep 2026 19:42:50 UTC for commit [f9bf8ea][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.235                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.239                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.15.0                            | false  | true             |
@@ -84,10 +84,10 @@ _Generated on Wed, 02 Sep 2026 19:42:50 UTC for commit [f9bf8ea][0]._
 | cloud.google.com/go/auth/oauth2adapt                                        | v0.2.8                                 |                                    | false  | true             |
 | cloud.google.com/go/automl                                                  | v1.15.0                                | v1.21.0                            | false  | true             |
 | cloud.google.com/go/baremetalsolution                                       | v1.4.0                                 | v1.10.0                            | false  | true             |
-| cloud.google.com/go/batch                                                   | v1.13.0                                | v1.21.0                            | false  | true             |
+| cloud.google.com/go/batch                                                   | v1.13.0                                | v1.22.0                            | false  | true             |
 | cloud.google.com/go/beyondcorp                                              | v1.2.0                                 | v1.8.0                             | false  | true             |
-| cloud.google.com/go/bigquery                                                | v1.72.0                                | v1.82.0                            | false  | true             |
-| cloud.google.com/go/bigtable                                                | v1.40.1                                | v1.53.0                            | false  | true             |
+| cloud.google.com/go/bigquery                                                | v1.72.0                                | v1.83.0                            | false  | true             |
+| cloud.google.com/go/bigtable                                                | v1.40.1                                | v1.54.0                            | false  | true             |
 | cloud.google.com/go/billing                                                 | v1.21.0                                | v1.26.0                            | false  | true             |
 | cloud.google.com/go/binaryauthorization                                     | v1.10.0                                | v1.16.0                            | false  | true             |
 | cloud.google.com/go/certificatemanager                                      | v1.9.6                                 | v1.15.0                            | false  | true             |
@@ -112,7 +112,7 @@ _Generated on Wed, 02 Sep 2026 19:42:50 UTC for commit [f9bf8ea][0]._
 | cloud.google.com/go/datastream                                              | v1.15.1                                | v1.21.0                            | false  | true             |
 | cloud.google.com/go/deploy                                                  | v1.27.3                                | v1.33.0                            | false  | true             |
 | cloud.google.com/go/dialogflow                                              | v1.71.0                                | v1.85.0                            | false  | true             |
-| cloud.google.com/go/dlp                                                     | v1.27.0                                | v1.36.1                            | false  | true             |
+| cloud.google.com/go/dlp                                                     | v1.27.0                                | v1.37.0                            | false  | true             |
 | cloud.google.com/go/documentai                                              | v1.39.0                                | v1.49.0                            | false  | true             |
 | cloud.google.com/go/domains                                                 | v0.10.7                                | v0.16.0                            | false  | true             |
 | cloud.google.com/go/edgecontainer                                           | v1.4.4                                 | v1.10.0                            | false  | true             |
