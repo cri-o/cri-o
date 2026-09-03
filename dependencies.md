@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 03 Sep 2026 00:48:42 UTC for commit [7d31e0f][0]._
+_Generated on Thu, 03 Sep 2026 06:44:52 UTC for commit [03c9266][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7d31e0f74a672805774c814cb1fe6a6b9a79b6cc
+[0]: https://github.com/cri-o/cri-o/commit/03c9266b8f563c7c83ecd1dea418edb0f02d2158
 
 ## Outdated Dependencies
 
@@ -395,7 +395,7 @@ _Generated on Thu, 03 Sep 2026 00:48:42 UTC for commit [7d31e0f][0]._
 | github.com/go-openapi/jsonreference                                         | v0.21.5                                | v1.0.1                             | false  | true             |
 | github.com/go-openapi/loads                                                 | v0.23.3                                | v0.25.2                            | false  | true             |
 | github.com/go-openapi/runtime                                               | v0.29.3                                | v0.33.1                            | false  | true             |
-| github.com/go-openapi/spec                                                  | v0.22.4                                | v0.22.11                           | false  | true             |
+| github.com/go-openapi/spec                                                  | v0.22.4                                | v1.0.0                             | false  | true             |
 | github.com/go-openapi/strfmt                                                | v0.26.0                                | v0.27.0                            | false  | true             |
 | github.com/go-openapi/swag                                                  | v0.25.5                                | v0.29.1                            | false  | true             |
 | github.com/go-openapi/swag/cmdutils                                         | v0.25.5                                | v0.29.1                            | false  | true             |
@@ -695,7 +695,7 @@ _Generated on Thu, 03 Sep 2026 00:48:42 UTC for commit [7d31e0f][0]._
 | github.com/ysmood/got                                                       | v0.40.0                                | v0.43.0                            | false  | true             |
 | github.com/ysmood/gson                                                      | v0.7.3                                 |                                    | false  | true             |
 | github.com/ysmood/leakless                                                  | v0.9.0                                 |                                    | false  | true             |
-| github.com/yuin/goldmark                                                    | v1.4.13                                | v1.8.5                             | false  | true             |
+| github.com/yuin/goldmark                                                    | v1.4.13                                | v1.8.6                             | false  | true             |
 | gitlab.com/gitlab-org/api/client-go                                         | v0.143.3                               | v1.46.0                            | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                     | v0.0.0-20220601114329-47893b162965     | v0.0.0-20231115170030-b21432a353e1 | false  | true             |
 | go.etcd.io/bbolt                                                            | v1.4.3                                 | v1.5.0                             | false  | true             |
