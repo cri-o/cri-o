@@ -493,6 +493,9 @@ Configures the level of container checkpoint and restore (CRIU) support. It acce
 - "checkpoint_only": only checkpointing containers is enabled.
 - "checkpoint_restore": both checkpointing and restoring containers is enabled.
 
+See [Pod checkpoint and restore](pod-checkpoint-restore.md) for Pod-level
+requirements, lifecycle, and security considerations.
+
 ## CRIO.IMAGE TABLE
 
 The `crio.image` table contains settings pertaining to the management of OCI images.
