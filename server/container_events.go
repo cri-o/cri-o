@@ -64,7 +64,6 @@ func (s *Server) broadcastEvents() {
 		}
 	}()
 
-	//nolint:govet // copylock is not harmful for this implementation
 	for containerEvent := range s.ContainerEventsChan {
 		for key, value := range s.containerEventClients.Range {
 			stream, ok := key.(types.RuntimeService_GetContainerEventsServer)
@@ -77,7 +76,7 @@ func (s *Server) broadcastEvents() {
 				continue
 			}
 
-			if err := stream.Send(&containerEvent); err != nil {
+			if err := stream.Send(containerEvent); err != nil {
 				code, _ := status.FromError(err)
 				// when the client closes the connection this error is expected
 				// so only log non transport closing errors

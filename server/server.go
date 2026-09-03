@@ -77,7 +77,7 @@ type Server struct {
 
 	monitorsChan        chan struct{}
 	defaultIDMappings   *idtools.IDMappings
-	ContainerEventsChan chan types.ContainerEventResponse
+	ContainerEventsChan chan *types.ContainerEventResponse
 
 	minimumMappableUID, minimumMappableGID int64
 
@@ -495,7 +495,7 @@ func New(
 
 	if s.config.EnablePodEvents {
 		// creating a container events channel only if the evented pleg is enabled
-		s.ContainerEventsChan = make(chan types.ContainerEventResponse, 1000)
+		s.ContainerEventsChan = make(chan *types.ContainerEventResponse, 1000)
 	}
 
 	if err := configureMaxThreads(); err != nil {
@@ -1039,7 +1039,7 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	}
 
 	select {
-	case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: container.ID(), ContainerEventType: eventType, CreatedAt: time.Now().UnixNano(), PodSandboxStatus: sandboxStatuses, ContainersStatuses: containerStatuses}:
+	case s.ContainerEventsChan <- &types.ContainerEventResponse{ContainerId: container.ID(), ContainerEventType: eventType, CreatedAt: time.Now().UnixNano(), PodSandboxStatus: sandboxStatuses, ContainersStatuses: containerStatuses}:
 		log.Debugf(ctx, "Container event %s generated for %s", eventType, container.ID())
 	default:
 		log.Errorf(ctx, "GenerateCRIEvent: failed to generate event %s for container %s", eventType, container.ID())

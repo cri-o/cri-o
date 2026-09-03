@@ -145,6 +145,10 @@ linters:
       enable-all: true
     gocyclo:
       min-complexity: 60
+    gomoddirectives:
+      replace-allow-list:
+        - k8s.io/cri-api
+        - k8s.io/cri-client
     nakedret:
       max-func-lines: 15
     revive:
