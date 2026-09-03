@@ -354,6 +354,10 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 
 // Shutdown attempts to shut down the server's storage cleanly.
 func (s *Server) Shutdown(ctx context.Context) error {
+	// Stop NRI first so no error return below can bypass listener cleanup.
+	// stop is idempotent and nil-safe, so Shutdown remains safe to call
+	// on a server whose NRI was never started or already stopped.
+	s.nri.stop()
 	s.stopReloadWatcher()
 	s.stopMirrorRegistryWatcher()
 	s.config.CNIManagerShutdown()
@@ -614,6 +618,7 @@ func New(
 	// discarded Server strands no goroutines.
 	defer func() {
 		if retErr != nil {
+			s.nri.stop()
 			s.stopMirrorRegistryWatcher()
 			s.stopReloadWatcher()
 		}
