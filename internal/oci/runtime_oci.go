@@ -1482,14 +1482,26 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	}
 	defer watcher.Close()
 
-	done := make(chan struct{})
-	doneClosed := false
-	errorCh := make(chan error)
+	cLogDir := filepath.Dir(c.LogPath())
+	if err := watcher.Add(cLogDir); err != nil {
+		return fmt.Errorf("failed to watch log directory %q: %w", cLogDir, err)
+	}
+
+	// Buffered so the one-shot worker never blocks on signal delivery: the
+	// parent receives exactly one of them in the select below. The goroutine
+	// is started only after a successful Add, so every launch has a live
+	// fsnotify backend and no Add-failure path can strand it.
+	done := make(chan struct{}, 1)
+	errorCh := make(chan error, 1)
 
 	go func() {
 		for {
 			select {
-			case event := <-watcher.Events:
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+
 				log.Debugf(ctx, "Event: %v", event)
 
 				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
@@ -1498,28 +1510,28 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 					if event.Name == c.LogPath() {
 						log.Debugf(ctx, "Expected log file created")
 
-						done <- struct{}{}
+						select {
+						case done <- struct{}{}:
+						default:
+						}
 
 						return
 					}
 				}
-			case err := <-watcher.Errors:
-				errorCh <- fmt.Errorf("watch error for container log reopen %v: %w", c.ID(), err)
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
 
-				close(errorCh)
+				select {
+				case errorCh <- fmt.Errorf("watch error for container log reopen %v: %w", c.ID(), err):
+				default:
+				}
 
 				return
 			}
 		}
 	}()
-
-	cLogDir := filepath.Dir(c.LogPath())
-	if err := watcher.Add(cLogDir); err != nil {
-		log.Errorf(ctx, "Watcher.Add(%q) failed: %s", cLogDir, err)
-		close(done)
-
-		doneClosed = true
-	}
 
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
 		log.Debugf(ctx, "Failed to write to control file to reopen log file: %v", err)
@@ -1527,20 +1539,10 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 
 	select {
 	case err := <-errorCh:
-		if !doneClosed {
-			close(done)
-		}
-
 		return err
 	case <-done:
-		if !doneClosed {
-			close(done)
-		}
-
-		break
+		return nil
 	}
-
-	return nil
 }
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
