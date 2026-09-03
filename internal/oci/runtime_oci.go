@@ -1407,7 +1407,7 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 
 	defer conn.Close()
 
-	receiveStdout := make(chan error)
+	receiveStdout := make(chan error, 1)
 
 	go func() {
 		receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
@@ -1415,7 +1415,7 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 		close(receiveStdout)
 	}()
 
-	stdinDone := make(chan error)
+	stdinDone := make(chan error, 1)
 
 	go func() {
 		var err, closeErr error
