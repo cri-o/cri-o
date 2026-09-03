@@ -1482,14 +1482,54 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	}
 	defer watcher.Close()
 
-	done := make(chan struct{})
-	doneClosed := false
-	errorCh := make(chan error)
+	// Adding the watch is best effort: conmon reopens the log either way,
+	// and returning an error here would make kubelet undo the rotation. On
+	// failure no worker is started and we do not wait for the new file.
+	var (
+		done    <-chan struct{}
+		errorCh <-chan error
+	)
+
+	cLogDir := filepath.Dir(c.LogPath())
+	if err := watcher.Add(cLogDir); err != nil {
+		log.Errorf(ctx, "Watcher.Add(%q) failed, not waiting for log file creation: %v", cLogDir, err)
+	} else {
+		done, errorCh = watchLogFileCreation(ctx, watcher, c)
+	}
+
+	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
+		log.Debugf(ctx, "Failed to write to control file to reopen log file: %v", err)
+	}
+
+	if done == nil {
+		return nil
+	}
+
+	select {
+	case err := <-errorCh:
+		return err
+	case <-done:
+		return nil
+	}
+}
+
+// watchLogFileCreation starts a worker that signals done once the log file
+// of c is created or written in the directory already added to watcher, or
+// errorCh if the watcher reports an error. Each channel is buffered and
+// receives at most one value, so the worker never blocks on delivery, and it
+// exits when the fsnotify channels are closed.
+func watchLogFileCreation(ctx context.Context, watcher *fsnotify.Watcher, c *Container) (done <-chan struct{}, errorCh <-chan error) {
+	doneCh := make(chan struct{}, 1)
+	errCh := make(chan error, 1)
 
 	go func() {
 		for {
 			select {
-			case event := <-watcher.Events:
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+
 				log.Debugf(ctx, "Event: %v", event)
 
 				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
@@ -1498,49 +1538,24 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 					if event.Name == c.LogPath() {
 						log.Debugf(ctx, "Expected log file created")
 
-						done <- struct{}{}
+						doneCh <- struct{}{}
 
 						return
 					}
 				}
-			case err := <-watcher.Errors:
-				errorCh <- fmt.Errorf("watch error for container log reopen %v: %w", c.ID(), err)
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
 
-				close(errorCh)
+				errCh <- fmt.Errorf("watch error for container log reopen %v: %w", c.ID(), err)
 
 				return
 			}
 		}
 	}()
 
-	cLogDir := filepath.Dir(c.LogPath())
-	if err := watcher.Add(cLogDir); err != nil {
-		log.Errorf(ctx, "Watcher.Add(%q) failed: %s", cLogDir, err)
-		close(done)
-
-		doneClosed = true
-	}
-
-	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 2, 0, 0); err != nil {
-		log.Debugf(ctx, "Failed to write to control file to reopen log file: %v", err)
-	}
-
-	select {
-	case err := <-errorCh:
-		if !doneClosed {
-			close(done)
-		}
-
-		return err
-	case <-done:
-		if !doneClosed {
-			close(done)
-		}
-
-		break
-	}
-
-	return nil
+	return doneCh, errCh
 }
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
