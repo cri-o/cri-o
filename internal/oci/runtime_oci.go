@@ -1815,7 +1815,7 @@ func (r *runtimeOCI) CheckpointContainer(
 	// file which is outside of the container. Giving the log file
 	// the label of the container enables logging for the parasite.
 	if err := crutils.CRCreateFileWithLabel(
-		c.Dir(),
+		c.CheckpointWorkPath(),
 		metadata.DumpLogFile,
 		specgen.Linux.MountLabel,
 	); err != nil {
@@ -1823,7 +1823,7 @@ func (r *runtimeOCI) CheckpointContainer(
 	}
 
 	// workPath will be used to store dump.log and stats-dump
-	workPath := c.Dir()
+	workPath := c.CheckpointWorkPath()
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := c.CheckpointPath()
 

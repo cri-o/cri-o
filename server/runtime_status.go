@@ -40,9 +40,10 @@ func (s *Server) Status(
 			},
 		},
 		Features: &types.RuntimeFeatures{
-			SupplementalGroupsPolicy:  true,
-			UserNamespacesHostNetwork: true,
-			MountOptions:              goruntime.GOOS == "linux",
+			PodCheckpointRestoreCancellation: podOperationCancellationSupported(),
+			SupplementalGroupsPolicy:         true,
+			UserNamespacesHostNetwork:        true,
+			MountOptions:                     goruntime.GOOS == "linux",
 		},
 	}
 

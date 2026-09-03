@@ -52,8 +52,9 @@ type Container struct {
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
-	dir        string
-	stopSignal string
+	checkpointWorkPath string
+	dir                string
+	stopSignal         string
 	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 	someNameOfTheImage *references.RegistryImageReference
 	imageID            *storage.StorageImageID // nil for infra containers.
@@ -498,6 +499,41 @@ func (c *Container) Dir() string {
 	return c.dir
 }
 
+// CheckpointWorkPath returns the operation's bulk storage directory. Normal
+// container checkpointing retains its existing storage location.
+func (c *Container) CheckpointWorkPath() string {
+	c.metaLock.RLock()
+	defer c.metaLock.RUnlock()
+	if c.checkpointWorkPath != "" {
+		return c.checkpointWorkPath
+	}
+	return c.dir
+}
+
+// UseCheckpointWorkPath scopes Pod checkpoint artifacts to caller-owned storage.
+// The caller holds the container's checkpoint reservation through capture, export
+// and cleanup, and releases this override only after synchronous native work ends.
+func (c *Container) UseCheckpointWorkPath(path string) (func(), error) {
+	if !filepath.IsAbs(path) {
+		return nil, fmt.Errorf("checkpoint work path must be absolute: %q", path)
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, fmt.Errorf("checkpoint work path is not a real directory: %q", path)
+	}
+	c.metaLock.Lock()
+	defer c.metaLock.Unlock()
+	if c.checkpointWorkPath != "" {
+		return nil, fmt.Errorf("container checkpoint storage is already reserved")
+	}
+	c.checkpointWorkPath = path
+	var once sync.Once
+	return func() { once.Do(func() { c.metaLock.Lock(); defer c.metaLock.Unlock(); c.checkpointWorkPath = "" }) }, nil
+}
+
 // CheckpointPath returns the path to the directory containing the checkpoint.
 func (c *Container) CheckpointPath() string {
 	// Podman uses 'bundlePath' as base directory for the checkpoint
@@ -506,7 +542,7 @@ func (c *Container) CheckpointPath() string {
 	// the checkpoint contains all memory pages, it can be as large as the
 	// available memory and writing that again to a tmpfs might lead to
 	// problems. 'dir' seems to be based on /var
-	return filepath.Join(c.dir, metadata.CheckpointDirectory)
+	return filepath.Join(c.CheckpointWorkPath(), metadata.CheckpointDirectory)
 }
 
 // Metadata returns the metadata of the container.
