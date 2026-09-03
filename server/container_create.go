@@ -633,6 +633,7 @@ func isInCRIMounts(dst string, mounts []*types.Mount) bool {
 	return false
 }
 
+//nolint:gocyclo // Large function requires complex orchestration of container setup steps.
 func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
