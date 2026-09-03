@@ -19,14 +19,21 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 		return nil, errors.New("checkpoint/restore support not available")
 	}
 
-	_, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
+	container, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
 	}
 
+	release, err := s.reserveContainerCheckpoints([]string{container.ID()})
+	if err != nil {
+		return nil, status.Errorf(codes.Aborted, "reserve container checkpoint: %v", err)
+	}
+	defer release()
+
 	log.Infof(ctx, "Checkpointing container: %s", req.GetContainerId())
+
 	config := &metadata.ContainerConfig{
-		ID: req.GetContainerId(),
+		ID: container.ID(),
 	}
 	opts := &lib.ContainerCheckpointOptions{
 		TargetFile: req.GetLocation(),

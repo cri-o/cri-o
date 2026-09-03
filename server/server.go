@@ -94,6 +94,10 @@ type Server struct {
 
 	containerEventClients           sync.Map
 	containerEventStreamBroadcaster sync.Once
+	podCheckpointsInProgress        sync.Map
+	podCheckpointOutputs            sync.Map
+	containerCheckpointsInProgress  sync.Map
+	podRestoresInProgress           sync.Map
 
 	// NRI runtime interface
 	nri *nriAPI
@@ -515,6 +519,12 @@ func New(
 	}
 
 	deletedImages := s.restore(ctx)
+	if s.config.CheckpointRestore() {
+		if err := s.recoverPodCheckpoints(ctx); err != nil {
+			return nil, fmt.Errorf("recover interrupted Pod checkpoints: %w", err)
+		}
+	}
+
 	s.wipeIfAppropriate(ctx, deletedImages)
 
 	var bindAddressStr string
@@ -622,6 +632,12 @@ func New(
 
 	if err := s.nri.start(); err != nil {
 		return nil, err
+	}
+
+	if s.config.CheckpointRestore() {
+		if err := s.recoverPodRestores(ctx); err != nil {
+			return nil, fmt.Errorf("recover interrupted Pod restores: %w", err)
+		}
 	}
 
 	if err := watchdog.New(s.checkCRIHealth).Start(ctx); err != nil {
