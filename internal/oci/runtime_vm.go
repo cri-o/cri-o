@@ -614,20 +614,31 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 		timeoutCh = time.After(timeoutDuration)
 	}
 
-	execCh := make(chan error)
+	// execOutcome carries the one-shot result of the wait worker. The
+	// channel is buffered so the worker can publish after the parent has
+	// returned on the timeout Kill-failure path, and the worker only
+	// touches its own locals so it can never race the named returns.
+	type execOutcome struct {
+		code int32
+		err  error
+	}
+
+	execCh := make(chan execOutcome, 1)
 
 	go func() {
-		// Wait for the process to terminate
-		exitCode, err = r.wait(c.ID(), execID)
-		if err != nil {
-			execCh <- err
-		}
+		// Wait for the process to terminate. Publish to worker-local
+		// values only: the parent may already have returned on the
+		// timeout Kill-failure path, so the worker must not assign the
+		// named return variables.
+		code, err := r.wait(c.ID(), execID)
+		execCh <- execOutcome{code: code, err: err}
 
 		close(execCh)
 	}()
 
 	select {
-	case err = <-execCh:
+	case outcome := <-execCh:
+		exitCode, err = outcome.code, outcome.err
 		if err != nil {
 			if killErr := r.kill(c.ID(), execID, syscall.SIGKILL); killErr != nil {
 				return execError, killErr
