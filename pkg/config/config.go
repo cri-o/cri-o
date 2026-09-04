@@ -756,11 +756,6 @@ type ImageConfig struct {
 	// SignaturePolicyPath or system wide policy will be used as fallback.
 	// Must be an absolute path.
 	SignaturePolicyDir string `toml:"signature_policy_dir"`
-	// InsecureRegistries is a list of registries that must be contacted w/o
-	// TLS verification.
-	//
-	// Deprecated: it's no longer effective. Please use `insecure` in `registries.conf` instead.
-	InsecureRegistries []string `toml:"insecure_registries"`
 	// ImageVolumes controls how volumes specified in image config are handled
 	ImageVolumes ImageVolumesType `toml:"image_volumes"`
 	// Temporary directory for big files
