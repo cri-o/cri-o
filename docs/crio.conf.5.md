@@ -484,7 +484,7 @@ Specifies the cpuset this pod has access to.
 
 The `crio.checkpoint_restore` table contains settings pertaining to the checkpoint and restore (CRIU) support for containers.
 
-**container_level_enabled**="checkpoint_restore"
+**container_level_enabled**="checkpoint_only"
 Configures the level of container checkpoint and restore (CRIU) support. It accepts one of the following values:
 
 - "none": checkpoint and restore support is disabled.
