@@ -105,6 +105,7 @@ func TestMergeEnvs(t *testing.T) {
 			if len(result) != len(tc.expected) {
 				t.Fatalf("expected %d envs %v, got %d envs %v", len(tc.expected), tc.expected, len(result), result)
 			}
+
 			for i, env := range result {
 				if env != tc.expected[i] {
 					t.Errorf("env[%d]: expected %q, got %q", i, tc.expected[i], env)
