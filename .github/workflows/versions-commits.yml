@@ -1,0 +1,37 @@
+name: versions-commits
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 1" # Every Monday
+permissions:
+  contents: read
+
+jobs:
+  update-version-commits:
+    permissions:
+      contents: write
+      pull-requests: write
+    if: github.ref == 'refs/heads/main' && github.repository == 'cri-o/cri-o'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: make versions-commits
+      - name: Check workspace
+        id: create_pr
+        run: |
+          if [[ $(git diff --stat) != '' ]]; then
+            echo "create_pr=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create PR if required
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        if: ${{ steps.create_pr.outputs.create_pr == 'true' }}
+        with:
+          commit-message: Update dependency commit hashes
+          title: "Update dependency commit hashes"
+          body: Update the recorded upstream commit hashes in dependencies.yaml.
+          labels: kind/ci, release-note-none, ok-to-test
+          branch: versions-commits
+          delete-branch: true
+          signoff: true
