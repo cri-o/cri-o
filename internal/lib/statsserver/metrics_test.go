@@ -8,6 +8,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/oci"
 )
@@ -53,6 +54,7 @@ func TestMetricLabelCardinality(t *testing.T) {
 		{"diskIO", generateContainerDiskIOMetrics(ctr, &blkioStats)},
 		{"hugetlb", generateContainerHugetlbMetrics(ctr, hugetlbStats)},
 		{"memory", generateContainerMemoryMetrics(ctr, &memStats)},
+		{"memoryExtra", generateContainerMemoryExtraMetrics(ctr, &memStats)},
 		{"network", networkMetrics},
 		{"oom", GenerateContainerOOMMetrics(ctr, 3)},
 		{"process", generateContainerProcessMetrics(ctr, &pidsStats, &processStats)},
@@ -82,6 +84,143 @@ func TestMetricLabelCardinality(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestComputeAnonMemory verifies that computeAnonMemory reads the stat keys
+// belonging to the cgroup version it is given. cgroup v1 reports the
+// hierarchical totals under "total_"-prefixed keys.
+func TestComputeAnonMemory(t *testing.T) {
+	t.Parallel()
+
+	memStats := testMemoryStats()
+
+	tests := []struct {
+		name             string
+		isCgroupV2       bool
+		wantActiveAnon   uint64
+		wantInactiveAnon uint64
+	}{
+		{
+			name:             "cgroup v2",
+			isCgroupV2:       true,
+			wantActiveAnon:   memStats.Stats["active_anon"],
+			wantInactiveAnon: memStats.Stats["inactive_anon"],
+		},
+		{
+			name:             "cgroup v1",
+			isCgroupV2:       false,
+			wantActiveAnon:   memStats.Stats["total_active_anon"],
+			wantInactiveAnon: memStats.Stats["total_inactive_anon"],
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			activeAnon, inactiveAnon := computeAnonMemory(&memStats, tt.isCgroupV2)
+			if activeAnon != tt.wantActiveAnon {
+				t.Errorf("activeAnon: got %d, want %d", activeAnon, tt.wantActiveAnon)
+			}
+
+			if inactiveAnon != tt.wantInactiveAnon {
+				t.Errorf("inactiveAnon: got %d, want %d", inactiveAnon, tt.wantInactiveAnon)
+			}
+		})
+	}
+}
+
+// TestComputeTransparentHugepages verifies that computeTransparentHugepages
+// reports the cgroup v2 THP counters and zero for cgroup v1, which has no THP
+// accounting.
+func TestComputeTransparentHugepages(t *testing.T) {
+	t.Parallel()
+
+	memStats := testMemoryStats()
+
+	tests := []struct {
+		name         string
+		isCgroupV2   bool
+		wantAnonTHP  uint64
+		wantShmemTHP uint64
+		wantFileTHP  uint64
+	}{
+		{
+			name:         "cgroup v2",
+			isCgroupV2:   true,
+			wantAnonTHP:  memStats.Stats["anon_thp"],
+			wantShmemTHP: memStats.Stats["shmem_thp"],
+			wantFileTHP:  memStats.Stats["file_thp"],
+		},
+		{
+			name:         "cgroup v1",
+			isCgroupV2:   false,
+			wantAnonTHP:  0,
+			wantShmemTHP: 0,
+			wantFileTHP:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			anonTHP, shmemTHP, fileTHP := computeTransparentHugepages(&memStats, tt.isCgroupV2)
+			if anonTHP != tt.wantAnonTHP {
+				t.Errorf("anonTHP: got %d, want %d", anonTHP, tt.wantAnonTHP)
+			}
+
+			if shmemTHP != tt.wantShmemTHP {
+				t.Errorf("shmemTHP: got %d, want %d", shmemTHP, tt.wantShmemTHP)
+			}
+
+			if fileTHP != tt.wantFileTHP {
+				t.Errorf("fileTHP: got %d, want %d", fileTHP, tt.wantFileTHP)
+			}
+		})
+	}
+}
+
+// TestContainerMemoryExtraMetricValues verifies that
+// generateContainerMemoryExtraMetrics wires the anonymous memory and
+// transparent hugepage helpers to the right metric names. The values themselves
+// are covered per cgroup version by TestComputeAnonMemory and
+// TestComputeTransparentHugepages.
+func TestContainerMemoryExtraMetricValues(t *testing.T) {
+	t.Parallel()
+
+	ctr := newTestContainer(t)
+	memStats := testMemoryStats()
+
+	values := make(map[string]uint64)
+	for _, m := range generateContainerMemoryExtraMetrics(ctr, &memStats) {
+		values[m.GetName()] = m.GetValue().GetValue()
+	}
+
+	isCgroupV2 := node.CgroupIsV2()
+	activeAnon, inactiveAnon := computeAnonMemory(&memStats, isCgroupV2)
+	anonTHP, shmemTHP, fileTHP := computeTransparentHugepages(&memStats, isCgroupV2)
+
+	want := map[string]uint64{
+		"container_memory_active_anon_bytes":   activeAnon,
+		"container_memory_inactive_anon_bytes": inactiveAnon,
+		"container_memory_anon_thp_bytes":      anonTHP,
+		"container_memory_shmem_thp_bytes":     shmemTHP,
+		"container_memory_file_thp_bytes":      fileTHP,
+	}
+
+	for name, wantValue := range want {
+		got, ok := values[name]
+		if !ok {
+			t.Errorf("metric %q not generated", name)
+
+			continue
+		}
+
+		if got != wantValue {
+			t.Errorf("metric %q: got value %d, want %d", name, got, wantValue)
+		}
 	}
 }
 
@@ -165,6 +304,13 @@ func testMemoryStats() cgroups.MemoryStats {
 			"total_mapped_file":   32 * 1024,
 			"pgfault":             100,
 			"pgmajfault":          5,
+			"active_anon":         256 * 1024,
+			"inactive_anon":       16 * 1024,
+			"total_active_anon":   192 * 1024,
+			"total_inactive_anon": 8 * 1024,
+			"anon_thp":            128 * 1024,
+			"shmem_thp":           64 * 1024,
+			"file_thp":            48 * 1024,
 		},
 		PSI: &cgroups.PSIStats{
 			Full: cgroups.PSIData{Total: 500000},

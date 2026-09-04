@@ -288,6 +288,10 @@ func (ss *StatsServer) containerMetricsFromContainerStats(sb *sandbox.Sandbox, c
 			if memoryMetrics := generateContainerMemoryMetrics(c, &cgroupStats.MemoryStats); memoryMetrics != nil {
 				metrics = append(metrics, memoryMetrics...)
 			}
+		case config.MemoryExtraMetrics:
+			if memoryExtraMetrics := generateContainerMemoryExtraMetrics(c, &cgroupStats.MemoryStats); memoryExtraMetrics != nil {
+				metrics = append(metrics, memoryExtraMetrics...)
+			}
 		case config.OOMMetrics:
 			cm, err := ss.Config().CgroupManager().ContainerCgroupManager(sb.CgroupParent(), c.ID())
 			if err != nil {

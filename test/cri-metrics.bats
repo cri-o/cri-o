@@ -170,6 +170,105 @@ EOF
 	# TODO: find a suitable command/script to use to increase the mapped file count in the cgroup
 }
 
+@test "container memoryExtra metrics" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "memory",
+    "memoryExtra",
+]
+EOF
+	start_crio_no_setup
+	check_images
+
+	metrics_setup
+	set_container_pod_cgroup_root "" "$CONTAINER_ID"
+
+	cmd='for i in {1..10}; do dd if=/dev/zero of=/dev/null bs=10M count=1; done'
+	crictl exec --sync "$CONTAINER_ID" /bin/sh -c "$cmd"
+	# wait a bit for metrics sync - tests are more flaky without this
+	sleep 1
+
+	# The metrics endpoint and the cgroup files are sampled at slightly
+	# different times, so the memory values can drift by a small amount between
+	# the two reads. Allow a 1 KiB tolerance on the memory comparisons instead
+	# of requiring an exact match to avoid flaky failures.
+	MEMORY_METRIC_TOLERANCE=1024
+
+	metrics=$(crictl metricsp)
+
+	# assert container_memory_active_anon_bytes == cgroup memory.stat:active_anon(cgroup v2)
+	# or cgroup memory.stat:total_active_anon(cgroup v1 hierarchy)
+	if is_cgroup_v2; then
+		cgroup_active_anon=$(grep -w active_anon < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+		cgroup_inactive_anon=$(grep -w inactive_anon < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+	else
+		cgroup_active_anon=$(grep -w total_active_anon < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+		cgroup_inactive_anon=$(grep -w total_inactive_anon < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+	fi
+
+	metrics_active_anon=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_active_anon_bytes") | .value.value | tonumber')
+	active_anon_diff=$((metrics_active_anon - cgroup_active_anon))
+	[[ ${active_anon_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
+
+	# assert container_memory_inactive_anon_bytes == cgroup memory.stat:inactive_anon(cgroup v2)
+	# or cgroup memory.stat:total_inactive_anon(cgroup v1 hierarchy)
+	metrics_inactive_anon=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_inactive_anon_bytes") | .value.value | tonumber')
+	inactive_anon_diff=$((metrics_inactive_anon - cgroup_inactive_anon))
+	[[ ${inactive_anon_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
+
+	# assert the THP metrics are emitted. Their values depend on whether THP is
+	# enabled on the host, and cgroup v1 has no THP accounting at all, so only
+	# assert the metrics are present rather than checking a specific value.
+	for metric in \
+		container_memory_anon_thp_bytes \
+		container_memory_shmem_thp_bytes \
+		container_memory_file_thp_bytes; do
+		echo "$metrics" | jq -e ".podMetrics[0].containerMetrics[0].metrics[] | select(.name == \"$metric\")"
+	done
+
+	# assert the THP metrics read zero on cgroup v1, which does not account for them
+	if ! is_cgroup_v2; then
+		for metric in \
+			container_memory_anon_thp_bytes \
+			container_memory_shmem_thp_bytes \
+			container_memory_file_thp_bytes; do
+			value=$(echo "$metrics" | jq ".podMetrics[0].containerMetrics[0].metrics[] | select(.name == \"$metric\") | .value.value | tonumber")
+			[[ $value == "0" ]]
+		done
+	fi
+}
+
+@test "memoryExtra metrics are excluded when only memory is included" {
+	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
+	cat << EOF > "$CRIO_CONFIG"
+[crio.stats]
+collection_period = 0
+included_pod_metrics = [
+    "memory",
+]
+EOF
+	start_crio_no_setup
+
+	descs=$(crictl metricdescs | jq -r ".descriptors.[].name")
+
+	# assert the cAdvisor equivalent memory metrics are still included
+	grep -q "^container_memory_working_set_bytes$" <<< "$descs"
+	grep -q "^container_memory_usage_bytes$" <<< "$descs"
+
+	# assert the memoryExtra metrics are not included without the memoryExtra value
+	for metric in \
+		container_memory_active_anon_bytes \
+		container_memory_inactive_anon_bytes \
+		container_memory_anon_thp_bytes \
+		container_memory_shmem_thp_bytes \
+		container_memory_file_thp_bytes; do
+		! grep -q "^$metric$" <<< "$descs"
+	done
+}
+
 @test "container memory cgroupv1-specific metrics" {
 	if is_cgroup_v2; then
 		skip "skip test for cgroup v2"

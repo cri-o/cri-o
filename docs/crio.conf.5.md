@@ -619,7 +619,9 @@ The number of seconds between collecting pod/container stats and pod sandbox met
 **included_pod_metrics**=[]
 A list of pod metrics to include. Specify the names of the metrics to include in this list.
 If empty, only always-on metrics are included.
-Available values are "cpu", "hugetlb", "memory", "network", "oom", "process", "spec", "disk", "diskIO", "pressure".
+Available values are "cpu", "hugetlb", "memory", "memoryExtra", "network", "oom", "process", "spec", "disk", "diskIO", "pressure".
+"memory" covers the metrics with a cAdvisor equivalent, while "memoryExtra" covers the additional
+anonymous memory and transparent hugepage metrics, so they can be enabled independently.
 You can also specify "all" to include all available metrics. If you specify "all", it should be the only item in the list.
 
 ## CRIO.NRI TABLE
