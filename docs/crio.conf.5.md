@@ -109,11 +109,11 @@ Minimum TLS version for streaming and metrics servers. Valid values are "Version
 **tls_cipher_suites**=[]
 List of cipher suites for TLS 1.2. If omitted, the default Go cipher suites will be used. This has no effect on TLS 1.3 as Go manages cipher suites automatically.
 
-**grpc_max_send_msg_size**=83886080
-Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 80 _ 1024 _ 1024.
+**grpc_max_send_msg_size**=16777216
+Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 16 _ 1024 _ 1024.
 
-**grpc_max_recv_msg_size**=83886080
-Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 80 _ 1024 _ 1024.
+**grpc_max_recv_msg_size**=16777216
+Maximum grpc receive message size. If not set or <= 0, then CRI-O will default to 16 _ 1024 _ 1024.
 
 ## CRIO.RUNTIME TABLE
 
