@@ -334,6 +334,8 @@ Changes the default behavior of setting container devices uid/gid from CRI's Sec
 **enable_criu_support**=true
 Enable CRIU integration, requires that the criu binary is available in $PATH. (default: true)
 This option is deprecated, use the **container_level_enabled** option in the `crio.checkpoint_restore` table instead. When set to false it is translated to `container_level_enabled = "none"`.
+See [Pod checkpoint and restore](pod-checkpoint-restore.md) for Pod-level
+requirements, lifecycle, and security considerations.
 
 **enable_pod_events**=false
 Enable CRI-O to generate the container pod-level events in order to optimize the performance of the Pod Lifecycle Event Generator (PLEG) module in Kubelet.

@@ -111,9 +111,8 @@ var _ = t.Describe("ContainerEvents", func() {
 					Return(nil)
 			}
 
-			//nolint:govet // copylock is not harmful for this implementation
-			for _, event := range events {
-				sut.ContainerEventsChan <- event
+			for i := range events {
+				sut.ContainerEventsChan <- &events[i]
 			}
 
 			// GetContainerEvents only returns once the events channel is
@@ -177,7 +176,7 @@ var _ = t.Describe("ContainerEvents", func() {
 			// be sent while a client is not registered yet, and reach only
 			// some of them.
 			Eventually(func() bool {
-				sut.ContainerEventsChan <- heartbeat
+				sut.ContainerEventsChan <- &heartbeat
 
 				for n := range registered {
 					if !registered[n].Load() {
@@ -188,9 +187,8 @@ var _ = t.Describe("ContainerEvents", func() {
 				return true
 			}).WithTimeout(eventTimeout).Should(BeTrue())
 
-			//nolint:govet // copylock is not harmful for this implementation
-			for _, event := range events {
-				sut.ContainerEventsChan <- event
+			for i := range events {
+				sut.ContainerEventsChan <- &events[i]
 			}
 
 			// Everything has to be delivered before the spec ends, otherwise

@@ -27,6 +27,7 @@ import (
 	"go.podman.io/storage/pkg/stringid"
 	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
+	"google.golang.org/protobuf/proto"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
@@ -408,6 +409,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, errors.New("sandbox config metadata is nil")
 	}
 
+	var checkpointConfig *types.ContainerConfig
+	if s.config.CheckpointRestore() {
+		checkpointConfig = proto.CloneOf(req.GetConfig())
+	}
+
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
@@ -590,6 +596,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	if err := s.ContainerStateToDisk(ctx, newContainer); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", newContainer.ID(), err)
+	}
+
+	if s.config.CheckpointRestore() {
+		if err := persistContainerConfig(newContainer.Dir(), checkpointConfig); err != nil {
+			return nil, fmt.Errorf("persist container checkpoint metadata: %w", err)
+		}
 	}
 
 	if isContextError(ctx.Err()) {
