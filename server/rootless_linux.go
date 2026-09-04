@@ -24,12 +24,14 @@ func hasNetworkNamespace(config *rspec.Spec) bool {
 }
 
 func makeOCIConfigurationRootless(g *generate.Generator) {
-	// Resource limitations requires cgroup v2 delegation (https://rootlesscontaine.rs/getting-started/common/cgroup2/).
+	// Resource limitations and preserving the cgroup path require cgroup v2
+	// delegation (https://rootlesscontaine.rs/getting-started/common/cgroup2/).
+	v2Controllers := getAvailableV2Controllers()
+
 	if r := g.Config.Linux.Resources; r != nil {
 		// cannot control device eBPF with rootless
 		r.Devices = nil
 		if r.Memory != nil || r.CPU != nil || r.Pids != nil || r.BlockIO != nil || r.Rdma != nil || r.HugepageLimits != nil {
-			v2Controllers := getAvailableV2Controllers()
 			if _, ok := v2Controllers["memory"]; !ok && r.Memory != nil {
 				logrus.Warn("rootless: cgroup v2 memory controller is not delegated. Discarding memory limit.")
 
@@ -104,7 +106,12 @@ func makeOCIConfigurationRootless(g *generate.Generator) {
 		g.AddMount(sysMnt)
 	}
 
-	g.SetLinuxCgroupsPath("")
+	// Only clear the cgroup path when cgroup v2 delegation is not available.
+	// Without delegation the computed cgroup parent is not writable, so it must
+	// be cleared to let the runtime place the container in a cgroup it owns.
+	if len(v2Controllers) == 0 {
+		g.SetLinuxCgroupsPath("")
+	}
 }
 
 // getAvailableV2Controllers returns the entries in /sys/fs/cgroup/<SELF>/cgroup.controllers.
