@@ -39,15 +39,42 @@ function require_caa() {
 	[[ "$caa_status" == "running" ]]
 }
 
+# wait_caa_vm_deleted polls the CAA container log until it confirms the peer
+# pod VM for the given sandbox has been fully deleted by libvirt.
+#
+# The VM name in CAA logs is derived from the first 8 hex chars of the sandbox
+# ID: podvm-podsandbox1-<pod_id[:8]>.  After the volumes are removed, the CAA
+# logs "deleted an instance N".  The awk pattern below waits for that sequence.
+function wait_caa_vm_deleted() {
+	local pod_id=$1
+	local vm_prefix="podvm-podsandbox1-${pod_id:0:8}"
+	local timeout=60
+	local elapsed=0
+
+	while [[ $elapsed -lt $timeout ]]; do
+		if sudo podman logs caa 2>&1 | \
+			awk "/Deleting volume ${vm_prefix}/{found=1} found && /deleted an instance/{found=2; exit} END{exit (found < 2)}"; then
+			return 0
+		fi
+		sleep 2
+		(( elapsed += 2 ))
+	done
+	echo "timeout: CAA did not confirm deletion of VM ${vm_prefix} after ${timeout}s" >&2
+	return 1
+}
+
 function cleanup() {
 	local ctr_id=$1
 	local pod_id=$2
+	local kata=${3:-true}
 
 	crictl stop "$ctr_id"
 	crictl rm "$ctr_id"
 	crictl stopp "$pod_id"
 	crictl rmp "$pod_id"
-
+	if [[ "$kata" == "true" ]]; then
+		wait_caa_vm_deleted "$pod_id"
+	fi
 }
 
 @test "Container creation with runtime_pull_image=true" {
@@ -290,6 +317,7 @@ function cleanup() {
 	# removes the on-disk artifact store under the pod's run directory.
 	crictl stopp "$pod_a"
 	crictl rmp "$pod_a"
+	wait_caa_vm_deleted "$pod_a"
 
 	# Pod B is a fresh sandbox with its own empty artifact store.
 	local pod_b
@@ -301,6 +329,7 @@ function cleanup() {
 
 	crictl stopp "$pod_b"
 	crictl rmp "$pod_b"
+	wait_caa_vm_deleted "$pod_b"
 }
 
 @test "runtime_pull_image: same image stored in artifact store for kata and containers/storage for default" {
@@ -364,7 +393,7 @@ function cleanup() {
 	[[ -n "$(crictl images --quiet "$test_image")" ]]
 
 	cleanup "$kata_ctr_id" "$kata_pod_id"
-	cleanup "$default_ctr_id" "$default_pod_id"
+	cleanup "$default_ctr_id" "$default_pod_id" false
 }
 
 @test "runtime_pull_image: runtimePulledImageService pulls own manifest even when image is already in containers/storage" {

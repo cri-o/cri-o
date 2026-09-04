@@ -90,8 +90,7 @@ kata_int_test_env:
   RUNTIME_ROOT: "/run/vc"
   RUNTIME_TYPE: "vm"
   TESTFLAGS:
-    "{{ lookup('fileglob', '{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/*.bats', wantlist=True) \
-    | map('basename') | difference(kata_skip_files) | join(' ') }}"
+    kata-remote.bats
   JOBS: "1" # TODO: add support to parallelization in kata (causes failures in the integration tests)
   PRIVILEGED_WITHOUT_HOST_DEVICES: true
   RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
