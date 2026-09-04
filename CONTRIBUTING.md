@@ -63,6 +63,31 @@ Test your changes by running:
 make lint
 ```
 
+The repository also provides optional native Git hooks. Enable them once in
+each worktree:
+
+```shell
+make git-hooks-install
+```
+
+The installer configures `.githooks` for only the current worktree and never
+replaces a conflicting hook path. The pre-commit hook checks staged changes for
+whitespace errors and conflict markers. The commit-msg hook requires a
+canonical `Signed-off-by: Name <email>` trailer, intentionally stricter than
+Prow's prefix-only matcher. Only an in-progress merge identified by the
+worktree's `MERGE_HEAD` is exempt; a later amend is not. Native delegates apply
+the same message and staged-content checks to `git am` and automatic merges.
+
+Before a push, the hooks run the linter, vendor check and documentation
+validation in a disposable worktree for each pushed tip, using that tip's build
+path and `hack/run-on-linux.sh` without changing the active worktree. A
+historical tip without the helper validates documentation directly on Linux
+and cannot be pushed from another operating system.
+
+The hooks provide early feedback but do not replace CI. Git's native
+`--no-verify` option bypasses the applicable hooks for `git commit`, `git am`,
+`git merge`, or `git push`; use it only intentionally.
+
 And you can run the test suite if you have access to elevated permissions:
 
 ```shell

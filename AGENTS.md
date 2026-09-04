@@ -101,6 +101,9 @@ sudo -E ./test/test_runner.sh ctr.bats -f 'pattern'  # Filter
 - `make` / `make all` - Build binaries and docs
 - `make testunit` / `make localintegration` - Run tests
 - `make lint` - Run golangci-lint (required before PR)
+- `make git-hooks-install` - Enable the repository's native Git hooks once in
+  each worktree for commit, patch, merge, and pre-push verification
+- `make test-git-hooks` - Run the native Git hook test suites
 - `make prettier` / `make verify-prettier` - Format/verify markdown, YAML,
   JSON (required before PR)
 - `make verify-mdtoc` - Verify TOC in markdown files

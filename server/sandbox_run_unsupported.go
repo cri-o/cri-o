@@ -7,8 +7,9 @@ import (
 	"fmt"
 
 	"go.podman.io/storage/pkg/idtools"
-	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 )
 
 func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (*types.RunPodSandboxResponse, error) {

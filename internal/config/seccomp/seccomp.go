@@ -12,11 +12,11 @@ import (
 	"slices"
 	"sync"
 
-	"go.podman.io/common/pkg/seccomp"
-	imagetypes "go.podman.io/image/v5/types"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/seccomp"
+	imagetypes "go.podman.io/image/v5/types"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
