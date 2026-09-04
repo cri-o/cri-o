@@ -333,6 +333,8 @@ EOF
 	crictl exec --sync "$CONTAINER_ID" mkdir -p /var/lib/mydisktest
 	crictl exec --sync "$CONTAINER_ID" /bin/sh -c "for i in \$(seq 1 50); do touch /var/lib/mydisktest/inode_test_file_\$i; done"
 	crictl exec --sync "$CONTAINER_ID" sync
+	# wait a bit for metrics sync - tests are more flaky without this
+	sleep 1
 
 	# Poll for inode metrics to be updated
 	local timeout=60 # Set a reasonable timeout in seconds
@@ -364,15 +366,21 @@ EOF
 
 	# Generate disk usage and validate increase
 	crictl exec --sync "$CONTAINER_ID" mkdir -p /var/lib/mydisktest
-	crictl exec --sync "$CONTAINER_ID" dd if=/dev/zero of=/var/lib/mydisktest/bloatfile bs=1024 count=4
+	crictl exec --sync "$CONTAINER_ID" dd if=/dev/zero of=/var/lib/mydisktest/bloatfile bs=1M count=10
 	crictl exec --sync "$CONTAINER_ID" sync
+
+	# Allow a 1 KiB tolerance on the disk usage comparison to avoid flaky failures
+	# due to filesystem metadata update timing and block allocation granularity.
+	DISK_METRIC_TOLERANCE=1024
+
 	# Polling loop for metrics to be updated
 	local timeout=60 # Set a reasonable timeout in seconds
 	local new_fs_usage=0
 	local found_increase=false
 	for ((i = 0; i < timeout; i++)); do
 		new_fs_usage=$(crictl metricsp | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_fs_usage_bytes") | .value.value | tonumber')
-		if [[ "$new_fs_usage" -gt "$fs_usage" ]]; then
+		usage_diff=$((new_fs_usage - fs_usage))
+		if [[ $usage_diff -gt $DISK_METRIC_TOLERANCE ]]; then
 			found_increase=true
 			break
 		fi
