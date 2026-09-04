@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 04 Sep 2026 19:23:22 UTC for commit [dfc23bd][0]._
+_Generated on Fri, 04 Sep 2026 21:26:21 UTC for commit [262e830][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/dfc23bdcb03811b5bf374fd2c38de0517c6a31a9
+[0]: https://github.com/cri-o/cri-o/commit/262e83013b17f3f9644e72384cf9a1d0efe8982c
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Fri, 04 Sep 2026 19:23:22 UTC for commit [dfc23bd][0]._
 |-----------------------------------------------------------------------------|----------------------------------------|------------------------------------|--------|------------------|
 | github.com/checkpoint-restore/checkpointctl                                 | v1.5.0                                 | v1.6.0                             | true   | true             |
 | github.com/checkpoint-restore/go-criu/v8                                    | v8.2.0                                 | v8.4.0                             | true   | true             |
-| github.com/containerd/containerd                                            | v1.7.31                                | v1.7.34                            | true   | true             |
+| github.com/containerd/containerd                                            | v1.7.31                                | v1.7.35                            | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                                | v1.11.1                            | true   | true             |
 | github.com/containerd/nri                                                   | v0.12.0                                | v0.12.2                            | true   | true             |
 | github.com/containerd/ttrpc                                                 | v1.2.8                                 | v1.2.9                             | true   | true             |
@@ -68,7 +68,7 @@ _Generated on Fri, 04 Sep 2026 19:23:22 UTC for commit [dfc23bd][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.247                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.248                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.15.0                            | false  | true             |
@@ -308,7 +308,7 @@ _Generated on Fri, 04 Sep 2026 19:23:22 UTC for commit [dfc23bd][0]._
 | github.com/containerd/cgroups                                               | v1.1.0                                 |                                    | true   | true             |
 | github.com/containerd/cgroups/v3                                            | v3.0.3                                 | v3.1.3                             | false  | true             |
 | github.com/containerd/console                                               | v1.0.5                                 |                                    | false  | true             |
-| github.com/containerd/containerd                                            | v1.7.31                                | v1.7.34                            | true   | true             |
+| github.com/containerd/containerd                                            | v1.7.31                                | v1.7.35                            | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                                | v1.11.1                            | true   | true             |
 | github.com/containerd/continuity                                            | v0.4.4                                 | v0.5.0                             | false  | true             |
 | github.com/containerd/cri-containerd                                        | v1.19.0                                |                                    | false  | true             |
@@ -403,15 +403,15 @@ _Generated on Fri, 04 Sep 2026 19:23:22 UTC for commit [dfc23bd][0]._
 | github.com/go-openapi/swag/cmdutils                                         | v0.25.5                                | v0.29.2                            | false  | true             |
 | github.com/go-openapi/swag/conv                                             | v0.25.5                                | v0.29.2                            | false  | true             |
 | github.com/go-openapi/swag/fileutils                                        | v0.25.5                                | v0.29.2                            | false  | true             |
-| github.com/go-openapi/swag/jsonname                                         | v0.25.5                                | v0.29.1                            | false  | true             |
+| github.com/go-openapi/swag/jsonname                                         | v0.25.5                                | v0.29.2                            | false  | true             |
 | github.com/go-openapi/swag/jsonutils                                        | v0.25.5                                | v0.29.2                            | false  | true             |
 | github.com/go-openapi/swag/jsonutils/fixtures_test                          | v0.25.5                                | v0.29.2                            | false  | true             |
-| github.com/go-openapi/swag/loading                                          | v0.25.5                                | v0.29.1                            | false  | true             |
-| github.com/go-openapi/swag/mangling                                         | v0.25.5                                | v0.29.1                            | false  | true             |
-| github.com/go-openapi/swag/netutils                                         | v0.25.5                                | v0.29.1                            | false  | true             |
+| github.com/go-openapi/swag/loading                                          | v0.25.5                                | v0.29.2                            | false  | true             |
+| github.com/go-openapi/swag/mangling                                         | v0.25.5                                | v0.29.2                            | false  | true             |
+| github.com/go-openapi/swag/netutils                                         | v0.25.5                                | v0.29.2                            | false  | true             |
 | github.com/go-openapi/swag/stringutils                                      | v0.25.5                                | v0.29.2                            | false  | true             |
 | github.com/go-openapi/swag/typeutils                                        | v0.25.5                                | v0.29.2                            | false  | true             |
-| github.com/go-openapi/swag/yamlutils                                        | v0.25.5                                | v0.29.1                            | false  | true             |
+| github.com/go-openapi/swag/yamlutils                                        | v0.25.5                                | v0.29.2                            | false  | true             |
 | github.com/go-openapi/testify/enable/yaml/v2                                | v2.4.1                                 | v2.7.0                             | false  | true             |
 | github.com/go-openapi/testify/v2                                            | v2.4.1                                 | v2.7.0                             | false  | true             |
 | github.com/go-openapi/validate                                              | v0.25.2                                | v1.0.0                             | false  | true             |
@@ -752,9 +752,9 @@ _Generated on Fri, 04 Sep 2026 19:23:22 UTC for commit [dfc23bd][0]._
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1     | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.17.0                                |                                    | false  | true             |
 | google.golang.org/api                                                       | v0.269.0                               | v0.297.0                           | false  | true             |
-| google.golang.org/genproto                                                  | v0.0.0-20251202230838-ff82c1b0f217     | v0.0.0-20260904163448-b1c236e22ff4 | false  | true             |
-| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260401024825-9d38bb4040a9     | v0.0.0-20260904163448-b1c236e22ff4 | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260406210006-6f92a3bedf2d     | v0.0.0-20260904163448-b1c236e22ff4 | false  | true             |
+| google.golang.org/genproto                                                  | v0.0.0-20251202230838-ff82c1b0f217     | v0.0.0-20260904194346-d0f1323225a4 | false  | true             |
+| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260401024825-9d38bb4040a9     | v0.0.0-20260904194346-d0f1323225a4 | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260406210006-6f92a3bedf2d     | v0.0.0-20260904194346-d0f1323225a4 | false  | true             |
 | google.golang.org/grpc                                                      | v1.80.0                                | v1.83.2                            | true   | true             |
 | google.golang.org/protobuf                                                  | v1.36.12-0.20260120151049-f2248ac996af | v1.36.12                           | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                 | v2.4.0                             | false  | true             |
