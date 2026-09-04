@@ -441,3 +441,5 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20220823173643-a866cbe2e5bb
 	knative.dev/pkg => knative.dev/pkg v0.0.0-20220325200448-1f7514acd0c2
 )
+
+replace github.com/go-jose/go-jose/v3 => github.com/openshift-sustaining/go-jose/v3 v3.0.3-sec.1
