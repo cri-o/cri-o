@@ -22,7 +22,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l blockio-config-file -r -d 
 complete -c crio -n '__fish_crio_no_subcommand' -f -l blockio-reload -d 'Reload blockio-config-file and rescan blockio devices in the system before applying blockio parameters.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cdi-spec-dirs -r -d 'Directories to scan for CDI Spec files.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cgroup-manager -r -d 'cgroup manager (cgroupfs or systemd).'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l checkpoint-restore-container-level-enabled -r -d 'The level of container checkpoint/restore support to enable. Must be one of "none", "checkpoint_only" or "checkpoint_restore". Enabling checkpoint or restore requires that the criu binary is available in $PATH.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l checkpoint-restore-level -r -d 'The level of container checkpoint/restore support to enable. Must be one of "none", "checkpoint_only" or "checkpoint_restore". Enabling checkpoint or restore requires that the criu binary is available in $PATH.'
 complete -c crio -n '__fish_crio_no_subcommand' -l clean-shutdown-file -r -d 'Location for CRI-O to lay down the clean shutdown file. It indicates whether we\'ve had time to sync changes to disk before shutting down. If not found, crio wipe will clear the storage directory.'
 complete -c crio -n '__fish_crio_no_subcommand' -l cni-config-dir -r -d 'CNI configuration files directory.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-default-network -r -d 'Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.'

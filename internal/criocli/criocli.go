@@ -57,8 +57,8 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		return err
 	}
 
-	if ctx.IsSet("checkpoint-restore-container-level-enabled") {
-		config.ContainerLevelEnabled = libconfig.ContainerCheckpointRestoreLevel(ctx.String("checkpoint-restore-container-level-enabled"))
+	if ctx.IsSet("checkpoint-restore-level") {
+		config.ContainerLevelEnabled = libconfig.ContainerCheckpointRestoreLevel(ctx.String("checkpoint-restore-level"))
 	}
 
 	mergeNetworkConfig(config, ctx)
@@ -1561,9 +1561,9 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Value:   false,
 		},
 		&cli.StringFlag{
-			Name:    "checkpoint-restore-container-level-enabled",
+			Name:    "checkpoint-restore-level",
 			Usage:   "The level of container checkpoint/restore support to enable. Must be one of \"none\", \"checkpoint_only\" or \"checkpoint_restore\". Enabling checkpoint or restore requires that the criu binary is available in $PATH.",
-			EnvVars: []string{"CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED"},
+			EnvVars: []string{"CONTAINER_CHECKPOINT_RESTORE_LEVEL"},
 			Value:   string(defConf.ContainerLevelEnabled),
 		},
 		&cli.BoolFlag{

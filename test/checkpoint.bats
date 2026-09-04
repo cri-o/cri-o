@@ -21,7 +21,7 @@ function teardown() {
 		skip "not supported by crun: https://github.com/containers/crun/issues/1207"
 	fi
 
-	CONTAINER_DROP_INFRA_CTR=true CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
+	CONTAINER_DROP_INFRA_CTR=true CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	BIND_MOUNT_FILE=$(mktemp)
 	BIND_MOUNT_DIR=$(mktemp -d)
@@ -74,7 +74,7 @@ function teardown() {
 }
 
 @test "checkpoint and restore one container into a new pod (drop infra:false)" {
-	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -92,7 +92,7 @@ function teardown() {
 
 @test "checkpoint and restore one container into a new pod using --export to OCI image" {
 	has_buildah
-	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -114,7 +114,7 @@ function teardown() {
 
 @test "checkpoint and restore one container into a new pod using --export to OCI image using repoDigest" {
 	has_buildah
-	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -137,7 +137,7 @@ function teardown() {
 }
 
 @test "checkpoint and restore one container into a new pod with a new name" {
-	CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
+	CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	# Add Kubernetes like annotations
 	START_CONTAINER_JSON_1=$(mktemp)
@@ -176,7 +176,7 @@ function teardown() {
 }
 
 @test "checkpoint and restore: /etc/passwd uses Kubernetes run_as_user on restore" {
-	CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
+	CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	# Create container with run_as_user=1001
 	START_JSON=$(mktemp)
@@ -217,7 +217,7 @@ function teardown() {
 }
 
 @test "checkpoint_only level allows checkpoint but blocks restore" {
-	CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_only" start_crio
+	CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_only" start_crio
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
@@ -237,7 +237,7 @@ function teardown() {
 }
 
 @test "none level blocks checkpoint" {
-	CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="none" start_crio
+	CONTAINER_CHECKPOINT_RESTORE_LEVEL="none" start_crio
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
@@ -247,7 +247,7 @@ function teardown() {
 }
 
 @test "deprecated enable_criu_support=false disables checkpoint and overrides checkpoint_restore field" {
-	CONTAINER_ENABLE_CRIU_SUPPORT=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
+	CONTAINER_ENABLE_CRIU_SUPPORT=false CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
@@ -259,7 +259,7 @@ function teardown() {
 @test "invalid container_level_enabled fails to start crio" {
 	setup_crio
 
-	export CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="bogus"
+	export CONTAINER_CHECKPOINT_RESTORE_LEVEL="bogus"
 	run ! "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
 	[[ "$output" == *"container_level_enabled"* ]]
 }
