@@ -54,6 +54,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l default-runtime -r -d 'Def
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-sysctls -r -d 'Sysctls to add to the containers.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-transport -r -d 'A prefix to prepend to image names that cannot be pulled as-is.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l default-ulimits -r -d 'Ulimits to apply to containers by default (name=soft:hard).'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l default-unprivileged-port-start -d 'Sets net.ipv4.ip_unprivileged_port_start=0 by default for pods that do not use the host network namespace and do not set the sysctl themselves, allowing non-root processes to bind to privileged ports.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l device-ownership-from-security-context -d 'Set devices\' uid/gid ownership from runAsUser/runAsGroup.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l disable-hostport-mapping -d 'If true, CRI-O would disable the hostport mapping.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l drop-infra-ctr -d 'Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.'

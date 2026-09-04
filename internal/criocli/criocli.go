@@ -444,6 +444,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.DropInfraCtr = ctx.Bool("drop-infra-ctr")
 	}
 
+	if ctx.IsSet("default-unprivileged-port-start") {
+		config.DefaultUnprivilegedPortStart = ctx.Bool("default-unprivileged-port-start")
+	}
+
 	if ctx.IsSet("read-only") {
 		config.ReadOnly = ctx.Bool("read-only")
 	}
@@ -1393,6 +1397,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.",
 			EnvVars: []string{"CONTAINER_DROP_INFRA_CTR"},
 			Value:   defConf.DropInfraCtr,
+		},
+		&cli.BoolFlag{
+			Name:    "default-unprivileged-port-start",
+			Usage:   "Sets net.ipv4.ip_unprivileged_port_start=0 by default for pods that do not use the host network namespace and do not set the sysctl themselves, allowing non-root processes to bind to privileged ports.",
+			EnvVars: []string{"CONTAINER_DEFAULT_UNPRIVILEGED_PORT_START"},
+			Value:   defConf.DefaultUnprivilegedPortStart,
 		},
 		&cli.StringFlag{
 			Name:      "pinns-path",
