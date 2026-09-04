@@ -88,6 +88,10 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	}
 
 	defer func() {
+		// Detach from client request cancellation/timeout so cleanup, runtime
+		// deletion, and state persistence run to completion even if the request
+		// context was canceled or timed out, while preserving trace and log context.
+		cleanupCtx := context.WithoutCancel(ctx)
 		// if the call to StartContainer fails below we still want to fill
 		// some fields of a container status. In particular, we're going to
 		// adjust container started/finished time and set an error to be
@@ -96,22 +100,26 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			c.SetStartFailed(retErr)
 
 			if hooks != nil {
-				if err := hooks.PreStop(ctx, c, sandbox); err != nil {
-					log.Warnf(ctx, "Failed to run pre-stop hook for container %q: %v", c.ID(), err)
+				if err := hooks.PreStop(cleanupCtx, c, sandbox); err != nil {
+					log.Warnf(cleanupCtx, "Failed to run pre-stop hook for container %q: %v", c.ID(), err)
 				}
 			}
 
-			if err := s.nri.stopContainer(ctx, sandbox, c, false); err != nil {
-				log.Warnf(ctx, "NRI stop failed for container %q: %v", c.ID(), err)
+			if err := s.nri.stopContainer(cleanupCtx, sandbox, c); err != nil {
+				log.Warnf(cleanupCtx, "NRI stop failed for container %q: %v", c.ID(), err)
 			}
 
-			if err := s.removeContainerInPod(ctx, sandbox, c); err != nil {
-				log.Warnf(ctx, "Failed to delete container in runtime %s: %v", c.ID(), err)
+			if err := s.removeContainerInPod(cleanupCtx, sandbox, c); err != nil {
+				log.Warnf(cleanupCtx, "Failed to delete container in runtime %s: %v", c.ID(), err)
+			}
+		} else {
+			if err := s.Runtime().UpdateContainerStatus(cleanupCtx, c); err != nil {
+				log.Warnf(cleanupCtx, "Error updating the container status %q: %v", c.ID(), err)
 			}
 		}
 
-		if err := s.ContainerStateToDisk(ctx, c); err != nil {
-			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), err)
+		if err := s.ContainerStateToDisk(cleanupCtx, c); err != nil {
+			log.Warnf(cleanupCtx, "Unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 	}()
 

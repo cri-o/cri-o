@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,14 +24,45 @@ var _ = t.Describe("ContainerStop", func() {
 	AfterEach(afterEach)
 
 	t.Describe("ContainerStop", func() {
+		It("should succeed even if runtime DeleteContainer fails", func() {
+			// Given
+			addContainerAndSandbox()
+			testContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateStopped},
+			})
+			sut.Runtime().SetRuntimeImplForContainer(testContainer, ociRuntimeMock)
+			gomock.InOrder(
+				ociRuntimeMock.EXPECT().StopContainer(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).Return(nil),
+				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any(), gomock.Any()).Return(nil),
+				ociRuntimeMock.EXPECT().DeleteContainer(gomock.Any(), gomock.Any()).
+					Return(errors.New("boom")),
+			)
+
+			// When
+			_, err := sut.StopContainer(context.Background(),
+				&types.StopContainerRequest{
+					ContainerId: testContainer.ID(),
+				})
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
 		It("should succeed", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
 			})
+			sut.Runtime().SetRuntimeImplForContainer(testContainer, ociRuntimeMock)
 			gomock.InOrder(
+				ociRuntimeMock.EXPECT().StopContainer(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil),
 				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).
+					Return(nil),
+				ociRuntimeMock.EXPECT().UpdateContainerStatus(gomock.Any(), gomock.Any()).
+					Return(nil),
+				ociRuntimeMock.EXPECT().DeleteContainer(gomock.Any(), gomock.Any()).
 					Return(nil),
 			)
 
