@@ -41,6 +41,18 @@ func (a *nriAPI) start() error {
 	return a.nri.Start()
 }
 
+// stop shuts down the NRI adaptation listener, releasing the socket so a
+// same-process restart can rebind it. It is idempotent and safe on a nil
+// or disabled receiver, so Shutdown and constructor rollback can both call
+// it without coordination.
+func (a *nriAPI) stop() {
+	if !a.isEnabled() {
+		return
+	}
+
+	a.nri.Stop()
+}
+
 func (a *nriAPI) isEnabled() bool {
 	return a != nil && a.nri != nil && a.nri.IsEnabled()
 }

@@ -152,8 +152,12 @@ func (l *local) Stop() {
 	l.Lock()
 	defer l.Unlock()
 
+	// Idempotent: Shutdown and constructor rollback can both reach Stop,
+	// so a second call must be safe. Keep the adaptation pointer: upstream
+	// Stop is idempotent, and event methods after Stop must still resolve
+	// l.nri (nil-ing it would panic racy in-flight CRI calls that already
+	// passed IsEnabled, since IsEnabled only checks cfg.Enabled).
 	l.nri.Stop()
-	l.nri = nil
 }
 
 func (l *local) RunPodSandbox(ctx context.Context, pod PodSandbox) error {

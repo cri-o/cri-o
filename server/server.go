@@ -24,6 +24,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/cri-streaming/pkg/streaming"
 	kubetypes "k8s.io/kubelet/pkg/types"
+	kclock "k8s.io/utils/clock"
 
 	"github.com/cri-o/cri-o/internal/cert"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
@@ -95,12 +96,24 @@ type Server struct {
 	containerEventClients           sync.Map
 	containerEventStreamBroadcaster sync.Once
 
+	// mirrorRegistryWatcherCancel ties the mirror-registry watcher to the
+	// Server lifecycle.
+	mirrorRegistryWatcherCancel context.CancelFunc
+	mirrorRegistryWatcherWG     sync.WaitGroup
+
 	// NRI runtime interface
 	nri *nriAPI
 	// hooksRetriever allows getting the runtime hooks for the sandboxes.
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
 
 	artifactStore *ociartifact.Store
+
+	// reloadWatcherDone closes to ask the SIGHUP reload watcher to exit.
+	// reloadWatcherStopped closes once that watcher has exited.
+	// Both are owned by startReloadWatcher and joined by stopReloadWatcher.
+	reloadWatcherDone     chan struct{}
+	reloadWatcherStopped  chan struct{}
+	reloadWatcherStopOnce sync.Once
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -341,6 +354,12 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 
 // Shutdown attempts to shut down the server's storage cleanly.
 func (s *Server) Shutdown(ctx context.Context) error {
+	// Stop NRI first so no error return below can bypass listener cleanup.
+	// stop is idempotent and nil-safe, so Shutdown remains safe to call
+	// on a server whose NRI was never started or already stopped.
+	s.nri.stop()
+	s.stopReloadWatcher()
+	s.stopMirrorRegistryWatcher()
 	s.config.CNIManagerShutdown()
 	s.resourceStore.Close()
 
@@ -407,7 +426,7 @@ func getIDMappings(config *libconfig.Config) (*idtools.IDMappings, error) {
 func New(
 	ctx context.Context,
 	configIface libconfig.Iface,
-) (*Server, error) {
+) (_ *Server, retErr error) {
 	if configIface == nil || configIface.GetData() == nil {
 		return nil, errors.New("provided configuration interface or its data is nil")
 	}
@@ -592,8 +611,19 @@ func New(
 	s.startReloadWatcher(ctx)
 
 	if s.config.AutoReloadRegistries {
-		go s.startWatcherForMirrorRegistries(ctx, s.config.SystemContext.SystemRegistriesConfDirPath)
+		s.startMirrorRegistryWatcher(ctx, s.config.SystemContext.SystemRegistriesConfDirPath)
 	}
+
+	// Roll back every worker started above when a later step fails, so a
+	// discarded Server strands no goroutines.
+	defer func() {
+		if retErr != nil {
+			s.nri.stop()
+			s.stopMirrorRegistryWatcher()
+			s.stopReloadWatcher()
+		}
+	}()
+
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
 		if err := metrics.New(&s.config.MetricsConfig, &s.config.APIConfig).Start(ctx, s.monitorsChan); err != nil {
@@ -632,17 +662,44 @@ func New(
 }
 
 // startReloadWatcher starts a new SIGHUP go routine.
+// The watcher exits when stopReloadWatcher closes the Server-owned done
+// channel or when ctx is canceled, so a discarded Server never strands it.
 func (s *Server) startReloadWatcher(ctx context.Context) {
 	// Setup the signal notifier
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, signals.Hup)
+	s.serveReloadNotifications(ctx, ch, s.config.Reload)
+}
+
+// serveReloadNotifications calls reload for every notification received on
+// ch until stopReloadWatcher closes the Server-owned done channel or ctx is
+// canceled. Production passes the signal.Notify channel created in
+// startReloadWatcher and s.config.Reload; tests pass a synthetic channel and
+// a stub reload, proving HUP wiring without signaling the test process.
+// signal.Stop is owned by the watcher goroutine and is a no-op for channels
+// that were never registered.
+func (s *Server) serveReloadNotifications(ctx context.Context, ch chan os.Signal, reload func(context.Context) error) {
+	done := make(chan struct{})
+	stopped := make(chan struct{})
+	s.reloadWatcherDone = done
+	s.reloadWatcherStopped = stopped
+	s.reloadWatcherStopOnce = sync.Once{}
 
 	go func() {
-		for {
-			// Block until the signal is received
-			<-ch
+		defer signal.Stop(ch)
+		defer close(stopped)
 
-			if err := s.config.Reload(ctx); err != nil {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ctx.Done():
+				return
+			// Block until the signal is received
+			case <-ch:
+			}
+
+			if err := reload(ctx); err != nil {
 				log.Errorf(ctx, "Unable to reload configuration: %v", err)
 
 				continue
@@ -675,6 +732,24 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 	}()
 
 	log.Infof(ctx, "Registered SIGHUP reload watcher")
+}
+
+// stopReloadWatcher asks the SIGHUP reload watcher to exit and waits for it.
+// It is idempotent and safe on a Server that never started the watcher.
+func (s *Server) stopReloadWatcher() {
+	if s == nil {
+		return
+	}
+
+	done := s.reloadWatcherDone
+
+	stopped := s.reloadWatcherStopped
+	if done == nil || stopped == nil {
+		return
+	}
+
+	s.reloadWatcherStopOnce.Do(func() { close(done) })
+	<-stopped
 }
 
 func useDefaultUmask(ctx context.Context) {
@@ -1062,10 +1137,10 @@ func isNotFound(err error) bool {
 	return false
 }
 
-// startWatcherForMirrorRegistries sets up a file watcher to monitor changes
-// in the "registries.conf.d" directory (default: "/etc/containers/registries.conf.d").
-// It then delegates the monitoring task to watchAndReloadMirrorRegistriesConfiguration.
-func (s *Server) startWatcherForMirrorRegistries(ctx context.Context, registriesConfDDir string) {
+// startMirrorRegistryWatcher monitors the registries.conf.d directory until
+// the server is stopped. Watch setup is synchronous so the goroutine is fully
+// owned before New continues.
+func (s *Server) startMirrorRegistryWatcher(ctx context.Context, registriesConfDDir string) {
 	if registriesConfDDir == "" {
 		log.Infof(ctx, "No registries.conf.d directory specified, defaulting to /etc/containers/registries.conf.d")
 
@@ -1077,44 +1152,72 @@ func (s *Server) startWatcherForMirrorRegistries(ctx context.Context, registries
 		log.Fatalf(ctx, "Failed to create new watcher: %v", err)
 	}
 
-	defer watcher.Close()
-
-	log.Infof(ctx, "Registered reload watcher for mirror registries configuration")
-
 	if err := watcher.Add(registriesConfDDir); err != nil {
 		log.Errorf(ctx, "Failed to add watcher for path %q: %s", registriesConfDDir, err)
+		watcher.Close()
 
 		return
 	}
 
-	s.watchAndReloadMirrorRegistriesConfiguration(ctx, watcher)
+	watcherCtx, cancel := context.WithCancel(ctx)
+	s.mirrorRegistryWatcherCancel = cancel
+
+	s.mirrorRegistryWatcherWG.Go(func() {
+		defer watcher.Close()
+
+		watchAndReloadMirrorRegistriesConfiguration(
+			watcherCtx,
+			watcher.Events,
+			watcher.Errors,
+			func(eventName string) {
+				log.Infof(ctx, "File %q changed, reloading registries configuration", eventName)
+
+				if err := s.config.ReloadRegistries(); err != nil {
+					log.Errorf(ctx, "Failed to reload registry configuration: %v", err)
+				}
+			},
+			func(d time.Duration) kclock.Timer {
+				return kclock.RealClock{}.NewTimer(d)
+			},
+		)
+	})
+
+	log.Infof(ctx, "Registered reload watcher for mirror registries configuration")
 }
 
-func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context, watcher *fsnotify.Watcher) {
-	var timer *time.Timer
+func (s *Server) stopMirrorRegistryWatcher() {
+	if s.mirrorRegistryWatcherCancel != nil {
+		s.mirrorRegistryWatcherCancel()
+	}
 
-	reloadChannel := make(chan string, 1)
+	s.mirrorRegistryWatcherWG.Wait()
+}
 
-	go func() {
-		// The for loop ensures that the channel is properly drained, even if
-		// no new events are received, thus preventing potential deadlocks.
-		// For each event name received, the goroutine checks if it's not
-		// an empty string and then reloads the registries.
-		for evenName := range reloadChannel {
-			log.Infof(ctx, "File %q changed, reloading registries configuration", evenName)
+func watchAndReloadMirrorRegistriesConfiguration(
+	ctx context.Context,
+	events <-chan fsnotify.Event,
+	watcherErrors <-chan error,
+	reload func(string),
+	newTimer func(time.Duration) kclock.Timer,
+) {
+	var (
+		timer   kclock.Timer
+		timerCh <-chan time.Time
+		pending string
+	)
 
-			if err := s.config.ReloadRegistries(); err != nil {
-				log.Errorf(ctx, "Failed to reload registry configuration: %v", err)
-			}
+	defer func() {
+		if timer != nil {
+			timer.Stop()
 		}
 	}()
 
 	for {
 		select {
-		case event, ok := <-watcher.Events:
+		case <-ctx.Done():
+			return
+		case event, ok := <-events:
 			if !ok {
-				close(reloadChannel)
-
 				return
 			}
 
@@ -1122,21 +1225,32 @@ func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context
 				continue
 			}
 
-			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Chmod) != 0 {
-				// Reset timer if exists, else create a new one.
-				if timer != nil {
-					timer.Reset(debounceDuration)
-				} else {
-					timer = time.AfterFunc(debounceDuration, func() {
-						reloadChannel <- event.Name
-					})
-				}
+			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Chmod) == 0 {
+				continue
 			}
 
-		case err, ok := <-watcher.Errors:
-			if !ok {
-				close(reloadChannel)
+			pending = event.Name
 
+			if timer == nil {
+				timer = newTimer(debounceDuration)
+				timerCh = timer.C()
+			} else {
+				timer.Reset(debounceDuration)
+			}
+		case <-timerCh:
+			name := pending
+			timer = nil
+			timerCh = nil
+			pending = ""
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				reload(name)
+			}
+		case err, ok := <-watcherErrors:
+			if !ok {
 				return
 			}
 
