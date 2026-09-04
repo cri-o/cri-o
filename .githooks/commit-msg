@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+commit_message=${1:?commit message file is required}
+
+# MERGE_HEAD is worktree-specific. Only an in-progress merge is exempt from the
+# sign-off requirement; a later amend must satisfy the normal policy.
+merge_head=$(git rev-parse --git-path MERGE_HEAD)
+if [[ -f $merge_head ]]; then
+    exit 0
+fi
+
+signoff_pattern='^Signed-off-by: [^<>[:space:]]+( [^<>[:space:]]+)* <[^<>[:space:]@]+@[^<>[:space:]@]+>$'
+
+# Consume all parsed trailers before reporting the match. Keeping both commands
+# in this pipefail-aware pipeline preserves interpret-trailers failures without
+# exposing an early match to SIGPIPE on large messages.
+parsed_signoff_is_valid() {
+    git interpret-trailers --parse "$commit_message" |
+        (
+            valid_signoff=false
+            while IFS= read -r trailer || [[ -n $trailer ]]; do
+                if [[ $trailer =~ $signoff_pattern ]]; then
+                    valid_signoff=true
+                fi
+            done
+            [[ $valid_signoff == true ]]
+        )
+}
+
+# interpret-trailers normalizes separator whitespace. Check the original line
+# in the terminal trailer paragraph as well so the committed message itself has
+# the canonical spelling required by the DCO policy.
+raw_signoff_is_valid() {
+    git stripspace --strip-comments <"$commit_message" |
+        awk -v signoff_pattern="$signoff_pattern" '
+            /^$/ {
+                after_blank = 1
+                next
+            }
+            {
+                if (after_blank) {
+                    valid_signoff = 0
+                    after_blank = 0
+                }
+                if ($0 ~ signoff_pattern) {
+                    valid_signoff = 1
+                }
+            }
+            END { exit valid_signoff ? 0 : 1 }
+        '
+}
+
+if parsed_signoff_is_valid && raw_signoff_is_valid; then
+    exit 0
+fi
+
+cat >&2 <<'EOF'
+error: commit message has a missing or malformed Signed-off-by trailer
+
+Expected: Signed-off-by: Name <email>
+Commit with `git commit --signoff` (or amend with `git commit --amend --signoff`).
+Use `git commit --no-verify` only when the hook must be bypassed intentionally.
+EOF
+exit 1

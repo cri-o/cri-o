@@ -282,6 +282,7 @@ function detect_system() {
     ##################################################################
 
     print_msg "DEBUG" "Detecting distro..."
+    # shellcheck disable=SC1091
     source /etc/os-release
     # shellcheck disable=SC2016
     NAME=$(echo "${NAME}" | ${AWK_BIN} '{print tolower($0)}')

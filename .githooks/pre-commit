@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Inspect the index rather than the working tree so partially staged changes are
+# handled correctly. This catches whitespace errors and conflict markers.
+git diff --cached --check

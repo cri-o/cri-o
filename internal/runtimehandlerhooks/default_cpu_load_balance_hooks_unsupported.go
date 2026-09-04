@@ -5,9 +5,10 @@ package runtimehandlerhooks
 import (
 	"context"
 
+	"github.com/opencontainers/runtime-tools/generate"
+
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/opencontainers/runtime-tools/generate"
 )
 
 // DefaultCPULoadBalanceHooks is used to run additional hooks that will configure containers for CPU load balancing.

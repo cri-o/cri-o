@@ -10,8 +10,7 @@ import (
 // NamespaceManager manages the server's namespaces.
 // Specifically, it is an interface for how the server is creating namespaces,
 // and can be requested to create namespaces for a pod.
-type NamespaceManager struct {
-}
+type NamespaceManager struct{}
 
 // New creates a new NamespaceManager.
 func New(namespacesDir, pinnsPath string) *NamespaceManager {

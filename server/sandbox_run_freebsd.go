@@ -11,6 +11,15 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/100"
+	json "github.com/json-iterator/go"
+	"github.com/opencontainers/runtime-tools/generate"
+	selinux "github.com/opencontainers/selinux/go-selinux"
+	"github.com/sirupsen/logrus"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/idtools"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
+
 	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
@@ -23,14 +32,6 @@ import (
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	json "github.com/json-iterator/go"
-	"github.com/opencontainers/runtime-tools/generate"
-	selinux "github.com/opencontainers/selinux/go-selinux"
-	"github.com/sirupsen/logrus"
-	"go.podman.io/storage"
-	"go.podman.io/storage/pkg/idtools"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
 func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbox) (*idtools.IDMappings, error) {

@@ -21,8 +21,7 @@ func getNetNs(path string) (*NetNs, error) {
 
 // NetNs handles data pertaining a network namespace
 // for non-linux this is a noop
-type NetNs struct {
-}
+type NetNs struct{}
 
 func (n *NetNs) Get() *NetNs {
 	return n

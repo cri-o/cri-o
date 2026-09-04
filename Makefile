@@ -65,6 +65,7 @@ SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHFMT_VERSION := v3.12.0
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
 SHELLCHECK_VERSION := v0.11.0
+PRETTIER_VERSION := 3.9.6
 BATS_FILES := $(wildcard test/*.bats)
 
 # pass crio CLI options to generate custom configuration options at build time
@@ -321,11 +322,26 @@ uninstall: ## Uninstall all files.
 
 ##@ Verify targets:
 
+# Lint with the Go version from go.mod and for GOOS=linux so that the results
+# match CI regardless of the Go toolchain and operating system of the host.
+# A go directive without a patch version (go 1.NN) is not a valid toolchain
+# name, so append .0 in that case. Both can be overridden, for example
+# LINT_GOTOOLCHAIN=local to use the installed Go, or LINT_GOOS=freebsd.
+GO_MOD_VERSION := $(shell sed -n 's/^go //p' go.mod)
+GO_TOOLCHAIN_VERSION := $(if $(word 3,$(subst ., ,$(GO_MOD_VERSION))),$(GO_MOD_VERSION),$(GO_MOD_VERSION).0)
+LINT_GOTOOLCHAIN ?= go$(GO_TOOLCHAIN_VERSION)
+LINT_GOOS ?= linux
+LINT_ENV := GOTOOLCHAIN=$(LINT_GOTOOLCHAIN) GOOS=$(LINT_GOOS)
+
 .PHONY: lint
-lint: ${GOLANGCI_LINT} ## Run the golang linter, supposed to not run on CI.
+lint: ${GOLANGCI_LINT} ## Run the golang linters.
 	${GOLANGCI_LINT} version
 	${GOLANGCI_LINT} linters
-	GL_DEBUG=gocritic ${GOLANGCI_LINT} run --fix
+	$(LINT_ENV) GL_DEBUG=gocritic ${GOLANGCI_LINT} run
+
+.PHONY: lint-fix
+lint-fix: ${GOLANGCI_LINT} ## Run the golang linters and apply fixes.
+	$(LINT_ENV) GL_DEBUG=gocritic ${GOLANGCI_LINT} run --fix
 
 .PHONY: check-log-lines
 check-log-lines: ## Verify that all log lines start with a capitalized letter.
@@ -337,8 +353,8 @@ check-config-template: ## Validate that the config template is correct.
 	./hack/validate-config.sh
 
 .PHONY: shellfiles
-shellfiles:
-	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib | grep -v hack/build-rpms.sh | grep -v .bats))
+shellfiles: ${SHFMT}
+	$(eval SHELLFILES=$(shell ${SHFMT} -f . | grep -v vendor/ | grep -v hack/lib/ | grep -v hack/build-rpms.sh | grep -v '\.bats$$'))
 
 .PHONY: shfmt
 shfmt: ${SHFMT} shellfiles ## Run shfmt on all shell files.
@@ -580,11 +596,24 @@ docs-generation: ## Generate the documentation.
 .PHONY: prettier
 prettier: ## Prettify supported files.
 	$(CONTAINER_RUNTIME) run -it --privileged -v ${PWD}:/w -w /w --entrypoint bash node:latest -c \
-		'npm install -g prettier && prettier -w .'
+		'npm install -g prettier@$(PRETTIER_VERSION) && prettier -w .'
 
 .PHONY: docs-validation
-docs-validation: ## Validate the documentation.
+docs-validation: ## Validate the documentation (Linux only).
 	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
+
+.PHONY: git-hooks-install
+git-hooks-install: ## Enable the repository's native Git hooks.
+	./hack/install-git-hooks.sh
+
+.PHONY: test-git-hooks
+test-git-hooks: ## Run the native Git hook tests.
+	bash test/git-hooks/commit.bash
+	bash test/git-hooks/install.bash
+	bash test/git-hooks/pre-push.bash
+
+.PHONY: git-hooks-test
+git-hooks-test: test-git-hooks ## Alias for the native Git hook tests.
 
 ##@ CI targets:
 
