@@ -694,6 +694,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
+	containerImageConfig := containerInfo.Config
+	if containerImageConfig == nil {
+		return nil, fmt.Errorf("empty image config for %s", imgInfo.userRequestedImage)
+	}
+
+	// Process args must be set before configureSELinuxLabels so WillRunSystemd()
+	// can see /sbin/init or systemd. generate.New() defaults Args to ["sh"].
+	if err := ctr.SpecSetProcessArgs(containerImageConfig); err != nil {
+		return nil, err
+	}
+
 	mountLabel, processLabel, maybeRelabel, skipRelabel, err := s.configureSELinuxLabels(ctr, sb, containerInfo)
 	if err != nil {
 		return nil, err
@@ -821,17 +832,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	usernsEnabled := containerIDMappings != nil
 	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
 	addSysfsMounts(ctr, containerConfig, hostNet, usernsEnabled)
-
-	containerImageConfig := containerInfo.Config
-	if containerImageConfig == nil {
-		err = fmt.Errorf("empty image config for %s", imgInfo.userRequestedImage)
-
-		return nil, err
-	}
-
-	if err := ctr.SpecSetProcessArgs(containerImageConfig); err != nil {
-		return nil, err
-	}
 
 	if err := s.setupCgroupNamespace(ctr, specgen); err != nil {
 		return nil, err
@@ -1237,9 +1237,15 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 
 	// Newer versions of container-selinux, container-selinux-2.132.0 or newer,
 	// supply a container_init_t label. If CRI-O is running systemd or init inside
-	// the container and the process label is unset, the init selinux label is required
-	// to run the container.
-	if ctr.WillRunSystemd() && processLabel == "" {
+	// the container, the init selinux label is required unless the user
+	// explicitly requested a different SELinux type.
+	//
+	// processLabel is typically already populated with the storage-generated
+	// default (container_t) when SELinux is enabled, so a non-empty processLabel
+	// must not be treated as a user override. Checking the CRI SELinux type
+	// preserves user-specified labels while still applying container_init_t
+	// for the default systemd case.
+	if ctr.WillRunSystemd() && userSpecifiedSELinuxType(ctr) == "" {
 		processLabel, err = selinux.SetProcessKind(processLabel, selinux.ProcessKindInit)
 		if err != nil {
 			return "", "", false, false, fmt.Errorf("failed to get init label: %w", err)
@@ -1259,6 +1265,21 @@ func (s *Server) configureSELinuxLabels(ctr container.Container, sb *sandbox.San
 	}
 
 	return mountLabel, processLabel, maybeRelabel, skipRelabel, nil
+}
+
+// userSpecifiedSELinuxType returns the SELinux type explicitly requested by the
+// container or its sandbox. An empty string means CRI-O should apply its default
+// labeling, including container_init_t for systemd/init containers.
+func userSpecifiedSELinuxType(ctr container.Container) string {
+	if t := ctr.Config().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType(); t != "" {
+		return t
+	}
+
+	if ctr.SandboxConfig() == nil {
+		return ""
+	}
+
+	return ctr.SandboxConfig().GetLinux().GetSecurityContext().GetSelinuxOptions().GetType()
 }
 
 // createStorageContainer creates the storage layer container with the specified image and ID mappings.

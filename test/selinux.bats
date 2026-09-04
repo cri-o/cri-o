@@ -119,3 +119,60 @@ function teardown() {
 
 	[[ "$OLDLABEL" == "$NEWLABEL" ]]
 }
+
+@test "systemd container gets container_init_t when no SELinux type is set" {
+	skip_if_selinux_disabled
+
+	start_crio
+
+	# Default sandbox_config.json sets a type; that is a user override and must
+	# not be present for CRI-O to apply container_init_t.
+	jq 'del(.linux.security_context.selinux_options.type)' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	jq '	  .command = ["/sbin/init"]
+		| .args = []' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
+
+	label=$(crictl inspect "$ctr_id" | jq -r '.info.runtimeSpec.process.selinuxLabel')
+	[[ "$label" == *":container_init_t:"* ]]
+}
+
+@test "systemd container keeps an explicit SELinux type" {
+	skip_if_selinux_disabled
+
+	start_crio
+
+	jq 'del(.linux.security_context.selinux_options.type)' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	jq '	  .command = ["/sbin/init"]
+		| .args = []
+		| .linux.security_context.selinux_options.type = "container_t"' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
+
+	label=$(crictl inspect "$ctr_id" | jq -r '.info.runtimeSpec.process.selinuxLabel')
+	[[ "$label" == *":container_t:"* ]]
+	[[ "$label" != *":container_init_t:"* ]]
+}
+
+@test "non-systemd container does not get container_init_t" {
+	skip_if_selinux_disabled
+
+	start_crio
+
+	jq 'del(.linux.security_context.selinux_options.type)' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDIR"/sandbox.json)
+
+	label=$(crictl inspect "$ctr_id" | jq -r '.info.runtimeSpec.process.selinuxLabel')
+	[[ "$label" != *":container_init_t:"* ]]
+}
