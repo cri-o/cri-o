@@ -45,9 +45,39 @@ const (
 // Runtime is the generic structure holding both global and specific
 // information about the runtime.
 type Runtime struct {
-	config              *config.Config
+	config *config.Config
+	// runtimes and defaultRuntime are owned by this Runtime rather than read
+	// through config. The *config.Config that config points at is the one
+	// Config.GetData returns, which is the same pointer held by ContainerServer
+	// and by HooksRetriever, and HooksRetriever reads Runtimes without any
+	// synchronisation from gRPC handler goroutines. Writing the reloaded values
+	// back through config would therefore race with those readers, so the
+	// reload updates these fields instead and leaves the shared config alone.
+	runtimes            config.Runtimes
+	defaultRuntime      string
+	configMutex         sync.RWMutex
 	runtimeImplMap      map[string]RuntimeImpl
 	runtimeImplMapMutex sync.RWMutex
+}
+
+// UpdateRuntimeConfig replaces the runtime handler configuration this Runtime
+// resolves handlers against. It is called after a SIGHUP configuration reload
+// so that newly added runtime handlers become available to RunPodSandbox
+// without restarting CRI-O.
+//
+// Server.config is a distinct value from the *config.Config this Runtime was
+// constructed with, so reloading the former does not update the latter. The
+// reload path must push the new values in explicitly, in the same way it
+// already does for the pinned image list.
+//
+// The values are stored on the Runtime rather than written back through the
+// shared *config.Config; see the field comments above.
+func (r *Runtime) UpdateRuntimeConfig(runtimes config.Runtimes, defaultRuntime string) {
+	r.configMutex.Lock()
+	defer r.configMutex.Unlock()
+
+	r.runtimes = runtimes
+	r.defaultRuntime = defaultRuntime
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -94,13 +124,18 @@ func New(c *config.Config) (*Runtime, error) {
 
 	return &Runtime{
 		config:         c,
+		runtimes:       c.Runtimes,
+		defaultRuntime: c.DefaultRuntime,
 		runtimeImplMap: make(map[string]RuntimeImpl),
 	}, nil
 }
 
 // Runtimes returns the map of OCI runtimes.
 func (r *Runtime) Runtimes() config.Runtimes {
-	return r.config.Runtimes
+	r.configMutex.RLock()
+	defer r.configMutex.RUnlock()
+
+	return r.runtimes
 }
 
 // ValidateRuntimeHandler returns an error if the runtime handler string
@@ -110,10 +145,14 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 		return nil, errors.New("empty runtime handler")
 	}
 
-	runtimeHandler, ok := r.config.Runtimes[handler]
+	r.configMutex.RLock()
+	runtimeHandler, ok := r.runtimes[handler]
+	runtimes := r.runtimes
+	r.configMutex.RUnlock()
+
 	if !ok {
 		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
-			handler, r.config.Runtimes)
+			handler, runtimes)
 	}
 
 	if runtimeHandler.RuntimePath == "" {
@@ -125,7 +164,13 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 
 func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
 	// Define the current runtime handler as the default runtime handler.
-	rh := r.config.Runtimes[r.config.DefaultRuntime]
+	// Read both fields under a single lock so the default handler cannot be
+	// resolved against a runtime map from a different reload. The lock is
+	// released before ValidateRuntimeHandler below, which takes it itself:
+	// a blocked writer stops new readers, so a nested RLock could deadlock.
+	r.configMutex.RLock()
+	rh := r.runtimes[r.defaultRuntime]
+	r.configMutex.RUnlock()
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this
