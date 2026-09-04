@@ -1116,11 +1116,8 @@ func (s *Server) setupSandboxSeccomp(ctx context.Context, g *generate.Generator,
 		}
 
 		seccompRef = ref
-	} else if g.Config != nil && g.Config.Linux != nil {
-		// generate.New() injects a default-deny seccomp filter. Privileged
-		// sandboxes skip Setup() when PrivilegedSeccompProfile is unset, which
-		// is what would have set Linux.Seccomp = nil for Unconfined. Clear it
-		// so the sandbox actually runs unconfined.
+	} else {
+		// Privileged container without a custom profile; clear the default filter.
 		g.Config.Linux.Seccomp = nil
 	}
 

@@ -1092,7 +1092,7 @@ func (s *Server) setupContainerEnvironmentAndWorkdir(ctx context.Context, specge
 func (s *Server) setupSeccomp(ctx context.Context, ctr container.Container, sb *sandbox.Sandbox, containerID string, imgResult *storage.ImageResult, securityContext *types.LinuxContainerSecurityContext, specgen *generate.Generator) (string, error) {
 	seccompRef := types.SecurityProfile_Unconfined.String()
 
-	if seccompConfig := s.config.Seccomp(); seccompConfig != nil && seccompConfig.IsDisabled() && specgen.Config.Linux != nil {
+	if s.config.Seccomp().IsDisabled() && specgen.Config.Linux != nil {
 		specgen.Config.Linux.Seccomp = nil
 
 		return seccompRef, nil
@@ -1135,12 +1135,6 @@ func (s *Server) setupSeccomp(ctx context.Context, ctr container.Container, sb *
 		}
 
 		seccompRef = ref
-	} else if specgen.Config != nil && specgen.Config.Linux != nil {
-		// generate.New() injects a default-deny seccomp filter. Privileged
-		// containers skip Setup() when PrivilegedSeccompProfile is unset, which
-		// is what would have set Linux.Seccomp = nil for Unconfined. Clear it
-		// so the container actually runs unconfined.
-		specgen.Config.Linux.Seccomp = nil
 	}
 
 	return seccompRef, nil

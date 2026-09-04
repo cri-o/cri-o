@@ -207,3 +207,26 @@ function teardown() {
 	crictl inspect "$CTR_ID" | jq -e '.info.runtimeSpec.linux.seccomp == null'
 	crictl exec --sync "$CTR_ID" chmod 777 .
 }
+
+# Regression test for https://github.com/cri-o/cri-o/issues/9675
+@test "ctr privileged sandbox has no seccomp filter without privileged_seccomp_profile" {
+	# drop_infra_ctr must be false so the sandbox container exists to inspect.
+	# shellcheck disable=SC2030,SC2031
+	CONTAINER_DROP_INFRA_CTR=false restart_crio
+
+	POD_JSON="$TESTDIR/sandbox.json"
+	CTR_JSON="$TESTDIR/container.json"
+
+	jq '.linux.security_context.privileged = true' \
+		"$TESTDATA/sandbox_config.json" > "$POD_JSON"
+
+	jq '.linux.security_context.privileged = true' \
+		"$TESTDATA/container_sleep.json" > "$CTR_JSON"
+
+	POD_ID=$(crictl runp "$POD_JSON")
+	CTR_ID=$(crictl create "$POD_ID" "$CTR_JSON" "$POD_JSON")
+	crictl start "$CTR_ID"
+
+	crictl inspectp "$POD_ID" | jq -e '.info.runtimeSpec.linux.seccomp == null'
+	crictl inspect "$CTR_ID" | jq -e '.info.runtimeSpec.linux.seccomp == null'
+}

@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -483,74 +482,5 @@ func TestIsSubDirectoryOf(t *testing.T) {
 				t.Errorf("got %v, want %v", res, tt.want)
 			}
 		})
-	}
-}
-
-// TestSetupSeccompPrivilegedEmptyProfileClearsDefaultFilter is a
-// regression test for https://github.com/cri-o/cri-o/issues/9675.
-//
-// generate.New() injects a default-deny seccomp filter. setupSeccomp
-// used to skip Setup() for privileged containers when PrivilegedSeccompProfile
-// is unset, without clearing Linux.Seccomp, so the container stayed confined.
-func TestSetupSeccompPrivilegedEmptyProfileClearsDefaultFilter(t *testing.T) {
-	t.Parallel()
-
-	g, err := generate.New("linux")
-	if err != nil {
-		t.Fatalf("generate.New: %v", err)
-	}
-
-	if g.Config == nil || g.Config.Linux == nil || g.Config.Linux.Seccomp == nil {
-		t.Fatal("generate.New() did not inject a default seccomp filter; cannot reproduce #9675")
-	}
-
-	if g.Config.Linux.Seccomp.DefaultAction != rspec.ActErrno {
-		t.Fatalf("default filter action = %q, want %q", g.Config.Linux.Seccomp.DefaultAction, rspec.ActErrno)
-	}
-
-	ctr, err := container.New()
-	if err != nil {
-		t.Fatalf("container.New: %v", err)
-	}
-
-	if err := ctr.SetConfig(&types.ContainerConfig{
-		Metadata: &types.ContainerMetadata{Name: "testctr"},
-		Linux: &types.LinuxContainerConfig{
-			SecurityContext: &types.LinuxContainerSecurityContext{
-				Privileged: true,
-			},
-		},
-	}, &types.PodSandboxConfig{
-		Metadata: &types.PodSandboxMetadata{Name: "testpod"},
-		Linux: &types.LinuxPodSandboxConfig{
-			SecurityContext: &types.LinuxSandboxSecurityContext{
-				Privileged: true,
-			},
-		},
-	}); err != nil {
-		t.Fatalf("SetConfig: %v", err)
-	}
-
-	if err := ctr.SetPrivileged(); err != nil {
-		t.Fatalf("SetPrivileged: %v", err)
-	}
-
-	if !ctr.Privileged() {
-		t.Fatal("container is not privileged; cannot reproduce #9675")
-	}
-
-	sut := &Server{} // PrivilegedSeccompProfile is empty
-
-	ref, err := sut.setupSeccomp(t.Context(), ctr, nil, "", nil, &types.LinuxContainerSecurityContext{}, &g)
-	if err != nil {
-		t.Fatalf("setupSeccomp: %v", err)
-	}
-
-	if ref != types.SecurityProfile_Unconfined.String() {
-		t.Errorf("seccomp ref = %q, want Unconfined", ref)
-	}
-
-	if g.Config.Linux.Seccomp != nil {
-		t.Fatalf("privileged container with empty profile still has seccomp filter (defaultAction=%q); want nil/unconfined", g.Config.Linux.Seccomp.DefaultAction)
 	}
 }
