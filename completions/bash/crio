@@ -28,7 +28,7 @@ h
 --blockio-reload
 --cdi-spec-dirs
 --cgroup-manager
---checkpoint-restore-container-level-enabled
+--checkpoint-restore-level
 --clean-shutdown-file
 --cni-config-dir
 --cni-default-network
