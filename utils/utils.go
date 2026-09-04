@@ -203,6 +203,35 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 	return uid, gid, additionalGids, nil
 }
 
+// isAllDigits reports whether s is non-empty and consists entirely of
+// ASCII digits. This is the same class of names that shadow-utils on
+// Fedora/RHEL rejects as usernames and group names.
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+
+	return true
+}
+
+// safeAccountName returns a name safe for /etc/passwd or /etc/group.
+// Fully numeric names (e.g. "1234") are rejected by shadow-utils on
+// Fedora/RHEL, so we add a "user" prefix (e.g. "user1234").
+// See https://github.com/cri-o/cri-o/issues/9432
+func safeAccountName(name string) string {
+	if isAllDigits(name) {
+		return "user" + name
+	}
+
+	return name
+}
+
 // GeneratePasswd generates a container specific passwd file,
 // iff uid is not defined in the containers /etc/passwd.
 func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir string) (string, error) {
@@ -227,6 +256,8 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	if username == "" {
 		username = "default"
 	}
+
+	username = safeAccountName(username)
 
 	if homedir == "" {
 		homedir = "/tmp"
@@ -259,7 +290,8 @@ func GenerateGroup(gid uint32, rootfs, rundir string) (string, error) {
 		return "", err
 	}
 
-	groupContent := fmt.Sprintf("%s%d:x:%d:\n", string(origContent), gid, gid)
+	groupName := safeAccountName(strconv.FormatUint(uint64(gid), 10))
+	groupContent := fmt.Sprintf("%s%s:x:%d:\n", string(origContent), groupName, gid)
 	groupFile := filepath.Join(rundir, "group")
 
 	return createAndSecureFile(groupFile, groupContent, os.FileMode(stat.Mode), int(stat.Uid), int(stat.Gid))
