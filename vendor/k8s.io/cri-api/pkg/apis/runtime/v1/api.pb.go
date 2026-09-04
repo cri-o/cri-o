@@ -40,11 +40,12 @@ limitations under the License.
 package v1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -7187,7 +7188,9 @@ type ExecSyncRequest struct {
 	// Command to execute.
 	Cmd []string `protobuf:"bytes,2,rep,name=cmd,proto3" json:"cmd,omitempty"`
 	// Timeout in seconds to stop the command. Default: 0 (run forever).
-	Timeout       int64 `protobuf:"varint,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	Timeout int64 `protobuf:"varint,3,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	// Environment variables to set in the container.
+	Env           []string `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7232,6 +7235,13 @@ func (x *ExecSyncRequest) GetContainerId() string {
 func (x *ExecSyncRequest) GetCmd() []string {
 	if x != nil {
 		return x.Cmd
+	}
+	return nil
+}
+
+func (x *ExecSyncRequest) GetEnv() []string {
+	if x != nil {
+		return x.Env
 	}
 	return nil
 }
@@ -7333,7 +7343,9 @@ type ExecRequest struct {
 	// If `tty` is true, `stderr` MUST be false. Multiplexing is not supported
 	// in this case. The output of stdout and stderr will be combined to a
 	// single stream.
-	Stderr        bool `protobuf:"varint,6,opt,name=stderr,proto3" json:"stderr,omitempty"`
+	Stderr bool `protobuf:"varint,6,opt,name=stderr,proto3" json:"stderr,omitempty"`
+	// Environment variables to set in the container.
+	Env           []string `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7408,6 +7420,13 @@ func (x *ExecRequest) GetStderr() bool {
 		return x.Stderr
 	}
 	return false
+}
+
+func (x *ExecRequest) GetEnv() []string {
+	if x != nil {
+		return x.Env
+	}
+	return nil
 }
 
 type ExecResponse struct {

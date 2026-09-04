@@ -30,5 +30,5 @@ func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*typ
 		return nil, errors.New("exec command cannot be empty")
 	}
 
-	return s.ContainerServer.Runtime().ExecSyncContainer(ctx, c, cmd, req.GetTimeout())
+	return s.ContainerServer.Runtime().ExecSyncContainer(ctx, c, cmd, req.GetEnv(), req.GetTimeout())
 }
