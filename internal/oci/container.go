@@ -467,12 +467,14 @@ func (c *Container) Metadata() *types.ContainerMetadata {
 	return c.criContainer.GetMetadata()
 }
 
-// State returns the state of the running container.
+// State returns a snapshot of the container state that is safe to use
+// without holding opLock.
 func (c *Container) State() *ContainerState {
 	c.opLock.RLock()
 	defer c.opLock.RUnlock()
 
-	return c.state
+	state := *c.state
+	return &state
 }
 
 // StateNoLock returns the state of a container without using a lock.
