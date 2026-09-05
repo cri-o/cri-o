@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -248,6 +249,158 @@ var _ = t.Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("should succeed with empty additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should succeed with valid absolute paths in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/mnt/nfs/store1", "/opt/artifacts"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should fail with relative path in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"./relative/path"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("additional_artifact_stores"))
+			Expect(err.Error()).To(ContainSubstring("./relative/path"))
+		})
+
+		It("should fail with mix of absolute and relative paths in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/valid/store", "relative/path"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("relative/path"))
+		})
+
+		It("should fail with dot-dot traversal in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var/lib/../../etc"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("'..'"))
+		})
+
+		It("should fail with path containing special characters in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var/lib/store@v1"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must be absolute"))
+		})
+
+		It("should fail with consecutive slashes in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var//lib/store"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("consecutive forward slashes"))
+		})
+
+		It("should fail with empty path in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{""}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not be empty"))
+		})
+
+		It("should succeed with double dots within a filename in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var/lib/foo..bar"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should fail with single dot component in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var/./lib"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("'.'"))
+		})
+
+		It("should fail with trailing slash in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/var/lib/store/"}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("trailing slash"))
+		})
+
+		It("should succeed with path at exactly 256 characters in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/" + strings.Repeat("a", 255)}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should fail with path exceeding 256 characters in additional_artifact_stores", func() {
+			// Given
+			sut.AdditionalArtifactStores = []string{"/" + strings.Repeat("a", 256)}
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not exceed 256 characters"))
+		})
 		It("should succeed during runtime", func() {
 			// Given
 			sut = runtimeValidConfig()
