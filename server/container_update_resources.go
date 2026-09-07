@@ -35,6 +35,8 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 			return nil, err
 		}
 
+		defer s.nri.BlockPluginSync().Unblock()
+
 		updated, err := s.nri.updateContainer(ctx, c, req.GetLinux())
 		if err != nil {
 			return nil, err
