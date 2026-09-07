@@ -1449,7 +1449,7 @@ func (r *Repo) PushToRemoteWithOptions(pushOptions *git.PushOptions) error {
 // repository.
 func (r *Repo) LsRemote(args ...string) (output string, err error) {
 	for i := r.maxRetries + 1; i > 0; i-- {
-		params := []string{}
+		params := make([]string, 0, 1+len(args))
 		params = append(params, "--")
 		params = append(params, args...)
 
