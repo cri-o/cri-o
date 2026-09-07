@@ -216,7 +216,7 @@ EOF
 	[[ "$output" == *"210763776"* ]]
 
 	# update unified resources via CRI API
-	"$UPDATEUNIFIED_BINARY" "$CRIO_SOCKET" "$ctr_id" "memory.min=0" "memory.high=max"
+	"$CRIOGRPCCALLER_BINARY" update-unified "$CRIO_SOCKET" "$ctr_id" "memory.min=0" "memory.high=max"
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/memory.min")
 	[[ "$output" == "0" ]]
