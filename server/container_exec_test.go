@@ -68,7 +68,7 @@ var _ = t.Describe("ContainerExec", func() {
 		It("should fail when container not found", func() {
 			// Given
 			// When
-			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{},
+			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{}, nil,
 				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
 
 			// Then
@@ -86,7 +86,7 @@ var _ = t.Describe("ContainerExec", func() {
 			})
 
 			// When
-			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{"/bin/sh"},
+			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{"/bin/sh"}, nil,
 				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
 
 			// Then - Should succeed because container is running
@@ -120,7 +120,7 @@ var _ = t.Describe("ContainerExec", func() {
 			})
 
 			// When
-			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{"/bin/sh"},
+			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{"/bin/sh"}, nil,
 				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
 
 			// Then - Should fail the Living() check
