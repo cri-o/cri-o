@@ -5,7 +5,7 @@
 
 A small library to enable go programs to join a new mount namespace, designed
 for helping get the Kubernetes control plane (kubelet and the container
-runtime) into a separate mountpoint.
+runtime) into a separate mount namespace.
 
 ## Rationale
 
@@ -50,7 +50,10 @@ func main() {
 
 # Running in a separate mount namespace
 
-See the explanation and systemd examples in [utils/systemd](utils/systemd/)
+See the [utils/README.md](utils/README.md) for systemd services,
+scripts, and installation instructions for running Kubernetes in a
+separate mount namespace, with or without building against this
+library.
 
 # Testing
 

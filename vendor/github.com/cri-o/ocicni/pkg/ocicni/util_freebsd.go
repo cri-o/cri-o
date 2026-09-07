@@ -4,6 +4,7 @@
 package ocicni
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os/exec"
@@ -16,33 +17,33 @@ func (nsm *nsManager) init() error {
 	return nil
 }
 
-func getContainerDetails(nsm *nsManager, netnsJailName, interfaceName, addrType string) (*net.IPNet, *net.HardwareAddr, error) {
+func getContainerDetails(ctx context.Context, nsm *nsManager, netnsJailName, interfaceName, addrType string) (*net.IPNet, *net.HardwareAddr, error) {
 	// Try to retrieve ip inside container network namespace
 	if addrType == "-4" {
 		addrType = "inet"
 	} else {
 		addrType = "inet6"
 	}
-	output, err := exec.Command(
+	output, err := exec.CommandContext(ctx,
 		"ifconfig", "-j", netnsJailName,
 		"-f", "inet:cidr,inet6:cidr",
 		interfaceName,
 		addrType).CombinedOutput()
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unexpected command output %s with error: %v", output, err)
+		return nil, nil, fmt.Errorf("unexpected command output %s with error: %w", output, err)
 	}
 
 	lines := strings.Split(string(output), "\n")
 	if len(lines) < 3 {
-		return nil, nil, fmt.Errorf("Unexpected command output %s", output)
+		return nil, nil, fmt.Errorf("unexpected command output %s", output)
 	}
 	fields := strings.Fields(strings.TrimSpace(lines[2]))
 	if len(fields) < 2 {
-		return nil, nil, fmt.Errorf("Unexpected address output %s ", lines[0])
+		return nil, nil, fmt.Errorf("unexpected address output %s ", lines[0])
 	}
 	ip, ipNet, err := net.ParseCIDR(fields[1])
 	if err != nil {
-		return nil, nil, fmt.Errorf("CNI failed to parse ip from output %s due to %v", output, err)
+		return nil, nil, fmt.Errorf("failed to parse ip from output %s due to %w", output, err)
 	}
 	if ip.To4() == nil {
 		ipNet.IP = ip
@@ -51,12 +52,12 @@ func getContainerDetails(nsm *nsManager, netnsJailName, interfaceName, addrType 
 	}
 
 	// Try to retrieve MAC inside container network namespace
-	output, err = exec.Command(
+	output, err = exec.CommandContext(ctx,
 		"ifconfig", "-j", netnsJailName, "-f", "inet:cidr,inet6:cidr",
 		interfaceName,
 		"ether").CombinedOutput()
 	if err != nil {
-		return nil, nil, fmt.Errorf("unexpected ifconfig command output %s with error: %v", output, err)
+		return nil, nil, fmt.Errorf("unexpected ifconfig command output %s with error: %w", output, err)
 	}
 
 	lines = strings.Split(string(output), "\n")
@@ -69,7 +70,7 @@ func getContainerDetails(nsm *nsManager, netnsJailName, interfaceName, addrType 
 	}
 	mac, err := net.ParseMAC(fields[1])
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse MAC from output %s due to %v", output, err)
+		return nil, nil, fmt.Errorf("failed to parse MAC from output %s due to %w", output, err)
 	}
 
 	return ipNet, &mac, nil
