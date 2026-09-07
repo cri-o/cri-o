@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 
+	"google.golang.org/protobuf/proto"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -67,8 +70,31 @@ func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, error)
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (*types.RunPodSandboxResponse, error) {
+	var checkpointConfig *types.PodSandboxConfig
+	if s.config.CheckpointRestore() && req != nil && req.GetConfig() != nil {
+		checkpointConfig = proto.CloneOf(req.GetConfig())
+	}
 	// platform dependent call
-	return s.runPodSandbox(ctx, req)
+	response, err := s.runPodSandbox(ctx, req)
+	if err != nil || !s.config.CheckpointRestore() {
+		return response, err
+	}
+
+	sb := s.GetSandbox(response.GetPodSandboxId())
+	if sb == nil || sb.InfraContainer() == nil {
+		return nil, fmt.Errorf("persist checkpoint metadata: sandbox %q is unavailable after creation", response.GetPodSandboxId())
+	}
+
+	if err := persistPodSandboxConfig(sb.InfraContainer().Dir(), checkpointConfig); err != nil {
+		cleanupCtx := context.WithoutCancel(ctx)
+		if cleanupErr := s.removePodSandbox(cleanupCtx, sb); cleanupErr != nil {
+			return nil, errors.Join(fmt.Errorf("persist sandbox checkpoint metadata: %w", err), fmt.Errorf("remove sandbox after metadata failure: %w", cleanupErr))
+		}
+
+		return nil, fmt.Errorf("persist sandbox checkpoint metadata: %w", err)
+	}
+
+	return response, nil
 }
 
 func convertPortMappings(in []*types.PortMapping) []*hostport.PortMapping {

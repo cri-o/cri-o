@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"google.golang.org/grpc/codes"
@@ -24,54 +25,6 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	c, err := s.GetContainerFromShortID(ctx, req.GetContainerId())
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.GetContainerId(), err)
-	}
-
-	if c.Restore() {
-		// If the create command found a checkpoint image, the container
-		// has the restore flag set to true. At this point we need to jump
-		// into the restore code.
-		log.Debugf(ctx, "Restoring container %q", req.GetContainerId())
-
-		ctr, err := s.ContainerRestore(
-			ctx,
-			&metadata.ContainerConfig{
-				ID: c.ID(),
-			},
-			&lib.ContainerCheckpointOptions{},
-		)
-		if err != nil {
-			ociContainer, err1 := s.GetContainerFromShortID(ctx, c.ID())
-			if err1 != nil {
-				return nil, fmt.Errorf("failed to find container %s: %w", c.ID(), err1)
-			}
-
-			s.ReleaseContainerName(ctx, ociContainer.Name())
-
-			sb, err2 := s.LookupSandbox(c.Sandbox())
-			if err2 != nil {
-				// log the error, but proceed with a "nil" sandbox
-				// This will continue the cleanup process using the default
-				// runtime server, as "best effort" cleanup.
-				log.Warnf(ctx, "Failed to lookup sandbox %s: %v", c.Sandbox(), err2)
-			}
-
-			runtimeSvc, err2 := s.StorageRuntimeServer(sb)
-			if err2 == nil {
-				err2 = runtimeSvc.DeleteContainer(ctx, c.ID())
-			}
-
-			if err2 != nil {
-				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
-			}
-
-			s.removeContainer(ctx, ociContainer)
-
-			return nil, err
-		}
-
-		log.Infof(ctx, "Restored container: %s", ctr)
-
-		return &types.StartContainerResponse{}, nil
 	}
 
 	state := c.State()
@@ -121,7 +74,30 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		}
 	}
 
-	if err := s.ContainerServer.Runtime().StartContainer(ctx, c); err != nil {
+	if c.Restore() {
+		log.Debugf(ctx, "Restoring container %q", req.GetContainerId())
+
+		restoreArchive := c.RestoreArchivePath()
+		if _, err := s.ContainerRestore(ctx, &metadata.ContainerConfig{ID: c.ID()}, &lib.ContainerCheckpointOptions{}); err != nil {
+			return nil, err
+		}
+
+		c.SetRestore(false)
+		c.SetRestoreArchivePath("")
+		c.SetRestoreStorageImageID(nil)
+
+		if err := s.ContainerStateToDisk(ctx, c); err != nil {
+			return nil, fmt.Errorf("persist completed restore for container %s: %w", c.ID(), err)
+		}
+
+		if restoreArchive != "" {
+			if err := os.Remove(restoreArchive); err != nil && !os.IsNotExist(err) {
+				log.Warnf(ctx, "Unable to remove consumed restore archive %q: %v", restoreArchive, err)
+			}
+		}
+
+		log.Infof(ctx, "Restored container: %s", c.ID())
+	} else if err := s.ContainerServer.Runtime().StartContainer(ctx, c); err != nil {
 		return nil, fmt.Errorf("failed to start container %s: %w", c.ID(), err)
 	}
 

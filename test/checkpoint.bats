@@ -16,6 +16,57 @@ function teardown() {
 	cleanup_test
 }
 
+@test "checkpoint and restore a pod with two containers" {
+	if is_using_crun; then
+		skip "Pod checkpoint restore coverage currently requires runc"
+	fi
+
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_CONTAINER_LEVEL_ENABLED="checkpoint_restore" start_crio
+
+	sandbox_config="$TESTDIR/sandbox.json"
+	container_one="$TESTDIR/container-one.json"
+	container_two="$TESTDIR/container-two.json"
+	cp "$TESTDATA/sandbox_config.json" "$sandbox_config"
+	jq '.metadata.name = "pod-checkpoint-one"' \
+		"$TESTDATA/container_sleep.json" > "$container_one"
+	jq '.metadata.name = "pod-checkpoint-two"' \
+		"$TESTDATA/container_sleep.json" > "$container_two"
+
+	pod_id=$(crictl runp "$sandbox_config")
+	ctr_one=$(crictl create "$pod_id" "$container_one" "$sandbox_config")
+	ctr_two=$(crictl create "$pod_id" "$container_two" "$sandbox_config")
+	crictl start "$ctr_one"
+	crictl start "$ctr_two"
+
+	checkpoint_dir="$TESTDIR/pod-checkpoint"
+	mkdir -m 700 "$checkpoint_dir"
+	"$CHECKPOD_BINARY" checkpoint \
+		--endpoint "unix://$CRIO_SOCKET" \
+		--sandbox "$pod_id" \
+		--containers "$ctr_one,$ctr_two" \
+		--output "$checkpoint_dir"
+
+	crictl rmp -f "$pod_id"
+	restore_sandbox="$TESTDIR/restore-sandbox.json"
+	jq '.metadata.uid = "redhat-test-crio-restored" | .metadata.attempt = 2' \
+		"$sandbox_config" > "$restore_sandbox"
+
+	restore_response=$("$CHECKPOD_BINARY" restore \
+		--endpoint "unix://$CRIO_SOCKET" \
+		--checkpoint "$checkpoint_dir" \
+		--sandbox-config "$restore_sandbox" \
+		--container-configs "$container_one,$container_two")
+
+	restored_pod=$(jq -r '.pod_sandbox_id' <<< "$restore_response")
+	[[ -n "$restored_pod" ]]
+	[[ $(jq '.restored_containers | length' <<< "$restore_response") -eq 2 ]]
+
+	while read -r restored_container; do
+		crictl start "$restored_container"
+		[[ $(crictl inspect --output go-template --template '{{.status.state}}' "$restored_container") == "CONTAINER_RUNNING" ]]
+	done < <(jq -r '.restored_containers[].container_id' <<< "$restore_response")
+}
+
 @test "checkpoint and restore one container into a new pod (drop infra:true)" {
 	if is_using_crun; then
 		skip "not supported by crun: https://github.com/containers/crun/issues/1207"

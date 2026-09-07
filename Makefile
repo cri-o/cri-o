@@ -188,6 +188,7 @@ test-binaries: \
 	test/copyimg/copyimg \
 	test/checkseccomp/checkseccomp \
 	test/checkcriu/checkcriu \
+	test/checkpod/checkpod \
 	test/updateunified/updateunified \
 	test/nri/nri.test
 
@@ -202,6 +203,9 @@ test/checkseccomp/checkseccomp: $(GO_FILES) ## Build the checkseccomp test binar
 
 test/checkcriu/checkcriu: $(GO_FILES) ## Build the checkcriu test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkcriu
+
+test/checkpod/checkpod: $(GO_FILES) ## Build the Pod checkpoint/restore CRI client.
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkpod
 
 test/updateunified/updateunified: $(GO_FILES) ## Build the updateunified test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/updateunified

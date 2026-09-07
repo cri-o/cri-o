@@ -179,6 +179,39 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(res).To(ContainSubstring(config.ID))
 		})
+
+		It("should defer archive export", func() {
+			addContainerAndSandbox()
+
+			config := &metadata.ContainerConfig{ID: containerID}
+			target := "deferred-cp.tar"
+			defer os.Remove(target)
+
+			myContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
+				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return(nil, nil),
+				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+			)
+
+			res, err := sut.ContainerCheckpoint(context.Background(), config, &lib.ContainerCheckpointOptions{
+				KeepRunning:  true,
+				TargetFile:   target,
+				DeferArchive: true,
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(res).To(Equal(config.ID))
+			Expect(target).ToNot(BeAnExistingFile())
+
+			Expect(sut.ExportContainerCheckpoint(context.Background(), config, target)).To(Succeed())
+			Expect(target).To(BeAnExistingFile())
+			Expect(sut.CleanupContainerCheckpoint(context.Background(), config)).To(Succeed())
+			Expect(myContainer.CheckpointPath()).ToNot(BeADirectory())
+		})
 	})
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail during unmount", func() {

@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -30,6 +31,14 @@ type ContainerCheckpointOptions struct {
 	// TargetFile tells the API to read (or write) the checkpoint image
 	// from (or to) the filename set in TargetFile
 	TargetFile string
+	// ContainerIsPaused tells the checkpoint implementation that the caller
+	// owns pause and resume for this container. Pod checkpoint uses this to keep
+	// every selected container paused until all of them have been captured.
+	ContainerIsPaused bool
+	// DeferArchive tells the checkpoint implementation to prepare all immutable
+	// checkpoint artifacts without writing TargetFile. The caller must later
+	// call ExportContainerCheckpoint and CleanupContainerCheckpoint.
+	DeferArchive bool
 }
 
 // ContainerCheckpoint checkpoints a running container.
@@ -51,8 +60,18 @@ func (c *ContainerServer) ContainerCheckpoint(
 	}
 
 	cStatus := ctr.State()
-	if cStatus.Status != oci.ContainerStateRunning {
-		return "", fmt.Errorf("container %s is not running", ctr.ID())
+
+	expectedState := rspec.ContainerState(oci.ContainerStateRunning)
+	if opts.ContainerIsPaused {
+		expectedState = rspec.ContainerState(oci.ContainerStatePaused)
+	}
+
+	if cStatus.Status != expectedState {
+		if !opts.ContainerIsPaused {
+			return "", fmt.Errorf("container %s is not running", ctr.ID())
+		}
+
+		return "", fmt.Errorf("container %s is %s, expected %s", ctr.ID(), cStatus.Status, expectedState)
 	}
 
 	// At this point the container needs to be paused. As we first checkpoint
@@ -65,8 +84,11 @@ func (c *ContainerServer) ContainerCheckpoint(
 	// to freeze the processes. CRIU will also use the cgroup freezer to freeze
 	// the processes if possible. If the cgroup is already frozen by runc/crun
 	// CRIU will not change the freezer status.
-	if err = c.runtime.PauseContainer(ctx, ctr); err != nil {
-		return "", fmt.Errorf("failed to pause container %q before checkpointing: %w", ctr.ID(), err)
+	pausedByUs := !opts.ContainerIsPaused
+	if pausedByUs {
+		if err = c.runtime.PauseContainer(ctx, ctr); err != nil {
+			return "", fmt.Errorf("failed to pause container %q before checkpointing: %w", ctr.ID(), err)
+		}
 	}
 
 	defer func() {
@@ -74,7 +96,7 @@ func (c *ContainerServer) ContainerCheckpoint(
 			log.Errorf(ctx, "Failed to update container status: %q: %v", ctr.ID(), err)
 		}
 
-		if ctr.State().Status == oci.ContainerStatePaused {
+		if pausedByUs && ctr.State().Status == oci.ContainerStatePaused {
 			err := c.runtime.UnpauseContainer(ctx, ctr)
 			if err != nil {
 				log.Errorf(ctx, "Failed to unpause container: %q: %v", ctr.ID(), err)
@@ -102,16 +124,21 @@ func (c *ContainerServer) ContainerCheckpoint(
 	}
 
 	if opts.TargetFile != "" {
-		if err := c.exportCheckpoint(ctx, ctr, specgen.Config, opts.TargetFile); err != nil {
+		if err := c.prepareCheckpointArchive(ctx, ctr, specgen.Config); err != nil {
 			return "", fmt.Errorf("failed to write file system changes of container %s: %w", ctr.ID(), err)
 		}
 
-		defer func() {
-			// clean up checkpoint directory
-			if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
-				log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
+		if !opts.DeferArchive {
+			if err := c.writeCheckpointArchive(ctr, specgen.Config, opts.TargetFile); err != nil {
+				return "", fmt.Errorf("failed to export checkpoint of container %s: %w", ctr.ID(), err)
 			}
-		}()
+
+			defer func() {
+				if err := c.cleanupContainerCheckpoint(ctx, ctr, specgen.Config, opts.Keep); err != nil {
+					log.Warnf(ctx, "Unable to clean checkpoint artifacts for container %s: %v", ctr.ID(), err)
+				}
+			}()
+		}
 	}
 
 	if !opts.KeepRunning {
@@ -132,7 +159,7 @@ func (c *ContainerServer) ContainerCheckpoint(
 		}
 	}
 
-	if !opts.Keep {
+	if !opts.Keep && opts.TargetFile == "" {
 		cleanup := []string{
 			metadata.DumpLogFile,
 			stats.StatsDump,
@@ -310,10 +337,10 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	return nil
 }
 
-func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Container, specgen *rspec.Spec, export string) error {
+func (c *ContainerServer) prepareCheckpointArchive(ctx context.Context, ctr *oci.Container, specgen *rspec.Spec) error {
 	id := ctr.ID()
 	dest := ctr.Dir()
-	log.Debugf(ctx, "Exporting checkpoint image of container %q to %q", id, dest)
+	log.Debugf(ctx, "Preparing checkpoint image of container %q in %q", id, dest)
 
 	// To correctly track deleted files, let's go through the output of 'podman diff'
 	rootFsChanges, err := c.getDiff(ctx, id, specgen)
@@ -336,7 +363,7 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		return fmt.Errorf("not able to get mountpoint for container %q: %w", id, err)
 	}
 
-	addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, mountPoint, dest)
+	_, err = crutils.CRCreateRootFsDiffTar(&rootFsChanges, mountPoint, dest)
 	if err != nil {
 		return err
 	}
@@ -365,10 +392,49 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 			return fmt.Errorf("copying log file to %q failed: %w", destLogPath, err)
 		}
 
-		addToTarFiles = append(addToTarFiles, annotations.LogPath)
 	}
 
-	baseFiles := []string{
+	return nil
+}
+
+// ExportContainerCheckpoint writes previously prepared checkpoint artifacts to
+// targetFile. It does not require the checkpointed container to remain paused.
+func (c *ContainerServer) ExportContainerCheckpoint(ctx context.Context, config *metadata.ContainerConfig, targetFile string) error {
+	ctr, err := c.LookupContainer(ctx, config.ID)
+	if err != nil {
+		return fmt.Errorf("failed to find container %s: %w", config.ID, err)
+	}
+
+	specgen, err := generate.NewFromFile(filepath.Join(ctr.BundlePath(), "config.json"))
+	if err != nil {
+		return fmt.Errorf("not able to read config for container %q: %w", ctr.ID(), err)
+	}
+
+	if err := c.writeCheckpointArchive(ctr, specgen.Config, targetFile); err != nil {
+		return fmt.Errorf("failed to export checkpoint of container %s: %w", ctr.ID(), err)
+	}
+
+	return nil
+}
+
+// CleanupContainerCheckpoint removes artifacts retained for a deferred Pod
+// checkpoint archive export.
+func (c *ContainerServer) CleanupContainerCheckpoint(ctx context.Context, config *metadata.ContainerConfig) error {
+	ctr, err := c.LookupContainer(ctx, config.ID)
+	if err != nil {
+		return fmt.Errorf("failed to find container %s: %w", config.ID, err)
+	}
+
+	specgen, err := generate.NewFromFile(filepath.Join(ctr.BundlePath(), "config.json"))
+	if err != nil {
+		return fmt.Errorf("not able to read config for container %q: %w", ctr.ID(), err)
+	}
+
+	return c.cleanupContainerCheckpoint(ctx, ctr, specgen.Config, false)
+}
+
+func (c *ContainerServer) writeCheckpointArchive(ctr *oci.Container, specgen *rspec.Spec, export string) error {
+	includeFiles := []string{
 		stats.StatsDump,
 		metadata.DumpLogFile,
 		metadata.CheckpointDirectory,
@@ -376,9 +442,21 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		metadata.SpecDumpFile,
 		"bind.mounts",
 	}
-	includeFiles := make([]string, 0, len(baseFiles)+len(addToTarFiles))
-	includeFiles = append(includeFiles, baseFiles...)
-	includeFiles = append(includeFiles, addToTarFiles...)
+	optionalFiles := []string{
+		metadata.RootFsDiffTar,
+		metadata.DeletedFilesFile,
+		specgen.Annotations[annotations.LogPath],
+	}
+	for _, file := range optionalFiles {
+		if file == "" {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(ctr.Dir(), file)); err == nil {
+			includeFiles = append(includeFiles, file)
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("inspect checkpoint artifact %q: %w", file, err)
+		}
+	}
 
 	input, err := archive.TarWithOptions(ctr.Dir(), &archive.TarOptions{
 		// This should be configurable via api.proti
@@ -387,8 +465,9 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		IncludeFiles:     includeFiles,
 	})
 	if err != nil {
-		return fmt.Errorf("error reading checkpoint directory %q: %w", id, err)
+		return fmt.Errorf("error reading checkpoint directory %q: %w", ctr.ID(), err)
 	}
+	defer input.Close()
 
 	// The resulting tar archive should not be readable by everyone as it contains
 	// every memory page of the checkpointed processes.
@@ -403,9 +482,37 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		return err
 	}
 
-	for _, file := range addToTarFiles {
-		os.Remove(filepath.Join(dest, file))
-	}
+	return nil
+}
 
+func (c *ContainerServer) cleanupContainerCheckpoint(ctx context.Context, ctr *oci.Container, specgen *rspec.Spec, keep bool) error {
+	var cleanupErrors []error
+	files := []string{
+		metadata.RootFsDiffTar,
+		metadata.DeletedFilesFile,
+		specgen.Annotations[annotations.LogPath],
+	}
+	if !keep {
+		files = append(files,
+			metadata.DumpLogFile,
+			stats.StatsDump,
+			metadata.ConfigDumpFile,
+			metadata.SpecDumpFile,
+		)
+	}
+	for _, file := range files {
+		if file == "" {
+			continue
+		}
+		if err := os.Remove(filepath.Join(ctr.Dir(), file)); err != nil && !os.IsNotExist(err) {
+			cleanupErrors = append(cleanupErrors, err)
+		}
+	}
+	if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
+		cleanupErrors = append(cleanupErrors, err)
+	}
+	if len(cleanupErrors) != 0 {
+		return fmt.Errorf("clean checkpoint artifacts for container %s: %w", ctr.ID(), errors.Join(cleanupErrors...))
+	}
 	return nil
 }

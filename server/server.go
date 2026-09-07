@@ -77,7 +77,7 @@ type Server struct {
 
 	monitorsChan        chan struct{}
 	defaultIDMappings   *idtools.IDMappings
-	ContainerEventsChan chan types.ContainerEventResponse
+	ContainerEventsChan chan *types.ContainerEventResponse
 
 	minimumMappableUID, minimumMappableGID int64
 
@@ -94,6 +94,10 @@ type Server struct {
 
 	containerEventClients           sync.Map
 	containerEventStreamBroadcaster sync.Once
+	podCheckpointsInProgress        sync.Map
+	podCheckpointOutputs            sync.Map
+	containerCheckpointsInProgress  sync.Map
+	podRestoresInProgress           sync.Map
 
 	// NRI runtime interface
 	nri *nriAPI
@@ -495,7 +499,7 @@ func New(
 
 	if s.config.EnablePodEvents {
 		// creating a container events channel only if the evented pleg is enabled
-		s.ContainerEventsChan = make(chan types.ContainerEventResponse, 1000)
+		s.ContainerEventsChan = make(chan *types.ContainerEventResponse, 1000)
 	}
 
 	if err := configureMaxThreads(); err != nil {
@@ -515,6 +519,12 @@ func New(
 	}
 
 	deletedImages := s.restore(ctx)
+	if s.config.CheckpointRestore() {
+		if err := s.recoverPodCheckpoints(ctx); err != nil {
+			return nil, fmt.Errorf("recover interrupted Pod checkpoints: %w", err)
+		}
+	}
+
 	s.wipeIfAppropriate(ctx, deletedImages)
 
 	var bindAddressStr string
@@ -622,6 +632,12 @@ func New(
 
 	if err := s.nri.start(); err != nil {
 		return nil, err
+	}
+
+	if s.config.CheckpointRestore() {
+		if err := s.recoverPodRestores(ctx); err != nil {
+			return nil, fmt.Errorf("recover interrupted Pod restores: %w", err)
+		}
 	}
 
 	if err := watchdog.New(s.checkCRIHealth).Start(ctx); err != nil {
@@ -1039,7 +1055,7 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	}
 
 	select {
-	case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: container.ID(), ContainerEventType: eventType, CreatedAt: time.Now().UnixNano(), PodSandboxStatus: sandboxStatuses, ContainersStatuses: containerStatuses}:
+	case s.ContainerEventsChan <- &types.ContainerEventResponse{ContainerId: container.ID(), ContainerEventType: eventType, CreatedAt: time.Now().UnixNano(), PodSandboxStatus: sandboxStatuses, ContainersStatuses: containerStatuses}:
 		log.Debugf(ctx, "Container event %s generated for %s", eventType, container.ID())
 	default:
 		log.Errorf(ctx, "GenerateCRIEvent: failed to generate event %s for container %s", eventType, container.ID())
