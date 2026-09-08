@@ -8,6 +8,16 @@ completely formalized.
 The main documentation of the CRI can be found [in the corresponding protobuf
 definition][0], whereas this document follows it on the `service`/`rpc` level.
 
+## Default sysctls
+
+When `default_unprivileged_port_start` is enabled in `crio.conf`, CRI-O sets
+`net.ipv4.ip_unprivileged_port_start=0` for containers that do not use the
+host network namespace. This enables containers to bind to ports below 1024
+without requiring `CAP_NET_BIND_SERVICE`. This is disabled by default, since it
+relaxes a security boundary and changes a Kubernetes-conformant sysctl
+default. It can still be overridden per pod by setting the sysctl explicitly
+via `securityContext.sysctls`, regardless of the `crio.conf` setting.
+
 ## `ListImages`
 
 `ListImages` lists existing images. Its response consists of an array of
