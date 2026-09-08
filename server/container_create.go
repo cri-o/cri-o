@@ -411,8 +411,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
 	checkpointImage, err := func() (bool, error) {
-		if !s.config.CheckpointRestore() {
-			// If CRIU support is not enabled return from
+		if !s.config.RestoreContainerEnabled() {
+			// If CRIU restore support is not enabled return from
 			// this check as early as possible.
 			return false, nil
 		}
