@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 08 Sep 2026 13:24:58 UTC for commit [e858b76][0]._
+_Generated on Tue, 08 Sep 2026 17:40:02 UTC for commit [e952a80][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e858b76fc08fcb7c54ce9279dcccf31eda92c265
+[0]: https://github.com/cri-o/cri-o/commit/e952a80cb58080c01b0f557ee36482e3fea10406
 
 ## Outdated Dependencies
 
@@ -23,9 +23,9 @@ _Generated on Tue, 08 Sep 2026 13:24:58 UTC for commit [e858b76][0]._
 | github.com/go-chi/chi/v5                                                    | v5.2.5                                 | v5.3.2                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.3                                 | v1.4.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.12.0                                | v0.13.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260907121347-26c2e1630457 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260908172334-61c80869978a | true   | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                 | v0.4.1                             | true   | true             |
-| github.com/moby/sys/userns                                                  | v0.1.0                                 | v0.2.0                             | true   | true             |
+| github.com/moby/sys/userns                                                  | v0.1.0                                 | v0.2.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.29.0                                | v2.32.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.41.0                                | v1.43.0                            | true   | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.6                                 | v0.1.0                             | true   | true             |
@@ -60,7 +60,7 @@ _Generated on Tue, 08 Sep 2026 13:24:58 UTC for commit [e858b76][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                               | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                                | v0.1.251                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                                | v0.1.252                           | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                               |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.15.0                            | false  | true             |
@@ -311,7 +311,7 @@ _Generated on Tue, 08 Sep 2026 13:24:58 UTC for commit [e858b76][0]._
 | github.com/containerd/go-cni                                                | v1.1.9                                 | v1.1.14                            | false  | true             |
 | github.com/containerd/go-runc                                               | v1.1.0                                 | v1.2.1                             | false  | true             |
 | github.com/containerd/imgcrypt                                              | v1.1.8                                 | v1.1.11                            | false  | true             |
-| github.com/containerd/log                                                   | v0.1.0                                 |                                    | false  | true             |
+| github.com/containerd/log                                                   | v0.1.0                                 | v0.2.0                             | false  | true             |
 | github.com/containerd/nri                                                   | v0.12.0                                | v0.12.2                            | true   | true             |
 | github.com/containerd/otelttrpc                                             | v0.1.0                                 |                                    | true   | true             |
 | github.com/containerd/platforms                                             | v1.0.0-rc.4                            | v1.0.0-rc.5                        | false  | true             |
@@ -477,7 +477,7 @@ _Generated on Tue, 08 Sep 2026 13:24:58 UTC for commit [e858b76][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260907121347-26c2e1630457 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20260908172334-61c80869978a | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                                 |                                    | false  | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                    | false  | true             |
@@ -539,7 +539,7 @@ _Generated on Tue, 08 Sep 2026 13:24:58 UTC for commit [e858b76][0]._
 | github.com/moby/sys/signal                                                  | v0.7.0                                 | v0.7.1                             | false  | true             |
 | github.com/moby/sys/symlink                                                 | v0.2.0                                 | v0.3.0                             | false  | true             |
 | github.com/moby/sys/user                                                    | v0.4.0                                 | v0.4.1                             | true   | true             |
-| github.com/moby/sys/userns                                                  | v0.1.0                                 | v0.2.0                             | true   | true             |
+| github.com/moby/sys/userns                                                  | v0.1.0                                 | v0.2.1                             | true   | true             |
 | github.com/moby/term                                                        | v0.5.2                                 |                                    | false  | true             |
 | github.com/modelpack/model-spec                                             | v0.0.7                                 |                                    | true   | true             |
 | github.com/modern-go/concurrent                                             | v0.0.0-20180306012644-bacd9c7ef1dd     |                                    | false  | true             |
@@ -732,9 +732,9 @@ _Generated on Tue, 08 Sep 2026 13:24:58 UTC for commit [e858b76][0]._
 | golang.org/x/oauth2                                                         | v0.36.0                                | v0.37.0                            | false  | true             |
 | golang.org/x/sync                                                           | v0.22.0                                | v0.23.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.47.0                                | v0.48.0                            | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20260625142307-59b4966ccb57     | v0.0.0-20260902144106-3ef544be8421 | false  | true             |
-| golang.org/x/term                                                           | v0.45.0                                |                                    | false  | true             |
-| golang.org/x/text                                                           | v0.40.0                                | v0.41.0                            | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20260625142307-59b4966ccb57     | v0.0.0-20260908163034-4bcc4b2ee518 | false  | true             |
+| golang.org/x/term                                                           | v0.45.0                                | v0.46.0                            | false  | true             |
+| golang.org/x/text                                                           | v0.40.0                                | v0.42.0                            | false  | true             |
 | golang.org/x/time                                                           | v0.15.0                                | v0.16.0                            | false  | true             |
 | golang.org/x/tools                                                          | v0.47.0                                | v0.49.0                            | false  | true             |
 | golang.org/x/tools/go/expect                                                | v0.1.0-deprecated                      | v0.1.1-deprecated                  | false  | true             |
@@ -766,7 +766,7 @@ _Generated on Tue, 08 Sep 2026 13:24:58 UTC for commit [e858b76][0]._
 | k8s.io/cri-streaming                                                        | v0.37.0                                |                                    | true   | true             |
 | k8s.io/gengo/v2                                                             | v2.0.0-20250922181213-ec3ebc5fd46b     | v2.0.0-20260408192533-25e2208e0dc3 | false  | true             |
 | k8s.io/klog/v2                                                              | v2.140.0                               |                                    | true   | true             |
-| k8s.io/kube-openapi                                                         | v0.0.0-20260721132016-d427ff9ee9ad     | v0.0.0-20260904170622-9ab3195f2a72 | false  | true             |
+| k8s.io/kube-openapi                                                         | v0.0.0-20260721132016-d427ff9ee9ad     | v0.0.0-20260908163437-c4db2bdfbfe6 | false  | true             |
 | k8s.io/kubelet                                                              | v0.37.0                                |                                    | true   | true             |
 | k8s.io/streaming                                                            | v0.37.0                                |                                    | false  | true             |
 | k8s.io/utils                                                                | v0.0.0-20260626114624-be93311217bd     | v0.0.0-20260707023825-cf1189d6abe3 | true   | true             |
