@@ -536,6 +536,8 @@ func (s *Server) mountArtifact(
 		return nil, err
 	}
 
+	artifactID := artifact.Digest().Encoded()
+
 	for _, path := range paths {
 		dest, err := securejoin.SecureJoin(m.GetContainerPath(), path.Name)
 		if err != nil {
@@ -560,7 +562,8 @@ func (s *Server) mountArtifact(
 			RecursiveReadOnly: m.GetRecursiveReadOnly(),
 			Propagation:       m.GetPropagation(),
 			SelinuxRelabel:    m.GetSelinuxRelabel(),
-			Image:             &types.ImageSpec{Image: artifact.Digest().Encoded()},
+			// ImageRef mirrors what PullImage returns for the artifact.
+			Image: &types.ImageSpec{Image: artifactID, ImageRef: artifactID},
 		})
 
 		specgen.AddMount(rspec.Mount{
@@ -726,7 +729,8 @@ func (s *Server) mountImage(
 		RecursiveReadOnly: m.GetRecursiveReadOnly(),
 		Propagation:       m.GetPropagation(),
 		SelinuxRelabel:    m.GetSelinuxRelabel(),
-		Image:             &types.ImageSpec{Image: imageID},
+		// ImageRef mirrors the image ID that PullImage returns for the image.
+		Image: &types.ImageSpec{Image: imageID, ImageRef: imageID},
 	}, safeMount, nil
 }
 
