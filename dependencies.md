@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 07 Sep 2026 21:38:18 UTC for commit [4596ee6][0]._
+_Generated on Tue, 08 Sep 2026 07:58:02 UTC for commit [73915a0][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4596ee6f26b0c0244b158ada056598ee5529ab11
+[0]: https://github.com/cri-o/cri-o/commit/73915a0e8f4605ddb89d7922de9a4b5575ac0096
 
 ## Outdated Dependencies
 
@@ -58,7 +58,7 @@ _Generated on Mon, 07 Sep 2026 21:38:18 UTC for commit [4596ee6][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.1                                | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.15                               | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.250                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.45                                | v0.1.251                           | false  | true             |
 | cloud.google.com/go                                                         | v0.121.6                               | v0.123.0                           | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.13.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.15.0                            | false  | true             |
@@ -180,7 +180,7 @@ _Generated on Mon, 07 Sep 2026 21:38:18 UTC for commit [4596ee6][0]._
 | cloud.google.com/go/webrisk                                                 | v1.11.2                                | v1.17.0                            | false  | true             |
 | cloud.google.com/go/websecurityscanner                                      | v1.7.7                                 | v1.12.0                            | false  | true             |
 | cloud.google.com/go/workflows                                               | v1.14.3                                | v1.20.0                            | false  | true             |
-| code.cloudfoundry.org/bytefmt                                               | v0.0.0-20211005130812-5bb3c17173e5     | v0.88.0                            | false  | true             |
+| code.cloudfoundry.org/bytefmt                                               | v0.0.0-20211005130812-5bb3c17173e5     | v0.89.0                            | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                              | v0.0.0-20250715075730-49cab49c8e9d     | v0.0.0-20260717083115-5eb5795f322a | false  | true             |
 | cuelang.org/go                                                              | v0.14.1                                | v0.17.1                            | false  | true             |
 | cyphar.com/go-pathrs                                                        | v0.2.4                                 | v0.2.6                             | false  | true             |
@@ -495,7 +495,7 @@ _Generated on Mon, 07 Sep 2026 21:38:18 UTC for commit [4596ee6][0]._
 | github.com/lestrrat-go/blackmagic                                           | v1.0.4                                 |                                    | false  | true             |
 | github.com/lestrrat-go/httpcc                                               | v1.0.1                                 |                                    | false  | true             |
 | github.com/lestrrat-go/httprc/v3                                            | v3.0.0                                 | v3.0.6                             | false  | true             |
-| github.com/lestrrat-go/jwx/v3                                               | v3.0.10                                | v3.2.0                             | false  | true             |
+| github.com/lestrrat-go/jwx/v3                                               | v3.0.10                                | v3.3.0                             | false  | true             |
 | github.com/lestrrat-go/option                                               | v1.0.1                                 |                                    | false  | true             |
 | github.com/lestrrat-go/option/v2                                            | v2.0.0                                 |                                    | false  | true             |
 | github.com/letsencrypt/boulder                                              | v0.20251110.0                          | v0.20260901.0                      | false  | true             |
@@ -743,9 +743,9 @@ _Generated on Mon, 07 Sep 2026 21:38:18 UTC for commit [4596ee6][0]._
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1     | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.17.0                                |                                    | false  | true             |
 | google.golang.org/api                                                       | v0.269.0                               | v0.297.0                           | false  | true             |
-| google.golang.org/genproto                                                  | v0.0.0-20251202230838-ff82c1b0f217     | v0.0.0-20260904194346-d0f1323225a4 | false  | true             |
-| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260526163538-3dc84a4a5aaa     | v0.0.0-20260904194346-d0f1323225a4 | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260526163538-3dc84a4a5aaa     | v0.0.0-20260904194346-d0f1323225a4 | false  | true             |
+| google.golang.org/genproto                                                  | v0.0.0-20251202230838-ff82c1b0f217     | v0.0.0-20260908043556-f8649ddbbfe6 | false  | true             |
+| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260526163538-3dc84a4a5aaa     | v0.0.0-20260908043556-f8649ddbbfe6 | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260526163538-3dc84a4a5aaa     | v0.0.0-20260908043556-f8649ddbbfe6 | false  | true             |
 | google.golang.org/grpc                                                      | v1.82.1                                | v1.83.2                            | true   | true             |
 | google.golang.org/protobuf                                                  | v1.36.12-0.20260120151049-f2248ac996af | v1.36.12                           | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                                 | v2.4.0                             | false  | true             |
