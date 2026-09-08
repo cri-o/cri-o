@@ -640,3 +640,40 @@ func TestIsSubDirectoryOf(t *testing.T) {
 		})
 	}
 }
+
+func TestImageVolumeImageRef(t *testing.T) {
+	tests := []struct {
+		name        string
+		imageID     string
+		repoDigests []string
+		want        string
+	}{
+		{
+			name:        "no repo digests falls back to image ID",
+			imageID:     "sha256:aaaa",
+			repoDigests: nil,
+			want:        "sha256:aaaa",
+		},
+		{
+			name:        "single repo digest is used",
+			imageID:     "sha256:aaaa",
+			repoDigests: []string{"example.com/repo@sha256:bbbb"},
+			want:        "example.com/repo@sha256:bbbb",
+		},
+		{
+			name:        "multiple repo digests use the first one",
+			imageID:     "sha256:aaaa",
+			repoDigests: []string{"example.com/repo@sha256:bbbb", "example.com/other@sha256:cccc"},
+			want:        "example.com/repo@sha256:bbbb",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := imageVolumeImageRef(tt.imageID, tt.repoDigests)
+			if got != tt.want {
+				t.Errorf("imageVolumeImageRef() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
