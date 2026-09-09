@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"errors"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -14,8 +14,8 @@ import (
 
 // CheckpointContainer checkpoints a container
 func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointContainerRequest) (*types.CheckpointContainerResponse, error) {
-	if !s.config.RuntimeConfig.CheckpointRestore() {
-		return nil, fmt.Errorf("checkpoint/restore support not available")
+	if !s.config.CheckpointContainerEnabled() {
+		return nil, errors.New("checkpoint/restore support not available")
 	}
 
 	_, err := s.GetContainerFromShortID(ctx, req.ContainerId)

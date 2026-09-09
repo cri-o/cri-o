@@ -28,6 +28,10 @@ func (c *Config) SetNamespaceManager(nsMgr *nsmgr.NamespaceManager) {
 
 // SetCheckpointRestore offers the possibility to turn on and
 // turn off CheckpointRestore support for testing.
-func (c *RuntimeConfig) SetCheckpointRestore(cr bool) {
-	c.EnableCriuSupport = cr
+func (c *Config) SetCheckpointRestore(cr bool) {
+	if cr {
+		c.ContainerLevelEnabled = ContainerCheckpointRestoreLevelCheckpointRestore
+	} else {
+		c.ContainerLevelEnabled = ContainerCheckpointRestoreLevelNone
+	}
 }
