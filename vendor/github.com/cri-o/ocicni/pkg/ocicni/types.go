@@ -23,7 +23,7 @@ type PortMapping struct {
 	// Protocol is the protocol of the port mapping.
 	Protocol string `json:"protocol"`
 	// HostIP is the host ip to use.
-	HostIP string `json:"hostIP"`
+	HostIP string `json:"hostIP"` //nolint:tagliatelle // CNI spec format
 }
 
 // IpRange maps to the standard CNI ipRanges Capability
@@ -59,7 +59,7 @@ type RuntimeConfig struct {
 	// e.g. "/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod28ce45bc_63f8_48a3_a99b_cfb9e63c856c.slice"
 	CgroupPath string
 	// PodAnnotations are the annotations of the pod.
-	PodAnnotations *map[string]string `json:"io.kubernetes.cri.pod-annotations,omitempty"`
+	PodAnnotations *map[string]string `json:"io.kubernetes.cri.pod-annotations,omitempty"` //nolint:tagliatelle // Kubernetes API format
 }
 
 // BandwidthConfig maps to the standard CNI bandwidth Capability
@@ -114,11 +114,12 @@ type NetAttachment struct {
 
 // NetResult contains the result the network attachment operation.
 type NetResult struct {
-	// Result is the CNI Result
-	Result types.Result
 	// NetAttachment contains the network and interface names of this
 	// network attachment
 	NetAttachment
+
+	// Result is the CNI Result
+	Result types.Result
 }
 
 // CNIPlugin is the interface that needs to be implemented by a plugin.

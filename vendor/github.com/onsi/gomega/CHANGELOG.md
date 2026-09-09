@@ -1,3 +1,11 @@
+## 1.42.1
+
+Bump Dependencies
+
+## 1.42.0
+
+Add a set of Claude skill as a marketplace plugin
+
 ## 1.41.0
 
 ### Features
