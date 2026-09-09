@@ -24,6 +24,7 @@
       - pkgconf-pkg-config
       - gperf
       - libtool
+      - json-c-devel
 
 - name: Install go-md2man for RHEL9
   block:
