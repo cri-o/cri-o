@@ -366,7 +366,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet("enable-criu-support") {
+		//nolint:staticcheck // SA1019: EnableCriuSupport is deprecated but still supported for backward compatibility
 		config.EnableCriuSupport = ctx.Bool("enable-criu-support")
+	}
+
+	if ctx.IsSet("checkpoint-restore-level") {
+		config.ContainerLevelEnabled = libconfig.ContainerCheckpointRestoreLevel(ctx.String("checkpoint-restore-level"))
 	}
 
 	if ctx.IsSet("ctr-stop-timeout") {
@@ -1434,9 +1439,15 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:    "enable-criu-support",
-			Usage:   "Enable CRIU integration, requires that the criu binary is available in $PATH.",
+			Usage:   "Enable CRIU integration, requires that the criu binary is available in $PATH. DEPRECATED: use the container_level_enabled option in the crio.checkpoint_restore table instead. When set to false it is translated to container_level_enabled = \"none\".",
 			EnvVars: []string{"CONTAINER_ENABLE_CRIU_SUPPORT"},
 			Value:   false,
+		},
+		&cli.StringFlag{
+			Name:    "checkpoint-restore-level",
+			Usage:   "The level of container checkpoint/restore support to enable. Must be one of \"none\", \"checkpoint_only\" or \"checkpoint_restore\". Enabling checkpoint or restore requires that the criu binary is available in $PATH.",
+			EnvVars: []string{"CONTAINER_CHECKPOINT_RESTORE_LEVEL"},
+			Value:   string(defConf.ContainerLevelEnabled),
 		},
 		&cli.BoolFlag{
 			Name:    "enable-pod-events",
