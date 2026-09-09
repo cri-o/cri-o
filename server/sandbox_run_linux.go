@@ -1448,6 +1448,9 @@ func (s *Server) setupSandboxSeccomp(
 		}
 
 		seccompRef = ref
+	} else {
+		// Privileged container without a custom profile; clear the default filter.
+		g.Config.Linux.Seccomp = nil
 	}
 
 	return seccompRef, nil
