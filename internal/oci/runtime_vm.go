@@ -47,6 +47,11 @@ import (
 	"github.com/cri-o/cri-o/utils/errdefs"
 )
 
+// errTaskNotConnected is returned when the shim task client is not initialized
+// and reconnection is not possible (e.g. address file missing for a stopped
+// container).
+var errTaskNotConnected = errors.New("task service not connected")
+
 // runtimeVM is the Runtime interface implementation that is more appropriate
 // for VM based container runtimes.
 type runtimeVM struct {
@@ -421,6 +426,10 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if err := r.ensureTask(ctx, c); err != nil {
+		return err
+	}
+
 	if err := r.start(c.ID(), ""); err != nil {
 		return err
 	}
@@ -648,6 +657,9 @@ func (r *runtimeVM) execContainerCommon(
 	}
 
 	// Create the "exec" process
+	if err := r.ensureTask(ctx, c); err != nil {
+		return execError, err
+	}
 	if _, err = r.task.Exec(r.ctx, request); err != nil {
 		return execError, errdefs.FromGRPC(err)
 	}
@@ -750,6 +762,9 @@ func (r *runtimeVM) UpdateContainer(
 		return err
 	}
 
+	if err := r.ensureTask(ctx, c); err != nil {
+		return err
+	}
 	if _, err := r.task.Update(r.ctx, &task.UpdateTaskRequest{
 		ID:        c.ID(),
 		Resources: protobuf.FromAny(anyType),
@@ -784,6 +799,10 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if err := r.ensureTask(ctx, c); err != nil {
+		return err
+	}
+
 	// Cancel the context before returning to ensure goroutines are stopped.
 	ctx, cancel := context.WithCancel(r.ctx)
 	defer cancel()
@@ -815,6 +834,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 		err := r.waitCtrTerminate(sig, stopCh, timeoutDuration)
 		if err == nil {
 			c.state.Finished = time.Now()
+			c.state.Status = ContainerStateStopped
 
 			return nil
 		}
@@ -835,6 +855,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	}
 
 	c.state.Finished = time.Now()
+	c.state.Status = ContainerStateStopped
 
 	return nil
 }
@@ -913,13 +934,21 @@ func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
 		return err
 	}
 
+	if err := r.ensureTask(r.ctx, c); err != nil {
+		if !force {
+			return err
+		}
+	}
+
 	if err := r.remove(c.ID(), ""); err != nil && !force {
 		return err
 	}
 
-	_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
-	if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
-		return err
+	if r.task != nil {
+		_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
+		if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
+			return err
+		}
 	}
 
 	r.Lock()
@@ -941,6 +970,43 @@ func (r *runtimeVM) UpdateContainerStatus(ctx context.Context, c *Container) err
 	return r.updateContainerStatus(ctx, c)
 }
 
+// ensureTask checks whether the shim task client is connected and attempts to
+// reconnect if it is not.  This typically happens after a CRI-O restart when
+// containers from a previous run are being restored.  The shim address is read
+// from c's bundle directory.
+func (r *runtimeVM) ensureTask(ctx context.Context, c *Container) error {
+	if r.task != nil {
+		return nil
+	}
+
+	addressPath := filepath.Join(c.BundlePath(), "address")
+
+	data, err := os.ReadFile(addressPath)
+	if err != nil {
+		log.Warnf(ctx, "Failed to read shim address for %s: %v", c.ID(), err)
+
+		return errTaskNotConnected
+	}
+
+	address := strings.TrimSpace(string(data))
+
+	conn, err := client.Connect(address, client.AnonDialer)
+	if err != nil {
+		log.Warnf(ctx, "Failed to reconnect to shim for %s at %s: %v", c.ID(), address, err)
+
+		return errTaskNotConnected
+	}
+
+	options := ttrpc.WithOnClose(func() { conn.Close() })
+	cl := ttrpc.NewClient(conn, options)
+	r.client = cl
+	r.task = task.NewTaskClient(cl)
+
+	log.Infof(ctx, "Reconnected to shim for %s at %s", c.ID(), address)
+
+	return nil
+}
+
 // updateContainerStatus is a UpdateContainerStatus helper, which actually does the container's
 // status refresh.
 // It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
@@ -948,37 +1014,14 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	log.Debugf(ctx, "RuntimeVM.updateContainerStatus() start")
 	defer log.Debugf(ctx, "RuntimeVM.updateContainerStatus() end")
 
-	// This can happen on restore. We need to read shim address from the bundle path.
-	// And then connect to the existing gRPC server with this address.
-	if r.task == nil {
-		addressPath := filepath.Join(c.BundlePath(), "address")
+	if err := r.ensureTask(ctx, c); err != nil {
+		if c.state.Status == ContainerStateStopped {
+			log.Debugf(ctx, "Skipping status update for stopped container: %+v", c.state)
 
-		data, err := os.ReadFile(addressPath)
-		if err != nil {
-			// If the container is actually removed, this error is expected and should be ignored.
-			// In this case, the container's status should be "Stopped".
-			if c.state.Status == ContainerStateStopped {
-				log.Debugf(ctx, "Skipping status update for: %+v", c.state)
-
-				return nil
-			}
-
-			log.Warnf(ctx, "Failed to read shim address: %v", err)
-
-			return errors.New("runtime not correctly setup")
+			return nil
 		}
 
-		address := strings.TrimSpace(string(data))
-
-		conn, err := client.Connect(address, client.AnonDialer)
-		if err != nil {
-			return err
-		}
-
-		options := ttrpc.WithOnClose(func() { conn.Close() })
-		cl := ttrpc.NewClient(conn, options)
-		r.client = cl
-		r.task = task.NewTaskClient(cl)
+		return err
 	}
 
 	response, err := r.task.State(r.ctx, &task.StateRequest{
@@ -1162,6 +1205,9 @@ func (r *runtimeVM) PauseContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if err := r.ensureTask(ctx, c); err != nil {
+		return err
+	}
 	if _, err := r.task.Pause(r.ctx, &task.PauseRequest{
 		ID: c.ID(),
 	}); err != nil {
@@ -1180,6 +1226,9 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
 
+	if err := r.ensureTask(ctx, c); err != nil {
+		return err
+	}
 	if _, err := r.task.Resume(r.ctx, &task.ResumeRequest{
 		ID: c.ID(),
 	}); err != nil {
@@ -1280,6 +1329,9 @@ func (r *runtimeVM) ReopenContainerLog(ctx context.Context, c *Container) error 
 }
 
 func (r *runtimeVM) start(ctrID, execID string) error {
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	if _, err := r.task.Start(r.ctx, &task.StartRequest{
 		ID:     ctrID,
 		ExecID: execID,
@@ -1291,6 +1343,9 @@ func (r *runtimeVM) start(ctrID, execID string) error {
 }
 
 func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
+	if r.task == nil {
+		return -1, errdefs.ErrNotFound
+	}
 	resp, err := r.task.Wait(r.ctx, &task.WaitRequest{
 		ID:     ctrID,
 		ExecID: execID,
@@ -1307,12 +1362,15 @@ func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
 }
 
 func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
+	if r.task == nil {
+		return errdefs.ErrNotFound
+	}
 	if _, err := r.task.Kill(r.ctx, &task.KillRequest{
 		ID:     ctrID,
 		ExecID: execID,
 		Signal: uint32(signal),
 		All:    false,
-	}); err != nil {
+	}); err != nil && !errors.Is(err, ttrpc.ErrClosed) {
 		return errdefs.FromGRPC(err)
 	}
 
@@ -1320,6 +1378,9 @@ func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
 }
 
 func (r *runtimeVM) remove(ctrID, execID string) error {
+	if r.task == nil {
+		return nil
+	}
 	if _, err := r.task.Delete(r.ctx, &task.DeleteRequest{
 		ID:     ctrID,
 		ExecID: execID,
@@ -1331,6 +1392,9 @@ func (r *runtimeVM) remove(ctrID, execID string) error {
 }
 
 func (r *runtimeVM) resizePty(ctrID, execID string, size remotecommand.TerminalSize) error {
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	_, err := r.task.ResizePty(r.ctx, &task.ResizePtyRequest{
 		ID:     ctrID,
 		ExecID: execID,
@@ -1345,6 +1409,9 @@ func (r *runtimeVM) resizePty(ctrID, execID string, size remotecommand.TerminalS
 }
 
 func (r *runtimeVM) closeIO(ctrID, execID string) error {
+	if r.task == nil {
+		return errTaskNotConnected
+	}
 	_, err := r.task.CloseIO(r.ctx, &task.CloseIORequest{
 		ID:     ctrID,
 		ExecID: execID,
