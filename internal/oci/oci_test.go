@@ -113,6 +113,36 @@ var _ = t.Describe("Oci", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(handler).To(Equal(runtimes[defaultRuntime]))
 		})
+		It("should make a runtime handler added after a reload available (#10202)", func() {
+			// Given a handler that is not present at construction time
+			const newHandler = "kata-qemu"
+
+			_, err := sut.ValidateRuntimeHandler(newHandler)
+			Expect(err).To(HaveOccurred())
+
+			// When the reload path pushes an updated runtime map in
+			updated := libconfig.Runtimes{}
+			for name, handler := range runtimes {
+				updated[name] = handler
+			}
+
+			updated[newHandler] = &libconfig.RuntimeHandler{
+				RuntimePath: "/opt/kata/bin/containerd-shim-kata-v2",
+				RuntimeType: "vm",
+			}
+
+			sut.UpdateRuntimeConfig(updated, defaultRuntime)
+
+			// Then it resolves for new RunPodSandbox requests
+			handler, err := sut.ValidateRuntimeHandler(newHandler)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(handler).To(Equal(updated[newHandler]))
+
+			// And the pre-existing handlers still resolve
+			handler, err = sut.ValidateRuntimeHandler(defaultRuntime)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(handler).To(Equal(runtimes[defaultRuntime]))
+		})
 		It("should return an OCI runtime type if none is set", func() {
 			// Given
 			// When
