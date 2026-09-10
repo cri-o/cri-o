@@ -50,6 +50,13 @@ export BATS_TEST_RETRIES=1
 
 bats --version
 
+# The --allow-empty-suite flag got introduced in bats v1.14.0, while the CI
+# machine images may still ship an older version.
+BATS_ARGS=()
+if bats --help 2>&1 | grep -qF -- --allow-empty-suite; then
+    BATS_ARGS+=(--allow-empty-suite)
+fi
+
 # Run the tests.
-execute bats --jobs "$JOBS" --tap "${TESTS[@]}" --filter-tags '!crio:serial'
-execute bats --tap "${TESTS[@]}" --filter-tags 'crio:serial'
+execute bats --jobs "$JOBS" --tap "${BATS_ARGS[@]}" "${TESTS[@]}" --filter-tags '!crio:serial'
+execute bats --tap "${BATS_ARGS[@]}" "${TESTS[@]}" --filter-tags 'crio:serial'

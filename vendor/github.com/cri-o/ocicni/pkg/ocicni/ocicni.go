@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"path"
@@ -24,9 +25,9 @@ import (
 )
 
 type cniNetworkPlugin struct {
-	cniConfig *libcni.CNIConfig
-
 	sync.RWMutex
+
+	cniConfig      *libcni.CNIConfig
 	defaultNetName netName
 	networks       map[string]*cniNetwork
 
@@ -141,7 +142,7 @@ func newWatcher(dirs []string) (*fsnotify.Watcher, error) {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new watcher %w", err)
+		return nil, fmt.Errorf("failed to create new watcher: %w", err)
 	}
 
 	defer func() {
@@ -295,6 +296,7 @@ func initCNI(exec cniinvoke.Exec, cacheDir, defaultNetName, confDir string, useI
 		startWg.Add(1)
 
 		go plugin.monitorConfDir(ctx, &startWg)
+
 		startWg.Wait()
 	}
 
@@ -329,7 +331,7 @@ func loadNetworks(ctx context.Context, confDir string, cni *libcni.CNIConfig) (n
 			confList, err = libcni.ConfListFromFile(confFile)
 			if err != nil {
 				// do not log ENOENT errors
-				if !os.IsNotExist(err) {
+				if !errors.Is(err, fs.ErrNotExist) {
 					logrus.Errorf("Error loading CNI config list file %s: %v", confFile, err)
 				}
 
@@ -346,7 +348,7 @@ func loadNetworks(ctx context.Context, confDir string, cni *libcni.CNIConfig) (n
 			conf, err := libcni.NetworkPluginConfFromBytes(bytes)
 			if err != nil {
 				// do not log ENOENT errors
-				if !os.IsNotExist(err) {
+				if !errors.Is(err, fs.ErrNotExist) {
 					logrus.Errorf("Error loading CNI config file %s: %v", confFile, err)
 				}
 
@@ -371,7 +373,7 @@ func loadNetworks(ctx context.Context, confDir string, cni *libcni.CNIConfig) (n
 		// Validation on CNI config should be done to pre-check presence
 		// of plugins which are necessary.
 		if _, err := cni.ValidateNetworkList(ctx, confList); err != nil {
-			logrus.Warningf("Error validating CNI config file %s: %v", confFile, err)
+			logrus.Warnf("Error validating CNI config file %s: %v", confFile, err)
 
 			continue
 		}
@@ -402,9 +404,9 @@ func loadNetworks(ctx context.Context, confDir string, cni *libcni.CNIConfig) (n
 	return networks, defaultNetName, nil
 }
 
-const (
-	loIfname string = "lo"
-)
+const loIfname string = "lo"
+
+const keyValuePairLen = 2
 
 func (plugin *cniNetworkPlugin) syncNetworkConfig(ctx context.Context) error {
 	networks, defaultNetName, err := loadNetworks(ctx, plugin.confDir, plugin.cniConfig)
@@ -531,6 +533,7 @@ func (plugin *cniNetworkPlugin) fillPodNetworks(podNetwork *PodNetwork) error {
 			allIfNames[net.Ifname] = true
 		}
 	}
+
 netLoop:
 	for i, network := range podNetwork.Networks {
 		if network.Ifname == "" {
@@ -604,7 +607,7 @@ func (plugin *cniNetworkPlugin) forEachNetwork(ctx context.Context, podNetwork *
 			cniNet, newRt, err = plugin.loadNetworkFromCache(network.Name, rt)
 			if err != nil {
 				logrus.Errorf("Error loading cached network config: %v", err)
-				logrus.Warningf("Falling back to loading from existing plugins on disk")
+				logrus.Warnf("Falling back to loading from existing plugins on disk")
 			} else {
 				// Use the updated RuntimeConf
 				rt = newRt
@@ -655,10 +658,12 @@ func (plugin *cniNetworkPlugin) SetUpPodWithContext(ctx context.Context, podNetw
 	if err := plugin.forEachNetwork(ctx, &podNetwork, false, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
 		fullPodName := buildFullPodName(podNetwork)
 		logrus.Infof("Adding pod %s to CNI network %q (type=%v)", fullPodName, network.name, network.config.Plugins[0].Network.Type)
+
 		result, err := network.addToNetwork(ctx, rt, plugin.cniConfig)
 		if err != nil {
 			return fmt.Errorf("error adding pod %s to CNI network %q: %w", fullPodName, network.name, err)
 		}
+
 		results = append(results, NetResult{
 			Result: result,
 			NetAttachment: NetAttachment{
@@ -717,7 +722,7 @@ func (plugin *cniNetworkPlugin) getCachedNetworkInfo(containerID string) ([]NetA
 		cachedInfo := struct {
 			Kind        string `json:"kind"`
 			IfName      string `json:"ifName"`
-			ContainerID string `json:"containerID"`
+			ContainerID string `json:"containerID"` //nolint:tagliatelle // CNI cache format
 			NetName     string `json:"networkName"`
 		}{}
 
@@ -728,7 +733,7 @@ func (plugin *cniNetworkPlugin) getCachedNetworkInfo(containerID string) ([]NetA
 		}
 
 		if cachedInfo.Kind != libcni.CNICacheV1 {
-			logrus.Warningf("Unknown CNI cache file %s kind %q", cacheFile, cachedInfo.Kind)
+			logrus.Warnf("Unknown CNI cache file %s kind %q", cacheFile, cachedInfo.Kind)
 
 			continue
 		}
@@ -742,7 +747,7 @@ func (plugin *cniNetworkPlugin) getCachedNetworkInfo(containerID string) ([]NetA
 		}
 
 		if cachedInfo.IfName == "" || cachedInfo.NetName == "" {
-			logrus.Warningf("Missing CNI cache file %s ifname %q or netname %q", cacheFile, cachedInfo.IfName, cachedInfo.NetName)
+			logrus.Warnf("Missing CNI cache file %s ifname %q or netname %q", cacheFile, cachedInfo.IfName, cachedInfo.NetName)
 
 			continue
 		}
@@ -828,10 +833,12 @@ func (plugin *cniNetworkPlugin) GetPodNetworkStatusWithContext(ctx context.Conte
 	if err := plugin.forEachNetwork(ctx, &podNetwork, true, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
 		fullPodName := buildFullPodName(podNetwork)
 		logrus.Infof("Checking pod %s for CNI network %s (type=%v)", fullPodName, network.name, network.config.Plugins[0].Network.Type)
+
 		result, err := network.checkNetwork(ctx, rt, plugin.cniConfig, plugin.nsManager, podNetwork.NetNS)
 		if err != nil {
 			return fmt.Errorf("error checking pod %s for CNI network %q: %w", fullPodName, network.name, err)
 		}
+
 		if result != nil {
 			results = append(results, NetResult{
 				Result: result,
@@ -937,7 +944,7 @@ func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeC
 	errs := []error{}
 
 	for _, version := range []string{"4", "6"} {
-		ip, mac, err := getContainerDetails(nsManager, netns, rt.IfName, "-"+version)
+		ip, mac, err := getContainerDetails(ctx, nsManager, netns, rt.IfName, "-"+version)
 		if err == nil {
 			if cniInterface == nil {
 				cniInterface = &cniv1.Interface{
@@ -957,7 +964,7 @@ func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeC
 	}
 
 	if cniInterface == nil || len(ips) == 0 {
-		return nil, fmt.Errorf("neither IPv4 nor IPv6 found when retrieving network status: %v", errs)
+		return nil, fmt.Errorf("neither IPv4 nor IPv6 found when retrieving network status: %w", errors.Join(errs...))
 	}
 
 	result = &cniv1.Result{
@@ -992,7 +999,7 @@ func buildCNIRuntimeConf(podNetwork *PodNetwork, ifName string, runtimeConfig *R
 		runtimeConfig = &RuntimeConfig{}
 	}
 
-	logrus.Infof("Got pod network %+v", podNetwork)
+	logrus.Debugf("Got pod network %+v", podNetwork)
 
 	rt := &libcni.RuntimeConf{
 		ContainerID: podNetwork.ID,
@@ -1005,12 +1012,12 @@ func buildCNIRuntimeConf(podNetwork *PodNetwork, ifName string, runtimeConfig *R
 			{"K8S_POD_INFRA_CONTAINER_ID", podNetwork.ID},
 			{"K8S_POD_UID", podNetwork.UID},
 		},
-		CapabilityArgs: map[string]interface{}{},
+		CapabilityArgs: map[string]any{},
 	}
 
 	// Propagate existing CNI_ARGS to non-k8s consumers
-	for _, kvpairs := range strings.Split(os.Getenv("CNI_ARGS"), ";") {
-		if keyval := strings.SplitN(kvpairs, "=", 2); len(keyval) == 2 {
+	for kvpairs := range strings.SplitSeq(os.Getenv("CNI_ARGS"), ";") {
+		if keyval := strings.SplitN(kvpairs, "=", keyValuePairLen); len(keyval) == keyValuePairLen {
 			rt.Args = append(rt.Args, [2]string{keyval[0], keyval[1]})
 		}
 	}

@@ -47,7 +47,7 @@ dependencies:
         match: SHELLCHECK_VERSION
 
   - name: cni-plugins
-    version: v1.8.0
+    version: v1.9.1
     refPaths:
       - path: scripts/versions
         match: cni-plugins
@@ -55,7 +55,7 @@ dependencies:
         match: version
 
   - name: conmon
-    version: v2.1.13
+    version: v2.2.1
     refPaths:
       - path: scripts/versions
         match: conmon
@@ -69,7 +69,7 @@ dependencies:
         match: cri-tools
 
   - name: buildah
-    version: v1.38.0
+    version: v1.45.0
     refPaths:
       - path: scripts/versions
         match: buildah
@@ -91,7 +91,7 @@ dependencies:
         match: runc_git_version
 
   - name: bats
-    version: v1.12.0
+    version: v1.14.0
     refPaths:
       - path: scripts/versions
         match: bats
@@ -105,7 +105,7 @@ dependencies:
         match: ZEITGEIST_VERSION
 
   - name: nix
-    version: 2.33.3
+    version: 2.35.2
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
@@ -115,13 +115,13 @@ dependencies:
         match: NIX_IMAGE
 
   - name: release-notes
-    version: 0.18.0
+    version: 0.21.1
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
 
   - name: shfmt
-    version: 3.12.0
+    version: 3.14.1
     refPaths:
       - path: Makefile
         match: SHFMT_VERSION
@@ -139,7 +139,7 @@ dependencies:
         match: GOVULNCHECK_VERSION
 
   - name: gosec
-    version: 2.24.7
+    version: 2.29.0
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
@@ -151,7 +151,7 @@ dependencies:
         match: MDTOC_VERSION
 
   - name: pause
-    version: 3.10.1
+    version: 3.10.2
     refPaths:
       - path: docs/crio.8.md
         match: "registry.k8s.io/pause:"

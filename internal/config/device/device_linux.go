@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/opencontainers/runc/libcontainer/devices"
+	"github.com/moby/sys/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
 

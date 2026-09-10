@@ -27,12 +27,22 @@ func TestSetupSandboxSeccompPrivilegedEmptyProfileClearsDefaultFilter(t *testing
 	}
 
 	if g.Config.Linux.Seccomp.DefaultAction != rspec.ActErrno {
-		t.Fatalf("default filter action = %q, want %q", g.Config.Linux.Seccomp.DefaultAction, rspec.ActErrno)
+		t.Fatalf(
+			"default filter action = %q, want %q",
+			g.Config.Linux.Seccomp.DefaultAction,
+			rspec.ActErrno,
+		)
 	}
 
 	sut := &Server{} // PrivilegedSeccompProfile is empty
 
-	ref, err := sut.setupSandboxSeccomp(t.Context(), &g, "", true, &types.LinuxSandboxSecurityContext{})
+	ref, err := sut.setupSandboxSeccomp(
+		t.Context(),
+		&g,
+		"",
+		true,
+		&types.LinuxSandboxSecurityContext{},
+	)
 	if err != nil {
 		t.Fatalf("setupSandboxSeccomp: %v", err)
 	}
@@ -42,6 +52,9 @@ func TestSetupSandboxSeccompPrivilegedEmptyProfileClearsDefaultFilter(t *testing
 	}
 
 	if g.Config.Linux.Seccomp != nil {
-		t.Fatalf("privileged sandbox with empty profile still has seccomp filter (defaultAction=%q); want nil/unconfined", g.Config.Linux.Seccomp.DefaultAction)
+		t.Fatalf(
+			"privileged sandbox with empty profile still has seccomp filter (defaultAction=%q); want nil/unconfined",
+			g.Config.Linux.Seccomp.DefaultAction,
+		)
 	}
 }
