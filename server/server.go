@@ -1112,16 +1112,20 @@ func (s *Server) generateCRIEvent(
 		return
 	}
 
-	if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, container); err != nil {
-		log.Errorf(
-			ctx,
-			"GenerateCRIEvent: event type: %s, failed to update the container status %s: %v",
-			eventType,
-			container.ID(),
-			err,
-		)
+	// Stop and remove cleanup update the status before deleting the runtime
+	// container, so probing the runtime again would fail for runtimes such as Kata.
+	if eventNeedsStatusRefresh(eventType) {
+		if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, container); err != nil {
+			log.Errorf(
+				ctx,
+				"GenerateCRIEvent: event type: %s, failed to update the container status %s: %v",
+				eventType,
+				container.ID(),
+				err,
+			)
 
-		return
+			return
+		}
 	}
 
 	if !s.HasSandbox(container.Sandbox()) {
@@ -1175,6 +1179,11 @@ func (s *Server) generateCRIEvent(
 
 		return
 	}
+}
+
+func eventNeedsStatusRefresh(eventType types.ContainerEventType) bool {
+	return eventType != types.ContainerEventType_CONTAINER_STOPPED_EVENT &&
+		eventType != types.ContainerEventType_CONTAINER_DELETED_EVENT
 }
 
 func isNotFound(err error) bool {
