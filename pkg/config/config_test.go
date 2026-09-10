@@ -1599,6 +1599,36 @@ var _ = t.Describe("Config", func() {
 			Expect(ok).To(BeTrue())
 		})
 
+		It("should succeed when using RuntimeTypeVM and runtime_path follows the containerd v1 pattern", func() {
+			// Given
+			sut.Runtimes["runsc"] = &config.RuntimeHandler{
+				RuntimePath: "containerd-shim-runsc-v1", RuntimeType: config.RuntimeTypeVM,
+			}
+
+			// When
+			ok := sut.Runtimes["runsc"].ValidateRuntimeVMBinaryPattern()
+
+			// Then
+			Expect(ok).To(BeTrue())
+		})
+
+		It("should succeed with gVisor runtime handler (v1 shim with config path)", func() {
+			// Given
+			sut.Runtimes["runsc"] = &config.RuntimeHandler{
+				RuntimePath:       "containerd-shim-runsc-v1",
+				RuntimeType:       config.RuntimeTypeVM,
+				RuntimeConfigPath: validFilePath,
+			}
+
+			// When
+			okPattern := sut.Runtimes["runsc"].ValidateRuntimeVMBinaryPattern()
+			errPath := sut.Runtimes["runsc"].ValidateRuntimeConfigPath("runsc")
+
+			// Then
+			Expect(okPattern).To(BeTrue())
+			Expect(errPath).ToNot(HaveOccurred())
+		})
+
 		It("should fail when using RuntimeTypeVM and runtime_path does not follow the containerd pattern", func() {
 			// Given
 			sut.Runtimes["kata"] = &config.RuntimeHandler{
