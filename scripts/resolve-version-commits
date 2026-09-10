@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Resolve the upstream commit hash for each dependency that CI builds from
+# source and record it in dependencies.yaml, under the matching "<tool>-commit"
+# entry. This keeps builds reproducible and makes CI failures easier to bisect,
+# since the exact upstream commit each version was built against is captured
+# in-tree.
+#
+# Only the tools that are built from source in CI are tracked. runc is
+# deliberately excluded: it is installed from a released binary (see
+# RUNC_CHECKSUMS in scripts/versions), so there is nothing to build and no need
+# to pin a commit.
+#
+# Run via: make versions-commits
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VERSIONS_FILE="$ROOT/scripts/versions"
+DEPS_FILE="$ROOT/dependencies.yaml"
+
+# shellcheck source=scripts/versions
+source "$VERSIONS_FILE"
+
+# Upstream git repositories for each dependency whose commit we record. The keys
+# match the names used in the VERSIONS array in scripts/versions.
+declare -A REPOS=(
+    ["conmon"]=https://github.com/containers/conmon
+    ["conmon-rs"]=https://github.com/containers/conmon-rs
+    ["cri-tools"]=https://github.com/kubernetes-sigs/cri-tools
+    ["crun"]=https://github.com/containers/crun
+)
+
+# Temp file, cleaned up on exit. Declared at script scope so the EXIT trap can
+# still see it after main() returns.
+tmp=""
+cleanup() { rm -f "$tmp"; }
+trap cleanup EXIT
+
+# resolve_commit prints the commit hash a ref points at. It resolves, in order:
+# an annotated tag (dereferenced with ^{} so we record the commit, not the tag
+# object), a lightweight tag, then a branch head. The branch case covers deps
+# that track a moving branch rather than a release tag (e.g. conmon-rs on main).
+resolve_commit() {
+    local url=$1 ref=$2 sha
+    sha=$(git ls-remote "$url" "refs/tags/$ref^{}" | awk '{print $1}')
+    if [[ -z "$sha" ]]; then
+        sha=$(git ls-remote "$url" "refs/tags/$ref" | awk '{print $1}')
+    fi
+    if [[ -z "$sha" ]]; then
+        sha=$(git ls-remote "$url" "refs/heads/$ref" | awk '{print $1}')
+    fi
+    if [[ -z "$sha" ]]; then
+        echo "error: could not resolve commit for $url @ $ref" >&2
+        return 1
+    fi
+    echo "$sha"
+}
+
+# update_commit rewrites the "version:" line of the "<name>-commit" entry in
+# dependencies.yaml. It matches the specific "- name: <name>-commit" line, then
+# replaces the "version:" on the following line. It fails closed: if the entry is
+# missing, or its "version:" line is absent (a new "- name:" is reached first),
+# nothing is written and the script aborts, rather than silently corrupting an
+# adjacent entry or leaving a stale hash in place.
+update_commit() {
+    local name=$1 sha=$2
+    tmp=$(mktemp)
+    if ! awk -v name="$name-commit" -v sha="$sha" '
+        $0 ~ "^  - name: " name "$" { found = 1; print; next }
+        found && /^  - name: / { found = 0 }
+        found && /^    version:/ {
+            sub(/version:.*/, "version: " sha)
+            found = 0
+            replaced++
+        }
+        { print }
+        END { exit(replaced == 1 ? 0 : 1) }
+    ' "$DEPS_FILE" >"$tmp"; then
+        echo "error: expected exactly one '$name-commit' entry with a version line in $DEPS_FILE" >&2
+        return 1
+    fi
+    mv "$tmp" "$DEPS_FILE"
+}
+
+main() {
+    local name sha names
+    mapfile -t names < <(printf '%s\n' "${!REPOS[@]}" | sort)
+    for name in "${names[@]}"; do
+        sha=$(resolve_commit "${REPOS[$name]}" "${VERSIONS[$name]}")
+        printf 'resolved %-12s %-8s -> %s\n' "$name" "${VERSIONS[$name]}" "$sha" >&2
+        update_commit "$name" "$sha"
+    done
+}
+
+main "$@"

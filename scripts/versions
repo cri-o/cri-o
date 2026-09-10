@@ -2,6 +2,7 @@
 declare -A VERSIONS=(
     ["cni-plugins"]=v1.8.0
     ["conmon"]=v2.1.13
+    ["conmon-rs"]=main # tracks the main branch; no release pin
     ["cri-tools"]=v1.36.0
     ["crun"]=1.29.1
     ["runc"]=v1.5.1
