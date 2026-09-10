@@ -10,9 +10,9 @@ require (
 	github.com/checkpoint-restore/go-criu/v8 v8.4.0
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.35
-	github.com/containerd/containerd/api v1.10.0
+	github.com/containerd/containerd/api v1.11.1
 	github.com/containerd/fifo v1.1.0
-	github.com/containerd/nri v0.12.2
+	github.com/containerd/nri v0.12.3
 	github.com/containerd/otelttrpc v0.1.0
 	github.com/containerd/ttrpc v1.2.9
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
@@ -46,7 +46,7 @@ require (
 	github.com/moby/sys/userns v0.2.0
 	github.com/modelpack/model-spec v0.0.7
 	github.com/onsi/ginkgo/v2 v2.32.1
-	github.com/onsi/gomega v1.42.1
+	github.com/onsi/gomega v1.43.0
 	github.com/opencontainers/cgroups v0.1.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
@@ -86,7 +86,7 @@ require (
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/kubelet v0.37.0
 	k8s.io/utils v0.0.0-20260626114624-be93311217bd
-	sigs.k8s.io/knftables v0.0.21
+	sigs.k8s.io/knftables v0.0.22
 	sigs.k8s.io/release-sdk v0.12.7
 	sigs.k8s.io/release-utils v0.12.4
 	sigs.k8s.io/yaml v1.6.0
@@ -167,6 +167,7 @@ require (
 	github.com/google/go-github/v88 v88.0.0 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
+	github.com/google/nftables v0.3.0 // indirect
 	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
@@ -186,6 +187,8 @@ require (
 	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/mattn/go-shellwords v1.0.13 // indirect
 	github.com/mattn/go-sqlite3 v1.14.44 // indirect
+	github.com/mdlayher/netlink v1.11.2 // indirect
+	github.com/mdlayher/socket v0.6.1 // indirect
 	github.com/miekg/pkcs11 v1.1.2 // indirect
 	github.com/mistifyio/go-zfs/v4 v4.0.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
