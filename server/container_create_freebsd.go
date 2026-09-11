@@ -19,7 +19,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/pkg/annotations/v2"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.

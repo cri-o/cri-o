@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+remote=${1:-remote}
+tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/crio-pre-push.XXXXXX")
+tips_file=$tmpdir/tips
+worktree=
+git_env_vars=()
+while IFS= read -r name; do
+    git_env_vars+=("$name")
+done < <(git rev-parse --local-env-vars)
+: >"$tips_file"
+
+cleanup() {
+    if [[ -n $worktree ]]; then
+        git worktree remove --force "$worktree" >/dev/null 2>&1 || true
+    fi
+    rm -rf "$tmpdir"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+
+# Validate every unique commit at the tips being pushed. Source notes, deleted
+# refs, and refs that do not resolve to commits have no source tree to validate.
+while read -r local_ref local_oid _remote_ref _remote_oid; do
+    if [[ $local_ref == refs/notes/* || $local_oid =~ ^0+$ ]]; then
+        continue
+    fi
+
+    if ! commit=$(git rev-parse --verify "${local_oid}^{commit}" 2>/dev/null); then
+        continue
+    fi
+
+    if ! grep -Fqx "$commit" "$tips_file"; then
+        printf '%s\n' "$commit" >>"$tips_file"
+    fi
+done
+
+while IFS= read -r commit; do
+    worktree=$tmpdir/worktree
+    echo "Running pre-push checks for $commit before pushing to $remote" >&2
+    git worktree add --quiet --detach "$worktree" "$commit"
+
+    (
+        # Git exports repository-local environment variables to hooks. Drop
+        # them so commands discover the disposable worktree after changing
+        # directories instead of operating on the active checkout.
+        unset "${git_env_vars[@]}"
+        cd "$worktree"
+        # The vendor check requires a pristine source tree, so run it before
+        # lint has an opportunity to create build artifacts.
+        make -s check-vendor
+        make -s lint
+        if [[ -e ./hack/run-on-linux.sh || -L ./hack/run-on-linux.sh ]]; then
+            ./hack/run-on-linux.sh make -s docs-validation
+        elif [[ $(uname -s) == Linux ]]; then
+            make -s docs-validation
+        else
+            echo "Pre-push checks for $commit cannot validate docs: the pushed tip lacks hack/run-on-linux.sh and requires Linux." >&2
+            exit 1
+        fi
+    )
+
+    git worktree remove --force "$worktree"
+    worktree=
+done <"$tips_file"

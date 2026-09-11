@@ -42,6 +42,7 @@ var (
 		"apparmor_profile", // contains dynamic version number
 		"root",             // user dependent
 		"runroot",          // user dependent
+		"selinux",          // host dependent
 		"storage_driver",   // user dependent
 	}
 

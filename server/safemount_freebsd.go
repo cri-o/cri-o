@@ -1,7 +1,6 @@
 package server
 
-type safeMountInfo struct {
-}
+type safeMountInfo struct{}
 
 func (s *safeMountInfo) Close() {}
 

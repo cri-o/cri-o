@@ -4,11 +4,9 @@ package device
 
 // Device holds the runtime spec
 // fields needed for a device
-type Device struct {
-}
+type Device struct{}
 
-type Config struct {
-}
+type Config struct{}
 
 // New creates a new device Config
 func New() *Config {
