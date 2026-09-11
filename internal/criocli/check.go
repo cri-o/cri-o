@@ -1,7 +1,9 @@
 package criocli
 
 import (
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -44,6 +46,18 @@ var CheckCommand = &cli.Command{
 			Aliases: []string{"w"},
 			Usage:   "Wipe storage directory on repair failure",
 		},
+		&cli.BoolFlag{
+			Name:  "check-layer-state",
+			Usage: "Check if the state marker matches the state file contents. If they don't match, perform storage directory repair. --repair flag must be specified as well.",
+		},
+		&cli.StringFlag{
+			Name:  "state-marker",
+			Usage: "State marker",
+		},
+		&cli.StringFlag{
+			Name:  "state-file",
+			Usage: "Path to state file",
+		},
 	},
 }
 
@@ -84,6 +98,29 @@ func crioCheck(c *cli.Context) error {
 		}
 
 		checkOptions.LayerUnreferencedMaximumAge = &age
+	}
+
+	if c.Bool("check-state-mraker") {
+		if !c.Bool("repair") {
+			return errors.New("--repair flag must be specified")
+		}
+		statemarker := c.String("state-marker")
+		statefile := c.String("state-file")
+		if statefile == "" {
+			return errors.New("state file must be specified in state marker checking mode")
+		}
+		curMarker, err := os.ReadFile(statefile)
+		if !os.IsNotExist(err) {
+			return err
+		}
+		if string(curMarker) == statemarker {
+			// no need to repair
+			logrus.Infof("No change to the state marker. Returning without repairing.")
+			return nil
+		}
+		if err := os.WriteFile(statefile, []byte(statemarker), 0o600); err != nil {
+			return fmt.Errorf("failed to update state marker file: %w", err)
+		}
 	}
 
 	report, err := store.Check(checkOptions)
