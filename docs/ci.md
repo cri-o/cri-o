@@ -1,6 +1,7 @@
 # CI Test Jobs
 
 <!-- toc -->
+
 - [GitHub Actions](#github-actions)
 - [OpenShift CI (Prow)](#openshift-ci-prow)
   - [Base images](#base-images)
@@ -10,6 +11,7 @@
     - [OpenShift e2e](#openshift-e2e)
   - [Periodics](#periodics)
   - [Release branch jobs](#release-branch-jobs)
+
 <!-- /toc -->
 
 CRI-O runs test jobs on two platforms:
@@ -62,10 +64,10 @@ GCP VM-based presubmit jobs (Kubernetes e2e, integration, critest) run on GCE
 images that have all dependencies pre-installed. Two daily periodic jobs build
 these images:
 
-| Periodic                 | Image family       | OS       |
-| ------------------------ | ------------------ | -------- |
-| `setup-periodic`         | `crio-setup`       | RHEL 9   |
-| `setup-fedora-periodic`  | `crio-setup-fedora`| Fedora   |
+| Periodic                | Image family        | OS     |
+| ----------------------- | ------------------- | ------ |
+| `setup-periodic`        | `crio-setup`        | RHEL 9 |
+| `setup-fedora-periodic` | `crio-setup-fedora` | Fedora |
 
 Each run provisions a VM, runs
 [`setup-main.yml`](../contrib/test/ci/setup-main.yml) to install all
@@ -98,21 +100,21 @@ Upstream Kubernetes e2e suite on a single-node cluster, skipping slow/serial/
 disruptive/flaky tests. All jobs run on RHEL 9 with cgroup v2 and use CRI-O's
 default OCI runtime, crun.
 
-| Context                               | Monitor   | Notes                    |
-| ------------------------------------- | --------- | ------------------------ |
-| `ci-rhel-e2e`                         | conmon    |                          |
-| `ci-rhel-e2e-conmonrs`                | conmon-rs |                          |
-| `ci-rhel-e2e-features`                | conmon    | feature-gated tests      |
-| `ci-rhel-e2e-evented-pleg` (optional) | conmon    | evented PLEG enabled     |
+| Context                               | Monitor   | Notes                |
+| ------------------------------------- | --------- | -------------------- |
+| `ci-rhel-e2e`                         | conmon    |                      |
+| `ci-rhel-e2e-conmonrs`                | conmon-rs |                      |
+| `ci-rhel-e2e-features`                | conmon    | feature-gated tests  |
+| `ci-rhel-e2e-evented-pleg` (optional) | conmon    | evented PLEG enabled |
 
 #### CRI conformance, integration, and Kata
 
-| Context                          | Type        | OS     | Notes                         |
-| -------------------------------- | ----------- | ------ | ----------------------------- |
-| `ci-fedora-critest`              | critest     | Fedora |                               |
-| `ci-rhel-critest`                | critest     | RHEL   |                               |
-| `ci-fedora-integration`          | integration | Fedora |                               |
-| `ci-fedora-integration-kata`     | integration | Fedora | Kata runtime, subset of tests |
+| Context                      | Type        | OS     | Notes                         |
+| ---------------------------- | ----------- | ------ | ----------------------------- |
+| `ci-fedora-critest`          | critest     | Fedora |                               |
+| `ci-rhel-critest`            | critest     | RHEL   |                               |
+| `ci-fedora-integration`      | integration | Fedora |                               |
+| `ci-fedora-integration-kata` | integration | Fedora | Kata runtime, subset of tests |
 
 #### OpenShift e2e
 
@@ -124,13 +126,13 @@ default OCI runtime, crun.
 
 ### Periodics
 
-| Job                                      | Schedule | Description                   | Slack                |
-| ---------------------------------------- | -------- | ----------------------------- | -------------------- |
-| `setup-periodic`                         | daily    | RHEL image setup validation   | `#forum-node-jira`   |
-| `setup-fedora-periodic`                  | daily    | Fedora image setup validation | `#forum-node-jira`   |
-| `crio-node-e2e-conformance-periodic`     | @yearly  | Node e2e conformance suite    |                      |
-| `crio-node-e2e-nodeconformance-periodic` | @yearly  | Node conformance suite        |                      |
-| `crio-node-e2e-nodefeature-periodic`     | @yearly  | Node feature tests            |                      |
+| Job                                      | Schedule | Description                   | Slack              |
+| ---------------------------------------- | -------- | ----------------------------- | ------------------ |
+| `setup-periodic`                         | daily    | RHEL image setup validation   | `#forum-node-jira` |
+| `setup-fedora-periodic`                  | daily    | Fedora image setup validation | `#forum-node-jira` |
+| `crio-node-e2e-conformance-periodic`     | @yearly  | Node e2e conformance suite    |                    |
+| `crio-node-e2e-nodeconformance-periodic` | @yearly  | Node conformance suite        |                    |
+| `crio-node-e2e-nodefeature-periodic`     | @yearly  | Node feature tests            |                    |
 
 ### Release branch jobs
 
