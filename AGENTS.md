@@ -201,7 +201,7 @@ conmon/conmon-rs, gRPC/HTTP/D-Bus, OpenTelemetry
 - Contributing: `CONTRIBUTING.md`
 - Governance: `GOVERNANCE.md`
 - Roadmap: `roadmap.md`
-- Man Pages: `docs/*.md`
+- Man Pages: `docs/*.[58].md`
 
 ## Special Notes for AI Assistants
 

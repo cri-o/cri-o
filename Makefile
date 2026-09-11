@@ -34,7 +34,7 @@ COVERAGE_PATH := ${BUILD_PATH}/coverage
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ./test/mocks
 
-MANPAGES_MD := $(wildcard docs/*.md)
+MANPAGES_MD := $(wildcard docs/*.5.md docs/*.8.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions

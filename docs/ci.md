@@ -1,15 +1,18 @@
 # CI Test Jobs
 
 <!-- toc -->
+
 - [GitHub Actions](#github-actions)
 - [OpenShift CI (Prow)](#openshift-ci-prow)
   - [Base images](#base-images)
   - [Presubmits](#presubmits)
     - [Kubernetes e2e](#kubernetes-e2e)
     - [CRI conformance, integration, and Kata](#cri-conformance-integration-and-kata)
-    - [OpenShift e2e](#openshift-e2e)
+    - [Performance and scale](#performance-and-scale)
+  - [Postsubmits](#postsubmits)
   - [Periodics](#periodics)
   - [Release branch jobs](#release-branch-jobs)
+
 <!-- /toc -->
 
 CRI-O runs test jobs on two platforms:
@@ -40,32 +43,37 @@ pinned in [`scripts/versions`](../scripts/versions).
 
 ## OpenShift CI (Prow)
 
-Prow jobs run on GCP VMs via
-[ci-operator](https://docs.ci.openshift.org/docs/architecture/ci-operator/).
-Configuration lives in
-[openshift/release](https://github.com/openshift/release) under
-`ci-operator/config/cri-o/cri-o/`:
+Prow jobs are defined in [openshift/release](https://github.com/openshift/release/tree/main/ci-operator/config/cri-o/cri-o):
 
-- **`cri-o-cri-o-main__ci.yaml`** — presubmit tests.
-- **`cri-o-cri-o-main__periodics.yaml`** — periodic tests.
+- [`cri-o-cri-o-main__ci.yaml`](https://github.com/openshift/release/blob/main/ci-operator/config/cri-o/cri-o/cri-o-cri-o-main__ci.yaml)
+  defines VM-based presubmit tests.
+- [`cri-o-cri-o-main__periodics.yaml`](https://github.com/openshift/release/blob/main/ci-operator/config/cri-o/cri-o/cri-o-cri-o-main__periodics.yaml)
+  defines VM-based periodic tests and image setup jobs.
+- [`cri-o-cri-o-main.yaml`](https://github.com/openshift/release/blob/main/ci-operator/config/cri-o/cri-o/cri-o-cri-o-main.yaml)
+  defines OpenShift e2e postsubmits and the perfscale presubmit. It builds
+  CRI-O RPMs with `hack/build-rpms.sh` and layers them into RHCOS.
 
-From these configs `prowgen` generates the Prow job definitions in
-`ci-operator/jobs/cri-o/cri-o/`.
+For current schedules and triggers, consult these configs and the generated
+[Prow job definitions](https://github.com/openshift/release/tree/main/ci-operator/jobs/cri-o/cri-o).
+The [Prow job history](https://prow.ci.openshift.org/?repo=cri-o%2Fcri-o)
+shows recent runs.
 
-ci-operator builds a `crio-crio-base-src` image containing the CRI-O source
-tree. A `skip_if_only_changed` filter skips builds when the PR only touches
-docs or metadata.
+The VM-based jobs use [ci-operator](https://docs.ci.openshift.org/docs/architecture/ci-operator/)
+to build a `crio-crio-base-src` image containing the CRI-O source tree. The
+generated `images`, `ci-images`, and `periodics-images` presubmits have a
+`skip_if_only_changed` filter for documentation, `.github/`, and other
+non-code paths. The `ci-*` test jobs still run on docs-only PRs.
 
 ### Base images
 
 GCP VM-based presubmit jobs (Kubernetes e2e, integration, critest) run on GCE
-images that have all dependencies pre-installed. Two daily periodic jobs build
-these images:
-
-| Periodic                 | Image family       | OS       |
-| ------------------------ | ------------------ | -------- |
-| `setup-periodic`         | `crio-setup`       | RHEL 9   |
-| `setup-fedora-periodic`  | `crio-setup-fedora`| Fedora   |
+images with dependencies pre-installed. The `setup-periodic` and
+`setup-fedora-periodic` jobs build the `crio-setup` (RHEL 9) and
+`crio-setup-fedora` (Fedora) image families, respectively. See their
+[configuration](https://github.com/openshift/release/blob/main/ci-operator/config/cri-o/cri-o/cri-o-cri-o-main__periodics.yaml)
+and [RHEL](https://prow.ci.openshift.org/job-history/gs/test-platform-results/logs/periodic-ci-cri-o-cri-o-main-periodics-setup-periodic)
+and [Fedora](https://prow.ci.openshift.org/job-history/gs/test-platform-results/logs/periodic-ci-cri-o-cri-o-main-periodics-setup-fedora-periodic)
+job histories for their current schedules and runs.
 
 Each run provisions a VM, runs
 [`setup-main.yml`](../contrib/test/ci/setup-main.yml) to install all
@@ -74,65 +82,85 @@ Kubernetes, bats), snapshots the disk into the image family, and cleans up
 images older than two weeks. Presubmit jobs reference the family via
 `--image-family`, so they always boot the latest snapshot.
 
-Fixing a base image issue is a multi-step process: the fix must be merged to
-`main` first, then the next daily periodic picks it up and rebuilds the image.
-The fix cannot be validated from a PR because the periodic always reads from
-`main`. A broken periodic build blocks all PR testing until the next successful
-run.
+To update a base image dependency, merge the fix to `main` and trigger the setup
+job to rebuild the image. The setup jobs read from `main`, so a PR cannot test
+the new image through those jobs. If setup fails before creating an image, the
+family retains its last good image; a successful build that snapshots a broken
+dependency can affect subsequent PR tests.
 
-OpenShift e2e jobs (`e2e-aws-ovn`, `e2e-gcp-ovn`, `perfscale`) do not use
-these images — they build CRI-O RPMs into RHCOS instead.
+Periodic jobs cannot be triggered with `/test`. To rebuild a base image manually,
+use the [Gangway REST API](https://docs.ci.openshift.org/docs/how-tos/triggering-prowjobs-via-rest/)
+with an authentication token. With `oc` logged in to the app.ci cluster, trigger
+the RHEL setup job with:
 
-Some tests use environment variables to change behavior:
-`USE_CONMONRS` (use conmon-rs), `EVENTED_PLEG` (enable evented PLEG),
-`IMAGE_FAMILY` / `IMAGE_NAME` (select a different GCE image).
+```sh
+curl --fail-with-body -X POST \
+  -H "Authorization: Bearer $(oc whoami -t)" \
+  -H 'Content-Type: application/json' \
+  -d '{"job_name":"periodic-ci-cri-o-cri-o-main-periodics-setup-periodic","job_execution_type":"1"}' \
+  https://gangway-ci.apps.ci.l2s4.p1.openshiftapps.com/v1/executions
+```
+
+OpenShift e2e and perfscale jobs build CRI-O RPMs into RHCOS and do not use
+these images.
+
+The setup workflow can set `IMAGE_NAME` to select a source image; it takes
+precedence over `IMAGE_FAMILY` when provisioning. Tests use `IMAGE_FAMILY` to
+boot from the image family, which the setup workflow also snapshots into.
 
 ### Presubmits
 
 Presubmit jobs target PRs to `main`. Most run automatically; optional jobs run
 when requested. Re-trigger with `/test <name>` in a PR comment.
+The `ci-rhel-e2e-conmonrs` job sets `USE_CONMONRS` to use conmon-rs, and the
+optional `ci-rhel-e2e-evented-pleg` job sets `EVENTED_PLEG`.
 
 #### Kubernetes e2e
 
-Upstream Kubernetes e2e suite on a single-node cluster, skipping slow/serial/
-disruptive/flaky tests. All jobs run on RHEL 9 with cgroup v2 and use CRI-O's
+Upstream Kubernetes e2e suite on a single-node cluster. The standard e2e jobs
+skip slow, serial, disruptive, flaky, and `[Feature:*]` tests. The features job
+focuses on `[NodeFeature:*]` and selected `[Feature:*]` tests; it skips slow,
+serial, and flaky tests. All jobs run on RHEL 9 with cgroup v2 and use CRI-O's
 default OCI runtime, crun.
 
-| Context                               | Monitor   | Notes                    |
-| ------------------------------------- | --------- | ------------------------ |
-| `ci-rhel-e2e`                         | conmon    |                          |
-| `ci-rhel-e2e-conmonrs`                | conmon-rs |                          |
-| `ci-rhel-e2e-features`                | conmon    | feature-gated tests      |
-| `ci-rhel-e2e-evented-pleg` (optional) | conmon    | evented PLEG enabled     |
+| Context                               | Monitor   | Notes                |
+| ------------------------------------- | --------- | -------------------- |
+| `ci-rhel-e2e`                         | conmon    |                      |
+| `ci-rhel-e2e-conmonrs`                | conmon-rs |                      |
+| `ci-rhel-e2e-features`                | conmon    | feature-gated tests  |
+| `ci-rhel-e2e-evented-pleg` (optional) | conmon    | evented PLEG enabled |
 
 #### CRI conformance, integration, and Kata
 
-| Context                          | Type        | OS     | Notes                         |
-| -------------------------------- | ----------- | ------ | ----------------------------- |
-| `ci-fedora-critest`              | critest     | Fedora |                               |
-| `ci-rhel-critest`                | critest     | RHEL   |                               |
-| `ci-fedora-integration`          | integration | Fedora |                               |
-| `ci-fedora-integration-kata`     | integration | Fedora | Kata runtime, subset of tests |
+| Context                      | Type        | OS     | Notes                         |
+| ---------------------------- | ----------- | ------ | ----------------------------- |
+| `ci-fedora-critest`          | critest     | Fedora |                               |
+| `ci-rhel-critest`            | critest     | RHEL   |                               |
+| `ci-fedora-integration`      | integration | Fedora |                               |
+| `ci-fedora-integration-kata` | integration | Fedora | Kata runtime, subset of tests |
 
-#### OpenShift e2e
+#### Performance and scale
 
-| Context                          | Cloud | Description                      | Trigger              |
-| -------------------------------- | ----- | -------------------------------- | -------------------- |
-| `e2e-aws-ovn`                    | AWS   | OpenShift e2e with OVN           | auto on code changes |
-| `e2e-gcp-ovn`                    | GCP   | OpenShift e2e with OVN           | auto on code changes |
-| `perfscale-control-plane-6nodes` | AWS   | Performance/scale test (6 nodes) | manual only          |
+`perfscale-control-plane-6nodes` runs a six-node AWS performance and scale
+test when requested.
+
+### Postsubmits
+
+After changes merge to `main`, `e2e-aws-ovn` and `e2e-gcp-ovn` run OpenShift
+e2e tests with OVN on AWS and GCP, respectively. They do not run as PR checks.
 
 ### Periodics
 
-| Job                                      | Schedule | Description                   | Slack                |
-| ---------------------------------------- | -------- | ----------------------------- | -------------------- |
-| `setup-periodic`                         | daily    | RHEL image setup validation   | `#forum-node-jira`   |
-| `setup-fedora-periodic`                  | daily    | Fedora image setup validation | `#forum-node-jira`   |
-| `crio-node-e2e-conformance-periodic`     | @yearly  | Node e2e conformance suite    |                      |
-| `crio-node-e2e-nodeconformance-periodic` | @yearly  | Node conformance suite        |                      |
-| `crio-node-e2e-nodefeature-periodic`     | @yearly  | Node feature tests            |                      |
+The `setup-periodic` and `setup-fedora-periodic` jobs build the base images
+described above. The `crio-node-e2e-conformance-periodic`,
+`crio-node-e2e-nodeconformance-periodic`, and
+`crio-node-e2e-nodefeature-periodic` jobs run node e2e suites. Their schedules
+are in the [periodic configuration](https://github.com/openshift/release/blob/main/ci-operator/config/cri-o/cri-o/cri-o-cri-o-main__periodics.yaml).
 
 ### Release branch jobs
 
-Each `release-1.y` branch has its own ci-operator config and presubmit jobs at
-`ci-operator/{config,jobs}/cri-o/cri-o/cri-o-cri-o-release-1.y-*`.
+Release branch configurations, where present, are named
+`ci-operator/config/cri-o/cri-o/cri-o-cri-o-release-1.y.yaml`. Their generated
+presubmits are under `ci-operator/jobs/cri-o/cri-o/`. The current release
+configurations run only the `images`, `e2e-aws-ovn`, and `e2e-gcp-ovn`
+presubmits, not the `ci-*` VM jobs.

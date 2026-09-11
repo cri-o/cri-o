@@ -4,12 +4,12 @@
 
 This directory contains Ansible playbooks used in the Prow CI system for
 automated testing and integration. These playbooks are referenced in the
-[OpenShift release repository](https://github.com/openshift/release/tree/master/ci-operator/step-registry/cri-o).
+[OpenShift release repository](https://github.com/openshift/release/tree/main/ci-operator/step-registry/cri-o).
 
 ## Integration Testing in Prow
 
-- The base image for the test environment is built daily with the
-  [job defined in the OpenShift release repository](https://github.com/openshift/release/tree/master/ci-operator/step-registry/cri-o/setup)
+- The base image for the test environment is built with the
+  [job defined in the OpenShift release repository](https://github.com/openshift/release/tree/main/ci-operator/step-registry/cri-o/setup)
   using `setup-main.yml`
 - All necessary dependencies are automatically installed during image creation
 - The integration and e2e tests use this prebuilt image from that day
