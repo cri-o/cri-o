@@ -8,6 +8,9 @@
   tags:
     - e2e
   tasks:
+    - name: set up container runtime
+      include_tasks: "util/e2e-configure-runtime.yml"
+
     - name: run k8s e2e tests
       include_tasks: "e2e.yml"
       args:
