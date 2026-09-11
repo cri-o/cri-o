@@ -1476,6 +1476,10 @@ func (r *runtimeOCI) AttachContainer(
 		return nil
 	}
 
+	// cancel ensures all goroutines are cleaned up when the function returns
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
 
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
@@ -1507,15 +1511,31 @@ func (r *runtimeOCI) AttachContainer(
 
 	defer conn.Close()
 
-	receiveStdout := make(chan error)
-
+	// Close conn when ctx is done to unblock any pending Read()
+	// in redirectResponseToOutputStreams(). This is necessary because
+	// conmon keeps the other side of the socket open as long as the
+	// container is running, so conn.Close() via defer alone is not
+	// sufficient to unblock the Read() in the goroutine below.
 	go func() {
-		receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
-
-		close(receiveStdout)
+		<-ctx.Done()
+		conn.Close()
 	}()
 
-	stdinDone := make(chan error)
+	// Buffered channels of size 1 prevent goroutine leaks when the receiver
+	// exits early. Context cancellation provides an additional safety net.
+	receiveStdout := make(chan error, 1)
+
+	go func() {
+
+		streamErr := redirectResponseToOutputStreams(outputStream, errorStream, conn)
+		select {
+		case receiveStdout <- streamErr:
+		case <-ctx.Done():
+			log.Debugf(ctx, "receiveStdout goroutine cancelled: %v", ctx.Err())
+		}
+	}()
+
+	stdinDone := make(chan error, 1)
 
 	go func() {
 		var err, closeErr error
@@ -1524,17 +1544,21 @@ func (r *runtimeOCI) AttachContainer(
 			closeErr = conn.CloseWrite()
 		}
 
+		var result error
 		switch {
 		case err != nil:
-			stdinDone <- err
+			result = err
 		case closeErr != nil:
-			stdinDone <- closeErr
+			result = closeErr
 		default:
 			// neither CopyDetachable nor CloseWrite returned error
-			stdinDone <- nil
 		}
 
-		close(stdinDone)
+		select {
+		case stdinDone <- result:
+		case <-ctx.Done():
+			log.Debugf(ctx, "stdinDone goroutine cancelled: %v", ctx.Err())
+		}
 	}()
 
 	select {
@@ -1556,7 +1580,14 @@ func (r *runtimeOCI) AttachContainer(
 			return nil
 		}
 
-		return <-receiveStdout
+		select {
+		case err := <-receiveStdout:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 
