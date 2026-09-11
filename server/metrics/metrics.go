@@ -289,8 +289,15 @@ func (m *Metrics) Start(ctx context.Context, stop chan struct{}) error {
 	}
 
 	metricsAddress := net.JoinHostPort(m.config.MetricsHost, strconv.Itoa(m.config.MetricsPort))
-	if err := m.startEndpoint(ctx, stop, "tcp", metricsAddress, me); err != nil {
-		return fmt.Errorf("create metrics endpoint on %s: %w", metricsAddress, err)
+	// The TCP listener is started only when a MetricsHost is configured. This
+	// allows running the metrics endpoint exclusively on the Unix socket by
+	// setting `metrics_host = ""` (and `metrics_socket` to the desired path).
+	if m.config.MetricsHost != "" {
+		if err := m.startEndpoint(ctx, stop, "tcp", metricsAddress, me); err != nil {
+			return fmt.Errorf("create metrics endpoint on %s: %w", metricsAddress, err)
+		}
+	} else if m.config.MetricsSocket == "" {
+		return errors.New("no metrics endpoint configured: set either metrics_host or metrics_socket")
 	}
 
 	metricsSocket := m.config.MetricsSocket
