@@ -61,3 +61,55 @@ function teardown() {
 	[[ $(crictl exec "$ctr_id" id -u) == "1234" ]]
 	[[ $(crictl exec "$ctr_id" id -g) == "1234" ]]
 }
+
+# When the kubelet UserNamespacesSupport feature gate is enabled, pods without
+# hostUsers: false are sent userns_options mode NODE (2). The CRI-O userns-mode
+# annotation should still take effect in that case.
+@test "userns annotation should take precedence over userns_options mode=NODE" {
+	jq '      .annotations."userns-mode.crio.io" = "private:uidmapping=0:100000:65536;gidmapping=0:200000:65536"
+	 |	.linux.security_context.run_as_user.value = 0
+	 |	.linux.security_context.namespace_options.userns_options = {"mode": 2}' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq '      .linux.security_context.namespace_options.userns_options = {"mode": 2}' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+
+	pid=$(crictl inspect "$ctr_id" | jq .info.pid)
+	tr -s " " < /proc/"$pid"/uid_map | grep -q "0 100000 65536"
+	tr -s " " < /proc/"$pid"/gid_map | grep -q "0 200000 65536"
+}
+
+@test "uid mappings config should take precedence over userns_options mode=NODE" {
+	CONTAINER_UID_MAPPINGS="0:100000:65536" CONTAINER_GID_MAPPINGS="0:200000:65536" restart_crio
+
+	jq '      .linux.security_context.namespace_options.userns_options = {"mode": 2}' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq '      .linux.security_context.namespace_options.userns_options = {"mode": 2}' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+
+	pid=$(crictl inspect "$ctr_id" | jq .info.pid)
+	tr -s " " < /proc/"$pid"/uid_map | grep -q "0 100000 65536"
+	tr -s " " < /proc/"$pid"/gid_map | grep -q "0 200000 65536"
+}
+
+@test "userns_options mode NODE without annotation should use the host user namespace" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userns enabled"
+	fi
+
+	jq '      .linux.security_context.namespace_options.userns_options = {"mode": 2}' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq '      .linux.security_context.namespace_options.userns_options = {"mode": 2}' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+
+	pid=$(crictl inspect "$ctr_id" | jq .info.pid)
+	[[ "$(readlink /proc/"$pid"/ns/user)" == "$(readlink /proc/self/ns/user)" ]]
+}
