@@ -31,7 +31,7 @@ func newServerWithNotReadyCNI(t *testing.T) *Server {
 	}
 
 	return &Server{
-		config: *cfg,
+		config: cfg,
 	}
 }
 
