@@ -7,6 +7,13 @@ After=network-online.target
 
 [Service]
 Type=notify
+# Only ever signal the tracked main PID on stop/restart. conmon is deliberately
+# detached from crio so containers survive a crio restart; the default
+# KillMode=control-group would also sweep any conmon still sitting in this
+# cgroup because it hasn't yet been relocated to its own transient scope,
+# which is what lets a crio.service restart mid-container-creation kill it
+# and leave a permanently failed crio-conmon-*.scope behind.
+KillMode=process
 EnvironmentFile=-/etc/sysconfig/crio
 Environment=GOTRACEBACK=crash
 ExecStart=/usr/local/bin/crio \
