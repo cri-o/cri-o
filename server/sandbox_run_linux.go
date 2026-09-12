@@ -677,7 +677,7 @@ func (s *Server) runPodSandbox(
 	}
 
 	// TODO: factor generating/updating the spec into something other projects can vendor.
-	if err := sbox.InitInfraContainer(&s.config, &podContainer, sandboxIDMappings); err != nil {
+	if err := sbox.InitInfraContainer(s.config, &podContainer, sandboxIDMappings); err != nil {
 		return nil, err
 	}
 

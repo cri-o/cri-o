@@ -934,7 +934,7 @@ func (s *Server) createSandboxContainer(
 		nsTargetCtr = s.GetContainer(ctx, target)
 	}
 
-	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, &s.config); err != nil {
+	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, s.config); err != nil {
 		return nil, err
 	}
 
@@ -2113,7 +2113,7 @@ func (s *Server) setupLinuxResources(
 			)
 		}
 
-		err := ctr.SpecSetPrivileges(ctx, securityContext, &s.config)
+		err := ctr.SpecSetPrivileges(ctx, securityContext, s.config)
 		if err != nil {
 			return err
 		}
