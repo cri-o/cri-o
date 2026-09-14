@@ -11,6 +11,9 @@ on:
   pull_request:
 env:
   GOLANGCI_LINT_VERSION: v2.13.2
+  # Inputs for the change based test selection (hack/ci).
+  GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+  CI_FORCE_FULL: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci/full') }}
 permissions:
   contents: read
 concurrency:
@@ -18,7 +21,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    # Classify the changed files so that jobs which cannot be affected by the
+    # change are skipped (see hack/ci/classify-changes.sh). Everything runs on
+    # pushes, on workflow_dispatch and for pull requests labeled ci/full.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      full: ${{ steps.classify.outputs.full }}
+      code: ${{ steps.classify.outputs.code }}
+      go: ${{ steps.classify.outputs.go }}
+      markdown: ${{ steps.classify.outputs.markdown }}
+      shell: ${{ steps.classify.outputs.shell }}
+      vendor: ${{ steps.classify.outputs.vendor }}
+      docs: ${{ steps.classify.outputs.docs }}
+      config: ${{ steps.classify.outputs.config }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: classify
+        run: hack/ci/classify-changes.sh >> "$GITHUB_OUTPUT"
+
   lint:
+    needs:
+      - changes
+    if: needs.changes.outputs.go == 'true'
+    timeout-minutes: 30
     permissions:
       contents: read # for actions/checkout to fetch code
       pull-requests: read # for golangci/golangci-lint-action to fetch pull requests
@@ -34,6 +61,10 @@ jobs:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
 
   lint-markdown:
+    needs:
+      - changes
+    if: needs.changes.outputs.markdown == 'true'
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -48,6 +79,10 @@ jobs:
             !.github
 
   shellcheck:
+    needs:
+      - changes
+    if: needs.changes.outputs.shell == 'true'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,12 +90,19 @@ jobs:
       - run: make shellcheck
 
   shfmt:
+    needs:
+      - changes
+    if: needs.changes.outputs.shell == 'true'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: make shfmt
 
   space-at-eol:
+    needs:
+      - changes
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -68,6 +110,10 @@ jobs:
       - run: if git -P grep -I -n -r '[[:blank:]]$'; then echo "^^^ extra whitespace at EOL, please fix"; exit 1; fi
 
   docs:
+    needs:
+      - changes
+    if: needs.changes.outputs.docs == 'true'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,6 +124,10 @@ jobs:
       - run: make docs-validation
 
   vendor:
+    needs:
+      - changes
+    if: needs.changes.outputs.vendor == 'true'
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -87,24 +137,39 @@ jobs:
       - run: make check-vendor
 
   log-capitalization:
+    needs:
+      - changes
+    if: needs.changes.outputs.go == 'true'
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: make check-log-lines
 
   verify-config-template:
+    needs:
+      - changes
+    if: needs.changes.outputs.config == 'true'
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: make check-config-template
 
   dependencies:
+    needs:
+      - changes
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: make verify-dependencies
 
   typos:
+    needs:
+      - changes
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -113,12 +178,19 @@ jobs:
           config: .typos.toml
 
   mdtoc:
+    needs:
+      - changes
+    if: needs.changes.outputs.markdown == 'true'
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: make verify-mdtoc
 
   prettier:
+    needs:
+      - changes
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

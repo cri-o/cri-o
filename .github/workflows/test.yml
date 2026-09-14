@@ -11,13 +11,37 @@ on:
   pull_request:
 env:
   NIX_VERSION: "2.35.2"
+  # Inputs for the change based test selection (hack/ci).
+  GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+  CI_FORCE_FULL: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci/full') }}
 permissions:
   contents: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  changes:
+    # Classify the changed files so that jobs which cannot be affected by the
+    # change are skipped (see hack/ci/classify-changes.sh). Everything runs on
+    # pushes, on workflow_dispatch and for pull requests labeled ci/full.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      full: ${{ steps.classify.outputs.full }}
+      code: ${{ steps.classify.outputs.code }}
+      docs: ${{ steps.classify.outputs.docs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: classify
+        run: hack/ci/classify-changes.sh >> "$GITHUB_OUTPUT"
+
   build:
+    needs:
+      - changes
+    # The generated docs are validated against the binary, so build on docs
+    # changes as well.
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.docs == 'true'
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,6 +71,10 @@ jobs:
           path: crio.conf
 
   build-freebsd:
+    needs:
+      - changes
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -57,7 +85,11 @@ jobs:
       - run: make bin/crio.cross.freebsd.amd64
 
   validate-docs:
-    needs: build
+    needs:
+      - changes
+      - build
+    if: needs.changes.outputs.docs == 'true'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -71,7 +103,11 @@ jobs:
           hack/tree_status.sh
 
   validate-completions:
-    needs: build
+    needs:
+      - changes
+      - build
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -85,7 +121,11 @@ jobs:
           hack/tree_status.sh
 
   validate-nri-tests:
-    needs: build
+    needs:
+      - changes
+      - build
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -101,6 +141,10 @@ jobs:
           sudo -E env "PATH=$PATH" make check-nri-bats-tests GOSUMDB=
 
   build-static:
+    needs:
+      - changes
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -135,6 +179,7 @@ jobs:
             result/bin/pinns
 
   static-build-upload:
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     needs:
@@ -165,6 +210,7 @@ jobs:
           destination: cri-o/artifacts
 
   upload-artifacts:
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     needs:
@@ -176,6 +222,7 @@ jobs:
           GCS_CRIO_SA: ${{ secrets.GCS_CRIO_SA }}
 
   create-release:
+    timeout-minutes: 15
     if: contains(github.ref, 'refs/tags')
     permissions:
       contents: write
@@ -196,6 +243,10 @@ jobs:
           bodyFile: build/release-notes/${{ env.RELEASE_VERSION }}.md
 
   unit:
+    needs:
+      - changes
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -227,22 +278,49 @@ jobs:
         run: |
           make mockgen -j $(nproc)
           hack/tree_status.sh
-      - name: Run unit tests as root
-        if: ${{ matrix.run.type == 'root' }}
+      - name: Select affected packages
+        # Only the packages which (transitively) depend on the changed files
+        # are tested for pull requests, see hack/ci/affected-go-packages.sh.
+        # "ALL" runs everything, an empty list skips the tests.
+        id: select
         run: |
-          sudo PATH="$PATH" GOCACHE="$(go env GOCACHE)" GOMODCACHE="$(go env GOMODCACHE)" make testunit
+          pkgs=$(make -s affected-go-packages | tr '\n' ' ' | xargs)
+          if [[ -z $pkgs ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif [[ $pkgs == ALL ]]; then
+            echo "packages=" >> "$GITHUB_OUTPUT"
+          else
+            echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run unit tests as root
+        if: ${{ matrix.run.type == 'root' && steps.select.outputs.skip != 'true' }}
+        run: |
+          sudo PATH="$PATH" GOCACHE="$(go env GOCACHE)" GOMODCACHE="$(go env GOMODCACHE)" make testunit TESTUNIT_PACKAGES="$TESTUNIT_PACKAGES"
           sudo chown -R $(id -u):$(id -g) "$(go env GOCACHE)" "$(go env GOMODCACHE)" || true
+        env:
+          TESTUNIT_PACKAGES: ${{ steps.select.outputs.packages }}
       - name: Run unit tests rootless
-        if: ${{ matrix.run.type == 'rootless' }}
-        run: make testunit
+        if: ${{ matrix.run.type == 'rootless' && steps.select.outputs.skip != 'true' }}
+        run: make testunit TESTUNIT_PACKAGES="$TESTUNIT_PACKAGES"
+        env:
+          TESTUNIT_PACKAGES: ${{ steps.select.outputs.packages }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: junit-unit-${{ matrix.run.arch }}-${{ matrix.run.type }}
+          path: build/coverage/junit.xml
+          if-no-files-found: ignore
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        if: ${{ steps.select.outputs.skip != 'true' }}
         with:
           files: build/coverage/coverprofile
+          flags: unit
           verbose: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   release-notes:
+    timeout-minutes: 30
     permissions:
       contents: write
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
@@ -269,6 +347,7 @@ jobs:
           if-no-files-found: ignore
 
   dependencies:
+    timeout-minutes: 30
     permissions:
       contents: write
     if: github.ref == 'refs/heads/main'
@@ -290,6 +369,10 @@ jobs:
           path: build/dependencies
 
   codeql-build:
+    needs:
+      - changes
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -304,6 +387,10 @@ jobs:
       - uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
 
   security-checks:
+    needs:
+      - changes
+    if: needs.changes.outputs.code == 'true'
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -322,6 +409,7 @@ jobs:
         run: make verify-gosec
 
   vex-upload:
+    timeout-minutes: 15
     if: |
       !cancelled() &&
       (github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags'))
