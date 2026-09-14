@@ -361,12 +361,16 @@ check-nri-bats-tests: test/nri/nri.test ## Run the bats NRI tests.
 check-vendor: vendor ## Check the vendored golang dependencies.
 	./hack/tree_status.sh
 
+# Restrict `make testunit` to a list of package directories (./internal/oci),
+# the default is to recurse into every package.
+TESTUNIT_PACKAGES ?=
+
 .PHONY: testunit
 testunit: ${GINKGO} ## Run the unit tests.
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	${BUILD_BIN_PATH}/ginkgo run \
 		${TESTFLAGS} \
-		-r \
+		$(if $(TESTUNIT_PACKAGES),$(TESTUNIT_PACKAGES),-r) \
 		--skip-package $(GINKGO_SKIP_PACKAGES) \
 		--trace \
 		--cover \
@@ -379,9 +383,29 @@ testunit: ${GINKGO} ## Run the unit tests.
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
 
+.PHONY: affected-go-packages
+affected-go-packages: ## Print the unit test packages affected by the current change (see hack/ci), "ALL" or nothing.
+	@GO_LIST_TAGS="test $(BUILDTAGS)" GINKGO_SKIP_PACKAGES="$(GINKGO_SKIP_PACKAGES)" ./hack/ci/affected-go-packages.sh
+
+.PHONY: testunit-affected
+testunit-affected: ## Run the unit tests of the packages affected by the current change only (see hack/ci).
+	@pkgs="$$($(MAKE) -s affected-go-packages | tr '\n' ' ')"; \
+	if [ "$$(echo $$pkgs)" = ALL ]; then \
+		$(MAKE) testunit; \
+	elif [ -z "$$(echo $$pkgs)" ]; then \
+		echo "No unit test package is affected by the change"; \
+		mkdir -p ${COVERAGE_PATH} && echo "mode: atomic" > ${COVERAGE_PATH}/coverprofile; \
+	else \
+		$(MAKE) testunit TESTUNIT_PACKAGES="$$pkgs"; \
+	fi
+
 .PHONY: localintegration
 localintegration: clean binaries test-binaries ## Run the local integration tests.
 	./test/test_runner.sh ${TESTFLAGS}
+
+.PHONY: bats-coverage-map
+bats-coverage-map: ## Regenerate test/ci/bats-coverage-map.json (requires root and coverage instrumented binaries).
+	./hack/ci/generate-bats-coverage-map.sh
 
 .PHONY: verify-dependencies
 verify-dependencies: ${ZEITGEIST} ## Verify the local dependencies.

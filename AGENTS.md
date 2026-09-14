@@ -188,6 +188,8 @@ conmon/conmon-rs, gRPC/HTTP/D-Bus, OpenTelemetry
 ## CI/CD
 
 - **GitHub Actions**: `.github/workflows/`
+  - Pull requests only run the jobs and tests affected by the change, see
+    "Change Based Test Selection" in `scripts/ci.md` and `hack/ci/`
 - **OpenShift CI (Prow)**: Main CI platform
   - Job definitions: <https://github.com/openshift/release>
   - Presubmits: `ci-operator/jobs/cri-o/cri-o/cri-o-cri-o-main-presubmits.yaml`

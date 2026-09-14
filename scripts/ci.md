@@ -7,6 +7,46 @@ these artifacts to produce RPM/DEB packages via the openSUSE Build Service
 (OBS). For packaging pipeline details, see the
 [packaging CI documentation](https://github.com/cri-o/packaging/blob/main/docs/ci.md).
 
+## Change Based Test Selection
+
+Not every test runs on every pull request. The scripts below `hack/ci/`
+implement a small, stateless test impact analysis which is shared by the
+GitHub Actions workflows and the Prow jobs (both call the same scripts):
+
+- `hack/ci/classify-changes.sh` classifies the changed files and drives the
+  `if:` conditions of the GitHub Actions jobs. A change which only touches
+  documentation skips the build, unit, integration and static build jobs.
+- `hack/ci/affected-go-packages.sh` computes the unit test packages which
+  (transitively) depend on the changed packages using `go list`. The `unit`
+  job passes the result to `make testunit TESTUNIT_PACKAGES=...`.
+- `hack/ci/select-bats.sh` selects the bats integration test files whose
+  coverage intersects the changed Go packages, using
+  `test/ci/bats-coverage-map.json`. `test/test_runner.sh` calls it when it is
+  invoked without arguments. The map is regenerated weekly on `main` by the
+  `bats-coverage-map` workflow (`hack/ci/generate-bats-coverage-map.sh`),
+  which opens a pull request with the result.
+
+The selection always falls back to running everything when:
+
+- the change under test cannot be determined (pushes to `main` and
+  `release-*` branches, `workflow_dispatch`, Prow periodics and postsubmits),
+- the pull request carries the `ci/full` label (checked when the run starts),
+- `CI_FORCE_FULL=1` is set in the environment,
+- the toolchain changed (`go.mod`, `go.sum`, `vendor/`, `Makefile`, `hack/`,
+  `scripts/`, `nix/`, `pinns/`, the workflows or the bats helpers), or
+- a changed Go package is unknown to the coverage map.
+
+New or modified bats files always run, and `critest` is never subject to
+selection. To disable the selection of the bats tests locally, export
+`CRIO_TEST_SELECTION=0`. Both `test/test_runner.sh` and `make testunit` write
+JUnit reports (`build/reports/junit_bats_*.xml` and
+`build/coverage/junit.xml`) which are uploaded as workflow artifacts and, for
+Prow, land in the job artifacts directory.
+
+The base revision of the change is read from `CI_BASE_SHA`, `PULL_BASE_SHA`
+(Prow presubmits) or `GITHUB_BASE_SHA` (set by the workflows from the
+`pull_request` event), in this order.
+
 ## Static Binary Builds
 
 The
