@@ -38,6 +38,18 @@
     int_test_env: "{{ int_test_env | combine(crun_test_env) }}"
   when: "build_crun | bool"
 
+- name: enable change based test selection and JUnit reports
+  # PULL_BASE_SHA and JOB_TYPE are forwarded from the Prow job by the
+  # openshift/release step scripts. Without them the full suite runs.
+  set_fact:
+    int_test_env: >-
+      {{ int_test_env | combine({
+        'PULL_BASE_SHA': lookup('env', 'PULL_BASE_SHA'),
+        'JOB_TYPE': lookup('env', 'JOB_TYPE'),
+        'CI_FORCE_FULL': lookup('env', 'CI_FORCE_FULL'),
+        'BATS_REPORT_DIR': artifacts
+      }) }}
+
 - name: kata configuration
   block:
     - name: configure integration test suite for kata
