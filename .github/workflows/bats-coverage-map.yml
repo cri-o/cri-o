@@ -1,0 +1,68 @@
+name: bats-coverage-map
+# Regenerates test/ci/bats-coverage-map.json, the input for the change based
+# selection of the bats integration tests (hack/ci/select-bats.sh), and opens a
+# pull request with the result.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 0" # Every Sunday at 03:00 UTC
+env:
+  CONMON_BINARY: /usr/local/bin/conmon # from: scripts/github-actions-setup
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    permissions:
+      contents: write
+      pull-requests: write
+    if: github.ref == 'refs/heads/main' && github.repository == 'cri-o/cri-o'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-bats-coverage-map-${{ hashFiles('**/go.sum') }}-${{ hashFiles('scripts/versions') }}
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - run: scripts/github-actions-packages
+      - run: scripts/github-actions-setup
+      - run: GO_BUILDFLAGS="-cover" make all test-binaries
+      - name: Generate the coverage map
+        run: sudo -E env "PATH=$PATH" hack/ci/generate-bats-coverage-map.sh
+        env:
+          JOBS: 2
+          RUNTIME_TYPE: oci
+          CONTAINER_DEFAULT_RUNTIME: crun
+      - name: Check workspace
+        id: create_pr
+        run: |
+          sudo chown -R $(id -u):$(id -g) . || true
+          git add test/ci/bats-coverage-map.json
+          if [[ $(git diff --cached --stat) != '' ]]; then
+            echo "create_pr=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "incomplete=$(jq -r '.incomplete | join(", ")' test/ci/bats-coverage-map.json)" >> "$GITHUB_OUTPUT"
+      - name: Create PR if required
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        if: ${{ steps.create_pr.outputs.create_pr == 'true' }}
+        with:
+          commit-message: Update bats coverage map
+          title: "Update bats coverage map"
+          body: |
+            Regenerate `test/ci/bats-coverage-map.json` from the integration
+            test suite on `main`. The map drives the change based selection of
+            the bats tests for pull requests (`hack/ci/select-bats.sh`).
+
+            Files with incomplete coverage (failed during generation): ${{ steps.create_pr.outputs.incomplete || 'none' }}
+          labels: kind/ci, release-note-none, ok-to-test
+          branch: bats-coverage-map
+          delete-branch: true
+          signoff: true
+          add-paths: test/ci/bats-coverage-map.json
