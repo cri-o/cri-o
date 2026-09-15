@@ -275,7 +275,6 @@ To verify the [SLSA](https://slsa.dev) provenance attestation, run:
 		"--repo=cri-o",
 		"--branch="+currentBranch,
 		"--repo-path=/tmp/cri-o-repo",
-		"--required-author=",
 		"--start-rev="+startTag,
 		"--skip-first-commit",
 		"--end-sha="+head,
