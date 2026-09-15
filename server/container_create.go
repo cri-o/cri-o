@@ -642,7 +642,7 @@ func (s *Server) CreateContainer(
 		},
 	)
 
-	if err := s.ContainerStateToDisk(ctx, newContainer); err != nil {
+	if err := s.ContainerStateToDiskWithUpdate(ctx, newContainer); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
