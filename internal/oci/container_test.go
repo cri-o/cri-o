@@ -953,7 +953,9 @@ var _ = t.Describe("Container", func() {
 			watcherDone := make(chan bool, 1)
 
 			go func() {
-				sut.WaitOnStopTimeout(ctx, 1000)
+				defer GinkgoRecover()
+
+				Expect(sut.WaitOnStopTimeout(ctx, 1000)).To(Succeed())
 
 				watcherDone <- true
 			}()
@@ -985,17 +987,23 @@ var _ = t.Describe("Container", func() {
 			watcher3Done := make(chan bool, 1)
 
 			go func() {
-				sut.WaitOnStopTimeout(ctx, 1000)
+				defer GinkgoRecover()
+
+				Expect(sut.WaitOnStopTimeout(ctx, 1000)).To(Succeed())
 
 				watcher1Done <- true
 			}()
 			go func() {
-				sut.WaitOnStopTimeout(ctx, 2000)
+				defer GinkgoRecover()
+
+				Expect(sut.WaitOnStopTimeout(ctx, 2000)).To(Succeed())
 
 				watcher2Done <- true
 			}()
 			go func() {
-				sut.WaitOnStopTimeout(ctx, 3000)
+				defer GinkgoRecover()
+
+				Expect(sut.WaitOnStopTimeout(ctx, 3000)).To(Succeed())
 
 				watcher3Done <- true
 			}()
@@ -1026,6 +1034,58 @@ var _ = t.Describe("Container", func() {
 			}
 		})
 
+		It("should return the context error when the request ends before the stop", func() {
+			// Given
+			ctx, cancel := context.WithCancel(context.Background())
+
+			sut.SetAsStopping()
+
+			result := make(chan error, 1)
+
+			go func() {
+				result <- sut.WaitOnStopTimeout(ctx, 1000)
+			}()
+
+			// Give the watcher time to register
+			time.Sleep(10 * time.Millisecond)
+
+			// When
+			cancel()
+
+			// Then - the caller must learn that the container did not stop
+			Eventually(result).Should(Receive(MatchError(context.Canceled)))
+			Expect(sut.SetAsStopping()).To(BeFalse(), "the stop must still be in progress")
+
+			// A later call still waits for, and observes, the actual stop
+			sut.SetAsDoneStopping()
+			Expect(sut.WaitOnStopTimeout(context.Background(), 1000)).To(Succeed())
+		})
+
+		It("should not report a canceled request while other waiters stay registered", func() {
+			// Given
+			sut.SetAsStopping()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			waiting := make(chan error, 1)
+
+			go func() {
+				waiting <- sut.WaitOnStopTimeout(context.Background(), 1000)
+			}()
+
+			time.Sleep(10 * time.Millisecond)
+
+			// When - one request is canceled
+			cancel()
+			Expect(sut.WaitOnStopTimeout(ctx, 1000)).To(MatchError(context.Canceled))
+
+			// Then - the other waiter is unaffected and completes with the stop
+			Consistently(waiting, 50*time.Millisecond).ShouldNot(Receive())
+			sut.SetAsDoneStopping()
+			Eventually(waiting).Should(Receive(BeNil()))
+		})
+
 		// Regression test for a race between concurrent StopContainer calls.
 		// When a second StopContainer arrives after the first has already
 		// completed (SetAsDoneStopping closed stopTimeoutChan),
@@ -1039,7 +1099,7 @@ var _ = t.Describe("Container", func() {
 			sut.SetAsDoneStopping()
 
 			Expect(func() {
-				sut.WaitOnStopTimeout(ctx, 1000)
+				Expect(sut.WaitOnStopTimeout(ctx, 1000)).To(Succeed())
 			}).ToNot(Panic())
 		})
 
@@ -1053,7 +1113,9 @@ var _ = t.Describe("Container", func() {
 			watcherDone := make(chan bool, 1)
 
 			go func() {
-				sut.WaitOnStopTimeout(ctx, 1000)
+				defer GinkgoRecover()
+
+				Expect(sut.WaitOnStopTimeout(ctx, 1000)).To(Succeed())
 
 				watcherDone <- true
 			}()
