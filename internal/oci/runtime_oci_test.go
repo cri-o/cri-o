@@ -99,7 +99,7 @@ var _ = t.Describe("Oci", func() {
 			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 
 			stoppedChan := stopTimeoutWithChannel(context.Background(), sut, shortTimeout)
-			<-stoppedChan
+			Expect(<-stoppedChan).To(Succeed())
 
 			// Then
 			Expect(sut.State().Finished).NotTo(BeZero())
@@ -140,10 +140,12 @@ var _ = t.Describe("Oci", func() {
 			sut.SetAsStopping()
 
 			go runtime.StopLoopForContainer(context.Background(), sut, bm)
-			go sut.WaitOnStopTimeout(context.Background(), longTimeout)
+
+			longStopChan := stopTimeoutWithChannel(context.Background(), sut, longTimeout)
 
 			// Then
 			waitOnContainerTimeout(sut, shortTimeout, mediumTimeout, sleepProcess)
+			Expect(<-longStopChan).To(Succeed())
 		})
 
 		It("should not update time if chronologically after", func() {
@@ -158,7 +160,7 @@ var _ = t.Describe("Oci", func() {
 
 			// Then
 			waitOnContainerTimeout(sut, mediumTimeout, longTimeout, sleepProcess)
-			<-shortStopChan
+			Expect(<-shortStopChan).To(Succeed())
 		})
 		It("should handle many updates", func() {
 			// Given
@@ -170,21 +172,32 @@ var _ = t.Describe("Oci", func() {
 			stoppedChan := stopTimeoutWithChannel(context.Background(), sut, longTimeout*10)
 
 			// When
+			updates := make([]chan error, 0, 10)
 			for range 10 {
-				go sut.WaitOnStopTimeout(context.Background(), int64(rand.Intn(100)+20))
+				updates = append(
+					updates,
+					stopTimeoutWithChannel(context.Background(), sut, int64(rand.Intn(100)+20)),
+				)
 
 				time.Sleep(time.Second)
 			}
 
-			sut.WaitOnStopTimeout(context.Background(), mediumTimeout)
+			Expect(sut.WaitOnStopTimeout(context.Background(), mediumTimeout)).To(Succeed())
 
 			// Then
-			<-stoppedChan
+			Expect(<-stoppedChan).To(Succeed())
+
+			for _, update := range updates {
+				Expect(<-update).To(Succeed())
+			}
+
 			verifyContainerStopped(sut, sleepProcess)
 		})
 		It("should handle context timeout", func() {
 			// Given
 			ctx, cancel := context.WithCancel(context.Background())
+
+			sut.SetAsStopping()
 			stoppedChan := stopTimeoutWithChannel(ctx, sut, shortTimeout)
 
 			// When
@@ -192,9 +205,38 @@ var _ = t.Describe("Oci", func() {
 
 			// Then
 			// unconditionally expect the container was not stopped
-			<-stoppedChan
+			Expect(<-stoppedChan).To(MatchError(context.Canceled))
 			verifyContainerNotStopped(sut)
 		})
+
+		DescribeTable("should not report an interrupted stop as successful", func(deadline bool) {
+			// Model a retry while an earlier stop is still waiting for the
+			// container to exit. No second stop loop should be started.
+			sut.SetAsStopping()
+
+			var (
+				ctx    context.Context
+				cancel context.CancelFunc
+			)
+			if deadline {
+				ctx, cancel = context.WithDeadline(
+					context.Background(),
+					time.Now().Add(-time.Second),
+				)
+			} else {
+				ctx, cancel = context.WithCancel(context.Background())
+				cancel()
+			}
+			defer cancel()
+
+			err := runtime.StopContainer(ctx, sut, shortTimeout)
+
+			verifyContainerNotStopped(sut)
+			Expect(err).To(MatchError(ctx.Err()))
+		},
+			Entry("when canceled", false),
+			Entry("when the deadline expires", true),
+		)
 	})
 	Context("TruncateAndReadFile", func() {
 		tests := []struct {
@@ -384,7 +426,8 @@ func waitOnContainerTimeout(
 	stoppedChan := stopTimeoutWithChannel(context.Background(), sut, stopTimeout)
 
 	select {
-	case <-stoppedChan:
+	case err := <-stoppedChan:
+		Expect(err).To(Succeed())
 	case <-time.After(time.Second * time.Duration(waitTimeout)):
 		Fail("did not timeout quickly enough")
 	}
@@ -392,11 +435,12 @@ func waitOnContainerTimeout(
 	verifyContainerStopped(sut, sleepProcess)
 }
 
-func stopTimeoutWithChannel(ctx context.Context, sut *oci.Container, timeout int64) chan struct{} {
-	stoppedChan := make(chan struct{}, 1)
+func stopTimeoutWithChannel(ctx context.Context, sut *oci.Container, timeout int64) chan error {
+	stoppedChan := make(chan error, 1)
 
 	go func() {
-		sut.WaitOnStopTimeout(ctx, timeout)
+		stoppedChan <- sut.WaitOnStopTimeout(ctx, timeout)
+
 		close(stoppedChan)
 	}()
 
