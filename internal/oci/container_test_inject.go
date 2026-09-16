@@ -14,6 +14,14 @@ func (c *Container) SetState(state *ContainerState) {
 	c.state = state
 }
 
+// SetStateLocked sets the container state while holding opLock.
+func (c *Container) SetStateLocked(state *ContainerState) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	*c.state = *state
+}
+
 // SetStateAndSpoofPid sets the container state
 // as well as configures the ProcessInformation to succeed
 // useful for tests that don't care about pid handling.
