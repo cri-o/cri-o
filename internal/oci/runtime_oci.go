@@ -998,7 +998,7 @@ func (r *runtimeOCI) StopContainer(
 
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.Living(); err != nil {
-		c.state.Finished = time.Now()
+		c.setFinishedIfUnset()
 
 		return nil
 	}
@@ -1020,9 +1020,11 @@ func (r *runtimeOCI) StopContainer(
 		)
 	}
 
-	c.WaitOnStopTimeout(ctx, timeout)
-
-	return nil
+	// A cancelled or expired request does not mean the container stopped.
+	// Report that to the caller instead of returning success: post-stop
+	// cleanup on a still-running container blocks unrelated lifecycle
+	// operations behind shared locks while it waits for the stop loop.
+	return c.WaitOnStopTimeout(ctx, timeout)
 }
 
 func (r *runtimeOCI) StopLoopForContainer(
@@ -1045,7 +1047,7 @@ func (r *runtimeOCI) StopLoopForContainer(
 		// Kill the exec PIDs after the main container to avoid pod lifecycle regressions:
 		// Ref: https://github.com/kubernetes/kubernetes/issues/124743
 		c.KillExecPIDs()
-		c.state.Finished = time.Now()
+		c.setFinishedIfUnset()
 		c.opLock.Unlock()
 		c.SetAsDoneStopping()
 	}()
@@ -1061,7 +1063,7 @@ func (r *runtimeOCI) StopLoopForContainer(
 		if err := c.Living(); err != nil {
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
-			c.state.Finished = time.Now()
+			c.setFinishedIfUnset()
 
 			return
 		}
