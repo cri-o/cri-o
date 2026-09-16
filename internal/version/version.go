@@ -23,7 +23,7 @@ import (
 // Version is the version of the build. Declared as a var (not const) so
 // downstream builds can override it via -ldflags -X at link time instead
 // of source patching.
-var Version = "1.37.0"
+var Version = "1.37.1"
 
 // ReleaseMinorVersions are the currently supported minor versions.
 var ReleaseMinorVersions = []string{"1.37", "1.36", "1.35", "1.34"}
