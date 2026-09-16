@@ -57,6 +57,21 @@ if bats --help 2>&1 | grep -qF -- --allow-empty-suite; then
     BATS_ARGS+=(--allow-empty-suite)
 fi
 
+# Output JUnit report if REPORT_DIR or ARTIFACT_DIR is set and bats supports it.
+REPORT_DIR="${REPORT_DIR:-${ARTIFACT_DIR:-}}"
+REPORT_ARGS=()
+if [[ -n "$REPORT_DIR" ]]; then
+    mkdir -p "$REPORT_DIR"
+    if bats --help 2>&1 | grep -qF -- --report-formatter; then
+        REPORT_ARGS=(--report-formatter junit -o "$REPORT_DIR")
+    fi
+fi
+
 # Run the tests.
-execute bats --jobs "$JOBS" --tap "${BATS_ARGS[@]}" "${TESTS[@]}" --filter-tags '!crio:serial'
-execute bats --tap "${BATS_ARGS[@]}" "${TESTS[@]}" --filter-tags 'crio:serial'
+rc=0
+BATS_REPORT_FILENAME="junit_parallel.xml" \
+    execute bats --jobs "$JOBS" --tap "${REPORT_ARGS[@]}" "${BATS_ARGS[@]}" "${TESTS[@]}" --filter-tags '!crio:serial' || rc=$?
+BATS_REPORT_FILENAME="junit_serial.xml" \
+    execute bats --tap "${REPORT_ARGS[@]}" "${BATS_ARGS[@]}" "${TESTS[@]}" --filter-tags 'crio:serial' || rc=$?
+exit "$rc"
+
