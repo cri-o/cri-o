@@ -67,7 +67,16 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	}
 
 	if err := s.ContainerServer.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
-		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
+		err = fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
+
+		if isContextError(err) {
+			// The request ended before the container stopped. Report that with
+			// the matching gRPC code so the caller can tell an interrupted stop
+			// from a runtime failure; the kubelet retries.
+			return status.FromContextError(err).Err()
+		}
+
+		return err
 	}
 
 	s.postStopCleanup(ctx, ctr, sb, hooks)

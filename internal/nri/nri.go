@@ -88,6 +88,14 @@ const (
 )
 
 type local struct {
+	// The mutex serializes plugin interactions and spec conversion against
+	// plugin resource updates. Read container status before taking it: GetStatus
+	// takes opLock, which a hung stop can hold indefinitely. Spec getters do not
+	// take opLock, but their shared resource fields require this mutex.
+	//
+	// Plugin synchronization still reads status under the mutex to keep its
+	// snapshot consistent with the bookkeeping. Plugin-requested updates also
+	// take per-container locks. These paths can still stall NRI on a hung stop.
 	sync.Mutex
 
 	cfg *config.Config
@@ -190,9 +198,8 @@ func (l *local) UpdatePodSandbox(
 	l.Lock()
 	defer l.Unlock()
 
-	podNri := podSandboxToNRI(pod)
 	request := &nri.UpdatePodSandboxRequest{
-		Pod:                    podNri,
+		Pod:                    podSandboxToNRI(pod),
 		OverheadLinuxResources: overhead,
 		LinuxResources:         resources,
 	}
@@ -245,12 +252,14 @@ func (l *local) CreateContainer(
 		return nil, nil
 	}
 
+	status := ctr.GetStatus()
+
 	l.Lock()
 	defer l.Unlock()
 
 	request := &nri.CreateContainerRequest{
 		Pod:       podSandboxToNRI(pod),
-		Container: containerToNRI(ctr),
+		Container: containerToNRI(ctr, status),
 	}
 
 	response, err := l.nri.CreateContainer(ctx, request)
@@ -272,12 +281,14 @@ func (l *local) PostCreateContainer(ctx context.Context, pod PodSandbox, ctr Con
 		return nil
 	}
 
+	status := ctr.GetStatus()
+
 	l.Lock()
 	defer l.Unlock()
 
 	request := &nri.PostCreateContainerRequest{
 		Pod:       podSandboxToNRI(pod),
-		Container: containerToNRI(ctr),
+		Container: containerToNRI(ctr, status),
 	}
 
 	err := l.nri.PostCreateContainer(ctx, request)
@@ -290,12 +301,14 @@ func (l *local) StartContainer(ctx context.Context, pod PodSandbox, ctr Containe
 		return nil
 	}
 
+	status := ctr.GetStatus()
+
 	l.Lock()
 	defer l.Unlock()
 
 	request := &nri.StartContainerRequest{
 		Pod:       podSandboxToNRI(pod),
-		Container: containerToNRI(ctr),
+		Container: containerToNRI(ctr, status),
 	}
 
 	err := l.nri.StartContainer(ctx, request)
@@ -310,12 +323,14 @@ func (l *local) PostStartContainer(ctx context.Context, pod PodSandbox, ctr Cont
 		return nil
 	}
 
+	status := ctr.GetStatus()
+
 	l.Lock()
 	defer l.Unlock()
 
 	request := &nri.PostStartContainerRequest{
 		Pod:       podSandboxToNRI(pod),
-		Container: containerToNRI(ctr),
+		Container: containerToNRI(ctr, status),
 	}
 
 	err := l.nri.PostStartContainer(ctx, request)
@@ -333,12 +348,14 @@ func (l *local) UpdateContainer(
 		return nil, nil
 	}
 
+	status := ctr.GetStatus()
+
 	l.Lock()
 	defer l.Unlock()
 
 	request := &nri.UpdateContainerRequest{
 		Pod:            podSandboxToNRI(pod),
-		Container:      containerToNRI(ctr),
+		Container:      containerToNRI(ctr, status),
 		LinuxResources: req,
 	}
 
@@ -372,12 +389,14 @@ func (l *local) PostUpdateContainer(ctx context.Context, pod PodSandbox, ctr Con
 		return nil
 	}
 
+	status := ctr.GetStatus()
+
 	l.Lock()
 	defer l.Unlock()
 
 	request := &nri.PostUpdateContainerRequest{
 		Pod:       podSandboxToNRI(pod),
-		Container: containerToNRI(ctr),
+		Container: containerToNRI(ctr, status),
 	}
 
 	err := l.nri.PostUpdateContainer(ctx, request)
@@ -390,20 +409,24 @@ func (l *local) StopContainer(ctx context.Context, pod PodSandbox, ctr Container
 		return nil
 	}
 
+	status := ctr.GetStatus()
+
 	l.Lock()
 	defer l.Unlock()
 
-	return l.stopContainer(ctx, pod, ctr)
-}
-
-func (l *local) stopContainer(ctx context.Context, pod PodSandbox, ctr Container) error {
-	if !l.needsStopping(ctr.GetID()) {
-		return nil
-	}
-
 	request := &nri.StopContainerRequest{
 		Pod:       podSandboxToNRI(pod),
-		Container: containerToNRI(ctr),
+		Container: containerToNRI(ctr, status),
+	}
+
+	return l.stopContainer(ctx, request)
+}
+
+// stopContainer sends a StopContainer request to the plugins. The lock must
+// be held by the caller.
+func (l *local) stopContainer(ctx context.Context, request *nri.StopContainerRequest) error {
+	if !l.needsStopping(request.GetContainer().GetId()) {
+		return nil
 	}
 
 	response, err := l.nri.StopContainer(ctx, request)
@@ -423,20 +446,27 @@ func (l *local) RemoveContainer(ctx context.Context, pod PodSandbox, ctr Contain
 		return nil
 	}
 
+	status := ctr.GetStatus()
+
 	l.Lock()
 	defer l.Unlock()
 
-	if !l.needsRemoval(ctr.GetID()) {
+	podNRI, ctrNRI := podSandboxToNRI(pod), containerToNRI(ctr, status)
+	stopRequest := &nri.StopContainerRequest{
+		Pod:       podNRI,
+		Container: ctrNRI,
+	}
+	request := &nri.RemoveContainerRequest{
+		Pod:       podNRI,
+		Container: ctrNRI,
+	}
+
+	if !l.needsRemoval(request.GetContainer().GetId()) {
 		return nil
 	}
 
-	if err := l.stopContainer(ctx, pod, ctr); err != nil {
+	if err := l.stopContainer(ctx, stopRequest); err != nil {
 		log.Warnf(ctx, "Container NRI stop request failed: %v", err)
-	}
-
-	request := &nri.RemoveContainerRequest{
-		Pod:       podSandboxToNRI(pod),
-		Container: containerToNRI(ctr),
 	}
 
 	err := l.nri.RemoveContainer(ctx, request)
@@ -450,6 +480,10 @@ func (l *local) IsEnabled() bool {
 }
 
 func (l *local) syncPlugin(ctx context.Context, syncFn nri.SyncCB) error {
+	// The snapshot must be taken under the mutex: otherwise a container
+	// removed between the snapshot and the lock would be re-added to the
+	// bookkeeping below and reported to the plugin as running, and never
+	// removed again. See the comment on the mutex for the consequence.
 	l.Lock()
 	defer l.Unlock()
 
