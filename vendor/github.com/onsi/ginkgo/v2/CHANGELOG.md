@@ -1,3 +1,8 @@
+## 2.32.2
+
+### Fixes
+- fix bug where ginkgo -race -p was taking extra long to exit [c6792b0]
+
 ## 2.32.1
 
 ### Fixes
