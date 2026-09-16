@@ -189,7 +189,8 @@ test-binaries: \
 	test/checkseccomp/checkseccomp \
 	test/checkcriu/checkcriu \
 	test/updateunified/updateunified \
-	test/nri/nri.test
+	test/nri/nri.test \
+	test/synctrace/synctrace
 
 bin/pinns: ## Build pinns.
 	$(MAKE) -C pinns
@@ -205,6 +206,9 @@ test/checkcriu/checkcriu: $(GO_FILES) ## Build the checkcriu test binary.
 
 test/updateunified/updateunified: $(GO_FILES) ## Build the updateunified test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/updateunified
+
+test/synctrace/synctrace: $(GO_FILES) ## Build the synctrace test binary.
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/synctrace
 
 test/nri/nri.test: $(wildcard test/nri/*.go) ## Build the NRI test binary.
 	$(GO_TEST) $(GCFLAGS) $(GO_LDFLAGS) --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
@@ -425,6 +429,7 @@ clean: ## Clean the repository.
 	rm -f test/checkcriu/checkcriu
 	rm -f test/updateunified/updateunified
 	rm -f test/nri/nri.test
+	rm -f test/synctrace/synctrace
 	rm -rf ${BUILD_PATH}
 
 .PHONY: nixpkgs
