@@ -67,6 +67,14 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	}
 
 	if err := s.ContainerServer.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
+		// Map request cancellation, not a context error originating in the runtime.
+		if ctxErr := ctx.Err(); ctxErr != nil && isContextError(err) {
+			return status.Errorf(
+				status.FromContextError(ctxErr).Code(),
+				"failed to stop container %s: %v", ctr.ID(), err,
+			)
+		}
+
 		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 	}
 
