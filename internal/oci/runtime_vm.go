@@ -963,6 +963,15 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 				return nil
 			}
 
+			if errors.Is(err, os.ErrNotExist) {
+				log.Warnf(ctx,
+					"Shim address file missing for %s, marking container stopped", c.ID())
+				c.state.Status = ContainerStateStopped
+				c.state.Finished = time.Now()
+
+				return nil
+			}
+
 			log.Warnf(ctx, "Failed to read shim address: %v", err)
 
 			return errors.New("runtime not correctly setup")
@@ -972,7 +981,16 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 
 		conn, err := client.Connect(address, client.AnonDialer)
 		if err != nil {
-			return err
+			log.Warnf(ctx,
+				"Failed to reconnect to shim for %s, marking container stopped: %v",
+				c.ID(), err)
+
+			if c.state.Status != ContainerStateStopped {
+				c.state.Status = ContainerStateStopped
+				c.state.Finished = time.Now()
+			}
+
+			return nil
 		}
 
 		options := ttrpc.WithOnClose(func() { conn.Close() })
