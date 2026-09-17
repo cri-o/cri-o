@@ -1030,19 +1030,16 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 		}
 
-		src := filepath.Join(bindMountPrefix, m.HostPath)
-
-		resolvedSrc, err := resolveSymbolicLink(bindMountPrefix, src)
-		if err == nil {
-			src = resolvedSrc
-		} else {
+		src, err := resolveSymbolicLink(bindMountPrefix, m.HostPath)
+		if err != nil {
 			if !os.IsNotExist(err) {
-				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
+				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", m.HostPath, err)
 			}
+
+			// Preserve reject-list matching through intermediate symlinks.
+			originalSrc := filepath.Join(bindMountPrefix, m.HostPath)
 			for _, toReject := range absentMountSourcesToReject {
-				if filepath.Clean(src) == toReject {
-					// special-case /etc/hostname, as we don't want it to be created as a directory
-					// This can cause issues with node reboot.
+				if originalSrc == toReject || src == toReject {
 					return nil, nil, fmt.Errorf("cannot mount %s: path does not exist and will cause issues as a directory", toReject)
 				}
 			}
