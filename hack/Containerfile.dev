@@ -19,12 +19,12 @@ RUN dnf install -y \
 # Install Go. Keep GOVERSION in sync with go.mod, and update the pinned
 # checksums below when bumping it (see https://go.dev/dl/?mode=json&include=all).
 ARG TARGETARCH
-ENV GOVERSION=1.26.4
+ENV GOVERSION=1.27.1
 RUN case "${TARGETARCH}" in \
-        amd64)   GO_SHA256=1153d3d50e0ac764b447adfe05c2bcf08e889d42a02e0fe0259bd47f6733ad7f ;; \
-        arm64)   GO_SHA256=ef758ae7c6cf9267c9c0ef080b8965f453d89ab2d25d9eb22de4405925238768 ;; \
-        ppc64le) GO_SHA256=53f49b8c7eace2d30389327b4a516b13321f90377fdf5929a6b63174609bc22e ;; \
-        s390x)   GO_SHA256=1e12a2318f3dd4c57027c865f6cb51f5d1e36b02d10f3e6316ce7b61a27b3ca1 ;; \
+        amd64)   GO_SHA256=63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445 ;; \
+        arm64)   GO_SHA256=3450b45a3f9ee8568792736a5c5e70a1f2e9b36c35a8f74958c03e51d7d92bec ;; \
+        ppc64le) GO_SHA256=ad1ff83c24f783c2d4a025852b928a05c199e8742a14a5482d88de0293d2bd0d ;; \
+        s390x)   GO_SHA256=c9e1ad7bddea40e2eb10b4d3267ae06d462667839bf0ba94c2e2d160b06f9b9e ;; \
         *) echo "unsupported TARGETARCH: ${TARGETARCH:-unset}" >&2; exit 1 ;; \
     esac && \
     curl -fsSL "https://go.dev/dl/go${GOVERSION}.linux-${TARGETARCH}.tar.gz" -o /tmp/go.tar.gz && \
