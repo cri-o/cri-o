@@ -186,6 +186,7 @@ binaries: bin/crio bin/pinns ## Build all binaries.
 test-binaries: ## Build all test-binaries.
 test-binaries: \
 	test/copyimg/copyimg \
+	test/registry/registry \
 	test/checkseccomp/checkseccomp \
 	test/checkcriu/checkcriu \
 	test/updateunified/updateunified \
@@ -196,6 +197,9 @@ bin/pinns: ## Build pinns.
 
 test/copyimg/copyimg: $(GO_FILES) ## Build the compyimg test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/copyimg
+
+test/registry/registry: $(GO_FILES) ## Build the registry test binary.
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/registry
 
 test/checkseccomp/checkseccomp: $(GO_FILES) ## Build the checkseccomp test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
@@ -423,6 +427,7 @@ clean: ## Clean the repository.
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -f test/checkcriu/checkcriu
+	rm -f test/registry/registry
 	rm -f test/updateunified/updateunified
 	rm -f test/nri/nri.test
 	rm -rf ${BUILD_PATH}

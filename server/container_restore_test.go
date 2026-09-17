@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/unshare"
 	"go.uber.org/mock/gomock"
@@ -347,7 +346,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 
 			err := os.WriteFile(
@@ -429,7 +428,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				// Given
 				addContainerAndSandbox()
 				testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-					State: specs.State{Status: oci.ContainerStateRunning},
+					Status: oci.ContainerStateRunning,
 				})
 
 				err := os.WriteFile(

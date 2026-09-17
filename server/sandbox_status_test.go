@@ -26,7 +26,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 
 			// When
@@ -42,7 +42,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 
 			const (
@@ -78,7 +78,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 

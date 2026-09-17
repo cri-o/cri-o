@@ -67,7 +67,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			}
 
 			myContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
@@ -100,7 +100,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			}
 
 			myContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
@@ -162,7 +162,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			defer os.RemoveAll("cp.tar")
 
 			myContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
@@ -194,7 +194,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			}
 
 			myContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 

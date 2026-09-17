@@ -30,7 +30,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 				},
 			})
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			addContainerAndSandbox()
 
@@ -53,7 +53,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 				},
 			})
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			addContainerAndSandbox()
 
@@ -95,7 +95,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 				},
 			})
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			addContainerAndSandbox()
 
@@ -177,7 +177,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 				},
 			})
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			addContainerAndSandbox()
 

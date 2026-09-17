@@ -27,6 +27,9 @@ SIGNED_IMAGE="$REGISTRY/signed"
 
 SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
+MLDSA_POLICY="$INTEGRATION_ROOT/policy-signature-mldsa.json"
+MLDSA_IMAGE="quay.io/harpatil/crio-mldsa"
+
 @test "accept unsigned image with default policy" {
 	start_crio
 
@@ -353,4 +356,63 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 	run ! crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json"
 	[[ "$output" == *"SignatureValidationFailed"* ]]
+}
+
+@test "accept ML-DSA-44 signed image with restrictive policy" {
+	SIGNATURE_POLICY="$MLDSA_POLICY" start_crio
+
+	crictl_pull "$MLDSA_IMAGE:mldsa44"
+
+	assert_log "$MLDSA_POLICY"
+}
+
+@test "accept ML-DSA-65 signed image with restrictive policy" {
+	SIGNATURE_POLICY="$MLDSA_POLICY" start_crio
+
+	crictl_pull "$MLDSA_IMAGE:mldsa65"
+
+	assert_log "$MLDSA_POLICY"
+}
+
+@test "accept ML-DSA-87 signed image with restrictive policy" {
+	SIGNATURE_POLICY="$MLDSA_POLICY" start_crio
+
+	crictl_pull "$MLDSA_IMAGE:mldsa87"
+
+	assert_log "$MLDSA_POLICY"
+}
+
+@test "deny ML-DSA signed image with untrusted key" {
+	POLICY="$TESTDIR/policy.json"
+	jq --arg key "$(base64 -w0 "$TESTDATA/mldsa65-untrusted.pub")" \
+		'.transports.docker["'"$MLDSA_IMAGE:mldsa65"'"][0].keyData = $key' "$MLDSA_POLICY" > "$POLICY"
+	SIGNATURE_POLICY="$POLICY" start_crio
+
+	run ! crictl pull "$MLDSA_IMAGE:mldsa65"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	[[ "$output" == *"cryptographic signature verification failed"* ]]
+	assert_log "$POLICY"
+}
+
+@test "deny ML-DSA signed image with key of different parameter set" {
+	POLICY="$TESTDIR/policy.json"
+	jq '.transports.docker["'"$MLDSA_IMAGE:mldsa65"'"][0].keyData = .transports.docker["'"$MLDSA_IMAGE:mldsa44"'"][0].keyData' \
+		"$MLDSA_POLICY" > "$POLICY"
+	SIGNATURE_POLICY="$POLICY" start_crio
+
+	run ! crictl pull "$MLDSA_IMAGE:mldsa65"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	[[ "$output" == *"cryptographic signature verification failed"* ]]
+	assert_log "$POLICY"
+}
+
+@test "deny unsigned image with ML-DSA policy" {
+	SIGNATURE_POLICY="$MLDSA_POLICY" start_crio
+
+	run ! crictl pull "$MLDSA_IMAGE:unsigned"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	assert_log "$MLDSA_POLICY"
 }

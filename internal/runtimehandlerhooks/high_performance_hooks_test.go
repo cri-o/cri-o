@@ -1871,14 +1871,12 @@ var _ = Describe("high_performance_hooks", func() {
 				runtimeName = "high-performance"
 				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancing: "disable"}
 				cfg = &config.Config{
-					RuntimeConfig: config.RuntimeConfig{
-						IrqBalanceConfigFile: irqBalanceConfigFile,
-						Runtimes: config.Runtimes{
-							"high-performance": {
-								AllowedAnnotations: []string{},
-							},
-							"default": {},
+					IrqBalanceConfigFile: irqBalanceConfigFile,
+					Runtimes: config.Runtimes{
+						"high-performance": {
+							AllowedAnnotations: []string{},
 						},
+						"default": {},
 					},
 				}
 				cfg.SetCgroupManager(mockCgMgr)
@@ -1905,14 +1903,12 @@ var _ = Describe("high_performance_hooks", func() {
 				runtimeName = "high-performance"
 				sandboxAnnotations = map[string]string{}
 				cfg = &config.Config{
-					RuntimeConfig: config.RuntimeConfig{
-						IrqBalanceConfigFile: irqBalanceConfigFile,
-						Runtimes: config.Runtimes{
-							"high-performance": {
-								AllowedAnnotations: []string{},
-							},
-							"default": {},
+					IrqBalanceConfigFile: irqBalanceConfigFile,
+					Runtimes: config.Runtimes{
+						"high-performance": {
+							AllowedAnnotations: []string{},
 						},
+						"default": {},
 					},
 				}
 				cfg.SetCgroupManager(mockCgMgr)
@@ -1969,16 +1965,14 @@ var _ = Describe("high_performance_hooks", func() {
 				runtimeName = "hp"
 				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancing: "disable"}
 				cfg = &config.Config{
-					RuntimeConfig: config.RuntimeConfig{
-						IrqBalanceConfigFile: irqBalanceConfigFile,
-						Runtimes: config.Runtimes{
-							"hp": {
-								AllowedAnnotations: []string{
-									crioannotations.IRQLoadBalancing,
-								},
+					IrqBalanceConfigFile: irqBalanceConfigFile,
+					Runtimes: config.Runtimes{
+						"hp": {
+							AllowedAnnotations: []string{
+								crioannotations.IRQLoadBalancing,
 							},
-							"default": {},
 						},
+						"default": {},
 					},
 				}
 				cfg.SetCgroupManager(mockCgMgr)
@@ -2005,16 +1999,14 @@ var _ = Describe("high_performance_hooks", func() {
 				runtimeName = "hp"
 				sandboxAnnotations = map[string]string{}
 				cfg = &config.Config{
-					RuntimeConfig: config.RuntimeConfig{
-						IrqBalanceConfigFile: irqBalanceConfigFile,
-						Runtimes: config.Runtimes{
-							"hp": {
-								AllowedAnnotations: []string{
-									crioannotations.IRQLoadBalancing,
-								},
+					IrqBalanceConfigFile: irqBalanceConfigFile,
+					Runtimes: config.Runtimes{
+						"hp": {
+							AllowedAnnotations: []string{
+								crioannotations.IRQLoadBalancing,
 							},
-							"default": {},
 						},
+						"default": {},
 					},
 				}
 				cfg.SetCgroupManager(mockCgMgr)
@@ -2045,11 +2037,9 @@ var _ = Describe("high_performance_hooks", func() {
 				runtimeName = "default"
 				sandboxAnnotations = map[string]string{crioannotations.IRQLoadBalancing: "disable"}
 				cfg = &config.Config{
-					RuntimeConfig: config.RuntimeConfig{
-						IrqBalanceConfigFile: irqBalanceConfigFile,
-						Runtimes: config.Runtimes{
-							"default": {},
-						},
+					IrqBalanceConfigFile: irqBalanceConfigFile,
+					Runtimes: config.Runtimes{
+						"default": {},
 					},
 				}
 				cfg.SetCgroupManager(mockCgMgr)
@@ -2078,24 +2068,22 @@ var _ = Describe("high_performance_hooks", func() {
 					runtimeName = "default"
 					sandboxAnnotations = map[string]string{}
 					cfg = &config.Config{
-						RuntimeConfig: config.RuntimeConfig{
-							IrqBalanceConfigFile: irqBalanceConfigFile,
-							Runtimes: config.Runtimes{
-								"high-performance": {
-									AllowedAnnotations: []string{},
-								},
-								"hp": {
-									AllowedAnnotations: []string{
-										crioannotations.IRQLoadBalancing,
-									},
-								},
-								"cpu-balancing-anywhere": {
-									AllowedAnnotations: []string{
-										crioannotations.CPULoadBalancing,
-									},
-								},
-								"default": {},
+						IrqBalanceConfigFile: irqBalanceConfigFile,
+						Runtimes: config.Runtimes{
+							"high-performance": {
+								AllowedAnnotations: []string{},
 							},
+							"hp": {
+								AllowedAnnotations: []string{
+									crioannotations.IRQLoadBalancing,
+								},
+							},
+							"cpu-balancing-anywhere": {
+								AllowedAnnotations: []string{
+									crioannotations.CPULoadBalancing,
+								},
+							},
+							"default": {},
 						},
 					}
 					cfg.SetCgroupManager(mockCgMgr)
