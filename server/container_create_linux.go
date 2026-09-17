@@ -456,20 +456,12 @@ func (s *Server) addOCIBindMounts(
 	}
 
 	if _, mountSys := mountSet["/sys"]; !mountSys {
-		m := rspec.Mount{
-			Destination: cgroupSysFsPath,
-			Type:        "cgroup",
-			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "relatime"},
-		}
-
+		accessOption := "ro"
 		if cgroup2RW {
-			m.Options = append(m.Options, "rw")
-		} else {
-			m.Options = append(m.Options, "ro")
+			accessOption = "rw"
 		}
 
-		specgen.AddMount(m)
+		specgen.AddMount(cgroupMount(accessOption))
 	}
 
 	return volumes, ociMounts, safeMounts, nil
@@ -1040,12 +1032,7 @@ func addSysfsMounts(
 					Source:      "sysfs",
 					Options:     []string{"nosuid", "noexec", "nodev", "ro"},
 				})
-				ctr.SpecAddMount(rspec.Mount{
-					Destination: cgroupSysFsPath,
-					Type:        "cgroup",
-					Source:      "cgroup",
-					Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
-				})
+				ctr.SpecAddMount(cgroupMount("ro"))
 			}
 		}
 	}
