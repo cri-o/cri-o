@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 	cstorage "go.podman.io/storage"
 	drivers "go.podman.io/storage/drivers"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -119,7 +118,7 @@ func newRunningContainer(t *testing.T, id, name string) *oci.Container {
 	}
 
 	ctr.SetStateAndSpoofPid(&oci.ContainerState{
-		State: specs.State{Status: oci.ContainerStateRunning},
+		Status: oci.ContainerStateRunning,
 	})
 
 	return ctr

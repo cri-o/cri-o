@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/cri-o/cri-o/internal/oci"
 )
@@ -157,9 +156,7 @@ var _ = t.Describe("Inspect", func() {
 			func() {
 				// Given
 				state := &oci.ContainerState{
-					State: specs.State{
-						Status: oci.ContainerStateRunning,
-					},
+					Status: oci.ContainerStateRunning,
 				}
 				testContainer.SetState(state)
 				addContainerAndSandbox()
@@ -184,9 +181,7 @@ var _ = t.Describe("Inspect", func() {
 			func() {
 				// Given
 				state := &oci.ContainerState{
-					State: specs.State{
-						Status: oci.ContainerStatePaused,
-					},
+					Status: oci.ContainerStatePaused,
 				}
 				testContainer.SetState(state)
 				addContainerAndSandbox()
@@ -235,9 +230,7 @@ var _ = t.Describe("Inspect", func() {
 			func() {
 				// Given
 				state := &oci.ContainerState{
-					State: specs.State{
-						Status: oci.ContainerStatePaused,
-					},
+					Status: oci.ContainerStatePaused,
 				}
 				testContainer.SetState(state)
 				addContainerAndSandbox()
@@ -260,9 +253,7 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail with valid container ID on /unpause route with running container", func() {
 			// Given
 			state := &oci.ContainerState{
-				State: specs.State{
-					Status: oci.ContainerStateRunning,
-				},
+				Status: oci.ContainerStateRunning,
 			}
 			testContainer.SetState(state)
 			addContainerAndSandbox()

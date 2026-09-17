@@ -59,8 +59,9 @@ var _ = t.Describe("ContainerStatsList", func() {
 		})
 		It("should filter stopped container", func() {
 			// Given
-			state := oci.ContainerState{}
-			state.Status = oci.ContainerStateStopped
+			state := oci.ContainerState{
+				Status: oci.ContainerStateStopped,
+			}
 			testContainer.SetState(&state)
 			addContainerAndSandbox()
 

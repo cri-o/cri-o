@@ -42,7 +42,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			addContainerAndSandbox()
 
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 

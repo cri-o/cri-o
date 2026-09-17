@@ -64,7 +64,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			addContainerAndSandbox()
 
 			myContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 
@@ -121,7 +121,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			}
 
 			myContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateStopped},
+				Status: oci.ContainerStateStopped,
 			})
 			myContainer.SetSpec(&specs.Spec{
 				Version: "1.0.0",
@@ -185,7 +185,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			addContainerAndSandbox()
 
 			myContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateStopped},
+				Status: oci.ContainerStateStopped,
 			})
 
 			myContainer.SetSpec(&specs.Spec{
@@ -296,7 +296,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			addContainerAndSandbox()
 
 			myContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateStopped},
+				Status: oci.ContainerStateStopped,
 			})
 
 			myContainer.SetSpec(&specs.Spec{

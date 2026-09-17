@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/oci"
@@ -50,16 +49,16 @@ var _ = t.Describe("ContainerList", func() {
 			}
 		},
 			Entry("Created 1", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateCreated},
+				Status: oci.ContainerStateCreated,
 			}, types.ContainerState_CONTAINER_CREATED, true),
 			Entry("Created 2", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateCreated},
+				Status: oci.ContainerStateCreated,
 			}, types.ContainerState_CONTAINER_CREATED, false),
 			Entry("Running", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			}, types.ContainerState_CONTAINER_RUNNING, true),
 			Entry("Stopped", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateStopped},
+				Status: oci.ContainerStateStopped,
 			}, types.ContainerState_CONTAINER_EXITED, true),
 		)
 

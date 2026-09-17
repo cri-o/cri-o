@@ -67,9 +67,7 @@ var _ = t.Describe("Image", func() {
 			SystemContext: &types.SystemContext{
 				SystemRegistriesConfPath: t.MustTempFile("registries"),
 			},
-			ImageConfig: config.ImageConfig{
-				DefaultTransport: "docker://",
-			},
+			DefaultTransport: "docker://",
 		}
 
 		sut, err = storage.GetImageService(
@@ -103,9 +101,7 @@ var _ = t.Describe("Image", func() {
 				SystemContext: &types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
-				ImageConfig: config.ImageConfig{
-					DefaultTransport: "",
-				},
+				DefaultTransport: "",
 			}
 			imageService, err := storage.GetImageService(
 				context.Background(),
@@ -285,10 +281,8 @@ var _ = t.Describe("Image", func() {
 			gomock.InOrder()
 
 			config := &config.Config{
-				SystemContext: ctx,
-				ImageConfig: config.ImageConfig{
-					DefaultTransport: "",
-				},
+				SystemContext:    ctx,
+				DefaultTransport: "",
 			}
 			// Create an empty file for the registries config path
 			sut, err := storage.GetImageService(
