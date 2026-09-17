@@ -201,25 +201,37 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 	return mounts, nil
 }
 
-// resolveSymbolicLink resolves a possible symlink path. If the path is a symlink, returns resolved
-// path; if not, returns the original path.
-// note: strictly SecureJoin is not sufficient, as it does not error when a part of the path doesn't exist
-// but simply moves on. If the last part of the path doesn't exist, it may need to be created.
+// resolveSymbolicLink confines path to scope. With an empty or root scope,
+// it preserves the legacy behavior of only resolving a final symlink.
+// On os.IsNotExist errors it returns the source path for the caller to create.
 func resolveSymbolicLink(scope, path string) (string, error) {
-	info, err := os.Lstat(path)
+	if scope == "" || scope == "/" {
+		path = filepath.Join(scope, path)
+
+		info, err := os.Lstat(path)
+		if err != nil {
+			return path, err
+		}
+
+		// Preserve kernel resolution of intermediate symlinks, including
+		// /proc magic links that refer to another process's filesystem.
+		if info.Mode()&os.ModeSymlink == 0 {
+			return path, nil
+		}
+
+		return securejoin.SecureJoin("/", path)
+	}
+
+	resolved, err := securejoin.SecureJoin(scope, path)
 	if err != nil {
 		return "", err
 	}
 
-	if info.Mode()&os.ModeSymlink != os.ModeSymlink {
-		return path, nil
+	if _, err := os.Lstat(resolved); err != nil {
+		return resolved, err
 	}
 
-	if scope == "" {
-		scope = "/"
-	}
-
-	return securejoin.SecureJoin(scope, path)
+	return resolved, nil
 }
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config.
