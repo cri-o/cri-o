@@ -8,6 +8,15 @@ import "fmt"
 // a reload can never expose a torn combination of a new Runtimes table with
 // an old (or no longer existing) DefaultRuntime, nor a partially applied
 // reload.
+//
+// Consumers must follow one rule when reading runtime configuration: take a
+// snapshot once and resolve every value of one logical operation (validation,
+// handler selection, runtime type, the default runtime, ...) from that single
+// snapshot. Resolving different values from separate loads can observe
+// different configurations while a reload publishes a new one. When an
+// operation spans several components, like sandbox creation validating the
+// handler and later resolving its runtime type, pass the snapshot along
+// instead of loading it again.
 type RuntimeSnapshot struct {
 	// Runtimes is the runtime handler table of the snapshot.
 	Runtimes Runtimes
