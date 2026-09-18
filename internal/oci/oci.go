@@ -125,19 +125,7 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 		return nil, errors.New("empty runtime handler")
 	}
 
-	snapshot := r.config.RuntimeSnapshot()
-
-	runtimeHandler, ok := snapshot.Runtimes[handler]
-	if !ok {
-		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
-			handler, snapshot.Runtimes)
-	}
-
-	if runtimeHandler.RuntimePath == "" {
-		return nil, fmt.Errorf("empty runtime path for runtime handler %s", handler)
-	}
-
-	return runtimeHandler, nil
+	return r.config.RuntimeSnapshot().ValidateRuntimeHandler(handler)
 }
 
 func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
@@ -155,9 +143,11 @@ func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, err
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this
-	// specific container.
+	// specific container. Validate against the same snapshot taken
+	// above, so the default resolution and the explicit lookup can
+	// never straddle a reload.
 	if handler != "" {
-		runtimeHandler, err := r.ValidateRuntimeHandler(handler)
+		runtimeHandler, err := snapshot.ValidateRuntimeHandler(handler)
 		if err != nil {
 			return nil, err
 		}
@@ -216,30 +206,26 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 	return rh.RuntimeType, nil
 }
 
-// RuntimeTypeFromSnapshot resolves the runtime type and, for an empty
-// handler, whether the default runtime of the snapshot is a kata runtime,
-// all from a single runtime snapshot. Use it when the runtime type and
-// the default runtime must describe the same configuration, like the
-// kernel separation detection during sandbox creation, where two separate
-// snapshot loads could observe different configurations during a reload.
-func (r *Runtime) RuntimeTypeFromSnapshot(handler string) (string, bool, error) {
-	snapshot := r.config.RuntimeSnapshot()
+// RuntimeTypeInSnapshot returns the runtime type of the handler in the
+// provided runtime snapshot and, for an empty handler, whether the default
+// runtime of the snapshot is a kata runtime. All values describe the same
+// snapshot, so use it when the runtime type and the default runtime must
+// describe one configuration, like the kernel separation detection during
+// sandbox creation, where separate snapshot loads could observe different
+// configurations during a reload.
+func (r *Runtime) RuntimeTypeInSnapshot(snapshot *config.RuntimeSnapshot, handler string) (string, bool, error) {
+	// Callers that did not validate an explicit handler do not carry a
+	// snapshot; resolve the current one for them, so that all values of
+	// this call still describe a single configuration.
+	if snapshot == nil {
+		snapshot = r.config.RuntimeSnapshot()
+	}
 
 	var rh *config.RuntimeHandler
 	if handler != "" {
-		var ok bool
-		rh, ok = snapshot.Runtimes[handler]
-		if !ok {
-			return "", false, fmt.Errorf(
-				"failed to find runtime handler %s from runtime list %v",
-				handler, snapshot.Runtimes,
-			)
-		}
-
-		if rh.RuntimePath == "" {
-			return "", false, fmt.Errorf(
-				"empty runtime path for runtime handler %s", handler,
-			)
+		var err error
+		if rh, err = snapshot.ValidateRuntimeHandler(handler); err != nil {
+			return "", false, err
 		}
 	} else {
 		rh = snapshot.RuntimeHandler("")

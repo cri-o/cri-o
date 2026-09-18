@@ -550,7 +550,7 @@ func (s *Server) runPodSandbox(
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox network ready")
 
 	// validate the runtime handler
-	runtimeHandler, err := s.runtimeHandler(req)
+	runtimeHandler, runtimeSnapshot, err := s.runtimeHandler(req)
 	if err != nil {
 		return nil, err
 	}
@@ -935,6 +935,7 @@ func (s *Server) runPodSandbox(
 		sboxID,
 		containerName,
 		runtimeHandler,
+		runtimeSnapshot,
 		cgroupParent,
 		&podContainer,
 		logPath,
@@ -1639,7 +1640,9 @@ func (s *Server) setupInfraContainer(
 	ctx context.Context,
 	sb *libsandbox.Sandbox,
 	g *generate.Generator,
-	sboxID, containerName, runtimeHandler, cgroupParent string,
+	sboxID, containerName, runtimeHandler string,
+	runtimeSnapshot *libconfig.RuntimeSnapshot,
+	cgroupParent string,
 	podContainer *istorage.ContainerInfo,
 	logPath string,
 	labels, kubeAnnotations map[string]string,
@@ -1647,10 +1650,11 @@ func (s *Server) setupInfraContainer(
 	created time.Time,
 	processLabel string,
 ) (*oci.Container, string, error) {
-	// Resolve the runtime type and the default runtime from a single
-	// snapshot, so that both always describe the same configuration even
-	// when a reload publishes a new one concurrently.
-	runtimeType, defaultIsKata, err := s.ContainerServer.Runtime().RuntimeTypeFromSnapshot(runtimeHandler)
+	// Resolve the runtime type and the default runtime from the snapshot
+	// the handler was validated against, so that all values always
+	// describe the same configuration even when a reload publishes a new
+	// one concurrently.
+	runtimeType, defaultIsKata, err := s.ContainerServer.Runtime().RuntimeTypeInSnapshot(runtimeSnapshot, runtimeHandler)
 	if err != nil {
 		return nil, "", err
 	}

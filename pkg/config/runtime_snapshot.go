@@ -1,5 +1,7 @@
 package config
 
+import "fmt"
+
 // RuntimeSnapshot is an immutable view of the runtime handler table and the
 // default runtime, published as a single unit. Readers load one snapshot via
 // Config.RuntimeSnapshot instead of reading the live RuntimeConfig fields, so
@@ -13,6 +15,23 @@ type RuntimeSnapshot struct {
 	// DefaultRuntime is the name of the default runtime handler of the
 	// snapshot.
 	DefaultRuntime string
+}
+
+// ValidateRuntimeHandler returns the runtime handler of the snapshot if it
+// exists and specifies a runtime path. The provided handler name must not be
+// empty; use RuntimeHandler for resolving the default runtime instead.
+func (s *RuntimeSnapshot) ValidateRuntimeHandler(handler string) (*RuntimeHandler, error) {
+	runtimeHandler, ok := s.Runtimes[handler]
+	if !ok {
+		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
+			handler, s.Runtimes)
+	}
+
+	if runtimeHandler.RuntimePath == "" {
+		return nil, fmt.Errorf("empty runtime path for runtime handler %s", handler)
+	}
+
+	return runtimeHandler, nil
 }
 
 // RuntimeHandler returns the runtime handler of the snapshot for the

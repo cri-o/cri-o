@@ -10,6 +10,7 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 const (
@@ -52,17 +53,23 @@ func (s *Server) privilegedSandbox(req *types.RunPodSandboxRequest) bool {
 // does exist and the associated data are valid. If the key is empty, there
 // is nothing to do, and the empty key is returned. For every other case, this
 // function will return an empty string with the error associated.
-func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, error) {
+//
+// The runtime snapshot the handler was validated against is returned as
+// well, so that the caller can resolve all further runtime properties from
+// that same configuration instead of looking up a potentially concurrently
+// reloaded one.
+func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, *libconfig.RuntimeSnapshot, error) {
 	handler := req.GetRuntimeHandler()
 	if handler == "" {
-		return handler, nil
+		return handler, nil, nil
 	}
 
-	if _, err := s.ContainerServer.Runtime().ValidateRuntimeHandler(handler); err != nil {
-		return "", err
+	snapshot := s.config.RuntimeSnapshot()
+	if _, err := snapshot.ValidateRuntimeHandler(handler); err != nil {
+		return "", nil, err
 	}
 
-	return handler, nil
+	return handler, snapshot, nil
 }
 
 // RunPodSandbox creates and runs a pod-level sandbox.
