@@ -101,6 +101,12 @@ func New(c *config.Config) (*Runtime, error) {
 		return nil, fmt.Errorf("create oci runtime pid dir: %w", err)
 	}
 
+	// Publish the current runtime configuration as the initial snapshot,
+	// so that all lookups of this runtime are backed by it from the very
+	// beginning. This is idempotent with the publication of the validated
+	// configuration in Config.Validate.
+	c.PublishRuntimeSnapshot()
+
 	return &Runtime{
 		config:         c,
 		runtimeImplMap: make(map[string]RuntimeImpl),
@@ -109,9 +115,7 @@ func New(c *config.Config) (*Runtime, error) {
 
 // Runtimes returns the map of OCI runtimes.
 func (r *Runtime) Runtimes() config.Runtimes {
-	runtimes, _ := r.config.RuntimeHandlers()
-
-	return runtimes
+	return r.config.RuntimeSnapshot().Runtimes
 }
 
 // ValidateRuntimeHandler returns an error if the runtime handler string
@@ -121,12 +125,12 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 		return nil, errors.New("empty runtime handler")
 	}
 
-	runtimes, _ := r.config.RuntimeHandlers()
+	snapshot := r.config.RuntimeSnapshot()
 
-	runtimeHandler, ok := runtimes[handler]
+	runtimeHandler, ok := snapshot.Runtimes[handler]
 	if !ok {
 		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
-			handler, runtimes)
+			handler, snapshot.Runtimes)
 	}
 
 	if runtimeHandler.RuntimePath == "" {
@@ -137,9 +141,17 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 }
 
 func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
+	// Take a single snapshot of the runtime configuration, so that the
+	// default runtime and the handler table of this lookup always match,
+	// even when a reload publishes a new configuration concurrently.
+	snapshot := r.config.RuntimeSnapshot()
+
 	// Define the current runtime handler as the default runtime handler.
-	runtimes, defaultRuntime := r.config.RuntimeHandlers()
-	rh := runtimes[defaultRuntime]
+	rh := snapshot.RuntimeHandler("")
+	if rh == nil {
+		return nil, fmt.Errorf("default runtime handler %q not found in runtime list %v",
+			snapshot.DefaultRuntime, snapshot.Runtimes)
+	}
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this
