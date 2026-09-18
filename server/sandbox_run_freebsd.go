@@ -449,7 +449,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// A container is kernel separated if we're using shimv2, or we're using a kata v1 binary
 	podIsKernelSeparated := runtimeType == libconfig.RuntimeTypeVM ||
 		strings.Contains(strings.ToLower(runtimeHandler), "kata") ||
-		(runtimeHandler == "" && strings.Contains(strings.ToLower(s.config.DefaultRuntime), "kata"))
+		(runtimeHandler == "" && strings.Contains(strings.ToLower(s.config.RuntimeSnapshot().DefaultRuntime), "kata"))
 
 	var container *oci.Container
 	// In the case of kernel separated containers, we need the infra container to create the VM for the pod

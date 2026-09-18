@@ -52,7 +52,7 @@ func (hr *HooksRetriever) Get(
 
 	if strings.Contains(runtimeName, HighPerformance) ||
 		highPerformanceAnnotationsSpecified(sandboxAnnotations) {
-		runtimeConfig, ok := hr.config.Runtimes[runtimeName]
+		runtimeConfig, ok := hr.config.RuntimeSnapshot().Runtimes[runtimeName]
 		if !ok {
 			// This shouldn't happen because runtime is already validated
 			log.Errorf(ctx, "Config of runtime %s is not found", runtimeName)
