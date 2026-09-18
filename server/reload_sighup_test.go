@@ -84,12 +84,30 @@ runtime_path = "/bin/echo"
 				imageServerMock.EXPECT().UpdatePinnedImagesList(gomock.Any())
 				imageServerMock.EXPECT().PinnedImageRegexps().Return(nil)
 
+				oldLogLevel := logrus.GetLevel()
+
+				// Snapshot the registered hooks via ReplaceHooks (the
+				// mutex-guarded accessor), so that the hook added below can
+				// be restored wholesale during cleanup.
+				oldHooks := logrus.StandardLogger().ReplaceHooks(logrus.LevelHooks{})
+
 				hook := &reloadCompletionHook{}
 				logrus.AddHook(hook)
 
 				// The watcher logs the reload completion on info level, which
 				// is filtered out by the suite's default panic level
 				logrus.SetLevel(logrus.InfoLevel)
+
+				// Restore the process-global state modified above, so that
+				// neither the hook, the log level, nor the SIGHUP watcher
+				// registration of this spec leaks into subsequent specs.
+				// DeferCleanup runs after AfterEach, so the watcher of this
+				// Server is detached only once its mocks are torn down.
+				DeferCleanup(signal.Reset, unix.SIGHUP)
+				DeferCleanup(logrus.SetLevel, oldLogLevel)
+				DeferCleanup(func() {
+					logrus.StandardLogger().ReplaceHooks(oldHooks)
+				})
 
 				// When: sending SIGHUP, like `systemctl reload crio` does
 				Expect(unix.Kill(os.Getpid(), unix.SIGHUP)).To(Succeed())
