@@ -19,6 +19,7 @@ describes the CRI-O governance.
 | Skyler Clark      | [wgahnagl](https://github.com/wgahnagl)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
 | Qi Wang           | [QiWang19](https://github.com/QiWang19)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
 | Krisztian Litkey  | [klihub](https://github.com/klihub)                 | Reviewer      | [Intel](https://github.com/intel)         |
+| Sourav Moitra     | [xw19](https://github.com/xw19)                     | Reviewer      |                                           |
 
 ## Alumni
 
