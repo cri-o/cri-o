@@ -71,7 +71,7 @@ type Server struct {
 	types.UnimplementedImageServiceServer
 	types.UnimplementedRuntimeServiceServer
 
-	config          libconfig.Config
+	config          *libconfig.Config
 	stream          *StreamService
 	hostportManager hostport.HostPortManager
 
@@ -532,7 +532,7 @@ func New(
 	s := &Server{
 		ContainerServer:          containerServer,
 		hostportManager:          hostportManager,
-		config:                   *config,
+		config:                   config,
 		stream:                   &StreamService{},
 		monitorsChan:             make(chan struct{}),
 		defaultIDMappings:        idMappings,
