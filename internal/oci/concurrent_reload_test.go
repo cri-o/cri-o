@@ -12,7 +12,6 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
-// The actual test suite.
 var _ = t.Describe("Runtime", func() {
 	t.Describe("ConcurrentReload", func() {
 		It("should serve consistent lookups while reloads publish new tables", func() {
