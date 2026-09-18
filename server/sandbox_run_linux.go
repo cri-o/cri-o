@@ -1647,7 +1647,10 @@ func (s *Server) setupInfraContainer(
 	created time.Time,
 	processLabel string,
 ) (*oci.Container, string, error) {
-	runtimeType, err := s.ContainerServer.Runtime().RuntimeType(runtimeHandler)
+	// Resolve the runtime type and the default runtime from a single
+	// snapshot, so that both always describe the same configuration even
+	// when a reload publishes a new one concurrently.
+	runtimeType, defaultIsKata, err := s.ContainerServer.Runtime().RuntimeTypeFromSnapshot(runtimeHandler)
 	if err != nil {
 		return nil, "", err
 	}
@@ -1655,7 +1658,7 @@ func (s *Server) setupInfraContainer(
 	// A container is kernel separated if we're using shimv2, or we're using a kata v1 binary
 	podIsKernelSeparated := runtimeType == libconfig.RuntimeTypeVM ||
 		strings.Contains(strings.ToLower(runtimeHandler), "kata") ||
-		(runtimeHandler == "" && strings.Contains(strings.ToLower(s.config.RuntimeSnapshot().DefaultRuntime), "kata"))
+		(runtimeHandler == "" && defaultIsKata)
 
 	var container *oci.Container
 	// In the case of kernel separated containers, we need the infra container to create the VM for the pod

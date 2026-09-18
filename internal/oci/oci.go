@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -213,6 +214,46 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 	}
 
 	return rh.RuntimeType, nil
+}
+
+// RuntimeTypeFromSnapshot resolves the runtime type and, for an empty
+// handler, whether the default runtime of the snapshot is a kata runtime,
+// all from a single runtime snapshot. Use it when the runtime type and
+// the default runtime must describe the same configuration, like the
+// kernel separation detection during sandbox creation, where two separate
+// snapshot loads could observe different configurations during a reload.
+func (r *Runtime) RuntimeTypeFromSnapshot(handler string) (string, bool, error) {
+	snapshot := r.config.RuntimeSnapshot()
+
+	var rh *config.RuntimeHandler
+	if handler != "" {
+		var ok bool
+		rh, ok = snapshot.Runtimes[handler]
+		if !ok {
+			return "", false, fmt.Errorf(
+				"failed to find runtime handler %s from runtime list %v",
+				handler, snapshot.Runtimes,
+			)
+		}
+
+		if rh.RuntimePath == "" {
+			return "", false, fmt.Errorf(
+				"empty runtime path for runtime handler %s", handler,
+			)
+		}
+	} else {
+		rh = snapshot.RuntimeHandler("")
+		if rh == nil {
+			return "", false, fmt.Errorf(
+				"default runtime handler %q not found in runtime list %v",
+				snapshot.DefaultRuntime, snapshot.Runtimes,
+			)
+		}
+	}
+
+	return rh.RuntimeType,
+		strings.Contains(strings.ToLower(snapshot.DefaultRuntime), "kata"),
+		nil
 }
 
 // Seccomp returns the seccomp config for the specified handler. Falls back to the runtime seccomp config if not exist.

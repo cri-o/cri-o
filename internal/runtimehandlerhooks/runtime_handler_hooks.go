@@ -3,6 +3,7 @@ package runtimehandlerhooks
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/opencontainers/runtime-tools/generate"
 
@@ -12,8 +13,11 @@ import (
 )
 
 var (
-	cpuLoadBalancingAllowedAnywhereOnce sync.Once
-	cpuLoadBalancingAllowedAnywhere     bool
+	// cpuLoadBalancingAllowedAnywhereSnapshot caches the runtime snapshot
+	// the cpuLoadBalancingAllowedAnywhere result was computed for, so that
+	// the result is recomputed when a reload publishes a new configuration.
+	cpuLoadBalancingAllowedAnywhereSnapshot atomic.Pointer[libconfig.RuntimeSnapshot]
+	cpuLoadBalancingAllowedAnywhere         atomic.Bool
 )
 
 //nolint:iface // interface duplication is intentional
@@ -36,6 +40,7 @@ type HighPerformanceHook interface {
 
 // HooksRetriever allows retrieving the runtime hooks for a given sandbox.
 type HooksRetriever struct {
-	config               *libconfig.Config
-	highPerformanceHooks RuntimeHandlerHooks
+	config                    *libconfig.Config
+	highPerformanceHooks      RuntimeHandlerHooks
+	highPerformanceHooksMutex sync.Mutex
 }
