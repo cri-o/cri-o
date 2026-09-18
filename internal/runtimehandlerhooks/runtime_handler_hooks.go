@@ -12,13 +12,16 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
-var (
-	// cpuLoadBalancingAllowedAnywhereSnapshot caches the runtime snapshot
-	// the cpuLoadBalancingAllowedAnywhere result was computed for, so that
-	// the result is recomputed when a reload publishes a new configuration.
-	cpuLoadBalancingAllowedAnywhereSnapshot atomic.Pointer[libconfig.RuntimeSnapshot]
-	cpuLoadBalancingAllowedAnywhere         atomic.Bool
-)
+// cpuLoadBalancingCache caches the CPU load-balancing permission together
+// with the runtime snapshot it was computed for, so that the result is
+// recomputed when a reload publishes a new configuration, and so that both
+// values are always published as a single unit.
+type cpuLoadBalancingCache struct {
+	snapshot *libconfig.RuntimeSnapshot
+	allowed  bool
+}
+
+var cpuLoadBalancingAllowedAnywhere atomic.Pointer[cpuLoadBalancingCache]
 
 //nolint:iface // interface duplication is intentional
 type RuntimeHandlerHooks interface {

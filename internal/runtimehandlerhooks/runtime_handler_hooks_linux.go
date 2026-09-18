@@ -127,9 +127,12 @@ func cpuLoadBalancingAllowed(config *libconfig.Config) bool {
 
 	// Only recompute when the runtime configuration changed, so that
 	// reloads are reflected by subsequent requests while concurrent
-	// requests reuse the result computed for the same snapshot.
-	if cached := cpuLoadBalancingAllowedAnywhereSnapshot.Load(); cached == snapshot {
-		return cpuLoadBalancingAllowedAnywhere.Load()
+	// requests reuse the result computed for the same snapshot. Both
+	// values are published as one atomic unit, so a result can never be
+	// paired with a different snapshot than it was computed for.
+	if cached := cpuLoadBalancingAllowedAnywhere.Load(); cached != nil &&
+		cached.snapshot == snapshot {
+		return cached.allowed
 	}
 
 	allowed := false
@@ -150,8 +153,10 @@ func cpuLoadBalancingAllowed(config *libconfig.Config) bool {
 		}
 	}
 
-	cpuLoadBalancingAllowedAnywhere.Store(allowed)
-	cpuLoadBalancingAllowedAnywhereSnapshot.Store(snapshot)
+	cpuLoadBalancingAllowedAnywhere.Store(&cpuLoadBalancingCache{
+		snapshot: snapshot,
+		allowed:  allowed,
+	})
 
 	return allowed
 }
