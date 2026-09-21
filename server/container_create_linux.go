@@ -256,21 +256,24 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 		}
 
-		src := filepath.Join(s.config.BindMountPrefix, m.GetHostPath())
-
-		resolvedSrc, err := resolveSymbolicLink(s.config.BindMountPrefix, src)
-		if err == nil {
-			src = resolvedSrc
-		} else {
+		src, err := resolveSymbolicLink(s.config.BindMountPrefix, m.GetHostPath())
+		if err != nil {
 			if !os.IsNotExist(err) {
-				return nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
+				return nil, nil, nil, fmt.Errorf(
+					"failed to resolve symlink %q: %w",
+					m.GetHostPath(),
+					err,
+				)
 			}
 
+			// Preserve reject-list matching through intermediate symlinks.
+			originalSrc := filepath.Join(s.config.BindMountPrefix, m.GetHostPath())
 			for _, toReject := range s.config.AbsentMountSourcesToReject {
-				if filepath.Clean(src) == toReject {
-					// special-case /etc/hostname, as we don't want it to be created as a directory
-					// This can cause issues with node reboot.
-					return nil, nil, nil, fmt.Errorf("cannot mount %s: path does not exist and will cause issues as a directory", toReject)
+				if originalSrc == toReject || src == toReject {
+					return nil, nil, nil, fmt.Errorf(
+						"cannot mount %s: path does not exist and will cause issues as a directory",
+						toReject,
+					)
 				}
 			}
 
