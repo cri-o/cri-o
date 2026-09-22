@@ -257,6 +257,24 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 	return nil
 }
 
+// ParseShimAddress extracts the shim's ttrpc address from its stdout output.
+// Modern shims (containerd v2 shim API, including gVisor's
+// containerd-shim-runsc-v1) emit a JSON BootstrapParams object; older shims
+// emit just the address string. This function accepts both formats.
+func ParseShimAddress(out []byte) (string, error) {
+	address := strings.TrimSpace(string(out))
+	if strings.HasPrefix(address, "{") {
+		var params client.BootstrapParams
+		if err := json.Unmarshal(out, &params); err != nil {
+			return "", fmt.Errorf("parse shim bootstrap params %q: %w", address, err)
+		}
+
+		address = params.Address
+	}
+
+	return address, nil
+}
+
 func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error {
 	log.Debugf(ctx, "RuntimeVM.startRuntimeDaemon() start")
 	defer log.Debugf(ctx, "RuntimeVM.startRuntimeDaemon() end")
@@ -310,8 +328,10 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 		return fmt.Errorf("%s: %w", string(out), err)
 	}
 
-	// Retrieve the address from the output
-	address := strings.TrimSpace(string(out))
+	address, err := ParseShimAddress(out)
+	if err != nil {
+		return err
+	}
 
 	// Now the RPC server is running, let's connect to it
 	conn, err := client.Connect(address, client.AnonDialer)
