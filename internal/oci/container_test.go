@@ -2,10 +2,14 @@ package oci_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"os"
+	"os/exec"
 	"path"
 	"strconv"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -13,10 +17,14 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/unshare"
+	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
+	runnerMock "github.com/cri-o/cri-o/test/mocks/cmdrunner"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 const (
@@ -1127,3 +1135,142 @@ func addTestExecPID(c *oci.Container, pid int, shouldKill bool) error {
 
 	return err
 }
+
+// These tests cover the container state isolation that fixes the data
+// races behind https://github.com/cri-o/cri-o/issues/9419: State()
+// returns a snapshot that shares no mutable state with the live
+// container state.
+var _ = t.Describe("Container state isolation", func() {
+	It("DeepCopy clones the Annotations map", func() {
+		state := &oci.ContainerState{}
+		state.Annotations = map[string]string{"original": "value"}
+
+		copied := state.DeepCopy()
+		copied.Annotations["mutated"] = "value"
+
+		Expect(state.Annotations).NotTo(HaveKey("mutated"))
+	})
+
+	It("State returns a snapshot with an independent Annotations map", func() {
+		ctr := getTestContainer()
+
+		state := &oci.ContainerState{}
+		state.Annotations = map[string]string{"original": "value"}
+		ctr.SetState(state)
+
+		snapshot := ctr.State()
+		snapshot.Annotations["mutated"] = "value"
+
+		Expect(ctr.StateNoLock().Annotations).NotTo(HaveKey("mutated"))
+	})
+
+	It("State returns a snapshot decoupled from later state mutations", func() {
+		ctr := getTestContainer()
+
+		state := &oci.ContainerState{Created: time.Now()}
+		ctr.SetState(state)
+
+		snapshot := ctr.State()
+		ctr.SetStartFailed(errors.New("start failed"))
+
+		// SetStartFailed sets Started, Finished and Error on the live
+		// state. A snapshot taken beforehand must not observe them.
+		Expect(snapshot.Started).To(BeZero())
+		Expect(snapshot.Error).To(BeEmpty())
+	})
+})
+
+// This test reproduces the race behind
+// https://github.com/cri-o/cri-o/issues/9419 by driving the real code
+// paths concurrently:
+//
+//   - ContainerStateToDisk encodes ctr.State().
+//   - UpdateContainerStatus decodes the runtime state into the container.
+//
+// Without the fix the encoder iterates the Annotations map while the
+// decoder writes to it, and the struct assignment races with the
+// reader. Run with the race detector to observe it:
+//
+//	go test -race -tags test -run TestOci ./internal/oci/
+var _ = t.Describe("Container state race", func() {
+	It("State does not race with UpdateContainerStatus", func() {
+		ctr := getTestContainer()
+
+		state := &oci.ContainerState{}
+		state.Pid = 1
+		Expect(state.SetInitPid(1)).To(Succeed())
+		state.Annotations = map[string]string{"io.kubernetes.cri-o.Name": "test"}
+		ctr.SetState(state)
+
+		// OCI runtime "state" output that UpdateContainerStatus decodes.
+		// Its annotations are merged into the container's Annotations map.
+		const ociState = `{
+			"ociVersion": "1.0.0",
+			"id": "id",
+			"status": "running",
+			"pid": 1,
+			"bundle": "/run/containers/id",
+			"annotations": {
+				"io.kubernetes.cri-o.Name": "test",
+				"io.kubernetes.cri-o.SandboxID": "sandbox"
+			}
+		}`
+
+		runner := runnerMock.NewMockCommandRunner(mockCtrl)
+		cmdrunner.SetMocked(runner)
+
+		defer cmdrunner.ResetPrependedCmd()
+
+		runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ string, _ ...string) *exec.Cmd {
+				return exec.Command("/bin/echo", "-n", ociState)
+			},
+		).AnyTimes()
+
+		cfg, err := libconfig.DefaultConfig()
+		Expect(err).ToNot(HaveOccurred())
+
+		cfg.ContainerAttachSocketDir = t.MustTempDir("attach-socket")
+
+		r, err := oci.New(cfg)
+		Expect(err).ToNot(HaveOccurred())
+
+		runtime := oci.NewRuntimeOCI(r, &libconfig.RuntimeHandler{})
+
+		done := make(chan struct{})
+
+		var wg sync.WaitGroup
+
+		// Reader: ContainerStateToDisk encoding the state snapshot.
+		wg.Add(1)
+
+		go func() {
+			defer GinkgoRecover()
+			defer wg.Done()
+
+			for {
+				select {
+				case <-done:
+					return
+				default:
+					Expect(json.NewEncoder(io.Discard).Encode(ctr.State())).To(Succeed())
+				}
+			}
+		}()
+
+		// Writer: UpdateContainerStatus decoding runtime state.
+		wg.Add(1)
+
+		go func() {
+			defer GinkgoRecover()
+			defer wg.Done()
+			defer close(done)
+
+			for range 200 {
+				Expect(runtime.UpdateContainerStatus(context.Background(), ctr)).To(Succeed())
+			}
+		}()
+
+		wg.Wait()
+	})
+})

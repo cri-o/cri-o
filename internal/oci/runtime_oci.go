@@ -1286,16 +1286,16 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			return nil, true, nil
 		}
 
-		state := *c.state
-		if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
-			return &state, false, fmt.Errorf(
+		state := c.state.DeepCopy()
+		if err := json.NewDecoder(strings.NewReader(out)).Decode(state); err != nil {
+			return state, false, fmt.Errorf(
 				"failed to decode container status for %s: %w",
 				c.ID(),
 				err,
 			)
 		}
 
-		return &state, false, nil
+		return state, false, nil
 	}
 
 	state, canReturn, err := stateCmd()
