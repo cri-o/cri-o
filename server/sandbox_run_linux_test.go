@@ -6,6 +6,8 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 // TestSetupSandboxSeccompPrivilegedEmptyProfileClearsDefaultFilter is a
@@ -34,7 +36,7 @@ func TestSetupSandboxSeccompPrivilegedEmptyProfileClearsDefaultFilter(t *testing
 		)
 	}
 
-	sut := &Server{} // PrivilegedSeccompProfile is empty
+	sut := &Server{config: &config.Config{}} // PrivilegedSeccompProfile is empty
 
 	ref, err := sut.setupSandboxSeccomp(
 		t.Context(),

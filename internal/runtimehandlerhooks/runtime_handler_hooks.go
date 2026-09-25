@@ -3,6 +3,7 @@ package runtimehandlerhooks
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/opencontainers/runtime-tools/generate"
 
@@ -11,10 +12,16 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
-var (
-	cpuLoadBalancingAllowedAnywhereOnce sync.Once
-	cpuLoadBalancingAllowedAnywhere     bool
-)
+// cpuLoadBalancingCache caches the CPU load-balancing permission together
+// with the runtime snapshot it was computed for, so that the result is
+// recomputed when a reload publishes a new configuration, and so that both
+// values are always published as a single unit.
+type cpuLoadBalancingCache struct {
+	snapshot *libconfig.RuntimeSnapshot
+	allowed  bool
+}
+
+var cpuLoadBalancingAllowedAnywhere atomic.Pointer[cpuLoadBalancingCache]
 
 //nolint:iface // interface duplication is intentional
 type RuntimeHandlerHooks interface {
@@ -36,6 +43,7 @@ type HighPerformanceHook interface {
 
 // HooksRetriever allows retrieving the runtime hooks for a given sandbox.
 type HooksRetriever struct {
-	config               *libconfig.Config
-	highPerformanceHooks RuntimeHandlerHooks
+	config                    *libconfig.Config
+	highPerformanceHooks      RuntimeHandlerHooks
+	highPerformanceHooksMutex sync.Mutex
 }
