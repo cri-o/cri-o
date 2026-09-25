@@ -6,7 +6,7 @@ crio.conf.d - directory for drop-in configuration files for CRI-O
 
 # DESCRIPTION
 
-Additionally to configuration in crio.conf(5), CRI-O allows dropping configuration
+In addition to the configuration in crio.conf(5), CRI-O allows dropping configuration
 snippets into the crio.conf.d directory. The default directory is /etc/crio/crio.conf.d/.
 The path can be changed via CRIO's **--config-dir** command line option.
 
