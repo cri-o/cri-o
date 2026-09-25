@@ -59,6 +59,13 @@ func ValidateConfig() error {
 			fatal:     false,
 		},
 		{
+			name:      "systemd CollectMode",
+			init:      SystemdHasCollectMode,
+			err:       &systemdHasCollectModeErr,
+			activated: &systemdHasCollectMode,
+			fatal:     false,
+		},
+		{
 			name:      "fs.may_detach_mounts sysctl",
 			init:      checkFsMayDetachMounts,
 			err:       &checkFsMayDetachMountsErr,

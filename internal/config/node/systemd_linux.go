@@ -13,6 +13,10 @@ var (
 	systemdHasAllowedCPUsOnce sync.Once
 	systemdHasAllowedCPUs     bool
 	systemdHasAllowedCPUsErr  error
+
+	systemdHasCollectModeOnce sync.Once
+	systemdHasCollectMode     bool
+	systemdHasCollectModeErr  error
 )
 
 func SystemdHasAllowedCPUs() bool {
@@ -21,6 +25,18 @@ func SystemdHasAllowedCPUs() bool {
 	})
 
 	return systemdHasAllowedCPUs
+}
+
+// SystemdHasCollectMode returns whether the running systemd supports the
+// CollectMode unit property (added in systemd v236). Older systemd versions
+// (e.g. unpatched RHEL 7) reject the property outright, which would fail the
+// whole StartTransientUnit call used to place conmon in its scope.
+func SystemdHasCollectMode() bool {
+	systemdHasCollectModeOnce.Do(func() {
+		systemdHasCollectMode, systemdHasCollectModeErr = systemdSupportsProperty("CollectMode")
+	})
+
+	return systemdHasCollectMode
 }
 
 // systemdSupportsProperty checks whether systemd supports a property
