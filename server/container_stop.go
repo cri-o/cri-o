@@ -67,7 +67,22 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	}
 
 	if err := s.ContainerServer.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
-		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
+		err = fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
+
+		// Only this request ending counts as an interrupted stop. A runtime can
+		// surface a context error of its own while this request is still live,
+		// for example a shim deadline relayed through the VM runtime, and that
+		// is a runtime failure rather than a cancelled request.
+		if ctxErr := ctx.Err(); ctxErr != nil && isContextError(err) {
+			// The request ended before the container stopped. Report that with
+			// the matching gRPC code so the caller can tell an interrupted stop
+			// from a runtime failure; the kubelet retries. The code comes from
+			// this request's context, so a runtime's own context error cannot
+			// decide how the request is reported.
+			return status.Error(status.FromContextError(ctxErr).Code(), err.Error())
+		}
+
+		return err
 	}
 
 	s.postStopCleanup(ctx, ctr, sb, hooks)
