@@ -3,6 +3,8 @@
 We'd love to have you join the community! Below summarizes the processes
 that we follow.
 
+Maintainers publishing a release should follow the [release guide](release.md).
+
 ## Topics
 
 <!-- toc -->
