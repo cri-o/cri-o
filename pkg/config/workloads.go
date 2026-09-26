@@ -207,6 +207,10 @@ func resourcesFromAnnotation(
 		return nil, nil
 	}
 
+	if defaultResources == nil {
+		defaultResources = &Resources{}
+	}
+
 	if resources.CPUSet == "" {
 		resources.CPUSet = defaultResources.CPUSet
 	}
