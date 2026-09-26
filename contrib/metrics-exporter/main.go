@@ -90,10 +90,8 @@ func run() error {
 	} else if _, err := clientset.CoreV1().
 		ConfigMaps(namespace).
 		Create(ctx, &v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      configMap,
-				Namespace: namespace,
-			},
+			Name:      configMap,
+			Namespace: namespace,
 			Data: map[string]string{
 				"config": scrapeConfigs,
 			},

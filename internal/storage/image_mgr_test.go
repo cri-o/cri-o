@@ -31,14 +31,10 @@ func newTestConfig(registriesFile string) *config.Config {
 		SystemContext: &types.SystemContext{
 			SystemRegistriesConfPath: registriesFile,
 		},
-		ImageConfig: config.ImageConfig{
-			DefaultTransport: "docker://",
-		},
-		RuntimeConfig: config.RuntimeConfig{
-			Runtimes: config.Runtimes{
-				"runc":        &config.RuntimeHandler{RuntimePullImage: false},
-				"kata-remote": &config.RuntimeHandler{RuntimePullImage: true},
-			},
+		DefaultTransport: "docker://",
+		Runtimes: config.Runtimes{
+			"runc":        &config.RuntimeHandler{RuntimePullImage: false},
+			"kata-remote": &config.RuntimeHandler{RuntimePullImage: true},
 		},
 	}
 }

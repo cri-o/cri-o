@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -27,7 +26,7 @@ var _ = t.Describe("ContainerStop", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateStopped},
+				Status: oci.ContainerStateStopped,
 			})
 			gomock.InOrder(
 				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).

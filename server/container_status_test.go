@@ -63,29 +63,29 @@ var _ = t.Describe("ContainerStatus", func() {
 			}
 		},
 			Entry("Created", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateCreated},
+				Status: oci.ContainerStateCreated,
 			}, types.ContainerState_CONTAINER_CREATED, false),
 			Entry("Running", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			}, types.ContainerState_CONTAINER_RUNNING, false),
 			Entry("Running with checkpointing enabled", &oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			}, types.ContainerState_CONTAINER_RUNNING, true),
 			Entry("Stopped: ExitCode 0", &oci.ContainerState{
 				ExitCode: new(int32(0)),
-				State:    specs.State{Status: oci.ContainerStateStopped},
+				Status:   oci.ContainerStateStopped,
 			}, types.ContainerState_CONTAINER_EXITED, false),
 			Entry("Stopped: ExitCode -1", &oci.ContainerState{
 				ExitCode: new(int32(-1)),
-				State:    specs.State{Status: oci.ContainerStateStopped},
+				Status:   oci.ContainerStateStopped,
 			}, types.ContainerState_CONTAINER_EXITED, false),
 			Entry("Stopped: OOMKilled", &oci.ContainerState{
 				OOMKilled: true,
-				State:     specs.State{Status: oci.ContainerStateStopped},
+				Status:    oci.ContainerStateStopped,
 			}, types.ContainerState_CONTAINER_EXITED, false),
 			Entry("Stopped: SeccompKilled", &oci.ContainerState{
 				SeccompKilled: true,
-				State:         specs.State{Status: oci.ContainerStateStopped},
+				Status:        oci.ContainerStateStopped,
 			}, types.ContainerState_CONTAINER_EXITED, false),
 		)
 
@@ -106,7 +106,7 @@ var _ = t.Describe("ContainerStatus", func() {
 			addContainerAndSandbox()
 			testContainer.AddVolume(oci.ContainerVolume{})
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
 

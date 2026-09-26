@@ -91,49 +91,47 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *stats.Cg
 	}
 
 	return &stats.CgroupStats{
-		Stats: cgroups.Stats{
-			CpuStats: cgroups.CpuStats{
-				CpuUsage: cgroups.CpuUsage{
-					TotalUsage:        m.CPU.Usage.Total,
-					PercpuUsage:       m.CPU.Usage.PerCPU,
-					UsageInKernelmode: m.CPU.Usage.Kernel,
-					UsageInUsermode:   m.CPU.Usage.User,
-				},
-				ThrottlingData: cgroups.ThrottlingData{
-					Periods:          m.CPU.Throttling.Periods,
-					ThrottledPeriods: m.CPU.Throttling.ThrottledPeriods,
-					ThrottledTime:    m.CPU.Throttling.ThrottledTime,
-				},
+		CpuStats: cgroups.CpuStats{
+			CpuUsage: cgroups.CpuUsage{
+				TotalUsage:        m.CPU.Usage.Total,
+				PercpuUsage:       m.CPU.Usage.PerCPU,
+				UsageInKernelmode: m.CPU.Usage.Kernel,
+				UsageInUsermode:   m.CPU.Usage.User,
 			},
-			MemoryStats: cgroups.MemoryStats{
-				Cache: m.Memory.Cache,
-				Usage: cgroups.MemoryData{
-					Usage:    m.Memory.Usage.Usage,
-					MaxUsage: m.Memory.Usage.Max,
-					Failcnt:  m.Memory.Usage.Failcnt,
-					Limit:    m.Memory.Usage.Limit,
-				},
-				SwapUsage: cgroups.MemoryData{
-					Usage:    m.Memory.Swap.Usage,
-					MaxUsage: m.Memory.Swap.Max,
-					Failcnt:  m.Memory.Swap.Failcnt,
-					Limit:    m.Memory.Swap.Limit,
-				},
-				KernelUsage: cgroups.MemoryData{
-					Usage: m.Memory.Kernel.Usage,
-				},
-				KernelTCPUsage: cgroups.MemoryData{
-					Usage: m.Memory.KernelTCP.Usage,
-				},
-				Stats: memStats,
+			ThrottlingData: cgroups.ThrottlingData{
+				Periods:          m.CPU.Throttling.Periods,
+				ThrottledPeriods: m.CPU.Throttling.ThrottledPeriods,
+				ThrottledTime:    m.CPU.Throttling.ThrottledTime,
 			},
-			PidsStats: cgroups.PidsStats{
-				Current: m.Pids.Current,
-				Limit:   m.Pids.Limit,
-			},
-			HugetlbStats: hugetlbStats,
 		},
-		SystemNano: time.Now().UnixNano(),
+		MemoryStats: cgroups.MemoryStats{
+			Cache: m.Memory.Cache,
+			Usage: cgroups.MemoryData{
+				Usage:    m.Memory.Usage.Usage,
+				MaxUsage: m.Memory.Usage.Max,
+				Failcnt:  m.Memory.Usage.Failcnt,
+				Limit:    m.Memory.Usage.Limit,
+			},
+			SwapUsage: cgroups.MemoryData{
+				Usage:    m.Memory.Swap.Usage,
+				MaxUsage: m.Memory.Swap.Max,
+				Failcnt:  m.Memory.Swap.Failcnt,
+				Limit:    m.Memory.Swap.Limit,
+			},
+			KernelUsage: cgroups.MemoryData{
+				Usage: m.Memory.Kernel.Usage,
+			},
+			KernelTCPUsage: cgroups.MemoryData{
+				Usage: m.Memory.KernelTCP.Usage,
+			},
+			Stats: memStats,
+		},
+		PidsStats: cgroups.PidsStats{
+			Current: m.Pids.Current,
+			Limit:   m.Pids.Limit,
+		},
+		HugetlbStats: hugetlbStats,
+		SystemNano:   time.Now().UnixNano(),
 	}
 }
 
@@ -158,40 +156,38 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *stats.Cg
 	}
 
 	return &stats.CgroupStats{
-		Stats: cgroups.Stats{
-			CpuStats: cgroups.CpuStats{
-				CpuUsage: cgroups.CpuUsage{
-					TotalUsage:        m.CPU.UsageUsec * 1000,
-					UsageInKernelmode: m.CPU.SystemUsec * 1000,
-					UsageInUsermode:   m.CPU.UserUsec * 1000,
-				},
-				ThrottlingData: cgroups.ThrottlingData{
-					Periods:          m.CPU.NrPeriods,
-					ThrottledPeriods: m.CPU.NrThrottled,
-					ThrottledTime:    m.CPU.ThrottledUsec * 1000,
-				},
+		CpuStats: cgroups.CpuStats{
+			CpuUsage: cgroups.CpuUsage{
+				TotalUsage:        m.CPU.UsageUsec * 1000,
+				UsageInKernelmode: m.CPU.SystemUsec * 1000,
+				UsageInUsermode:   m.CPU.UserUsec * 1000,
 			},
-			MemoryStats: cgroups.MemoryStats{
-				Cache: m.Memory.File,
-				Usage: cgroups.MemoryData{
-					Usage: m.Memory.Usage,
-					Limit: m.Memory.UsageLimit,
-				},
-				SwapUsage: cgroups.MemoryData{
-					Usage: m.Memory.SwapUsage,
-					Limit: m.Memory.SwapLimit,
-				},
-				KernelUsage: cgroups.MemoryData{
-					Usage: m.Memory.KernelStack,
-				},
-				Stats: memStats,
+			ThrottlingData: cgroups.ThrottlingData{
+				Periods:          m.CPU.NrPeriods,
+				ThrottledPeriods: m.CPU.NrThrottled,
+				ThrottledTime:    m.CPU.ThrottledUsec * 1000,
 			},
-			PidsStats: cgroups.PidsStats{
-				Current: m.Pids.Current,
-				Limit:   m.Pids.Limit,
-			},
-			HugetlbStats: hugetlbStats,
 		},
-		SystemNano: time.Now().UnixNano(),
+		MemoryStats: cgroups.MemoryStats{
+			Cache: m.Memory.File,
+			Usage: cgroups.MemoryData{
+				Usage: m.Memory.Usage,
+				Limit: m.Memory.UsageLimit,
+			},
+			SwapUsage: cgroups.MemoryData{
+				Usage: m.Memory.SwapUsage,
+				Limit: m.Memory.SwapLimit,
+			},
+			KernelUsage: cgroups.MemoryData{
+				Usage: m.Memory.KernelStack,
+			},
+			Stats: memStats,
+		},
+		PidsStats: cgroups.PidsStats{
+			Current: m.Pids.Current,
+			Limit:   m.Pids.Limit,
+		},
+		HugetlbStats: hugetlbStats,
+		SystemNano:   time.Now().UnixNano(),
 	}
 }

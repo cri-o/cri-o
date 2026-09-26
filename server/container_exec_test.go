@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 
@@ -79,10 +78,10 @@ var _ = t.Describe("ContainerExec", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 
 			// When
@@ -109,7 +108,7 @@ var _ = t.Describe("ContainerExec", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				Status: oci.ContainerStateRunning,
 			})
 			// Container is stopping but kill loop hasn't started
 			testContainer.SetAsStopping()
@@ -127,7 +126,7 @@ var _ = t.Describe("ContainerExec", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateStopped},
+				Status: oci.ContainerStateStopped,
 			})
 
 			// When
