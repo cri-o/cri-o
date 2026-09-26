@@ -1100,6 +1100,15 @@ func (r *runtimeOCI) StopLoopForContainer(
 	// take a new one).
 	targetTime := time.Now().AddDate(+1, 0, 0) // A year from this one.
 
+	// A container that was created but never started has no process that
+	// could handle the stop signal, so do not wait for the stop timeout.
+	neverStarted := c.state.Status == ContainerStateCreated && c.state.Started.IsZero()
+	if neverStarted {
+		log.Debugf(ctx, "Container %s was never started, killing it immediately", c.ID())
+
+		targetTime = time.Now()
+	}
+
 	blockedTimer := time.AfterFunc(stopProcessBlockedInterval, func() {
 		if state, err := c.ProcessState(); err == nil && state == "D" {
 			log.Errorf(
@@ -1137,12 +1146,15 @@ func (r *runtimeOCI) StopLoopForContainer(
 			}
 
 		case <-time.After(time.Until(targetTime)):
-			log.Warnf(
-				ctx,
-				"Stopping container %s with stop signal(%s) timed out. Killing...",
-				c.ID(),
-				c.GetStopSignal(),
-			)
+			if !neverStarted {
+				log.Warnf(
+					ctx,
+					"Stopping container %s with stop signal(%s) timed out. Killing...",
+					c.ID(),
+					c.GetStopSignal(),
+				)
+			}
+
 			c.SetStopKillLoopBegun()
 
 			goto killContainer
