@@ -16,6 +16,7 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 	workingSetBytes, rssBytes, pageFaults, majorPageFaults, _ := computeMemoryMetricValues(mem)
 	swapUsage := computeSwapUsageForMetrics(mem)
 	fileMapped := computeFileMapped(mem)
+	activeFile, inactiveFile := computeFileMemory(mem, node.CgroupIsV2())
 
 	memoryMetrics := []*containerMetric{
 		{
@@ -80,6 +81,18 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 			desc: containerMemoryWorkingSetBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{value: workingSetBytes, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryTotalActiveFileBytes,
+			valueFunc: func() metricValues {
+				return metricValues{{value: activeFile, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryTotalInactiveFileBytes,
+			valueFunc: func() metricValues {
+				return metricValues{{value: inactiveFile, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
@@ -239,6 +252,18 @@ func computeAnonMemory(
 	}
 
 	return memStats.Stats["total_active_anon"], memStats.Stats["total_inactive_anon"]
+}
+
+// computeFileMemory computes the active and inactive file (page cache) memory
+// values. Both cgroup versions report these.
+func computeFileMemory(
+	memStats *cgroups.MemoryStats, isCgroupV2 bool,
+) (activeFile, inactiveFile uint64) {
+	if isCgroupV2 {
+		return memStats.Stats["active_file"], memStats.Stats["inactive_file"]
+	}
+
+	return memStats.Stats["total_active_file"], memStats.Stats["total_inactive_file"]
 }
 
 // computeTransparentHugepages computes the amount of memory backed by

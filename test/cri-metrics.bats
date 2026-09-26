@@ -133,6 +133,25 @@ EOF
 	working_set_diff=$((metrics_memory_working_set - cgroup_memory_working_set))
 	[[ ${working_set_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
 
+	# assert container_memory_total_active_file_bytes /
+	# container_memory_total_inactive_file_bytes ==
+	# cgroup memory.stat:active_file/inactive_file (cgroup v2) or
+	# total_active_file/total_inactive_file (cgroup v1)
+	if is_cgroup_v2; then
+		cgroup_memory_active_file=$(grep -w active_file < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+		cgroup_memory_inactive_file=$(grep -w inactive_file < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+	else
+		cgroup_memory_active_file=$(grep -w total_active_file < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+		cgroup_memory_inactive_file=$(grep -w total_inactive_file < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+	fi
+	metrics=$(crictl metricsp)
+	metrics_memory_active_file=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_total_active_file_bytes") | .value.value | tonumber')
+	metrics_memory_inactive_file=$(echo "$metrics" | jq '.podMetrics[0].containerMetrics[0].metrics[] | select(.name == "container_memory_total_inactive_file_bytes") | .value.value | tonumber')
+	active_file_diff=$((metrics_memory_active_file - cgroup_memory_active_file))
+	[[ ${active_file_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
+	inactive_file_diff=$((metrics_memory_inactive_file - cgroup_memory_inactive_file))
+	[[ ${inactive_file_diff#-} -le $MEMORY_METRIC_TOLERANCE ]]
+
 	# assert container_memory_rss == cgroup memory.stat:total_rss(cgroup v1) or memory.stat:anon(cgroup v2)
 	if is_cgroup_v2; then
 		# for cgroupv2, rss is memory.stat:anon
@@ -257,6 +276,8 @@ EOF
 	# assert the cAdvisor equivalent memory metrics are still included
 	grep -q "^container_memory_working_set_bytes$" <<< "$descs"
 	grep -q "^container_memory_usage_bytes$" <<< "$descs"
+	grep -q "^container_memory_total_active_file_bytes$" <<< "$descs"
+	grep -q "^container_memory_total_inactive_file_bytes$" <<< "$descs"
 
 	# assert the memoryExtra metrics are not included without the memoryExtra value
 	for metric in \
