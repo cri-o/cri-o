@@ -290,6 +290,7 @@ var _ = t.Describe("Workloads config", func() {
 		err := workloads.MutateSpecGivenAnnotations(containerName, g, annotations)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(g.Config.Linux.Resources.CPU.Shares).ToNot(BeNil())
+		GinkgoWriter.Printf("cpushares=%d\n", *g.Config.Linux.Resources.CPU.Shares)
 		Expect(*g.Config.Linux.Resources.CPU.Shares).To(Equal(uint64(15)))
 	})
 })
