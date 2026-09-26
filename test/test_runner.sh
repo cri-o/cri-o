@@ -47,6 +47,11 @@ export JOBS=${JOBS:-$(($(nproc --all) * 2))}
 # The maximum number of additional attempts that will be made on a failed test before it is finally considered failed.
 # https://bats-core.readthedocs.io/en/stable/writing-tests.html#special-variables
 export BATS_TEST_RETRIES=1
+# The maximum time (in seconds) a single test may run before it's aborted by bats.
+# Prevents the whole CI job from blocking when an individual test hangs.
+# Tests that intentionally need more time can override this value per-file or per-test.
+# https://bats-core.readthedocs.io/en/stable/writing-tests.html#special-variables
+export BATS_TEST_TIMEOUT=${BATS_TEST_TIMEOUT:-600}
 
 bats --version
 
