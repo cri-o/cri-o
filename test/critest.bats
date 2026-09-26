@@ -14,6 +14,15 @@ function teardown() {
 	cleanup_test
 }
 
+# Dummy test to ensure --filter-tags 'crio:serial' never produces an empty
+# test suite, which would cause bats to error out. This is needed because
+# critest.bats is the only test file run in conmon CI (via TESTS=critest.bats)
+# and the main test below has no tags.
+# bats test_tags=crio:serial
+@test "placeholder for serial tag filtering" {
+	true
+}
+
 @test "run the critest suite" {
 	WEBSOCKET_ARGS=()
 	if [[ $RUNTIME_TYPE == pod ]]; then
