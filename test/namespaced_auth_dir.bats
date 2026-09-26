@@ -9,6 +9,8 @@ NAMESPACE=default
 
 function setup() {
 	setup_test
+	# TODO: Re-enable local registry mirror once auth-aware mirror setup is in place
+	unset CONTAINER_REGISTRIES_CONF_DIR
 	CONTAINER_NAMESPACED_AUTH_DIR="$TESTDIR/auth" start_crio
 }
 
