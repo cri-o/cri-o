@@ -454,6 +454,10 @@ func (s *Server) CreateContainer(
 		return nil, err
 	}
 
+	if err := validateCgroupMountMode(req.GetConfig()); err != nil {
+		return nil, err
+	}
+
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
@@ -974,6 +978,8 @@ func (s *Server) createSandboxContainer(
 		return nil, err
 	}
 
+	applyCgroupMountMode(specgen, containerConfig)
+
 	// Set hostname and add env for hostname
 	specgen.SetHostname(sb.Hostname())
 	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
@@ -1275,6 +1281,10 @@ func (s *Server) setupContainerMounts(
 	mountPoint, mountLabel string,
 	ociMounts, volumeMounts []rspec.Mount,
 ) error {
+	if err := validateCgroupMountNotCovered(ctr.Config(), volumeMounts); err != nil {
+		return err
+	}
+
 	rootUID, rootGID := 0, 0
 
 	if containerIDMappings != nil {
