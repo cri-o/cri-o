@@ -23,6 +23,12 @@ func TestApplyCgroupMountMode(t *testing.T) {
 			want:  []string{"nosuid", "noexec", "nodev", "relatime", "rw"},
 		},
 		{
+			name:  "read-write overrides the read-only default",
+			mode:  types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE,
+			mount: cgroupMount("ro"),
+			want:  []string{"nosuid", "noexec", "nodev", "relatime", "rw"},
+		},
+		{
 			name:  "read-only overrides the annotation",
 			mode:  types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_ONLY,
 			mount: cgroupMount("rw"),

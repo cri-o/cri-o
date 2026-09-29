@@ -970,6 +970,14 @@ func (s *Server) createSandboxContainer(
 
 	usernsEnabled := containerIDMappings != nil
 	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
+
+	if hostNet && usernsEnabled &&
+		securityContext.GetCgroupMountMode() == types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE {
+		return nil, errors.New(
+			"writable cgroups are not supported for host-network containers in a user namespace",
+		)
+	}
+
 	addSysfsMounts(ctr, containerConfig, hostNet, usernsEnabled)
 
 	if err := s.setupCgroupNamespace(ctr, specgen); err != nil {
