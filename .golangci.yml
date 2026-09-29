@@ -147,6 +147,9 @@ linters:
       min-complexity: 60
     nakedret:
       max-func-lines: 15
+    modernize:
+      disable:
+        - embedlit
     revive:
       rules:
         - name: argument-limit

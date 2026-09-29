@@ -2,10 +2,10 @@
 # It verifies that the versions specified here match across all referenced files.
 dependencies:
   - name: go
-    version: 1.26.4
+    version: 1.27.1
     refPaths:
       - path: nix/derivation.nix
-        match: buildGo126Module
+        match: buildGo127Module
       - path: go.mod
         match: go
       - path: hack/build-rpms.sh
@@ -133,7 +133,7 @@ dependencies:
         match: GO_MOD_OUTDATED_VERSION
 
   - name: govulncheck
-    version: v1.1.4
+    version: v1.8.0
     refPaths:
       - path: hack/govulncheck.sh
         match: GOVULNCHECK_VERSION
