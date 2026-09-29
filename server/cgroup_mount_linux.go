@@ -8,6 +8,8 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/config/node"
 )
 
 func cgroupMount(accessOption string) rspec.Mount {
@@ -31,9 +33,30 @@ func validateCgroupMountMode(config *types.ContainerConfig) error {
 		}
 
 		return nil
+	case types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE:
+		return checkWritableCgroupsSupported()
 	default:
 		return fmt.Errorf("unsupported cgroup mount mode %q", mode)
 	}
+}
+
+func checkWritableCgroupsSupported() error {
+	if !node.CgroupIsV2() {
+		return errors.New("writable cgroups require cgroup v2")
+	}
+
+	hasNsdelegate, err := node.CgroupHasNsdelegate()
+	if err != nil {
+		return fmt.Errorf("check cgroup nsdelegate mount option: %w", err)
+	}
+
+	if !hasNsdelegate {
+		return errors.New(
+			"writable cgroups require /sys/fs/cgroup to be mounted with nsdelegate",
+		)
+	}
+
+	return nil
 }
 
 func applyCgroupMountMode(specgen *generate.Generator, config *types.ContainerConfig) {
@@ -42,6 +65,8 @@ func applyCgroupMountMode(specgen *generate.Generator, config *types.ContainerCo
 	switch config.GetLinux().GetSecurityContext().GetCgroupMountMode() {
 	case types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_ONLY:
 		accessOption = "ro"
+	case types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE:
+		accessOption = "rw"
 	default:
 		return
 	}

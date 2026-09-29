@@ -16,6 +16,11 @@ import (
 func ValidateConfig() error {
 	cgroupIsV2 := CgroupIsV2()
 
+	var (
+		cgroupHasNsdelegate    bool
+		cgroupHasNsdelegateErr error
+	)
+
 	toInit := []struct {
 		name      string
 		init      func() bool
@@ -49,6 +54,17 @@ func ValidateConfig() error {
 			init:      CgroupIsV2,
 			err:       &cgroupIsV2Err,
 			activated: &cgroupIsV2,
+			fatal:     false,
+		},
+		{
+			name: "cgroup nsdelegate",
+			init: func() bool {
+				cgroupHasNsdelegate, cgroupHasNsdelegateErr = CgroupHasNsdelegate()
+
+				return cgroupHasNsdelegate
+			},
+			err:       &cgroupHasNsdelegateErr,
+			activated: &cgroupHasNsdelegate,
 			fatal:     false,
 		},
 		{

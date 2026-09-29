@@ -22,6 +22,9 @@ definition][0], whereas this document follows it on the `service`/`rpc` level.
   for all other containers.
 - `CGROUP_MOUNT_MODE_READ_ONLY` mounts the cgroup filesystem read-only.
   `CreateContainer` returns an error for a privileged container.
+- `CGROUP_MOUNT_MODE_READ_WRITE` mounts the cgroup filesystem read-write. The
+  must mount cgroup v2 at `/sys/fs/cgroup` with `nsdelegate`. Otherwise
+  `CreateContainer` returns an error.
 
 When the container config includes a mount at `/sys/fs/cgroup` or at a parent
 directory of it, such as `/sys` or `/sys/fs`, that mount replaces CRI-O's cgroup

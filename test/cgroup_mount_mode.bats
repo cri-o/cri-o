@@ -51,6 +51,20 @@ function assert_cgroup_writable() {
 	[[ "$output" == *"read-only cgroups are not supported for privileged containers"* ]]
 }
 
+@test "cgroup mount mode read-write confines a container to its cgroup" {
+	if ! grep -qw nsdelegate /proc/self/mounts; then
+		skip "writable cgroups require nsdelegate"
+	fi
+	start_crio
+	write_sandbox_config
+	write_container_config 2
+
+	ctr_id=$(crictl run "$newconfig" "$sboxconfig")
+	assert_cgroup_writable "$ctr_id"
+	output=$(crictl exec --sync "$ctr_id" cat /proc/self/cgroup)
+	[[ "$output" == "0::/" ]]
+}
+
 @test "cgroup mount mode read-only overrides the writable annotation" {
 	create_workload_with_allowed_annotation "cgroup2-mount-hierarchy-rw.crio.io"
 	start_crio
