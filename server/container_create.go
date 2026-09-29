@@ -446,6 +446,10 @@ func (s *Server) CreateContainer(
 		return nil, errors.New("sandbox config metadata is nil")
 	}
 
+	if err := validateCgroupMountMode(req.GetConfig()); err != nil {
+		return nil, err
+	}
+
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
@@ -983,6 +987,8 @@ func (s *Server) createSandboxContainer(
 	); err != nil {
 		return nil, err
 	}
+
+	applyCgroupMountMode(specgen, containerConfig)
 
 	// Set hostname and add env for hostname
 	specgen.SetHostname(sb.Hostname())
