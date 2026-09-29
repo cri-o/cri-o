@@ -127,28 +127,28 @@ The release notes have been generated for the commit range
 ### Release Bundles
 
 Download one of our static release bundles via our Google Cloud Bucket.
-Each bundle includes a SHA-256 checksum, a [cosign](https://github.com/sigstore/cosign) signature (`+"`.bundle`"+`), and a [SPDX](https://spdx.org) bill of materials (`+"`.spdx`"+`) with its own signature:
+Each bundle includes a SHA-256 checksum, a [cosign](https://github.com/sigstore/cosign) signature (`+"`.bundle`"+`), and a [SPDX 3](https://spdx.org) bill of materials (`+"`.spdx.json`"+`) with its own signature:
 
 - [cri-o.amd64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz)
   - [cri-o.amd64.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.sha256sum)
   - [cri-o.amd64.%s.tar.gz.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.bundle)
-  - [cri-o.amd64.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx)
-  - [cri-o.amd64.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx.bundle)
+  - [cri-o.amd64.%s.tar.gz.spdx.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx.json)
+  - [cri-o.amd64.%s.tar.gz.spdx.json.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx.json.bundle)
 - [cri-o.arm64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz)
   - [cri-o.arm64.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.sha256sum)
   - [cri-o.arm64.%s.tar.gz.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.bundle)
-  - [cri-o.arm64.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx)
-  - [cri-o.arm64.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx.bundle)
+  - [cri-o.arm64.%s.tar.gz.spdx.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx.json)
+  - [cri-o.arm64.%s.tar.gz.spdx.json.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx.json.bundle)
 - [cri-o.ppc64le.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz)
   - [cri-o.ppc64le.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.sha256sum)
   - [cri-o.ppc64le.%s.tar.gz.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.bundle)
-  - [cri-o.ppc64le.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.spdx)
-  - [cri-o.ppc64le.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.spdx.bundle)
+  - [cri-o.ppc64le.%s.tar.gz.spdx.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.spdx.json)
+  - [cri-o.ppc64le.%s.tar.gz.spdx.json.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.ppc64le.%s.tar.gz.spdx.json.bundle)
 - [cri-o.s390x.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz)
   - [cri-o.s390x.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.sha256sum)
   - [cri-o.s390x.%s.tar.gz.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.bundle)
-  - [cri-o.s390x.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx)
-  - [cri-o.s390x.%s.tar.gz.spdx.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.bundle)
+  - [cri-o.s390x.%s.tar.gz.spdx.json](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.json)
+  - [cri-o.s390x.%s.tar.gz.spdx.json.bundle](https://storage.googleapis.com/cri-o/artifacts/cri-o.s390x.%s.tar.gz.spdx.json.bundle)
 
 ### Supply Chain Artifacts
 
@@ -180,11 +180,11 @@ To verify the artifact signatures via [cosign](https://github.com/sigstore/cosig
     --bundle cri-o.amd64.%s.tar.gz.bundle
 `+"```"+`
 
-To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using the [bom](https://sigs.k8s.io/bom) tool, run:
+To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using the [bom](https://sigs.k8s.io/bom) tool (v0.8.0 or later), run:
 
 `+"```"+`console
 > tar xfz cri-o.amd64.%s.tar.gz
-> bom validate -e cri-o.amd64.%s.tar.gz.spdx -d cri-o
+> bom validate -e cri-o.amd64.%s.tar.gz.spdx.json -d cri-o
 `+"```"+`
 
 To verify the [OpenVEX](https://openvex.dev) vulnerability report, run:
