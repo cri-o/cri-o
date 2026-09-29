@@ -12,6 +12,7 @@ definition][0], whereas this document follows it on the `service`/`rpc` level.
 
 ### Cgroup mount modes
 
+On Linux, CRI-O advertises `RuntimeFeatures.cgroup_mount_mode`.
 `LinuxContainerSecurityContext.cgroup_mount_mode` selects how the container's
 `/sys/fs/cgroup` is mounted:
 
