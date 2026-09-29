@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 
+	"github.com/moby/sys/mountinfo"
 	libctrcgroups "github.com/opencontainers/cgroups"
 	"go.podman.io/common/pkg/cgroups"
 )
@@ -34,6 +36,37 @@ func CgroupIsV2() bool {
 	cgroupIsV2, cgroupIsV2Err = cgroups.IsCgroup2UnifiedMode()
 
 	return cgroupIsV2
+}
+
+// CgroupHasNsdelegate returns whether the cgroup v2 hierarchy is mounted with
+// the nsdelegate option. It reads the mount options on each call because they
+// can change while CRI-O runs.
+func CgroupHasNsdelegate() (bool, error) {
+	isV2, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil || !isV2 {
+		return false, err
+	}
+
+	return cgroupMountHasNsdelegate(mountinfo.GetMounts)
+}
+
+func cgroupMountHasNsdelegate(
+	getMounts func(mountinfo.FilterFunc) ([]*mountinfo.Info, error),
+) (bool, error) {
+	mounts, err := getMounts(func(m *mountinfo.Info) (skip, stop bool) {
+		return m.Mountpoint != cgroupRoot || m.FSType != "cgroup2", false
+	})
+	if err != nil {
+		return false, err
+	}
+
+	for _, m := range mounts {
+		if slices.Contains(strings.Split(m.VFSOptions, ","), "nsdelegate") {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // CgroupHasMemorySwap returns whether the memory swap controller is present.

@@ -11,6 +11,94 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
+func TestValidateCgroupMountModeNamespaces(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		mode          types.CgroupMountMode
+		hostNet       bool
+		usernsEnabled bool
+		privileged    bool
+		cgroupns      *types.CgroupNamespace
+		wantErr       string
+	}{
+		{
+			name:          "read-write in host network and a user namespace is rejected",
+			mode:          types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE,
+			hostNet:       true,
+			usernsEnabled: true,
+			wantErr:       "host-network containers in a user namespace",
+		},
+		{
+			name:          "read-only in host network and a user namespace is accepted",
+			mode:          types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_ONLY,
+			hostNet:       true,
+			usernsEnabled: true,
+		},
+		{
+			name:          "unspecified in host network and a user namespace is accepted",
+			mode:          types.CgroupMountMode_CGROUP_MOUNT_MODE_UNSPECIFIED,
+			hostNet:       true,
+			usernsEnabled: true,
+		},
+		{
+			name:    "read-write in host network without a user namespace is accepted",
+			mode:    types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE,
+			hostNet: true,
+		},
+		{
+			name:          "read-write in a user namespace without host network is accepted",
+			mode:          types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE,
+			usernsEnabled: true,
+		},
+		{
+			name:     "read-write for an unprivileged container in the host cgroup namespace is rejected",
+			mode:     types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE,
+			cgroupns: &types.CgroupNamespace{Mode: types.NamespaceMode_NODE},
+			wantErr:  "unprivileged containers in the host cgroup namespace",
+		},
+		{
+			name:       "read-write for a privileged container in the host cgroup namespace is accepted",
+			mode:       types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE,
+			privileged: true,
+			cgroupns:   &types.CgroupNamespace{Mode: types.NamespaceMode_NODE},
+		},
+		{
+			name:     "read-write in the container's own cgroup namespace is accepted",
+			mode:     types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE,
+			cgroupns: &types.CgroupNamespace{Mode: types.NamespaceMode_CONTAINER},
+		},
+		{
+			name:     "read-only for an unprivileged container in the host cgroup namespace is accepted",
+			mode:     types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_ONLY,
+			cgroupns: &types.CgroupNamespace{Mode: types.NamespaceMode_NODE},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			config := &types.ContainerConfig{Linux: &types.LinuxContainerConfig{
+				SecurityContext: &types.LinuxContainerSecurityContext{
+					CgroupMountMode:  tc.mode,
+					Privileged:       tc.privileged,
+					NamespaceOptions: &types.NamespaceOption{CgroupnsOptions: tc.cgroupns},
+				},
+			}}
+
+			err := validateCgroupMountModeNamespaces(config, tc.hostNet, tc.usernsEnabled)
+
+			if tc.wantErr == "" {
+				if err != nil {
+					t.Fatalf("got error %v, want nil", err)
+				}
+
+				return
+			}
+
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("got error %v, want an error containing %q", err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestValidateCgroupMountNotCovered(t *testing.T) {
 	for _, tc := range []struct {
 		name             string
@@ -115,6 +203,12 @@ func TestApplyCgroupMountMode(t *testing.T) {
 			name:  "unspecified keeps the default",
 			mode:  types.CgroupMountMode_CGROUP_MOUNT_MODE_UNSPECIFIED,
 			mount: cgroupMount("rw"),
+			want:  []string{"nosuid", "noexec", "nodev", "relatime", "rw"},
+		},
+		{
+			name:  "read-write overrides the read-only default",
+			mode:  types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE,
+			mount: cgroupMount("ro"),
 			want:  []string{"nosuid", "noexec", "nodev", "relatime", "rw"},
 		},
 		{

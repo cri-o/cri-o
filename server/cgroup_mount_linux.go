@@ -9,6 +9,8 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/config/node"
 )
 
 func cgroupMount(accessOption string) rspec.Mount {
@@ -32,9 +34,60 @@ func validateCgroupMountMode(config *types.ContainerConfig) error {
 		}
 
 		return nil
+	case types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE:
+		return checkWritableCgroupsSupported()
 	default:
 		return fmt.Errorf("unsupported cgroup mount mode %q", mode)
 	}
+}
+
+func checkWritableCgroupsSupported() error {
+	if !node.CgroupIsV2() {
+		return errors.New("writable cgroups require cgroup v2")
+	}
+
+	hasNsdelegate, err := node.CgroupHasNsdelegate()
+	if err != nil {
+		return fmt.Errorf("check cgroup nsdelegate mount option: %w", err)
+	}
+
+	if !hasNsdelegate {
+		return errors.New(
+			"writable cgroups require /sys/fs/cgroup to be mounted with nsdelegate",
+		)
+	}
+
+	return nil
+}
+
+// validateCgroupMountModeNamespaces rejects a writable cgroup mount that the
+// container's namespaces cannot confine. A host-network container in a user
+// namespace gets the host's /sys bind mounted read-only by addSysfsMounts, so
+// the mode cannot take effect. An unprivileged container in the host cgroup
+// namespace has no cgroup namespace boundary for nsdelegate to enforce.
+func validateCgroupMountModeNamespaces(
+	config *types.ContainerConfig,
+	hostNet, usernsEnabled bool,
+) error {
+	securityContext := config.GetLinux().GetSecurityContext()
+	if securityContext.GetCgroupMountMode() != types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE {
+		return nil
+	}
+
+	if hostNet && usernsEnabled {
+		return errors.New(
+			"writable cgroups are not supported for host-network containers in a user namespace",
+		)
+	}
+
+	cgroupnsMode := securityContext.GetNamespaceOptions().GetCgroupnsOptions().GetMode()
+	if !securityContext.GetPrivileged() && cgroupnsMode == types.NamespaceMode_NODE {
+		return errors.New(
+			"writable cgroups are not supported for unprivileged containers in the host cgroup namespace",
+		)
+	}
+
+	return nil
 }
 
 // validateCgroupMountNotCovered rejects an explicit mode when a container
@@ -77,6 +130,8 @@ func applyCgroupMountMode(specgen *generate.Generator, config *types.ContainerCo
 	switch config.GetLinux().GetSecurityContext().GetCgroupMountMode() {
 	case types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_ONLY:
 		accessOption = "ro"
+	case types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE:
+		accessOption = "rw"
 	default:
 		return
 	}
