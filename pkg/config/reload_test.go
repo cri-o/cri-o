@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"context"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -315,6 +316,125 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		It("should reload the seccomp baseline profile", func() {
+			// Given
+			filePath := t.MustTempFile("baseline")
+			Expect(
+				os.WriteFile(filePath, []byte(`{"defaultAction": "SCMP_ACT_ERRNO"}`), 0o644),
+			).To(Succeed())
+
+			newConfig := defaultConfig()
+			newConfig.SeccompBaselineProfile = filePath
+
+			// When
+			err := sut.ReloadSeccompProfile(newConfig)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.SeccompBaselineProfile).To(Equal(filePath))
+		})
+
+		It("should fail with an invalid seccomp baseline profile", func() {
+			if sut.Seccomp().IsDisabled() {
+				Skip("seccomp is disabled")
+			}
+
+			// Given
+			filePath := t.MustTempFile("baseline")
+			Expect(
+				os.WriteFile(filePath, []byte(`{"defaultAction": "SCMP_ACT_WRONG"}`), 0o644),
+			).To(Succeed())
+
+			newConfig := defaultConfig()
+			newConfig.SeccompBaselineProfile = filePath
+
+			// When
+			err := sut.ReloadSeccompProfile(newConfig)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(sut.SeccompBaselineProfile).To(BeEmpty())
+		})
+
+		It("should keep the runtime handlers if the baseline fails to load", func() {
+			if sut.Seccomp().IsDisabled() {
+				Skip("seccomp is disabled")
+			}
+
+			// Given
+			Expect(sut.ReloadSeccompProfile(sut)).To(Succeed())
+
+			profile := t.MustTempFile("seccomp")
+			Expect(os.WriteFile(profile, []byte(`{"defaultAction": "SCMP_ACT_LOG"}`), 0o644)).
+				To(Succeed())
+
+			handler := &config.RuntimeHandler{
+				RuntimePath:    filepath.Join(t.EnsureRuntimeDeps(), config.DefaultRuntime),
+				SeccompProfile: profile,
+			}
+			Expect(handler.Validate("own")).To(Succeed())
+
+			sut.Runtimes["own"] = handler
+			previous := handler.RuntimeSeccomp()
+
+			baseline := t.MustTempFile("baseline")
+			Expect(os.WriteFile(baseline, []byte(`{"defaultAction": "SCMP_ACT_WRONG"}`), 0o644)).
+				To(Succeed())
+
+			newConfig := defaultConfig()
+			newConfig.SeccompBaselineProfile = baseline
+
+			// When
+			err := sut.ReloadSeccompProfile(newConfig)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(sut.Runtimes["own"].RuntimeSeccomp()).To(BeIdenticalTo(previous))
+			Expect(sut.OCISeccompProfilesSupported()).To(BeTrue())
+		})
+	})
+
+	t.Describe("ReloadSeccompProfile of a runtime handler", func() {
+		It("should apply a new baseline if the handler profile fails to load", func() {
+			if sut.Seccomp().IsDisabled() {
+				Skip("seccomp is disabled")
+			}
+
+			// Given
+			profile := t.MustTempFile("seccomp")
+			Expect(os.WriteFile(profile, []byte(`{"defaultAction": "SCMP_ACT_LOG"}`), 0o644)).
+				To(Succeed())
+
+			handler := &config.RuntimeHandler{
+				RuntimePath:    filepath.Join(t.EnsureRuntimeDeps(), config.DefaultRuntime),
+				SeccompProfile: profile,
+			}
+			Expect(handler.Validate("own")).To(Succeed())
+
+			sut.Runtimes["own"] = handler
+
+			Expect(os.Remove(profile)).To(Succeed())
+
+			baseline := t.MustTempFile("baseline")
+			Expect(os.WriteFile(baseline, []byte(`{"defaultAction": "SCMP_ACT_ERRNO"}`), 0o644)).
+				To(Succeed())
+
+			newConfig := defaultConfig()
+			newConfig.SeccompBaselineProfile = baseline
+
+			// When
+			err := sut.ReloadSeccompProfile(newConfig)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			handlerSeccomp := sut.Runtimes["own"].RuntimeSeccomp()
+			Expect(handlerSeccomp.Profile().DefaultAction).To(BeEquivalentTo("SCMP_ACT_LOG"))
+			Expect(
+				handlerSeccomp.BaselineProfile().DefaultAction,
+			).To(BeEquivalentTo("SCMP_ACT_ERRNO"))
+		})
 	})
 
 	t.Describe("ReloadAppArmorProfile", func() {
@@ -393,6 +513,44 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Runtimes).To(HaveKeyWithValue("new", newRuntimeHandler))
+		})
+
+		It("should keep the seccomp baseline profile for a new runtime", func() {
+			if sut.Seccomp().IsDisabled() {
+				Skip("seccomp is disabled")
+			}
+
+			// Given
+			baseline := t.MustTempFile("baseline")
+			Expect(os.WriteFile(baseline, []byte(`{"defaultAction": "SCMP_ACT_ERRNO"}`), 0o644)).
+				To(Succeed())
+
+			profile := t.MustTempFile("seccomp")
+			Expect(os.WriteFile(profile, []byte(`{"defaultAction": "SCMP_ACT_LOG"}`), 0o644)).
+				To(Succeed())
+
+			newConfig := defaultConfig()
+			newConfig.SeccompBaselineProfile = baseline
+			Expect(sut.ReloadSeccompProfile(newConfig)).To(Succeed())
+
+			newConfig.Runtimes = maps.Clone(sut.Runtimes)
+
+			newConfig.Runtimes["new"] = &config.RuntimeHandler{
+				RuntimePath:    existingRuntimePath,
+				SeccompProfile: profile,
+			}
+
+			// When
+			err := sut.ReloadRuntimes(newConfig)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			handlerSeccomp := sut.Runtimes["new"].RuntimeSeccomp()
+			Expect(handlerSeccomp.Profile().DefaultAction).To(BeEquivalentTo("SCMP_ACT_LOG"))
+			Expect(
+				handlerSeccomp.BaselineProfile().DefaultAction,
+			).To(BeEquivalentTo("SCMP_ACT_ERRNO"))
 		})
 
 		It("should change the default runtime", func() {

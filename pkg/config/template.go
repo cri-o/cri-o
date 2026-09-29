@@ -342,6 +342,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.PrivilegedSeccompProfile, c.PrivilegedSeccompProfile),
 		},
 		{
+			templateString: templateStringCrioRuntimeSeccompBaselineProfile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.SeccompBaselineProfile, c.SeccompBaselineProfile),
+		},
+		{
 			templateString: templateStringCrioRuntimeApparmorProfile,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.ApparmorProfile, c.ApparmorProfile),
@@ -647,6 +652,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringCrioImageShortNameMode,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.ShortNameMode, c.ShortNameMode),
+		},
+		{
+			templateString: templateStringCrioImageSecurityProfileMaxSize,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.SecurityProfileMaxSize, c.SecurityProfileMaxSize),
 		},
 		{
 			templateString: templateStringOCIArtifactMountSupport,
@@ -1041,6 +1051,9 @@ const templateStringCrioRuntimeAdditionalArtifactStores = `# A list of additiona
 # All entries must be absolute paths. Artifacts in these stores take priority
 # over the main store. Tag re-pointing is not supported for artifacts in
 # read-only stores; remove the artifact from the store filesystem to update.
+# Security profiles in these stores (KEP-6061) are trusted like Localhost
+# profiles: they are validated on every use, but never pulled and never
+# checked against a signature policy.
 {{ $.Comment }}additional_artifact_stores = [
 {{ range $store := .AdditionalArtifactStores }}{{ $.Comment }}{{ printf "\t%q,\n" $store }}{{ end }}{{ $.Comment }}]
 
@@ -1102,6 +1115,17 @@ const templateStringCrioRuntimeSeccompProfile = `# Path to the seccomp.json prof
 const templateStringCrioRuntimePrivilegedSeccompProfile = `# Enable a seccomp profile for privileged containers from the local path.
 # This option supports live configuration reload.
 {{ $.Comment }}privileged_seccomp_profile = "{{ .PrivilegedSeccompProfile }}"
+
+`
+
+const templateStringCrioRuntimeSeccompBaselineProfile = `# Path to the seccomp profile that every seccomp profile pulled as an OCI
+# artifact (the OCI profile type of KEP-6061) is intersected with, so that the
+# effective profile never permits what this baseline denies. Runtime handlers
+# use it as well. If not specified or set to "", then the default seccomp
+# profile of the runtime handler is used as the baseline. The profile is
+# validated when the configuration is loaded.
+# This option supports live configuration reload.
+{{ $.Comment }}seccomp_baseline_profile = "{{ .SeccompBaselineProfile }}"
 
 `
 
@@ -1706,6 +1730,19 @@ const templateStringCrioImageShortNameMode = `# The mode of short name resolutio
 # If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 # If "disabled", the first result will be chosen.
 {{ $.Comment }}short_name_mode = "{{ .ShortNameMode }}"
+
+`
+
+const templateStringCrioImageSecurityProfileMaxSize = `# The maximum size in bytes of a security profile pulled as an OCI artifact
+# (KEP-6061), at most 64 MiB. Larger profiles are rejected. Profiles are
+# verified under the signature policy of the namespace of the pod, per
+# repository, since policies are scoped by repository: a present profile is
+# pulled once more for another namespace policy or another repository, even
+# under an identical policy. Pulled profiles are kept in the
+# "security-profiles" directory of the storage root until the kubelet removes
+# them with RemoveSecurityProfile. To remove all of them, stop CRI-O and
+# remove that directory.
+{{ $.Comment }}security_profile_max_size = {{ .SecurityProfileMaxSize }}
 
 `
 

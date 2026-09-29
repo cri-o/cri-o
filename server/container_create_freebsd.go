@@ -19,16 +19,22 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/pkg/annotations/v2"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
-func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Generator, mappings *idtools.IDMappings) {
+func (s *Server) finalizeUserMapping(
+	sb *sandbox.Sandbox,
+	specgen *generate.Generator,
+	mappings *idtools.IDMappings,
+) {
 }
 
 // this function takes a container config and makes sure its SecurityContext
 // is not nil. If it is, it makes sure to set default values for every field.
-func setContainerConfigSecurityContext(containerConfig *types.ContainerConfig) *types.LinuxContainerSecurityContext {
+func setContainerConfigSecurityContext(
+	containerConfig *types.ContainerConfig,
+) *types.LinuxContainerSecurityContext {
 	return &types.LinuxContainerSecurityContext{
 		NamespaceOptions: &types.NamespaceOption{},
 		SelinuxOptions:   &types.SELinuxOption{},
@@ -39,13 +45,23 @@ func disableFipsForContainer(ctr ctrfactory.Container, containerDir string) erro
 	return nil
 }
 
-func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet, usernsEnabled bool) {
+func addSysfsMounts(
+	ctr ctrfactory.Container,
+	containerConfig *types.ContainerConfig,
+	hostNet, usernsEnabled bool,
+) {
 }
 
 func setOCIBindMountsPrivileged(g *generate.Generator) {
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, sb *sandbox.Sandbox) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
+func (s *Server) addOCIBindMounts(
+	ctx context.Context,
+	ctr ctrfactory.Container,
+	ctrInfo *storage.ContainerInfo,
+	maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool,
+	sb *sandbox.Sandbox,
+) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -95,12 +111,19 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			return nil, nil, nil, fmt.Errorf("mount.HostPath is empty")
 		}
 		if m.HostPath == "/" && dest == "/" {
-			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
+			log.Warnf(
+				ctx,
+				"Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.",
+			)
 		}
 		src, err := resolveSymbolicLink(s.config.BindMountPrefix, m.HostPath)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				return nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", m.HostPath, err)
+				return nil, nil, nil, fmt.Errorf(
+					"failed to resolve symlink %q: %w",
+					m.HostPath,
+					err,
+				)
 			}
 			// Preserve reject-list matching through intermediate symlinks.
 			originalSrc := filepath.Join(s.config.BindMountPrefix, m.HostPath)
@@ -157,7 +180,10 @@ func setupSystemdMounts(g *generate.Generator) {
 }
 
 // Returns the spec Generator for the container, with some values set.
-func (s *Server) getSpecGen(ctr ctrfactory.Container, containerConfig *types.ContainerConfig) *generate.Generator {
+func (s *Server) getSpecGen(
+	ctr ctrfactory.Container,
+	containerConfig *types.ContainerConfig,
+) *generate.Generator {
 	specgen := ctr.Spec()
 	specgen.HostSpecific = true
 	specgen.ClearProcessRlimits()
@@ -193,27 +219,45 @@ func (s *Server) getSpecGen(ctr ctrfactory.Container, containerConfig *types.Con
 	return specgen
 }
 
-func (s *Server) specSetApparmorProfile(ctx context.Context, specgen *generate.Generator, ctr ctrfactory.Container, securityContext *types.LinuxContainerSecurityContext) error {
+func (s *Server) specSetApparmorProfile(
+	ctx context.Context,
+	specgen *generate.Generator,
+	ctr ctrfactory.Container,
+	securityContext *types.LinuxContainerSecurityContext,
+) error {
 	return nil
 }
 
-func (s *Server) specSetBlockioClass(specgen *generate.Generator, containerName string, containerAnnotations, sandboxAnnotations map[string]string) error {
+func (s *Server) specSetBlockioClass(
+	specgen *generate.Generator,
+	containerName string,
+	containerAnnotations, sandboxAnnotations map[string]string,
+) error {
 	return nil
 }
 
 func (s *Server) specSetDevices(ctr ctrfactory.Container, sb *sandbox.Sandbox) error {
 	configuredDevices := s.config.Devices()
 
-	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
+	privilegedWithoutHostDevices, err := s.Runtime().
+		PrivilegedWithoutHostDevices(sb.RuntimeHandler())
 	if err != nil {
 		return err
 	}
 
 	devicesAnnotationValue, _ := v2.GetAnnotationValue(sb.Annotations(), v2.Devices)
-	annotationDevices, err := device.DevicesFromAnnotation(devicesAnnotationValue, s.config.AllowedDevices)
+	annotationDevices, err := device.DevicesFromAnnotation(
+		devicesAnnotationValue,
+		s.config.AllowedDevices,
+	)
 	if err != nil {
 		return err
 	}
 
-	return ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext)
+	return ctr.SpecAddDevices(
+		configuredDevices,
+		annotationDevices,
+		privilegedWithoutHostDevices,
+		s.config.DeviceOwnershipFromSecurityContext,
+	)
 }
