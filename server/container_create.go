@@ -952,6 +952,13 @@ func (s *Server) createSandboxContainer(
 
 	usernsEnabled := containerIDMappings != nil
 	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
+
+	if err := validateCgroupMountModeNamespaces(
+		containerConfig, hostNet, usernsEnabled,
+	); err != nil {
+		return nil, err
+	}
+
 	addSysfsMounts(ctr, containerConfig, hostNet, usernsEnabled)
 
 	if err := s.setupCgroupNamespace(ctr, specgen); err != nil {

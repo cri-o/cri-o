@@ -29,6 +29,12 @@ function write_host_network_container_config() {
 		"$TESTDATA/container_sleep.json" > "$newconfig"
 }
 
+function skip_without_nsdelegate() {
+	if ! findmnt -n --mountpoint /sys/fs/cgroup -t cgroup2 -O nsdelegate > /dev/null; then
+		skip "writable cgroups require nsdelegate"
+	fi
+}
+
 function assert_cgroup_read_only() {
 	run ! crictl exec --sync "$1" mkdir /sys/fs/cgroup/crio-test
 	[[ "$output" == *"Read-only file system"* ]]
@@ -48,6 +54,35 @@ function assert_cgroup_writable() {
 
 	run ! crictl create "$pod_id" "$newconfig" "$sboxconfig"
 	[[ "$output" == *"read-only cgroups are not supported for privileged containers"* ]]
+}
+
+@test "cgroup mount mode read-write confines a container to its cgroup" {
+	requires_crictl "1.38"
+	skip_without_nsdelegate
+	start_crio
+	write_host_network_sandbox_config
+	write_host_network_container_config 2
+
+	ctr_id=$(crictl run "$newconfig" "$sboxconfig")
+	assert_cgroup_writable "$ctr_id"
+	output=$(crictl exec --sync "$ctr_id" cat /proc/self/cgroup)
+	[[ "$output" == "0::/" ]]
+}
+
+@test "cgroup mount mode read-write rejects host-network containers in a user namespace" {
+	requires_crictl "1.38"
+	skip_without_nsdelegate
+	start_crio
+	write_host_network_sandbox_config '.linux.security_context.namespace_options.userns_options = {
+		"mode": 0,
+		"uids": [{"container_id": 0, "host_id": 100000, "length": 65536}],
+		"gids": [{"container_id": 0, "host_id": 100000, "length": 65536}]
+	}'
+	pod_id=$(crictl runp "$sboxconfig")
+	write_host_network_container_config 2
+
+	run ! crictl create "$pod_id" "$newconfig" "$sboxconfig"
+	[[ "$output" == *"writable cgroups are not supported for host-network containers in a user namespace"* ]]
 }
 
 @test "cgroup mount mode read-only overrides the writable annotation" {
