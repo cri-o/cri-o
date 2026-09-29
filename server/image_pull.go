@@ -118,25 +118,11 @@ func (s *Server) PullImage(
 		}
 	}
 
-	if req.GetAuth() != nil {
-		username := req.GetAuth().GetUsername()
-		password := req.GetAuth().GetPassword()
+	pullArgs.credentials, err = credentialsFromAuth(req.GetAuth())
+	if err != nil {
+		log.Debugf(ctx, "Error decoding authentication for image %s: %v", image, err)
 
-		if req.GetAuth().GetAuth() != "" {
-			username, password, err = decodeDockerAuth(req.GetAuth().GetAuth())
-			if err != nil {
-				log.Debugf(ctx, "Error decoding authentication for image %s: %v", image, err)
-
-				return nil, err
-			}
-		}
-		// Specifying a username indicates the user intends to send authentication to the registry.
-		if username != "" {
-			pullArgs.credentials = imageTypes.DockerAuthConfig{
-				Username: username,
-				Password: password,
-			}
-		}
+		return nil, err
 	}
 
 	// We use the server's pullOperationsInProgress to record which images are
@@ -304,17 +290,9 @@ func (s *Server) contextForNamespace(namespace string) (imageTypes.SystemContext
 	return sysCtx, nil
 }
 
-// prepareTempAuthFile checks is a namespaced auth file is available for the
-// provided imageRef and namespace. If that's the case, then it moves it to a
-// temporary location for singular usage, modifies the provided system context
-// and returns a cleanup function to remove the file if the pull has been done.
-func (s *Server) prepareTempAuthFile(
-	ctx context.Context,
-	sysCtx *imageTypes.SystemContext,
-	imageRef, namespace string,
-) (cleanup func(), err error) {
-	cleanup = func() {}
-
+// namespacedAuthFilePath returns the path of the auth file the credential
+// provider writes for the image in the namespace.
+func (s *Server) namespacedAuthFilePath(imageRef, namespace string) (string, error) {
 	// Normalize the image ref to use the same format as the credential provider, see:
 	// https://github.com/kubernetes/kubernetes/blob/6070f5a/pkg/kubelet/images/image_manager.go#L192-L195
 	// which calls into:
@@ -331,13 +309,32 @@ func (s *Server) prepareTempAuthFile(
 	// calling the credential provider again and writing a new auth file.
 	image, err := reference.ParseNormalizedNamed(imageRef)
 	if err != nil {
-		return cleanup, fmt.Errorf("parse image name: %w", err)
+		return "", fmt.Errorf("parse image name: %w", err)
 	}
 
 	// Follow the strict format of <NAMESPACE>-<IMAGE_NAME_SHA256>.json to resolve possible auth files.
 	authFilePath, err := auth.FilePath(s.config.NamespacedAuthDir, namespace, image.Name())
 	if err != nil {
-		return cleanup, fmt.Errorf("get auth file path: %w", err)
+		return "", fmt.Errorf("get auth file path: %w", err)
+	}
+
+	return authFilePath, nil
+}
+
+// prepareTempAuthFile checks is a namespaced auth file is available for the
+// provided imageRef and namespace. If that's the case, then it moves it to a
+// temporary location for singular usage, modifies the provided system context
+// and returns a cleanup function to remove the file if the pull has been done.
+func (s *Server) prepareTempAuthFile(
+	ctx context.Context,
+	sysCtx *imageTypes.SystemContext,
+	imageRef, namespace string,
+) (cleanup func(), err error) {
+	cleanup = func() {}
+
+	authFilePath, err := s.namespacedAuthFilePath(imageRef, namespace)
+	if err != nil {
+		return cleanup, err
 	}
 
 	log.Debugf(ctx, "Looking for namespaced auth JSON file in: %s", authFilePath)
@@ -574,6 +571,32 @@ func tryRecordSkippedMetric(
 	)
 	log.Debugf(ctx, "Skipped layer %s", layer)
 	metrics.Instance().MetricImageLayerReuseInc(layer)
+}
+
+// credentialsFromAuth returns the registry credentials of the CRI auth config.
+// They are empty if the auth config specifies no username.
+func credentialsFromAuth(authConfig *types.AuthConfig) (imageTypes.DockerAuthConfig, error) {
+	username := authConfig.GetUsername()
+	password := authConfig.GetPassword()
+
+	if authConfig.GetAuth() != "" {
+		var err error
+
+		username, password, err = decodeDockerAuth(authConfig.GetAuth())
+		if err != nil {
+			return imageTypes.DockerAuthConfig{}, err
+		}
+	}
+
+	// Specifying a username indicates the user intends to send authentication to the registry.
+	if username == "" {
+		return imageTypes.DockerAuthConfig{}, nil
+	}
+
+	return imageTypes.DockerAuthConfig{
+		Username: username,
+		Password: password,
+	}, nil
 }
 
 func decodeDockerAuth(s string) (user, password string, _ error) {

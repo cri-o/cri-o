@@ -4,6 +4,7 @@ package seccomp
 
 import (
 	"context"
+	"errors"
 
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.podman.io/common/pkg/seccomp"
@@ -39,7 +40,12 @@ func (c *Config) Setup(
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
 	graphRoot string,
+	ociProfiles OCIProfiles,
 ) (*Notifier, string, error) {
+	if profileField.GetProfileType() == types.SecurityProfile_OCI {
+		return nil, "", errors.New("seccomp is not supported, cannot run with OCI profile")
+	}
+
 	return nil, "", nil
 }
 
@@ -60,6 +66,26 @@ func (c *Config) LoadProfile(profilePath string) error {
 
 // LoadDefaultProfile sets the internal default profile.
 func (c *Config) LoadDefaultProfile() error {
+	return nil
+}
+
+// LoadBaselineProfile loads the baseline profile for OCI artifact profiles.
+func (c *Config) LoadBaselineProfile(profilePath string, withProfile bool) error {
+	return nil
+}
+
+// Replace replaces the profiles with the ones of another configuration.
+func (c *Config) Replace(other *Config) {
+}
+
+// OCIProfilesSupported returns true if OCI artifact profiles can be merged
+// with the baseline.
+func (c *Config) OCIProfilesSupported() bool {
+	return false
+}
+
+// BaselineProfile returns the profile OCI artifact profiles are intersected with.
+func (c *Config) BaselineProfile() *seccomp.Seccomp {
 	return nil
 }
 

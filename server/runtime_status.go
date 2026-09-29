@@ -41,6 +41,8 @@ func (s *Server) Status(
 		Features: &types.RuntimeFeatures{
 			SupplementalGroupsPolicy:  true,
 			UserNamespacesHostNetwork: true,
+			SecurityProfileOci: s.config.OCISeccompProfilesSupported() &&
+				s.securityProfiles.Available(),
 		},
 	}
 
