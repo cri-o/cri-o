@@ -211,6 +211,10 @@ func mergeImageConfig(config *libconfig.Config, ctx *cli.Context) {
 		config.ShortNameMode = ctx.String("short-name-mode")
 	}
 
+	if ctx.IsSet("security-profile-max-size") {
+		config.SecurityProfileMaxSize = ctx.Int64("security-profile-max-size")
+	}
+
 	if ctx.IsSet("oci-artifact-mount-support") {
 		config.OCIArtifactMountSupport = ctx.Bool("oci-artifact-mount-support")
 	}
@@ -266,6 +270,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 
 	if ctx.IsSet("privileged-seccomp-profile") {
 		config.PrivilegedSeccompProfile = ctx.String("privileged-seccomp-profile")
+	}
+
+	if ctx.IsSet("seccomp-baseline-profile") {
+		config.SeccompBaselineProfile = ctx.String("seccomp-baseline-profile")
 	}
 
 	if ctx.IsSet("apparmor-profile") {
@@ -955,6 +963,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars:   []string{"CONTAINER_PRIVILEGED_SECCOMP_PROFILE"},
 			TakesFile: true,
 		},
+		&cli.StringFlag{
+			Name:      "seccomp-baseline-profile",
+			Usage:     "Path to the seccomp profile that every seccomp profile pulled as an OCI artifact is intersected with. If not specified, then the default seccomp profile of the runtime handler is used.",
+			EnvVars:   []string{"CONTAINER_SECCOMP_BASELINE_PROFILE"},
+			TakesFile: true,
+		},
 
 		&cli.StringFlag{
 			Name:    "apparmor-profile",
@@ -1606,6 +1620,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Describes the mode of short name resolution. Allowed values are 'enforcing' and 'disabled'.",
 			EnvVars: []string{"CONTAINER_SHORT_NAME_MODE"},
 			Value:   defConf.ShortNameMode,
+		},
+		&cli.Int64Flag{
+			Name:    "security-profile-max-size",
+			Usage:   "Maximum size in bytes of a security profile pulled as an OCI artifact, at most 64 MiB.",
+			EnvVars: []string{"CONTAINER_SECURITY_PROFILE_MAX_SIZE"},
+			Value:   defConf.SecurityProfileMaxSize,
 		},
 	}
 }
