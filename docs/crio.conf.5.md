@@ -430,7 +430,7 @@ The full annotation must be of the form `$annotation_prefix.$resource/$ctrname =
 allowed_annotations is a slice of experimental annotations that this workload is allowed to process.
 The currently recognized values are:
 "userns-mode.crio.io" for configuring a user namespace for the pod.
-"cgroup2-mount-hierarchy-rw.crio.io" for mounting cgroups writably when set to "true".
+"cgroup2-mount-hierarchy-rw.crio.io" for mounting cgroups writably when set to "true". An explicit CRI cgroup mount mode overrides it.
 "devices.crio.io" for configuring devices for the pod.
 "shm-size.crio.io" for configuring the size of /dev/shm.
 "unified-cgroup.crio.io/$CTR_NAME" for configuring the cgroup v2 unified block for a container.

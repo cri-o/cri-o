@@ -446,6 +446,10 @@ func (s *Server) CreateContainer(
 		return nil, errors.New("sandbox config metadata is nil")
 	}
 
+	if err := validateCgroupMountMode(req.GetConfig()); err != nil {
+		return nil, err
+	}
+
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
@@ -966,6 +970,8 @@ func (s *Server) createSandboxContainer(
 		return nil, err
 	}
 
+	applyCgroupMountMode(specgen, containerConfig)
+
 	// Set hostname and add env for hostname
 	specgen.SetHostname(sb.Hostname())
 	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
@@ -1258,7 +1264,8 @@ func (s *Server) applyOCIHooks(
 }
 
 // setupContainerMounts configures the container's OCI, volume, and secret mounts. It handles
-// ID mappings for user namespaces and sets up FIPS mode if disabled via annotation.
+// ID mappings for user namespaces and sets up FIPS mode if disabled via annotation. It
+// returns an error if a mount covers /sys/fs/cgroup under an explicit cgroup mount mode.
 func (s *Server) setupContainerMounts(
 	ctr container.Container,
 	sb *sandbox.Sandbox,
@@ -1267,6 +1274,10 @@ func (s *Server) setupContainerMounts(
 	mountPoint, mountLabel string,
 	ociMounts, volumeMounts []rspec.Mount,
 ) error {
+	if err := validateCgroupMountNotCovered(ctr.Config(), volumeMounts); err != nil {
+		return err
+	}
+
 	rootUID, rootGID := 0, 0
 
 	if containerIDMappings != nil {
