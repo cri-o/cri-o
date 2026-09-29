@@ -12,6 +12,8 @@ import (
 	"github.com/cri-o/cri-o/internal/config/node"
 )
 
+const cgroupMountModeSupported = true
+
 func cgroupMount(accessOption string) rspec.Mount {
 	return rspec.Mount{
 		Destination: cgroupSysFsPath,
