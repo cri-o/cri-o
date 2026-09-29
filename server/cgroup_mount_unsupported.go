@@ -19,6 +19,10 @@ func validateCgroupMountMode(config *types.ContainerConfig) error {
 	return nil
 }
 
+func validateCgroupMountModeNamespaces(_ *types.ContainerConfig, _, _ bool) error {
+	return nil
+}
+
 func validateCgroupMountNotCovered(_ *types.ContainerConfig, _ []rspec.Mount) error {
 	return nil
 }
