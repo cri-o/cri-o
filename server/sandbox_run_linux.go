@@ -794,7 +794,9 @@ func (s *Server) runPodSandbox(
 		return nil, err
 	}
 
-	seccompRef, err := s.setupSandboxSeccomp(ctx, g, runtimeHandler, privileged, securityContext)
+	seccompRef, err := s.setupSandboxSeccomp(
+		ctx, g, runtimeHandler, privileged, securityContext, namespace, kubeName,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1413,6 +1415,7 @@ func (s *Server) setupSandboxSeccomp(
 	runtimeHandler string,
 	privileged bool,
 	securityContext *types.LinuxSandboxSecurityContext,
+	namespace, kubeName string,
 ) (string, error) {
 	seccompRef := types.SecurityProfile_Unconfined.String()
 	setupSeccompForPrivCtr := (privileged && s.config.PrivilegedSeccompProfile != "")
@@ -1442,6 +1445,7 @@ func (s *Server) setupSandboxSeccomp(
 			g,
 			securityContext.GetSeccomp(),
 			s.Store().GraphRoot(),
+			s.securityProfiles.For(namespace, namespace+"/"+kubeName),
 		)
 		if err != nil {
 			return "", fmt.Errorf("setup seccomp: %w", err)

@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"sync/atomic"
+	"syscall"
 
 	modelSpec "github.com/modelpack/model-spec/specs-go/v1"
 	"github.com/opencontainers/go-digest"
@@ -178,6 +181,90 @@ func (s *Store) Pull(
 	}
 
 	return &dgst, nil
+}
+
+// ListAdditional returns the artifacts of the read-only additional stores.
+// Like List, it skips additional stores that fail to list.
+func (s *Store) ListAdditional(ctx context.Context) []*Artifact {
+	var arts []*Artifact
+
+	for _, add := range s.additionalStores {
+		addArts, err := add.store.List(ctx)
+		if err != nil {
+			log.Warnf(ctx, "Failed to list artifacts from additional store %q: %v", add.path, err)
+
+			continue
+		}
+
+		for _, art := range addArts {
+			arts = append(arts, s.newArtifact(ctx, art, add.path, true))
+		}
+	}
+
+	return arts
+}
+
+// BlobPath returns the path of a blob of the store holding the artifact. The
+// OCI image layout stores every blob by its digest.
+func BlobPath(artifact *Artifact, dgst digest.Digest) (string, error) {
+	if err := dgst.Validate(); err != nil {
+		return "", fmt.Errorf("invalid blob digest: %w", err)
+	}
+
+	return filepath.Join(
+		artifact.RootPath(),
+		"blobs",
+		dgst.Algorithm().String(),
+		dgst.Encoded(),
+	), nil
+}
+
+// ReadBlob reads the blob with the provided digest from the store holding the
+// artifact. It fails if the blob is larger than limit bytes or does not match
+// the digest, which it verifies because additional stores are filled by
+// other tools.
+func (s *Store) ReadBlob(artifact *Artifact, dgst digest.Digest, limit int64) ([]byte, error) {
+	path, err := BlobPath(artifact, dgst)
+	if err != nil {
+		return nil, err
+	}
+
+	// Opening a FIFO or a device must not block, as other tools fill
+	// additional stores.
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, fmt.Errorf("open blob: %w", err)
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("stat blob: %w", err)
+	}
+
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("blob %s is not a regular file", dgst)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(f, limit+1))
+	if err != nil {
+		return nil, fmt.Errorf("read blob: %w", err)
+	}
+
+	if int64(len(data)) > limit {
+		return nil, fmt.Errorf("blob %s exceeds %d bytes", dgst, limit)
+	}
+
+	verifier := dgst.Verifier()
+	if _, err := verifier.Write(data); err != nil {
+		return nil, fmt.Errorf("verify blob: %w", err)
+	}
+
+	if !verifier.Verified() {
+		return nil, fmt.Errorf("blob %s does not match its digest", dgst)
+	}
+
+	return data, nil
 }
 
 // EnsureNotContainerImage inspects the manifest at ref and returns

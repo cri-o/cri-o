@@ -70,7 +70,12 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	}
 
 	podInfraContainer := sb.InfraContainer()
-	if err := s.stopContainer(ctx, podInfraContainer, totalTimeout); err != nil && !errors.Is(err, storage.ErrContainerUnknown) && !errors.Is(err, oci.ErrContainerStopped) {
+	if err := s.stopContainer(
+		ctx,
+		podInfraContainer,
+		totalTimeout,
+	); err != nil && !errors.Is(err, storage.ErrContainerUnknown) &&
+		!errors.Is(err, oci.ErrContainerStopped) {
 		return fmt.Errorf("failed to stop infra container for pod sandbox %s: %w", sb.ID(), err)
 	}
 
