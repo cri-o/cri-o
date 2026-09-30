@@ -308,7 +308,7 @@ func handleNewMessage(sockfd int) (uintptr, error) {
 	oobSpace := unix.CmsgSpace(4)
 	oob := make([]byte, oobSpace)
 
-	n, oobn, _, _, err := unix.Recvmsg(sockfd, stateBuf, oob, 0)
+	n, oobn, _, _, err := unix.Recvmsg(sockfd, stateBuf, oob, unix.MSG_CMSG_CLOEXEC)
 	if err != nil {
 		return 0, err
 	}
