@@ -18,6 +18,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"go.podman.io/image/v5/docker/reference"
 	imageTypes "go.podman.io/image/v5/types"
+	cstorage "go.podman.io/storage"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
 
@@ -277,6 +278,12 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
+
+			if s.config.EnableLayerDedup {
+				if dedupErr := s.deduplicateImageLayers(ctx, remoteCandidateName, pullArgs.imageServer); dedupErr != nil {
+					log.Warnf(ctx, "Layer deduplication after pull of %s failed: %v", remoteCandidateName, dedupErr)
+				}
+			}
 
 			return s.resolveImageRefToID(ctx, imageRef, pullArgs.imageServer)
 		}
@@ -592,4 +599,39 @@ func decodeDockerAuth(s string) (user, password string, _ error) {
 	password = strings.Trim(parts[1], "\x00")
 
 	return user, password, nil
+}
+
+// deduplicateImageLayers runs storage-level reflink deduplication across all
+// layers in the store. This is called synchronously after a successful image
+// pull when enable_layer_dedup is true. Dedup failures never fail the pull.
+func (s *Server) deduplicateImageLayers(ctx context.Context, imageName storage.RegistryImageReference, imageServer storage.ImageServer) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
+	store := imageServer.GetStore()
+
+	log.Infof(ctx, "Starting layer deduplication for image %s", imageName)
+
+	start := time.Now()
+
+	result, err := store.Dedup(cstorage.DedupArgs{
+		Options: cstorage.DedupOptions{
+			HashMethod: cstorage.DedupHashSHA256,
+		},
+	})
+
+	duration := time.Since(start)
+
+	if err != nil {
+		return fmt.Errorf("deduplication failed: %w", err)
+	}
+
+	metrics.Instance().MetricImageLayerDedupDurationObserve(duration)
+	metrics.Instance().MetricImageLayerDedupBytesSavedObserve(int64(result.Deduped))
+
+	savedMB := float64(result.Deduped) / (1024 * 1024)
+	log.Infof(ctx, "Layer deduplication complete for image %s: saved %.2f MB in %v",
+		imageName, savedMB, duration)
+
+	return nil
 }

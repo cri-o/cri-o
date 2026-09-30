@@ -84,6 +84,8 @@ type Metrics struct {
 	metricResourcesStalledAtStage             *prometheus.CounterVec
 	metricContainersStoppedMonitorCount       *prometheus.CounterVec
 	metricDefaultRuntime                      *prometheus.GaugeVec
+	metricImageLayerDedupDuration             prometheus.Histogram
+	metricImageLayerDedupBytesSaved           prometheus.Counter
 }
 
 var instance *Metrics
@@ -259,6 +261,21 @@ func New(config *libconfig.MetricsConfig, apiConfig *libconfig.APIConfig) *Metri
 			},
 			[]string{"runtime"},
 		),
+		metricImageLayerDedupDuration: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageLayerDedupDuration.String(),
+				Help:      "Duration in seconds of layer deduplication after image pull.",
+				Buckets:   []float64{0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10, 30, 60, 120},
+			},
+		),
+		metricImageLayerDedupBytesSaved: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ImageLayerDedupBytesSaved.String(),
+				Help:      "Cumulative bytes saved by layer deduplication after image pulls.",
+			},
+		),
 	}
 
 	return Instance()
@@ -431,6 +448,16 @@ func (m *Metrics) MetricImagePullsSuccessesInc(name references.RegistryImageRefe
 	m.metricImagePullsSuccessTotal.Inc()
 }
 
+// MetricImageLayerDedupDurationObserve records the duration of a dedup pass.
+func (m *Metrics) MetricImageLayerDedupDurationObserve(duration time.Duration) {
+	m.metricImageLayerDedupDuration.Observe(duration.Seconds())
+}
+
+// MetricImageLayerDedupBytesSavedObserve records bytes saved by dedup.
+func (m *Metrics) MetricImageLayerDedupBytesSavedObserve(saved int64) {
+	m.metricImageLayerDedupBytesSaved.Add(float64(saved))
+}
+
 func (m *Metrics) MetricImagePullsBytesAdd(add float64, mediatype string, size int64) {
 	c, err := m.metricImagePullsBytesTotal.GetMetricWithLabelValues(
 		mediatype,
@@ -501,6 +528,8 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
 		collectors.ContainersStoppedMonitorCount:       m.metricContainersStoppedMonitorCount,
 		collectors.DefaultRuntime:                      m.metricDefaultRuntime,
+		collectors.ImageLayerDedupDuration:             m.metricImageLayerDedupDuration,
+		collectors.ImageLayerDedupBytesSaved:           m.metricImageLayerDedupBytesSaved,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())

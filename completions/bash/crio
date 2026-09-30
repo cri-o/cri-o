@@ -131,6 +131,7 @@ h
 --seccomp-profile
 --selinux
 --separate-pull-cgroup
+--enable-layer-dedup
 --shared-cpuset
 --short-name-mode
 --signature-policy
