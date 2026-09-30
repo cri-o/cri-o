@@ -13,11 +13,8 @@ dependencies:
       - path: hack/Containerfile.dev
         match: GOVERSION
 
-  # For a new minor (1.x.0) release, move the "development version"
-  # below to the "supported versions" section (by omitting the patch version).
-  # The .github/workflows/tag-reconciler.yml workflow should then automatically
-  # tag the .0 release if it does not already exist. If the .0 release is done,
-  # increase the development version to the next minor (1.x.0).
+  # For minor releases, follow release.md to update the supported and
+  # development versions in the correct order.
   - name: development version
     version: 1.38.0
     refPaths:

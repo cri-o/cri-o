@@ -61,7 +61,7 @@ Two variables in
 [`internal/version/version.go`](../internal/version/version.go)
 drive all release automation:
 
-- `Version` (a `const`): The development version on `main`, always set to the
+- `Version` (a `var`): The development version on `main`, normally set to the
   next unreleased minor. If the latest stable release branch is `release-1.y`,
   then `Version` is `1.(y+1).0`.
 - `ReleaseMinorVersions` (a `var`): The currently supported release branches
@@ -84,7 +84,7 @@ workflow runs daily at midnight UTC. For each minor version in
 [`scripts/tag-reconciler/tag-reconciler.go`](tag-reconciler/tag-reconciler.go),
 which:
 
-1. Reads the `Version` constant from the corresponding `release-1.y` branch.
+1. Reads `Version` from the corresponding `release-1.y` branch.
 2. Checks whether a tag `v1.y.z` already exists.
 3. If not, creates the tag and triggers the test workflow for it.
 
@@ -156,9 +156,9 @@ interact:
 flowchart TD
     A[Start: patch-release.yml Workflow] --> B[Create version bump PRs]
     B --> C[Maintainers Review PRs]
-    C -->|Decides Against Merges| E[Rebases on main branch monthly]
+    C -->|Defer merge| E[Next monthly run rebases bump branches onto release branches]
     E --> C
-    C -->|Decides to Merge PRs| D[Run: tag-reconciler.yml Workflow every day]
-    D --> F[Release Job: Build Packages, Create Release Notes, etc.]
-    F --> G[End]
+    C -->|Merge PR| D[Tag reconciler creates tag and dispatches test.yml]
+    D --> F[test.yml builds binaries and publishes release notes]
+    F --> G[Packaging publishes packages separately]
 ```

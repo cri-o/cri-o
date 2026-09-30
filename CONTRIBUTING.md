@@ -11,6 +11,7 @@ that we follow.
 - [Submitting Pull Requests](#submitting-pull-requests)
   - [Dependency management](#dependency-management)
   - [Sign your PRs](#sign-your-prs)
+- [Releases](#releases)
 - [Communications](#communications)
 
 <!-- /toc -->
@@ -153,6 +154,10 @@ Use your real name (sorry, no pseudonyms or anonymous contributions.)
 
 If you set your `user.name` and `user.email` git configs, you can sign your
 commit automatically with `git commit -s`.
+
+## Releases
+
+Maintainers publishing a release should follow the [release guide](release.md).
 
 ## Communications
 
