@@ -78,6 +78,12 @@ const (
 
 	// SecurityProfileMergesConstrainedTotal is the key for the merges that constrained an OCI security profile.
 	SecurityProfileMergesConstrainedTotal Collector = crioPrefix + "security_profile_merges_constrained_total"
+	// ImageLayerDedupDuration is the key for the layer deduplication duration histogram.
+	ImageLayerDedupDuration Collector = crioPrefix + "image_layer_dedup_duration_seconds"
+
+	// ImageLayerDedupBytesSaved is the gauge for total bytes currently saved by layer
+	// deduplication across all image layers in the store (set after each pass).
+	ImageLayerDedupBytesSaved Collector = crioPrefix + "image_layer_dedup_bytes_saved"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -123,6 +129,8 @@ func All() Collectors {
 		SecurityProfilesStored.Stripped(),
 		SecurityProfilesStoredBytes.Stripped(),
 		SecurityProfileMergesConstrainedTotal.Stripped(),
+		ImageLayerDedupDuration.Stripped(),
+		ImageLayerDedupBytesSaved.Stripped(),
 	}
 }
 
