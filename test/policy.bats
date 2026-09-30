@@ -11,6 +11,7 @@ function setup() {
 }
 
 function teardown() {
+	stop_registry
 	cleanup_test
 }
 
@@ -26,6 +27,47 @@ UNSIGNED_IMAGE="$REGISTRY/unsigned"
 SIGNED_IMAGE="$REGISTRY/signed"
 
 SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
+
+MLDSA_IMAGE="mldsa/pause:latest"
+
+# Start a test registry with $1 certificates, push $MLDSA_IMAGE to it and
+# generate an image signing key pair $TESTDIR/signing.{key,pub} using $1.
+function setup_mldsa_image() {
+	start_registry "$1"
+	push_to_registry "$MLDSA_IMAGE"
+	"$REGISTRY_BINARY" generate-key --algorithm "$1" --prefix "$TESTDIR/signing"
+}
+
+# Pull $MLDSA_IMAGE and verify that all TLS handshakes it caused used TLS 1.3,
+# hybrid ML-KEM key exchange and a verified $1 client certificate. CRI-O does
+# not configure key exchanges for registry connections, so this relies on Go
+# preferring X25519MLKEM768 by default.
+function pull_mldsa_image_over_pqc_tls() {
+	local log_lines handshakes
+	log_lines=$(wc -l < "$REGISTRY_LOG")
+
+	crictl_pull "$REGISTRY_ADDRESS/$MLDSA_IMAGE"
+
+	handshakes=$(tail -n +"$((log_lines + 1))" "$REGISTRY_LOG" | grep "TLS handshake")
+	[ -n "$handshakes" ]
+	while read -r line; do
+		[[ "$line" == *"version=TLS 1.3 "* ]]
+		[[ "$line" == *"key-exchange=X25519MLKEM768 "* ]]
+		[[ "$line" == *"client-certificate=$1 "* ]]
+		[[ "$line" == *"verified-client-chains=1"* ]]
+	done <<< "$handshakes"
+}
+
+# Write $MLDSA_POLICY, which requires images of the test registry to be signed with
+# public key $1, and start CRI-O with it.
+function start_crio_with_mldsa_policy() {
+	MLDSA_POLICY="$TESTDIR/policy.json"
+	jq -n --arg scope "$REGISTRY_ADDRESS/${MLDSA_IMAGE%:*}" --arg key "$1" \
+		'{default: [{type: "reject"}], transports: {docker: {($scope): [
+			{type: "sigstoreSigned", keyPath: $key, signedIdentity: {type: "matchRepository"}}
+		]}}}' > "$MLDSA_POLICY"
+	SIGNATURE_POLICY="$MLDSA_POLICY" start_crio
+}
 
 @test "accept unsigned image with default policy" {
 	start_crio
@@ -353,4 +395,70 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 	run ! crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json"
 	[[ "$output" == *"SignatureValidationFailed"* ]]
+}
+
+@test "accept ML-DSA-44 signed image over ML-DSA-44 TLS with ML-KEM" {
+	setup_mldsa_image ML-DSA-44
+	sign_in_registry "$MLDSA_IMAGE" "$TESTDIR/signing.key"
+	start_crio_with_mldsa_policy "$TESTDIR/signing.pub"
+
+	pull_mldsa_image_over_pqc_tls ML-DSA-44
+
+	assert_log "$MLDSA_POLICY"
+}
+
+@test "accept ML-DSA-65 signed image over ML-DSA-65 TLS with ML-KEM" {
+	setup_mldsa_image ML-DSA-65
+	sign_in_registry "$MLDSA_IMAGE" "$TESTDIR/signing.key"
+	start_crio_with_mldsa_policy "$TESTDIR/signing.pub"
+
+	pull_mldsa_image_over_pqc_tls ML-DSA-65
+
+	assert_log "$MLDSA_POLICY"
+}
+
+@test "accept ML-DSA-87 signed image over ML-DSA-87 TLS with ML-KEM" {
+	setup_mldsa_image ML-DSA-87
+	sign_in_registry "$MLDSA_IMAGE" "$TESTDIR/signing.key"
+	start_crio_with_mldsa_policy "$TESTDIR/signing.pub"
+
+	pull_mldsa_image_over_pqc_tls ML-DSA-87
+
+	assert_log "$MLDSA_POLICY"
+}
+
+@test "deny ML-DSA signed image with untrusted key" {
+	setup_mldsa_image ML-DSA-65
+	sign_in_registry "$MLDSA_IMAGE" "$TESTDIR/signing.key"
+	"$REGISTRY_BINARY" generate-key --algorithm ML-DSA-65 --prefix "$TESTDIR/untrusted"
+	start_crio_with_mldsa_policy "$TESTDIR/untrusted.pub"
+
+	run ! crictl pull "$REGISTRY_ADDRESS/$MLDSA_IMAGE"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	[[ "$output" == *"cryptographic signature verification failed"* ]]
+	assert_log "$MLDSA_POLICY"
+}
+
+@test "deny ML-DSA signed image with key of different parameter set" {
+	setup_mldsa_image ML-DSA-65
+	sign_in_registry "$MLDSA_IMAGE" "$TESTDIR/signing.key"
+	"$REGISTRY_BINARY" generate-key --algorithm ML-DSA-44 --prefix "$TESTDIR/mldsa44"
+	start_crio_with_mldsa_policy "$TESTDIR/mldsa44.pub"
+
+	run ! crictl pull "$REGISTRY_ADDRESS/$MLDSA_IMAGE"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	[[ "$output" == *"cryptographic signature verification failed"* ]]
+	assert_log "$MLDSA_POLICY"
+}
+
+@test "deny unsigned image with ML-DSA policy" {
+	setup_mldsa_image ML-DSA-65
+	start_crio_with_mldsa_policy "$TESTDIR/signing.pub"
+
+	run ! crictl pull "$REGISTRY_ADDRESS/$MLDSA_IMAGE"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	assert_log "$MLDSA_POLICY"
 }

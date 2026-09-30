@@ -209,7 +209,7 @@ func beforeEach() {
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", nil, nil, "",
 		&types.ContainerMetadata{}, sandboxID, false,
-		false, false, "", "", time.Now(), "")
+		false, false, "", ".", time.Now(), "")
 	Expect(err).ToNot(HaveOccurred())
 }
 
