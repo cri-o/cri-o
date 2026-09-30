@@ -1056,14 +1056,24 @@ func (r *runtimeOCI) StopLoopForContainer(
 		}
 	}
 
-	// Begin the actual kill.
-	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
-		if err := c.Living(); err != nil {
-			// The initial container process either doesn't exist, or isn't ours.
-			// Set state accordingly.
-			c.state.Finished = time.Now()
+	// A container that was created but never started has no process that
+	// could handle the stop signal, so skip it and the stop timeout and
+	// go straight to the kill loop.
+	neverStarted := c.state.Status == ContainerStateCreated && c.state.Started.IsZero()
+	if neverStarted {
+		log.Debugf(ctx, "Container %s was never started, killing it immediately", c.ID())
+	}
 
-			return
+	// Begin the actual kill.
+	if !neverStarted {
+		if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
+			if err := c.Living(); err != nil {
+				// The initial container process either doesn't exist, or isn't ours.
+				// Set state accordingly.
+				c.state.Finished = time.Now()
+
+				return
+			}
 		}
 	}
 
@@ -1100,15 +1110,6 @@ func (r *runtimeOCI) StopLoopForContainer(
 	// take a new one).
 	targetTime := time.Now().AddDate(+1, 0, 0) // A year from this one.
 
-	// A container that was created but never started has no process that
-	// could handle the stop signal, so do not wait for the stop timeout.
-	neverStarted := c.state.Status == ContainerStateCreated && c.state.Started.IsZero()
-	if neverStarted {
-		log.Debugf(ctx, "Container %s was never started, killing it immediately", c.ID())
-
-		targetTime = time.Now()
-	}
-
 	blockedTimer := time.AfterFunc(stopProcessBlockedInterval, func() {
 		if state, err := c.ProcessState(); err == nil && state == "D" {
 			log.Errorf(
@@ -1134,6 +1135,12 @@ func (r *runtimeOCI) StopLoopForContainer(
 	// Do not start the stuck process reminder immediately.
 	blockedTimer.Stop()
 
+	if neverStarted {
+		c.SetStopKillLoopBegun()
+
+		goto killContainer
+	}
+
 	for {
 		select {
 		case newTimeout := <-c.stopTimeoutChan:
@@ -1146,14 +1153,12 @@ func (r *runtimeOCI) StopLoopForContainer(
 			}
 
 		case <-time.After(time.Until(targetTime)):
-			if !neverStarted {
-				log.Warnf(
-					ctx,
-					"Stopping container %s with stop signal(%s) timed out. Killing...",
-					c.ID(),
-					c.GetStopSignal(),
-				)
-			}
+			log.Warnf(
+				ctx,
+				"Stopping container %s with stop signal(%s) timed out. Killing...",
+				c.ID(),
+				c.GetStopSignal(),
+			)
 
 			c.SetStopKillLoopBegun()
 
