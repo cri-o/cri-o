@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 30 Sep 2026 03:25:47 UTC for commit [fe0a8b2][0]._
+_Generated on Wed, 30 Sep 2026 12:23:11 UTC for commit [25d575d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fe0a8b2fac817bb10b4fda42e7ef64c6ea2a6578
+[0]: https://github.com/cri-o/cri-o/commit/25d575d9351a77e903b91c44fd504907f0b68a16
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Wed, 30 Sep 2026 03:25:47 UTC for commit [fe0a8b2][0]._
 | github.com/containerd/ttrpc                            | v1.2.9                             | v1.2.10                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
 | github.com/intel/goresctrl                             | v0.13.0                            | v0.14.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20260929160245-846c6f803437 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20260930052823-3cef2878ce08 | true   | true             |
 | github.com/moby/sys/userns                             | v0.2.0                             | v0.2.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.32.1                            | v2.33.0                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.42.1                            | v1.44.0                            | true   | true             |
@@ -440,7 +440,7 @@ _Generated on Wed, 30 Sep 2026 03:25:47 UTC for commit [fe0a8b2][0]._
 | github.com/hashicorp/golang-lru/v2                                          | v2.0.7                               |                                    | false  | true             |
 | github.com/hashicorp/hcl                                                    | v1.0.1-vault-7                       |                                    | false  | true             |
 | github.com/hashicorp/vault/api                                              | v1.22.0                              | v1.23.0                            | false  | true             |
-| github.com/huandu/xstrings                                                  | v1.5.0                               | v1.6.1                             | false  | true             |
+| github.com/huandu/xstrings                                                  | v1.5.0                               | v1.6.2                             | false  | true             |
 | github.com/ianlancetaylor/demangle                                          | v0.0.0-20250417193237-f615e6bd150b   | v0.0.0-20260724033716-83e58baca724 | false  | true             |
 | github.com/in-toto/attestation                                              | v1.1.2                               | v1.2.0                             | false  | true             |
 | github.com/in-toto/in-toto-golang                                           | v0.11.0                              |                                    | false  | true             |
@@ -459,7 +459,7 @@ _Generated on Wed, 30 Sep 2026 03:25:47 UTC for commit [fe0a8b2][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                               |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                              |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                               |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20260929160245-846c6f803437 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20260930052823-3cef2878ce08 | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                               |                                    | false  | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                               | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                               |                                    | false  | true             |
@@ -467,7 +467,7 @@ _Generated on Wed, 30 Sep 2026 03:25:47 UTC for commit [fe0a8b2][0]._
 | github.com/kisielk/gotool                                                   | v1.0.0                               |                                    | false  | true             |
 | github.com/klauspost/compress                                               | v1.19.2                              | v1.20.1                            | false  | true             |
 | github.com/klauspost/cpuid/v2                                               | v2.3.0                               | v2.4.0                             | false  | true             |
-| github.com/klauspost/pgzip                                                  | v1.2.6                               |                                    | false  | true             |
+| github.com/klauspost/pgzip                                                  | v1.2.6                               | v1.2.7                             | false  | true             |
 | github.com/knqyf263/go-plugin                                               | v0.9.0                               |                                    | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                          | v1.0.1                               | v1.0.3                             | false  | true             |
 | github.com/kr/fs                                                            | v0.1.0                               |                                    | false  | true             |
@@ -564,7 +564,7 @@ _Generated on Wed, 30 Sep 2026 03:25:47 UTC for commit [fe0a8b2][0]._
 | github.com/peterbourgon/diskv                                               | v2.0.1+incompatible                  |                                    | false  | true             |
 | github.com/philhofer/fwd                                                    | v1.1.2                               | v1.2.0                             | false  | true             |
 | github.com/pierrec/lz4/v4                                                   | v4.1.21                              | v4.1.31                            | false  | true             |
-| github.com/pjbgf/sha1cd                                                     | v0.6.0                               |                                    | false  | true             |
+| github.com/pjbgf/sha1cd                                                     | v0.6.0                               | v0.7.0                             | false  | true             |
 | github.com/pkg/browser                                                      | v0.0.0-20240102092130-5ac0b6a4141c   |                                    | false  | true             |
 | github.com/pkg/errors                                                       | v0.9.1                               |                                    | false  | true             |
 | github.com/pkg/sftp                                                         | v1.13.10                             | v1.13.11                           | false  | true             |
@@ -639,7 +639,7 @@ _Generated on Wed, 30 Sep 2026 03:25:47 UTC for commit [fe0a8b2][0]._
 | github.com/tink-crypto/tink-go-awskms/v3                                    | v3.0.0                               |                                    | false  | true             |
 | github.com/tink-crypto/tink-go-gcpkms/v2                                    | v2.2.0                               | v2.4.0                             | false  | true             |
 | github.com/tink-crypto/tink-go/v2                                           | v2.8.0                               |                                    | false  | true             |
-| github.com/tinylib/msgp                                                     | v1.1.9                               | v1.6.4                             | false  | true             |
+| github.com/tinylib/msgp                                                     | v1.1.9                               | v1.6.5                             | false  | true             |
 | github.com/titanous/rocacheck                                               | v0.0.0-20171023193734-afe73141d399   |                                    | false  | true             |
 | github.com/tj/assert                                                        | v0.0.3                               |                                    | false  | true             |
 | github.com/tjfoc/gmsm                                                       | v1.4.1                               |                                    | false  | true             |
