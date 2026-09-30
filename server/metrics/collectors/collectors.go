@@ -69,6 +69,13 @@ const (
 
 	// DefaultRuntime is the key for the default container runtime configured in CRI-O.
 	DefaultRuntime Collector = crioPrefix + "default_runtime"
+
+	// ImageLayerDedupDuration is the key for the layer deduplication duration histogram.
+	ImageLayerDedupDuration Collector = crioPrefix + "image_layer_dedup_duration_seconds"
+
+	// ImageLayerDedupBytesSaved is the gauge for total bytes currently saved by layer
+	// deduplication across all image layers in the store (set after each pass).
+	ImageLayerDedupBytesSaved Collector = crioPrefix + "image_layer_dedup_bytes_saved"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -111,6 +118,8 @@ func All() Collectors {
 		ResourcesStalledAtStage.Stripped(),
 		ContainersStoppedMonitorCount.Stripped(),
 		DefaultRuntime.Stripped(),
+		ImageLayerDedupDuration.Stripped(),
+		ImageLayerDedupBytesSaved.Stripped(),
 	}
 }
 

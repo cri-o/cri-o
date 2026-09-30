@@ -74,6 +74,7 @@ h
 --internal-wipe
 --irqbalance-config-file
 --irqbalance-config-restore-file
+--layer-dedup
 --listen
 --log
 --log-dir
