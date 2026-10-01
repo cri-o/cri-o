@@ -1261,6 +1261,30 @@ function assert_log_linking() {
 	[[ "$stderr" == *"recursive read-only mount requires private propagation"* ]]
 }
 
+@test "ctr with mount_options noexec" {
+	requires_crictl "1.37"
+	MOUNT_PATH="$TESTDIR"/test-mount-opts
+	mkdir -p "$MOUNT_PATH"
+	CTR_DIR="/host"
+
+	jq --arg path "$MOUNT_PATH" --arg ctr_dir "$CTR_DIR" \
+		'  .mounts = [ {
+			host_path: $path,
+			container_path: $ctr_dir,
+			mount_options: ["noexec"],
+			propagation: 0
+		} ]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/config
+
+	start_crio
+
+	ctr_id=$(crictl run "$TESTDIR"/config "$TESTDATA"/sandbox_config.json)
+
+	crictl inspect "$ctr_id" | jq -e '.status.mounts[] | select(.containerPath == "/host") | .mountOptions[0] == "noexec"'
+
+	crictl exec --sync "$ctr_id" grep "$CTR_DIR" /proc/mounts | grep noexec
+}
+
 @test "ctr has containerenv" {
 	start_crio
 	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
