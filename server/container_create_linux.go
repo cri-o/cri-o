@@ -413,6 +413,11 @@ func (s *Server) addOCIBindMounts(
 			options = append(options, "rw")
 		}
 
+		mountOpts := m.GetMountOptions()
+		if len(mountOpts) > 0 {
+			options = resolveBindMountConflicts(options, mountOpts)
+		}
+
 		if m.GetSelinuxRelabel() {
 			if skipRelabel {
 				log.Debugf(
@@ -759,6 +764,46 @@ func (s *Server) ensureImageVolumesPath(
 	}
 
 	return imageVolumesPath, nil
+}
+
+// resolveBindMountConflicts removes conflicting options from the existing set
+// and appends the requested mount options. For example, if "exec" is present
+// and "noexec" is requested, "exec" is removed before adding "noexec".
+func resolveBindMountConflicts(options, mountOpts []string) []string {
+	conflicts := map[string]string{
+		"noexec": "exec",
+		"nosuid": "suid",
+		"nodev":  "dev",
+	}
+
+	toRemove := make(map[string]struct{})
+
+	var toAdd []string
+
+	for _, opt := range mountOpts {
+		if conflict, ok := conflicts[opt]; ok {
+			toRemove[conflict] = struct{}{}
+
+			if !slices.Contains(toAdd, opt) {
+				toAdd = append(toAdd, opt)
+			}
+		}
+	}
+
+	result := make([]string, 0, len(options)+len(toAdd))
+	for _, o := range options {
+		if _, remove := toRemove[o]; !remove {
+			result = append(result, o)
+		}
+	}
+
+	for _, opt := range toAdd {
+		if !slices.Contains(result, opt) {
+			result = append(result, opt)
+		}
+	}
+
+	return result
 }
 
 // mountExists returns true if dest exists in the list of mounts.
