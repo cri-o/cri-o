@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 30 Sep 2026 12:23:11 UTC for commit [25d575d][0]._
+_Generated on Thu, 01 Oct 2026 06:46:22 UTC for commit [5d286a7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/25d575d9351a77e903b91c44fd504907f0b68a16
+[0]: https://github.com/cri-o/cri-o/commit/5d286a70bf1884f58bee5d89c48a68d5b7ce648d
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Wed, 30 Sep 2026 12:23:11 UTC for commit [25d575d][0]._
 | github.com/containerd/ttrpc                            | v1.2.9                             | v1.2.10                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
 | github.com/intel/goresctrl                             | v0.13.0                            | v0.14.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20260930052823-3cef2878ce08 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20260930235557-645e1f6a881d | true   | true             |
 | github.com/moby/sys/userns                             | v0.2.0                             | v0.2.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.32.1                            | v2.33.0                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.42.1                            | v1.44.0                            | true   | true             |
@@ -41,7 +41,7 @@ _Generated on Wed, 30 Sep 2026 12:23:11 UTC for commit [25d575d][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                       |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.2                              | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                             | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.305                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.311                           | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                             |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                               | v1.14.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                               | v1.16.0                            | false  | true             |
@@ -175,7 +175,7 @@ _Generated on Wed, 30 Sep 2026 12:23:11 UTC for commit [25d575d][0]._
 | github.com/Azure/azure-sdk-for-go                                           | v68.0.0+incompatible                 |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azcore                                | v1.21.1                              | v1.23.2                            | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                            | v1.13.1                              | v1.14.1                            | false  | true             |
-| github.com/Azure/azure-sdk-for-go/sdk/internal                              | v1.12.0                              |                                    | false  | true             |
+| github.com/Azure/azure-sdk-for-go/sdk/internal                              | v1.12.0                              | v1.13.0                            | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys              | v1.4.0                               | v1.5.0                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal            | v1.2.0                               |                                    | false  | true             |
 | github.com/Azure/go-ansiterm                                                | v0.0.0-20250102033503-faa5f7b0171c   | v0.0.0-20260917205352-e937bb47801a | false  | true             |
@@ -326,7 +326,7 @@ _Generated on Wed, 30 Sep 2026 12:23:11 UTC for commit [25d575d][0]._
 | github.com/dimchansky/utfbom                                                | v1.1.1                               |                                    | false  | true             |
 | github.com/disiqueira/gotree/v3                                             | v3.0.2                               |                                    | false  | true             |
 | github.com/distribution/reference                                           | v0.6.0                               |                                    | false  | true             |
-| github.com/docker/cli                                                       | v29.7.2+incompatible                 | v29.8.1+incompatible               | false  | true             |
+| github.com/docker/cli                                                       | v29.7.2+incompatible                 | v29.8.2+incompatible               | false  | true             |
 | github.com/docker/distribution                                              | v2.8.3+incompatible                  |                                    | true   | true             |
 | github.com/docker/docker-credential-helpers                                 | v0.9.7                               | v0.9.9                             | false  | true             |
 | github.com/docker/go-connections                                            | v0.7.0                               | v0.8.1                             | false  | true             |
@@ -459,7 +459,7 @@ _Generated on Wed, 30 Sep 2026 12:23:11 UTC for commit [25d575d][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                               |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                              |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                               |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20260930052823-3cef2878ce08 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20260930235557-645e1f6a881d | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                               |                                    | false  | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                               | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                               |                                    | false  | true             |
@@ -699,7 +699,7 @@ _Generated on Wed, 30 Sep 2026 12:23:11 UTC for commit [25d575d][0]._
 | go.opentelemetry.io/otel/sdk                                                | v1.46.0                              |                                    | true   | true             |
 | go.opentelemetry.io/otel/sdk/metric                                         | v1.46.0                              |                                    | false  | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.46.0                              |                                    | true   | true             |
-| go.opentelemetry.io/proto/otlp                                              | v1.11.0                              |                                    | false  | true             |
+| go.opentelemetry.io/proto/otlp                                              | v1.11.0                              | v1.11.1                            | false  | true             |
 | go.podman.io/common                                                         | v0.68.1                              | v0.69.2                            | true   | true             |
 | go.podman.io/image/v5                                                       | v5.40.0                              | v5.41.2                            | true   | true             |
 | go.podman.io/storage                                                        | v1.63.0                              | v1.64.1                            | true   | true             |
