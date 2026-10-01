@@ -113,6 +113,7 @@ type ContainerVolume struct {
 	RecursiveReadOnly bool                   `json:"recursive_read_only"`
 	Propagation       types.MountPropagation `json:"propagation"`
 	SelinuxRelabel    bool                   `json:"selinux_relabel"`
+	MountOptions      []string               `json:"mount_options,omitempty"`
 	Image             *types.ImageSpec       `json:"image,omitempty"` // A possible image for OCI volume mounts
 }
 
@@ -510,7 +511,7 @@ func (c *Container) StateNoLock() *ContainerState {
 }
 
 // AddVolume adds a volume to list of container volumes.
-func (c *Container) AddVolume(v ContainerVolume) {
+func (c *Container) AddVolume(v ContainerVolume) { //nolint:gocritic // value copy needed
 	c.volumes = append(c.volumes, v)
 }
 

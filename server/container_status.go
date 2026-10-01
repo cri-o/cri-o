@@ -78,6 +78,7 @@ func (s *Server) ContainerStatus(
 			RecursiveReadOnly: cv.RecursiveReadOnly,
 			Propagation:       cv.Propagation,
 			SelinuxRelabel:    cv.SelinuxRelabel,
+			MountOptions:      cv.MountOptions,
 			Image:             cv.Image,
 		})
 	}

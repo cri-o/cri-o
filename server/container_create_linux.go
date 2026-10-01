@@ -413,6 +413,17 @@ func (s *Server) addOCIBindMounts(
 			options = append(options, "rw")
 		}
 
+		mountOpts := m.GetMountOptions()
+		for _, opt := range mountOpts {
+			if _, ok := mountOptionConflicts[opt]; !ok {
+				return nil, nil, nil, fmt.Errorf("unsupported mount option %q for %q", opt, dest)
+			}
+		}
+
+		if len(mountOpts) > 0 {
+			options = resolveBindMountConflicts(options, mountOpts)
+		}
+
 		if m.GetSelinuxRelabel() {
 			if skipRelabel {
 				log.Debugf(
@@ -434,6 +445,7 @@ func (s *Server) addOCIBindMounts(
 			RecursiveReadOnly: m.GetRecursiveReadOnly(),
 			Propagation:       m.GetPropagation(),
 			SelinuxRelabel:    m.GetSelinuxRelabel(),
+			MountOptions:      m.GetMountOptions(),
 			Image:             m.GetImage(),
 		})
 
@@ -759,6 +771,50 @@ func (s *Server) ensureImageVolumesPath(
 	}
 
 	return imageVolumesPath, nil
+}
+
+var mountOptionConflicts = map[string]string{
+	"noexec": "exec",
+	"nosuid": "suid",
+	"nodev":  "dev",
+}
+
+// resolveBindMountConflicts removes conflicting options from the existing set
+// and appends the requested mount options. For example, if "exec" is present
+// and "noexec" is requested, "exec" is removed before adding "noexec".
+func resolveBindMountConflicts(options, additionalOpts []string) []string {
+	toRemove := make(map[string]struct{})
+
+	var toAdd []string
+
+	for _, opt := range additionalOpts {
+		if conflict, ok := mountOptionConflicts[opt]; ok {
+			toRemove[conflict] = struct{}{}
+
+			toAdd = append(toAdd, opt)
+		}
+	}
+
+	seen := make(map[string]struct{})
+	result := make([]string, 0, len(options)+len(toAdd))
+
+	for _, o := range options {
+		if _, remove := toRemove[o]; !remove {
+			if _, dup := seen[o]; !dup {
+				seen[o] = struct{}{}
+				result = append(result, o)
+			}
+		}
+	}
+
+	for _, opt := range toAdd {
+		if _, dup := seen[opt]; !dup {
+			seen[opt] = struct{}{}
+			result = append(result, opt)
+		}
+	}
+
+	return result
 }
 
 // mountExists returns true if dest exists in the list of mounts.
