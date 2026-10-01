@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 01 Oct 2026 06:46:22 UTC for commit [5d286a7][0]._
+_Generated on Thu, 01 Oct 2026 09:17:11 UTC for commit [612fb85][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5d286a70bf1884f58bee5d89c48a68d5b7ce648d
+[0]: https://github.com/cri-o/cri-o/commit/612fb85ec0ecc7c276b66600ea6ea496b254992a
 
 ## Outdated Dependencies
 
@@ -33,6 +33,7 @@ _Generated on Thu, 01 Oct 2026 06:46:22 UTC for commit [5d286a7][0]._
 | k8s.io/kubelet                                         | v0.37.0                            | v0.37.1                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20260626114624-be93311217bd | v0.0.0-20260707023825-cf1189d6abe3 | true   | true             |
 | sigs.k8s.io/knftables                                  | v0.0.21                            | v0.0.22                            | true   | true             |
+| sigs.k8s.io/release-utils                              | v0.12.4                            | v0.12.5                            | true   | true             |
 
 ## All Dependencies
 
@@ -415,7 +416,7 @@ _Generated on Thu, 01 Oct 2026 06:46:22 UTC for commit [5d286a7][0]._
 | github.com/google/go-intervals                                              | v0.0.2                               |                                    | false  | true             |
 | github.com/google/go-querystring                                            | v1.2.0                               |                                    | false  | true             |
 | github.com/google/gofuzz                                                    | v1.2.0                               |                                    | false  | true             |
-| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936   | v0.0.0-20260926063103-aaccee046517 | false  | true             |
+| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936   | v0.0.0-20261001064331-60bf690a9302 | false  | true             |
 | github.com/google/renameio                                                  | v1.0.1                               |                                    | true   | true             |
 | github.com/google/s2a-go                                                    | v0.1.9                               | v0.1.10                            | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                               |                                    | true   | true             |
@@ -762,7 +763,7 @@ _Generated on Thu, 01 Oct 2026 06:46:22 UTC for commit [5d286a7][0]._
 | sigs.k8s.io/knftables                                                       | v0.0.21                              | v0.0.22                            | true   | true             |
 | sigs.k8s.io/randfill                                                        | v1.0.0                               |                                    | false  | true             |
 | sigs.k8s.io/release-sdk                                                     | v0.12.7                              |                                    | true   | true             |
-| sigs.k8s.io/release-utils                                                   | v0.12.4                              |                                    | true   | true             |
+| sigs.k8s.io/release-utils                                                   | v0.12.4                              | v0.12.5                            | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                        | v4.2.3                               | v4.7.0                             | false  | true             |
 | sigs.k8s.io/structured-merge-diff/v6                                        | v6.4.2                               |                                    | false  | true             |
 | sigs.k8s.io/yaml                                                            | v1.6.0                               |                                    | true   | true             |
