@@ -72,3 +72,156 @@
         path: "/opt/kata/share/defaults/kata-containers/configuration.toml"
         regexp: "^#enable_debug = true"
         replace: "enable_debug = true"
+
+- name: Set up kata-remote (peer pods) environment
+  block:
+    - name: Install libvirt and QEMU
+      become: yes
+      package:
+        name:
+          - podman
+          - qemu-kvm
+          - libvirt
+          - libvirt-client
+          - virt-install
+          - edk2-ovmf
+          - "{{ 'guestfs-tools' if ansible_distribution_major_version | int >= 40 else 'libguestfs-tools-c' }}"
+        state: present
+
+    - name: Start and enable libvirtd
+      become: yes
+      systemd:
+        name: libvirtd
+        state: started
+        enabled: yes
+
+    - name: Configure libvirt storage pool
+      become: yes
+      shell: |
+        virsh pool-define-as default dir --target /var/lib/libvirt/images || true
+        virsh pool-autostart default
+        virsh pool-start default || true
+      args:
+        executable: /bin/bash
+
+    - name: Configure libvirt default network
+      become: yes
+      shell: |
+        virsh net-start default || true
+        virsh net-autostart default
+      args:
+        executable: /bin/bash
+
+    - name: Create required directories
+      become: yes
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /run/peerpod
+        - /run/netns
+        - /opt/data-dir
+
+    - name: Create xtables lock file
+      become: yes
+      file:
+        path: /run/xtables.lock
+        state: touch
+
+    - name: Enable SSH root login for libvirt access
+      become: yes
+      shell: |
+        sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+        systemctl restart sshd
+      args:
+        executable: /bin/bash
+
+    - name: Generate SSH key for libvirt access
+      become: yes
+      shell: |
+        ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa
+        cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+        chmod 700 /root/.ssh
+        chmod 600 /root/.ssh/authorized_keys
+        restorecon -Rv /root/.ssh/
+        ssh-keyscan -H 192.168.122.1 >> /root/.ssh/known_hosts 2>/dev/null || true
+      args:
+        executable: /bin/bash
+        creates: /root/.ssh/id_rsa
+
+    - name: Verify SSH connectivity to libvirt host
+      become: yes
+      shell: ssh -o StrictHostKeyChecking=no root@192.168.122.1 'virsh version'
+      args:
+        executable: /bin/bash
+
+    - name: Write systemd mount unit for cloud-init ISO
+      become: yes
+      copy:
+        dest: /tmp/media-cidata.mount
+        content: |
+          [Unit]
+          Description=Mount cloud-init NoCloud ISO
+          DefaultDependencies=no
+          Before=process-user-data.service cloud-init-local.service
+          After=systemd-udevd.service
+
+          [Mount]
+          What=/dev/sr0
+          Where=/media/cidata
+          Type=iso9660
+          Options=ro,nofail
+
+          [Install]
+          WantedBy=local-fs.target
+
+    - name: Pull and extract podvm image
+      become: yes
+      shell: |
+        podman pull {{ podvm_image }}
+        podman create --name qcow_extractor {{ podvm_image }} /bin/true
+        QCOW=$(podman export qcow_extractor | tar t | grep '\.qcow2$')
+        podman cp "qcow_extractor:/$QCOW" /tmp/podvm.qcow2
+        podman rm qcow_extractor
+        LIBGUESTFS_BACKEND=direct virt-customize -a /tmp/podvm.qcow2 \
+          --run-command 'mkdir -p /media/cidata' \
+          --copy-in /tmp/media-cidata.mount:/etc/systemd/system/ \
+          --run-command 'systemctl enable media-cidata.mount'
+        rm -f /tmp/media-cidata.mount
+        virsh vol-create-as --pool default --name podvm-base.qcow2 \
+          --capacity 20G --allocation 2G --prealloc-metadata --format qcow2 || true
+        virsh vol-upload --vol podvm-base.qcow2 /tmp/podvm.qcow2 --pool default --sparse
+        rm -f /tmp/podvm.qcow2
+      args:
+        executable: /bin/bash
+
+    - name: Start Cloud API Adaptor container
+      become: yes
+      shell: |
+        podman pull {{ caa_image }}
+        podman run -d \
+          --name caa \
+          --network host \
+          --security-opt label=disable \
+          --cap-add NET_ADMIN \
+          --cap-add SYS_ADMIN \
+          --device /dev/kvm \
+          -e CLOUD_PROVIDER=libvirt \
+          -e LIBVIRT_URI="qemu+ssh://root@192.168.122.1/system?no_verify=1" \
+          -e LIBVIRT_POOL=default \
+          -e LIBVIRT_NET=default \
+          -e LIBVIRT_VOL_NAME=podvm-base.qcow2 \
+          -e DISABLECVM=true \
+          -e LIBVIRT_EFI_FIRMWARE=/usr/share/edk2/ovmf/OVMF_CODE.fd \
+          -v /root/.ssh/id_rsa:/root/.ssh/id_rsa:ro \
+          -v /run/peerpod:/run/peerpod \
+          -v /run/netns:/run/netns:rslave \
+          -v /run/xtables.lock:/run/xtables.lock \
+          -v /lib/modules:/lib/modules:ro \
+          -v /opt/data-dir:/opt/data-dir \
+          {{ caa_image }}
+        sleep 5
+        podman ps -a --filter name=caa
+        podman logs caa 2>&1 | tail -30
+      args:
+        executable: /bin/bash
