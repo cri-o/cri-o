@@ -1059,21 +1059,23 @@ func (r *runtimeOCI) StopLoopForContainer(
 	// A container that was created but never started has no process that
 	// could handle the stop signal, so skip it and the stop timeout and
 	// go straight to the kill loop.
-	neverStarted := c.state.Status == ContainerStateCreated && c.state.Started.IsZero()
-	if neverStarted {
+	if c.state.Status == ContainerStateCreated && c.state.Started.IsZero() {
 		log.Debugf(ctx, "Container %s was never started, killing it immediately", c.ID())
+
+		c.SetStopKillLoopBegun()
+		r.killLoop(ctx, c, bm, stop, nil)
+
+		return
 	}
 
 	// Begin the actual kill.
-	if !neverStarted {
-		if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
-			if err := c.Living(); err != nil {
-				// The initial container process either doesn't exist, or isn't ours.
-				// Set state accordingly.
-				c.state.Finished = time.Now()
+	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
+		if err := c.Living(); err != nil {
+			// The initial container process either doesn't exist, or isn't ours.
+			// Set state accordingly.
+			c.state.Finished = time.Now()
 
-				return
-			}
+			return
 		}
 	}
 
@@ -1135,12 +1137,6 @@ func (r *runtimeOCI) StopLoopForContainer(
 	// Do not start the stuck process reminder immediately.
 	blockedTimer.Stop()
 
-	if neverStarted {
-		c.SetStopKillLoopBegun()
-
-		goto killContainer
-	}
-
 	for {
 		select {
 		case newTimeout := <-c.stopTimeoutChan:
@@ -1162,7 +1158,9 @@ func (r *runtimeOCI) StopLoopForContainer(
 
 			c.SetStopKillLoopBegun()
 
-			goto killContainer
+			r.killLoop(ctx, c, bm, stop, func() { blockedTimer.Reset(stopProcessBlockedInterval) })
+
+			return
 
 		case <-done:
 			stop()
@@ -1172,8 +1170,11 @@ func (r *runtimeOCI) StopLoopForContainer(
 			return
 		}
 	}
+}
 
-killContainer:
+// killLoop sends SIGKILL to the container until it is gone. onRetry, if not
+// nil, is called after each failed attempt.
+func (r *runtimeOCI) killLoop(ctx context.Context, c *Container, bm kwait.BackoffManager, stop context.CancelFunc, onRetry func()) {
 	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
 	kwait.BackoffUntil(func() {
 		if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
@@ -1192,8 +1193,11 @@ killContainer:
 		}
 
 		log.Debugf(ctx, "Killing failed for some reasons, retrying...")
-		// Reschedule the timer so that the periodic reminder can continue.
-		blockedTimer.Reset(stopProcessBlockedInterval)
+
+		if onRetry != nil {
+			// Reschedule the timer so that the periodic reminder can continue.
+			onRetry()
+		}
 	}, bm, true, ctx.Done())
 }
 
