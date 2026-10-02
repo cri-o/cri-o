@@ -48,8 +48,8 @@ type ContainerServer struct {
 
 	runtime              *oci.Runtime
 	store                cstorage.Store
-	storageImageServer   storage.ImageServer
-	storageRuntimeServer storage.RuntimeServer
+	storageImgSvcMgr     *storage.ImageServiceManager
+	storageRuntimeSvcMgr *storage.RuntimeServiceManager
 	ctrNameIndex         *registrar.Registrar
 	ctrIDIndex           *truncindex.TruncIndex
 	podNameIndex         *registrar.Registrar
@@ -75,8 +75,8 @@ func (c *ContainerServer) Store() cstorage.Store {
 }
 
 // StorageImageServer returns the ImageServer for the ContainerServer.
-func (c *ContainerServer) StorageImageServer() storage.ImageServer {
-	return c.storageImageServer
+func (c *ContainerServer) StorageImageServer(sb storage.SandboxInfo) (storage.ImageServer, error) {
+	return c.storageImgSvcMgr.GetImageService(runtimeHandlerOf(sb))
 }
 
 // CtrIDIndex returns the TruncIndex for the ContainerServer.
@@ -95,8 +95,29 @@ func (c *ContainerServer) Config() *libconfig.Config {
 }
 
 // StorageRuntimeServer gets the runtime server for the ContainerServer.
-func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
-	return c.storageRuntimeServer
+func (c *ContainerServer) StorageRuntimeServer(sb storage.SandboxInfo) (storage.RuntimeServer, error) {
+	return c.storageRuntimeSvcMgr.GetRuntimeService(runtimeHandlerOf(sb))
+}
+
+// runtimeHandlerOf returns the runtime handler of the given sandbox, or an
+// empty string when there is no sandbox at all (which selects the default
+// services). A nil sandbox is notably passed in by the callers which could not
+// look the sandbox up, and must not be an error.
+func runtimeHandlerOf(sb storage.SandboxInfo) string {
+	if sb == nil {
+		return ""
+	}
+
+	if s, ok := sb.(*sandbox.Sandbox); ok && s == nil {
+		return ""
+	}
+
+	return sb.RuntimeHandler()
+}
+
+// StorageImageManager gets the ImageServiceManager for the ContainerServer.
+func (c *ContainerServer) StorageImageManager() *storage.ImageServiceManager {
+	return c.storageImgSvcMgr
 }
 
 // New creates a new ContainerServer with options provided.
@@ -143,12 +164,15 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		}
 	}
 
-	imageService, err := storage.GetImageService(ctx, store, nil, config)
+	storageImageServiceMgr, err := storage.GetImageServiceManager(ctx, store, nil, config)
 	if err != nil {
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, nil)
+	storageRuntimeServiceMgr, err := storage.GetRuntimeServiceManager(ctx, storageImageServiceMgr, nil, config)
+	if err != nil {
+		return nil, err
+	}
 
 	runtime, err := oci.New(config)
 	if err != nil {
@@ -163,8 +187,8 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	c := &ContainerServer{
 		runtime:              runtime,
 		store:                store,
-		storageImageServer:   imageService,
-		storageRuntimeServer: storageRuntimeService,
+		storageImgSvcMgr:     storageImageServiceMgr,
+		storageRuntimeSvcMgr: storageRuntimeServiceMgr,
 		ctrNameIndex:         registrar.NewRegistrar(),
 		ctrIDIndex:           truncindex.NewTruncIndex([]string{}),
 		podNameIndex:         registrar.NewRegistrar(),
@@ -891,6 +915,9 @@ func (c *ContainerServer) RemoveSandbox(ctx context.Context, id string) error {
 
 	c.RemoveStatsForSandbox(sb)
 	c.state.sandboxes.Delete(id)
+	// The runtime-pulled image and runtime services are keyed by the runtime
+	// handler on this branch (not per sandbox as upstream does), so there is
+	// nothing to drop when a single sandbox goes away.
 
 	return nil
 }
