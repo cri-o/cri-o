@@ -64,6 +64,8 @@ BOOT_CONFIG_FILE_PATH=${BOOT_CONFIG_FILE_PATH:-/boot/config-$(uname -r)}
 APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/apparmor/parameters/enabled}
 # Path of the copyimg binary.
 COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/test/copyimg/copyimg}
+# Path of the registry binary.
+REGISTRY_BINARY=${REGISTRY_BINARY:-${CRIO_ROOT}/test/registry/registry}
 # Path of tests artifacts.
 ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/.artifacts}
 # Path of the checkseccomp binary.

@@ -859,3 +859,66 @@ EOF
 
     start_crio_no_setup
 }
+
+# Start the test registry, which uses $1 (ML-DSA-44, ML-DSA-65 or ML-DSA-87)
+# for its server certificate and requires client certificates of the same
+# algorithm, and trust it in certs.d.
+function start_registry() {
+    REGISTRY_CERTS="$TESTDIR/registry-certs"
+    REGISTRY_LOG="$TESTDIR/registry.log"
+
+    "$REGISTRY_BINARY" generate-certs --algorithm "$1" --dir "$REGISTRY_CERTS"
+
+    # The registry listens on a random free port and logs its address once it
+    # accepts connections.
+    "$REGISTRY_BINARY" serve \
+        --address 127.0.0.1:0 \
+        --tls-cert "$REGISTRY_CERTS/server.crt" \
+        --tls-key "$REGISTRY_CERTS/server.key" \
+        --client-ca "$REGISTRY_CERTS/ca.crt" \
+        >>"$REGISTRY_LOG" 2>&1 &
+    REGISTRY_PID=$!
+    retry 20 1 grep -q "Serving registry on" "$REGISTRY_LOG"
+    REGISTRY_ADDRESS=$(sed -n 's|.*Serving registry on https://\([^ ]*\) .*|\1|p' "$REGISTRY_LOG")
+    # An empty address would point REGISTRY_CERTS_D at certs.d itself, which
+    # stop_registry removes.
+    if [[ -z "$REGISTRY_ADDRESS" ]]; then
+        echo "ERROR: start_registry: could not parse the registry address from $REGISTRY_LOG" >&2
+        return 1
+    fi
+
+    # CRI-O and copyimg read registry certificates from the system certs.d directory.
+    REGISTRY_CERTS_D="/etc/containers/certs.d/$REGISTRY_ADDRESS"
+    mkdir -p "$REGISTRY_CERTS_D"
+    cp "$REGISTRY_CERTS"/{ca.crt,client.cert,client.key} "$REGISTRY_CERTS_D"
+}
+
+function stop_registry() {
+    if [[ -n "${REGISTRY_PID:-}" ]]; then
+        kill "$REGISTRY_PID" || true
+        wait "$REGISTRY_PID" || true
+        unset REGISTRY_PID
+    fi
+    if [[ -n "${REGISTRY_CERTS_D:-}" ]]; then
+        rm -rf "$REGISTRY_CERTS_D"
+        unset REGISTRY_CERTS_D
+    fi
+}
+
+# Push the pause image to repository:tag $1 of the test registry.
+function push_to_registry() {
+    "$COPYIMG_BINARY" \
+        --import-from="dir:$(img2dir registry.k8s.io/pause:3.10.2)" \
+        --export-to="docker://$REGISTRY_ADDRESS/$1" \
+        --signature-policy="$INTEGRATION_ROOT"/policy.json \
+        --retry-attempts=0
+}
+
+# Sign repository:tag $1 of the test registry with the ML-DSA private key $2.
+function sign_in_registry() {
+    "$REGISTRY_BINARY" sign \
+        --address "$REGISTRY_ADDRESS" \
+        --certs-dir "$REGISTRY_CERTS_D" \
+        --image "$1" \
+        --key "$2"
+}

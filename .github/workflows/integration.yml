@@ -51,6 +51,7 @@ jobs:
             test/checkcriu/checkcriu
             test/checkseccomp/checkseccomp
             test/copyimg/copyimg
+            test/registry/registry
             test/updateunified/updateunified
             test/nri/nri.test
 
@@ -221,6 +222,7 @@ jobs:
             test/checkcriu/checkcriu \
             test/checkseccomp/checkseccomp \
             test/copyimg/copyimg \
+            test/registry/registry \
             test/updateunified/updateunified \
             test/nri/nri.test
       - run: scripts/github-actions-packages

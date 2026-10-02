@@ -34,6 +34,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/google/go-cmp v0.7.0
+	github.com/google/go-containerregistry v0.22.1
 	github.com/google/renameio v1.0.1
 	github.com/google/uuid v1.6.0
 	github.com/intel/goresctrl v0.13.0
@@ -56,6 +57,7 @@ require (
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/procfs v0.22.0
 	github.com/seccomp/libseccomp-golang v0.12.0
+	github.com/sigstore/sigstore v1.11.0
 	github.com/sirupsen/logrus v1.10.2
 	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.12.1
@@ -163,7 +165,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
-	github.com/google/go-containerregistry v0.22.1 // indirect
 	github.com/google/go-github/v88 v88.0.0 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
@@ -212,7 +213,6 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/sigstore/fulcio v1.8.7 // indirect
 	github.com/sigstore/protobuf-specs v0.5.2 // indirect
-	github.com/sigstore/sigstore v1.11.0 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/smallstep/pkcs7 v0.2.1 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
