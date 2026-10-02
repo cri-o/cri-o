@@ -238,3 +238,12 @@
         podman logs caa 2>&1 | tail -30
       args:
         executable: /bin/bash
+
+    - name: Stream CAA logs to artifact file
+      become: yes
+      shell: |
+        mkdir -p /tmp/artifacts
+        nohup podman logs -f caa >> /tmp/artifacts/caa.log 2>&1 &
+        echo $! > /tmp/caa_log_pid
+      args:
+        executable: /bin/bash
