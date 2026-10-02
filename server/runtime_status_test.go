@@ -32,6 +32,8 @@ var _ = t.Describe("Status", func() {
 			for _, condition := range response.GetStatus().GetConditions() {
 				Expect(condition.GetStatus()).To(BeTrue())
 			}
+
+			Expect(response.GetFeatures().GetCgroupMountMode()).To(BeTrue())
 		})
 
 		It("should succeed when CNI plugin status errors", func() {
