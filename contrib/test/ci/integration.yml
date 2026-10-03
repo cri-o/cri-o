@@ -33,18 +33,8 @@
     path: "{{ artifacts }}"
     state: directory
 
-- name: set crun runtime if enabled
-  set_fact:
-    int_test_env: "{{ int_test_env | combine(crun_test_env) }}"
-  when: "build_crun | bool"
-
 - name: kata configuration
   block:
-    - name: configure integration test suite for kata
-      set_fact:
-        int_test_env: "{{ int_test_env | combine(kata_int_test_env) }}"
-        userns_int_test_skip: True
-
     - name: skip tests not working in kata
       lineinfile:
         dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/{{ item.0 }}"
@@ -69,7 +59,8 @@
       ansible.posix.selinux:
         state: disabled
 
-  when: "build_kata | bool"
+  # TODO: remove build_kata guard once all pipelines have migrated to container_runtime.
+  when: "build_kata | bool or container_runtime == 'kata'"
 
 - block:
     - name: run integration tests
