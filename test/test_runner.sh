@@ -23,6 +23,11 @@ if [[ "$TEST_USERNS" == "1" ]]; then
     fi
 fi
 
+if [[ "${USE_LOCAL_REGISTRY:-}" == "1" ]]; then
+    echo "Using local registry mirror configuration"
+    export CONTAINER_REGISTRIES_CONF_DIR="$PWD/registries.conf.d"
+fi
+
 # Preload images.
 (
     . common.sh
