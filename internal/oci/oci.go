@@ -423,8 +423,31 @@ func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64
 	return impl.StopContainer(ctx, c, timeout)
 }
 
-// DeleteContainer deletes a container.
-func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error) {
+// DeleteContainer deletes a container and its cached runtime implementation.
+func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) error {
+	return r.deleteContainer(ctx, c)
+}
+
+// DeleteRuntimeContainer deletes the OCI runtime container while retaining its
+// runtime implementation for the later CRI RemoveContainer call.
+func (r *Runtime) DeleteRuntimeContainer(ctx context.Context, c *Container) error {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
+	r.runtimeImplMapMutex.RLock()
+	impl, ok := r.runtimeImplMap[c.ID()]
+	r.runtimeImplMapMutex.RUnlock()
+
+	// A late post-stop cleanup must not reconstruct a pod-scoped runtime.
+	// The final RemoveContainer call has already completed in this case.
+	if !ok {
+		return nil
+	}
+
+	return impl.DeleteContainer(ctx, c)
+}
+
+func (r *Runtime) deleteContainer(ctx context.Context, c *Container) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
