@@ -33,7 +33,7 @@ function teardown() {
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
 
 	for _ in 1 2 3; do
-		run ! crictl exec -s "$CTR" swapoff -a
+		run ! crictl exec -s "$CTR" swapoff /dev/null
 		sleep 1
 	done
 
@@ -65,7 +65,7 @@ function teardown() {
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
 
-	run ! crictl exec -s "$CTR" /bin/sh -c "swapoff -a; swapoff -a; swapoff -a"
+	run ! crictl exec -s "$CTR" /bin/sh -c "swapoff /dev/null; swapoff /dev/null; swapoff /dev/null"
 	sleep 1
 
 	# Assert the blocked syscall keeps being logged for every attempt
@@ -96,7 +96,7 @@ function teardown() {
 	for _ in 1 2 3 4 5; do
 		run ! crictl exec -s "$CTR" chmod 777 .
 
-		run ! crictl exec -s "$CTR" swapoff -a
+		run ! crictl exec -s "$CTR" swapoff /dev/null
 	done
 
 	sleep 6 # wait until the notifier stop the workload
