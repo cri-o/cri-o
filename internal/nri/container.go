@@ -50,9 +50,10 @@ type LinuxContainer interface {
 	GetRdt() *nri.LinuxRdt
 }
 
-func containerToNRI(ctr Container) *nri.Container {
-	status := ctr.GetStatus()
-
+// containerToNRI accepts status separately so lifecycle callers can read it
+// before taking the NRI mutex. Spec conversion must hold the mutex to serialize
+// with plugin resource updates.
+func containerToNRI(ctr Container, status *ContainerStatus) *nri.Container {
 	return &nri.Container{
 		Id:           ctr.GetID(),
 		PodSandboxId: ctr.GetPodSandboxID(),
@@ -78,7 +79,7 @@ func containerToNRI(ctr Container) *nri.Container {
 func containersToNRI(ctrList []Container) []*nri.Container {
 	ctrs := make([]*nri.Container, 0, len(ctrList))
 	for _, ctr := range ctrList {
-		ctrs = append(ctrs, containerToNRI(ctr))
+		ctrs = append(ctrs, containerToNRI(ctr, ctr.GetStatus()))
 	}
 
 	return ctrs
