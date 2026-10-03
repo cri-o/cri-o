@@ -355,6 +355,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
 	}
 
+	if ctx.IsSet("enable-layer-dedup") {
+		config.EnableLayerDedup = ctx.Bool("enable-layer-dedup")
+	}
+
 	if ctx.IsSet("infra-ctr-cpuset") {
 		config.InfraCtrCPUSet = ctx.String("infra-ctr-cpuset")
 	}
@@ -858,6 +862,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "separate-pull-cgroup",
 			Usage:   "[EXPERIMENTAL] Pull in new cgroup.",
 			EnvVars: []string{"PULL_IN_A_CGROUP"},
+		},
+		&cli.BoolFlag{
+			Name:    "enable-layer-dedup",
+			Usage:   "Enable automatic layer deduplication after image pulls using reflinks.",
+			EnvVars: []string{"CONTAINER_ENABLE_LAYER_DEDUP"},
 		},
 		&cli.StringFlag{
 			Name:      "global-auth-file",

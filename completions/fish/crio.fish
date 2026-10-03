@@ -154,6 +154,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l runtimes -r -d 'OCI runtim
 complete -c crio -n '__fish_crio_no_subcommand' -l seccomp-profile -r -d 'Path to the seccomp.json profile to be used as the runtime\'s default. If not specified, then the internal default seccomp profile will be used.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'Enable selinux support. This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l separate-pull-cgroup -r -d '[EXPERIMENTAL] Pull in new cgroup.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l enable-layer-dedup -d 'Enable automatic layer deduplication after image pulls using reflinks.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l shared-cpuset -r -d 'CPUs set that will be used for guaranteed containers that want access to shared cpus'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l short-name-mode -r -d 'Describes the mode of short name resolution. Allowed values are \'enforcing\' and \'disabled\'.'
 complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy -r -d 'Path to signature policy JSON file.'

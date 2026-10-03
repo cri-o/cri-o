@@ -125,6 +125,7 @@ crio
 [--seccomp-profile]=[value]
 [--selinux]
 [--separate-pull-cgroup]=[value]
+[--enable-layer-dedup]
 [--shared-cpuset]=[value]
 [--short-name-mode]=[value]
 [--signature-policy-dir]=[value]
@@ -433,6 +434,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--selinux**: Enable selinux support. This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup.
+
+**--enable-layer-dedup**: Enable automatic layer deduplication after image pulls using reflinks. (default: false)
 
 **--shared-cpuset**="": CPUs set that will be used for guaranteed containers that want access to shared cpus
 

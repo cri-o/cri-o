@@ -647,6 +647,14 @@ type RuntimeConfig struct {
 	// SeparatePullCgroup specifies whether an image pull must be performed in a separate cgroup
 	SeparatePullCgroup string `toml:"separate_pull_cgroup"`
 
+	// EnableLayerDedup enables automatic layer deduplication after image pulls
+	// using filesystem-level reflinks (copy-on-write clones). Identical files
+	// across container image layers are deduplicated, reducing disk usage.
+	// Requires a filesystem that supports reflinks (e.g., XFS with reflink=1
+	// or Btrfs). On unsupported filesystems, dedup logs a warning but does
+	// not fail the pull.
+	EnableLayerDedup bool `toml:"enable_layer_dedup"`
+
 	// InfraCtrCPUSet is the CPUs set that will be used to run infra containers
 	InfraCtrCPUSet string `toml:"infra_ctr_cpuset"`
 

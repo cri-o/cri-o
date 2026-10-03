@@ -532,6 +532,9 @@ Path to the temporary directory to use for storing big files, used to store imag
 **separate_pull_cgroup**=""
 [EXPERIMENTAL] If its value is set, then images are pulled into the specified cgroup. If its value is set to "pod", then the pod's cgroup is used. It is currently supported only with the systemd cgroup manager.
 
+**enable_layer_dedup**=false
+If true, CRI-O will automatically deduplicate image layers after every image pull using filesystem-level reflinks (copy-on-write clones). Identical files across container image layers are deduplicated, reducing disk usage without modifying the original layer data. Requires a filesystem that supports reflinks (e.g., XFS with reflink=1 or Btrfs). On unsupported filesystems, dedup logs a warning but does not fail the pull.
+
 **auto_reload_registries**=false
 If true, CRI-O will automatically reload the mirror registry when there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.
 

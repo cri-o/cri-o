@@ -385,6 +385,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.SeparatePullCgroup, c.SeparatePullCgroup),
 		},
 		{
+			templateString: templateStringCrioRuntimeEnableLayerDedup,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.EnableLayerDedup, c.EnableLayerDedup),
+		},
+		{
 			templateString: templateStringCrioRuntimeDefaultCapabilities,
 			group:          crioRuntimeConfig,
 			isDefaultValue: slices.Equal(dc.DefaultCapabilities, c.DefaultCapabilities),
@@ -1145,6 +1150,13 @@ const templateStringCrioRuntimeCgroupManager = `# Cgroup management implementati
 
 const templateStringCrioRuntimeSeparatePullCgroup = `# Specify whether the image pull must be performed in a separate cgroup.
 {{ $.Comment }}separate_pull_cgroup = "{{ .SeparatePullCgroup }}"
+
+`
+
+const templateStringCrioRuntimeEnableLayerDedup = `# Enable/disable automatic layer deduplication after image pulls using reflinks.
+# Requires a filesystem that supports reflinks (XFS with reflink=1, or Btrfs).
+# Dedup failures are logged as warnings but never fail the pull.
+{{ $.Comment }}enable_layer_dedup = {{ .EnableLayerDedup }}
 
 `
 
