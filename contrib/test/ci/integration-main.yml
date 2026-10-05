@@ -26,6 +26,13 @@
     - name: run cri-o integration tests
       include_tasks: "integration.yml"
 
+    - name: stop CAA log streaming
+      become: yes
+      shell: kill $(cat /tmp/caa_log_pid) 2>/dev/null || true
+      args:
+        executable: /bin/bash
+      when: "build_kata | default(False) | bool"
+
     - name: changing permission of temp file
       become: yes
       file: dest=/tmp/artifacts owner=deadbeef group=deadbeef mode=0777 recurse=yes
