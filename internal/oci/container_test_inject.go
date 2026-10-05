@@ -6,6 +6,8 @@
 package oci
 
 import (
+	"context"
+
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
@@ -41,4 +43,34 @@ func NewRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeOCI {
 			handler: handler,
 		},
 	}
+}
+
+type RuntimeVM struct {
+	*runtimeVM
+}
+
+func NewRuntimeVM() RuntimeVM {
+	return RuntimeVM{
+		runtimeVM: &runtimeVM{
+			ctx:     context.Background(),
+			handler: &config.RuntimeHandler{},
+			ctrs:    make(map[string]containerInfo),
+		},
+	}
+}
+
+func (r RuntimeVM) UpdateContainerStatus(ctx context.Context, c *Container) error {
+	return r.updateContainerStatus(ctx, c)
+}
+
+func (r RuntimeVM) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+	return r.runtimeVM.StopContainer(ctx, c, timeout)
+}
+
+func (r RuntimeVM) DeleteContainer(ctx context.Context, c *Container) error {
+	return r.runtimeVM.DeleteContainer(ctx, c)
+}
+
+func (r RuntimeVM) HasTask() bool {
+	return r.task != nil
 }
