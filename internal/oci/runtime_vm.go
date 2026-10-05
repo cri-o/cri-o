@@ -947,6 +947,19 @@ func (r *runtimeVM) UpdateContainerStatus(ctx context.Context, c *Container) err
 	return r.updateContainerStatus(ctx, c)
 }
 
+func markContainerStopped(c *Container) {
+	if c.state.Status != ContainerStateStopped || c.state.Finished.IsZero() {
+		c.state.Finished = time.Now()
+	}
+
+	if c.state.Status != ContainerStateStopped || c.state.ExitCode == nil {
+		exitCode := int32(255)
+		c.state.ExitCode = &exitCode
+	}
+
+	c.state.Status = ContainerStateStopped
+}
+
 // updateContainerStatus is a UpdateContainerStatus helper, which actually does the container's
 // status refresh.
 // It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
@@ -972,8 +985,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 			if errors.Is(err, os.ErrNotExist) {
 				log.Warnf(ctx,
 					"Shim address file missing for %s, marking container stopped", c.ID())
-				c.state.Status = ContainerStateStopped
-				c.state.Finished = time.Now()
+				markContainerStopped(c)
 
 				return nil
 			}
@@ -991,10 +1003,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 				"Failed to reconnect to shim for %s, marking container stopped: %v",
 				c.ID(), err)
 
-			if c.state.Status != ContainerStateStopped {
-				c.state.Status = ContainerStateStopped
-				c.state.Finished = time.Now()
-			}
+			markContainerStopped(c)
 
 			return nil
 		}
