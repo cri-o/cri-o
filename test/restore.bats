@@ -176,6 +176,104 @@ function teardown() {
 	crictl rmp "$pod_id"
 }
 
+@test "crio restore with vm runtime and dead shim" {
+	if [[ "$RUNTIME_TYPE" != "vm" ]]; then
+		skip "only applicable to vm runtime type"
+	fi
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_RUNNING"* ]]
+
+	stop_crio_no_clean ""
+
+	# simulate dead shim by removing address files from bundle directories
+	find "$TESTDIR"/ -name address -exec rm \{\} \;
+
+	start_crio_no_setup
+
+	# container should be marked exited after restore
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_EXITED"* ]]
+	[[ "${output}" == *"Exit Code: 255"* ]]
+
+	# stop and remove should succeed without panic
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+}
+
+@test "crio restore with vm runtime and stale shim address" {
+	if [[ "$RUNTIME_TYPE" != "vm" ]]; then
+		skip "only applicable to vm runtime type"
+	fi
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_RUNNING"* ]]
+
+	stop_crio_no_clean ""
+
+	# simulate dead shim with stale address file: replace address contents
+	# with a socket path that will get connection refused
+	find "$TESTDIR"/ -name address -exec sh -c 'echo "unix:///nonexistent/dead-shim.sock" > "$1"' _ {} \;
+
+	start_crio_no_setup
+
+	# container should be marked exited after restore
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_EXITED"* ]]
+	[[ "${output}" == *"Exit Code: 255"* ]]
+
+	# stop and remove should succeed without panic
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+}
+
+@test "crio restore with vm runtime and dead shim already stopped" {
+	if [[ "$RUNTIME_TYPE" != "vm" ]]; then
+		skip "only applicable to vm runtime type"
+	fi
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl stop "$ctr_id"
+
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_EXITED"* ]]
+
+	stop_crio_no_clean ""
+
+	# simulate dead shim by removing address files
+	find "$TESTDIR"/ -name address -exec rm \{\} \;
+
+	start_crio_no_setup
+
+	# already stopped container should remain exited
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_EXITED"* ]]
+
+	crictl rm "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+}
+
 @test "crio restore with missing config.json" {
 	start_crio
 
