@@ -905,8 +905,14 @@ func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
 	cInfo, ok := r.ctrs[c.ID()]
 	r.Unlock()
 
-	if !ok && !force {
-		return errors.New("could not retrieve container information")
+	if !ok {
+		if c.state.Status == ContainerStateStopped {
+			return nil
+		}
+
+		if !force {
+			return errors.New("could not retrieve container information")
+		}
 	}
 
 	if err := cInfo.cio.Close(); err != nil && !force {
