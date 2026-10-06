@@ -279,106 +279,23 @@ func (ss *StatsServer) containerMetricsFromContainerStats(
 		},
 	}})
 
+	metricCtx := containerMetricContext{
+		ss:          ss,
+		sb:          sb,
+		c:           c,
+		cgroupStats: cgroupStats,
+		diskStats:   diskStats,
+	}
+
 	for _, m := range ss.Config().EnabledPodMetrics() {
-		switch m {
-		case config.CPUMetrics:
-			if cpuMetrics := generateContainerCPUMetrics(
-				c,
-				&cgroupStats.CpuStats,
-			); cpuMetrics != nil {
-				metrics = append(metrics, cpuMetrics...)
-			}
-		case config.HugetlbMetrics:
-			if hugetlbMetrics := generateContainerHugetlbMetrics(
-				c,
-				cgroupStats.HugetlbStats,
-			); hugetlbMetrics != nil {
-				metrics = append(metrics, hugetlbMetrics...)
-			}
-		case config.DiskMetrics:
-			if diskStats == nil {
-				continue
-			}
-
-			if diskMetrics := generateContainerDiskMetrics(
-				c,
-				&diskStats.Filesystem,
-			); diskMetrics != nil {
-				metrics = append(metrics, diskMetrics...)
-			}
-		case config.DiskIOMetrics:
-			if diskIOMetrics := generateContainerDiskIOMetrics(
-				c,
-				&cgroupStats.BlkioStats,
-			); diskIOMetrics != nil {
-				metrics = append(metrics, diskIOMetrics...)
-			}
-		case config.MemoryMetrics:
-			if memoryMetrics := generateContainerMemoryMetrics(
-				c,
-				&cgroupStats.MemoryStats,
-			); memoryMetrics != nil {
-				metrics = append(metrics, memoryMetrics...)
-			}
-		case config.MemoryExtraMetrics:
-			if memoryExtraMetrics := generateContainerMemoryExtraMetrics(
-				c, &cgroupStats.MemoryStats,
-			); memoryExtraMetrics != nil {
-				metrics = append(metrics, memoryExtraMetrics...)
-			}
-		case config.OOMMetrics:
-			cm, err := ss.Config().CgroupManager().ContainerCgroupManager(sb.CgroupParent(), c.ID())
-			if err != nil {
-				log.Errorf(
-					ss.ctx,
-					"Unable to fetch cgroup manager for container %s: %v",
-					c.ID(),
-					err,
-				)
-
-				continue
-			}
-
-			oomCount, err := cm.OOMKillCount()
-			if err != nil {
-				log.Errorf(
-					ss.ctx,
-					"Unable to fetch OOM kill count for container %s: %v",
-					c.ID(),
-					err,
-				)
-
-				continue
-			}
-
-			oomMetrics := GenerateContainerOOMMetrics(c, oomCount)
-			metrics = append(metrics, oomMetrics...)
-		case config.NetworkMetrics:
-			continue // Network metrics are collected at the pod level only.
-		case config.ProcessMetrics:
-			if processMetrics := generateContainerProcessMetrics(
-				c,
-				&cgroupStats.PidsStats,
-				&cgroupStats.ProcessStats,
-			); processMetrics != nil {
-				metrics = append(metrics, processMetrics...)
-			}
-		case config.SpecMetrics:
-			if specMetrics := generateContainerSpecMetrics(c); specMetrics != nil {
-				metrics = append(metrics, specMetrics...)
-			}
-		case config.PressureMetrics:
-			if pressureMetrics := generateContainerPressureMetrics(
-				c,
-				&cgroupStats.CpuStats,
-				&cgroupStats.MemoryStats,
-				&cgroupStats.BlkioStats,
-			); pressureMetrics != nil {
-				metrics = append(metrics, pressureMetrics...)
-			}
-		default:
+		def, ok := metricDefinitions[m]
+		if !ok {
 			log.Warnf(ss.ctx, "Unknown metric: %s", m)
+
+			continue
 		}
+
+		metrics = append(metrics, def.generate(metricCtx)...)
 	}
 
 	namespace, podName := "", ""
