@@ -248,16 +248,30 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(
 	c *oci.Container,
 	sm *SandboxMetrics,
 ) *types.ContainerMetrics {
-	ctrStats, err := ss.Runtime().ContainerStats(ss.ctx, c, sb.CgroupParent())
-	if err != nil {
-		log.Errorf(ss.ctx, "Error getting sandbox stats %s: %v", sb.ID(), err)
+	enabledMetrics := ss.Config().EnabledPodMetrics()
 
-		return nil
+	var ctrStats *stats.CgroupStats
+
+	if CgroupStatsEnabled(enabledMetrics) {
+		var err error
+
+		ctrStats, err = ss.Runtime().ContainerStats(ss.ctx, c, sb.CgroupParent())
+		if err != nil {
+			log.Errorf(ss.ctx, "Error getting sandbox stats %s: %v", sb.ID(), err)
+
+			return nil
+		}
 	}
 
-	diskStats, err := ss.Runtime().DiskStats(ss.ctx, c, sb.CgroupParent())
-	if err != nil {
-		log.Errorf(ss.ctx, "Error getting disk stats %s: %v", c.ID(), err)
+	var diskStats *stats.DiskStats
+
+	if DiskStatsEnabled(enabledMetrics) {
+		var err error
+
+		diskStats, err = ss.Runtime().DiskStats(ss.ctx, c, sb.CgroupParent())
+		if err != nil {
+			log.Errorf(ss.ctx, "Error getting disk stats %s: %v", c.ID(), err)
+		}
 	}
 
 	return ss.containerMetricsFromContainerStats(sb, c, ctrStats, diskStats)
