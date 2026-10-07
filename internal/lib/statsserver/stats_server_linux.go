@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"slices"
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -17,7 +16,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/config"
 )
 
 // updateSandbox updates the StatsServer's entry for this sandbox, as well as each child container.
@@ -46,7 +44,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	}
 
 	// Network metrics are collected at pod level only.
-	if slices.Contains(ss.Config().EnabledPodMetrics(), config.NetworkMetrics) {
+	if NetworkMetricsEnabled(ss.Config().EnabledPodMetrics()) {
 		podMetrics := ss.GenerateNetworkMetrics(sb)
 		sandboxMetrics.metric.Metrics = podMetrics
 	}
@@ -216,7 +214,7 @@ func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetr
 		sm = NewSandboxMetrics(sb)
 	}
 	// Network metrics are collected at the pod level.
-	if slices.Contains(ss.Config().EnabledPodMetrics(), config.NetworkMetrics) {
+	if NetworkMetricsEnabled(ss.Config().EnabledPodMetrics()) {
 		podMetrics := ss.GenerateNetworkMetrics(sb)
 		sm.metric.Metrics = podMetrics
 	}

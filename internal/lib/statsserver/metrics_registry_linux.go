@@ -141,6 +141,13 @@ func DiskStatsEnabled(enabledMetrics []string) bool {
 	return anyMetricHasSource(enabledMetrics, sourceDiskStats)
 }
 
+// NetworkMetricsEnabled reports whether pod network metrics are enabled. Network
+// metrics are collected at the pod level, independently of the per-container
+// cgroup and disk stats.
+func NetworkMetricsEnabled(enabledMetrics []string) bool {
+	return slices.Contains(enabledMetrics, config.NetworkMetrics)
+}
+
 func anyMetricHasSource(enabledMetrics []string, source metricSource) bool {
 	return slices.ContainsFunc(enabledMetrics, func(m string) bool {
 		def, ok := metricDefinitions[m]

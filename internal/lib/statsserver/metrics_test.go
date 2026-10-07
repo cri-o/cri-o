@@ -441,3 +441,29 @@ func TestDiskStatsEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestNetworkMetricsEnabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		metrics  []string
+		expected bool
+	}{
+		{"nil", nil, false},
+		{"empty", []string{}, false},
+		{"network", []string{config.NetworkMetrics}, true},
+		{"only non-network", []string{config.CPUMetrics, config.DiskMetrics}, false},
+		{"network and other mixed", []string{config.CPUMetrics, config.NetworkMetrics}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := NetworkMetricsEnabled(tt.metrics); got != tt.expected {
+				t.Errorf("NetworkMetricsEnabled(%v) = %v, want %v", tt.metrics, got, tt.expected)
+			}
+		})
+	}
+}
