@@ -1153,6 +1153,28 @@ var _ = t.Describe("Config", func() {
 			}
 		})
 
+		It("should fail with a security profile max size above 64 MiB", func() {
+			// Given
+			sut.SecurityProfileMaxSize = 64*1024*1024 + 1
+
+			// When
+			err := sut.ImageConfig.Validate(false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail with a security profile max size that is not positive", func() {
+			// Given
+			sut.SecurityProfileMaxSize = 0
+
+			// When
+			err := sut.ImageConfig.Validate(false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
 		It("should fail when SignaturePolicyDir is not absolute", func() {
 			// Given
 			sut.SignaturePolicyDir = "./wrong/path"

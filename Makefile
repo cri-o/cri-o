@@ -188,6 +188,7 @@ test-binaries: \
 	test/copyimg/copyimg \
 	test/checkseccomp/checkseccomp \
 	test/checkcriu/checkcriu \
+	test/securityprofile/securityprofile \
 	test/updateunified/updateunified \
 	test/nri/nri.test
 
@@ -202,6 +203,9 @@ test/checkseccomp/checkseccomp: $(GO_FILES) ## Build the checkseccomp test binar
 
 test/checkcriu/checkcriu: $(GO_FILES) ## Build the checkcriu test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkcriu
+
+test/securityprofile/securityprofile: $(GO_FILES) ## Build the securityprofile test binary.
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/securityprofile
 
 test/updateunified/updateunified: $(GO_FILES) ## Build the updateunified test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/updateunified
@@ -423,6 +427,7 @@ clean: ## Clean the repository.
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -f test/checkcriu/checkcriu
+	rm -f test/securityprofile/securityprofile
 	rm -f test/updateunified/updateunified
 	rm -f test/nri/nri.test
 	rm -rf ${BUILD_PATH}

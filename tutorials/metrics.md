@@ -58,16 +58,20 @@ the following additional metrics:
 | `crio_containers_oom_count_total`                | `name`                                                                                                                                                          | Counter   | Containers killed because they ran out of memory (OOM) by their name.<br>The label `name` can have high cardinality sometimes but it is in the interest of users giving them the ease to identify which container(s) are going into OOM state. Also, ideally very few containers should OOM keeping the label cardinality of `name` reasonably low. |
 | `crio_containers_seccomp_notifier_count_total`   | `name`, `syscall`                                                                                                                                               | Counter   | Forbidden `syscall` count resulting in killed containers by `name`.                                                                                                                                                                                                                                                                                 |
 | `crio_processes_defunct`                         |                                                                                                                                                                 | Gauge     | Total number of defunct processes in the node                                                                                                                                                                                                                                                                                                       |
+| `crio_security_profiles_stored`                  |                                                                                                                                                                 | Gauge     | Number of security profile OCI artifacts in the artifact store of `PullSecurityProfile`, updated whenever the store is looked up.                                                                                                                                                                                                                   |
+| `crio_security_profiles_stored_bytes`            |                                                                                                                                                                 | Gauge     | Size in bytes of the security profile OCI artifacts in the artifact store of `PullSecurityProfile`.                                                                                                                                                                                                                                                 |
+| `crio_security_profile_merges_constrained_total` |                                                                                                                                                                 | Counter   | OCI security profiles constrained by the merge with the node-local profiles. Each merge that constrains a profile also logs a warning starting with `SecurityProfileMergeConstrained`.                                                                                                                                                              |
 
 <!-- markdownlint-enable MD013 MD033 -->
 
 - Available CRI-O RPC's from the [gRPC API][3]: `Attach`, `ContainerStats`, `ContainerStatus`,
   `CreateContainer`, `Exec`, `ExecSync`, `ImageFsInfo`, `ImageStatus`,
   `ListContainerStats`, `ListContainers`, `ListImages`, `ListPodSandbox`,
-  `PodSandboxStatus`, `PortForward`, `PullImage`, `RemoveContainer`,
-  `RemoveImage`, `RemovePodSandbox`, `ReopenContainerLog`, `RunPodSandbox`,
-  `StartContainer`, `Status`, `StopContainer`, `StopPodSandbox`,
-  `UpdateContainerResources`, `UpdateRuntimeConfig`, `Version`
+  `PodSandboxStatus`, `PortForward`, `PullImage`, `PullSecurityProfile`,
+  `RemoveContainer`, `RemoveImage`, `RemovePodSandbox`, `ReopenContainerLog`,
+  `RunPodSandbox`, `StartContainer`, `Status`, `StopContainer`,
+  `StopPodSandbox`, `UpdateContainerResources`, `UpdateRuntimeConfig`,
+  `Version`
 
 - Available error categories for `crio_image_pulls_failures`:
   - `UNKNOWN`: The default label which gets applied if the error is not known

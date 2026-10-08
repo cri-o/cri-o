@@ -15,6 +15,7 @@ import (
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/log"
 )
 
@@ -228,29 +229,72 @@ func (c *Config) ReloadDecryptionKeyConfig(newConfig *Config) {
 	}
 }
 
-// ReloadSeccompProfile reloads the seccomp profile from the new config if
-// their paths differ.
+// ReloadSeccompProfile reloads the seccomp profiles from the new config. The
+// new configurations replace the old ones at once, and only if the profile
+// and the baseline load. A runtime handler whose profile fails to load keeps
+// the profile it loaded before, so that it does not block the rest of the
+// reload, but gets the new baseline, so that a stricter one applies to it.
 func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 	// Reload the seccomp profile in any case because its content could have
 	// changed as well
+	next := seccomp.New()
+
 	if newConfig.SeccompProfile == "" {
-		if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
+		if err := next.LoadDefaultProfile(); err != nil {
 			return fmt.Errorf("unable to load default seccomp profile: %w", err)
 		}
-	} else if err := c.seccompConfig.LoadProfile(newConfig.SeccompProfile); err != nil {
+	} else if err := next.LoadProfile(newConfig.SeccompProfile); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("unable to load seccomp profile: %w", err)
 		}
 
 		logrus.Info("Seccomp profile does not exist on disk, fallback to internal default profile")
 
-		if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
+		if err := next.LoadDefaultProfile(); err != nil {
 			return fmt.Errorf("unable to load default seccomp profile: %w", err)
 		}
 	}
 
+	// Reload the baseline in any case, because an empty value refers to the
+	// seccomp profile, and the file content could have changed as well.
+	if err := next.LoadBaselineProfile(newConfig.SeccompBaselineProfile, false); err != nil {
+		return fmt.Errorf("unable to load seccomp baseline profile: %w", err)
+	}
+
+	handlerConfigs := map[string]*seccomp.Config{}
+
+	for name, handler := range c.Runtimes {
+		seccompConfig, err := handler.newSeccompConfig(newConfig.SeccompBaselineProfile)
+		if err != nil {
+			logrus.Warnf("Keeping the seccomp profile of runtime handler %s: %v", name, err)
+
+			seccompConfig, err = handler.rebaseSeccompConfig(newConfig.SeccompBaselineProfile)
+			if err != nil {
+				logrus.Warnf("Keeping the seccomp configuration of runtime handler %s: %v", name, err)
+
+				continue
+			}
+		}
+
+		if seccompConfig != nil {
+			seccompConfig.SetNotifierPath(filepath.Join(filepath.Dir(c.Listen), "seccomp"))
+		}
+
+		handlerConfigs[name] = seccompConfig
+	}
+
+	c.seccompConfig.Replace(next)
+
+	for name, seccompConfig := range handlerConfigs {
+		c.Runtimes[name].seccompBaselineProfile = newConfig.SeccompBaselineProfile
+		c.Runtimes[name].seccompConfig.Store(seccompConfig)
+	}
+
 	c.SeccompProfile = newConfig.SeccompProfile
 	logConfig("seccomp_profile", c.SeccompProfile)
+
+	c.SeccompBaselineProfile = newConfig.SeccompBaselineProfile
+	logConfig("seccomp_baseline_profile", c.SeccompBaselineProfile)
 
 	c.PrivilegedSeccompProfile = newConfig.PrivilegedSeccompProfile
 	logConfig("privileged_seccomp_profile", c.PrivilegedSeccompProfile)
@@ -337,8 +381,8 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 	}
 
 	for name := range c.Runtimes {
-		if c.Runtimes[name].seccompConfig != nil {
-			c.Runtimes[name].seccompConfig.SetNotifierPath(
+		if seccompConfig := c.Runtimes[name].RuntimeSeccomp(); seccompConfig != nil {
+			seccompConfig.SetNotifierPath(
 				filepath.Join(filepath.Dir(c.Listen), "seccomp"),
 			)
 		}

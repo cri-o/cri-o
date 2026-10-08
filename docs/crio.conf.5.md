@@ -132,7 +132,7 @@ If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 Path where the keys required for image decryption are located
 
 **additional_artifact_stores**=[]
-A list of additional read-only OCI artifact store paths. CRI-O expects an "artifacts/" subdirectory within each configured path. All entries must be absolute paths. Artifacts in these stores take priority over the main store. Because these stores are read-only, CRI-O cannot remove artifacts from them. If a tag is re-pointed on the registry, the stale local copy in a read-only store will continue to be used; the artifact must be removed from the read-only store directly on the filesystem to pick up the new version.
+A list of additional read-only OCI artifact store paths. CRI-O expects an "artifacts/" subdirectory within each configured path. All entries must be absolute paths. Artifacts in these stores take priority over the main store. Because these stores are read-only, CRI-O cannot remove artifacts from them. If a tag is re-pointed on the registry, the stale local copy in a read-only store will continue to be used; the artifact must be removed from the read-only store directly on the filesystem to pick up the new version. Security profiles in these stores (KEP-6061) are trusted like Localhost profiles: they are validated on every use, but never pulled and never checked against a signature policy.
 
 **conmon**=""
 Path to the conmon binary, used for monitoring the OCI runtime. Will be searched for using $PATH if empty.
@@ -162,6 +162,9 @@ Path to the seccomp.json profile which is used as the default seccomp profile fo
 
 **privileged_seccomp_profile**=""
 Enable a seccomp profile for privileged containers from the local path.
+
+**seccomp_baseline_profile**=""
+Path to the seccomp profile that every seccomp profile pulled as an OCI artifact (the OCI profile type of KEP-6061) is intersected with, so that the effective profile never permits what this baseline denies. Runtime handlers use it as well. If not specified, then the default seccomp profile of the runtime handler is used as the baseline. The profile is validated when the configuration is loaded. This option supports live configuration reload.
 
 **apparmor_profile**=""
 Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default".
@@ -548,6 +551,9 @@ The valid values are "enforcing" and "disabled", and the default is "enforcing".
 If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 If "disabled", the first result will be chosen.
 
+**security_profile_max_size**=1048576
+The maximum size in bytes of a security profile pulled as an OCI artifact (KEP-6061), at most 64 MiB. Larger profiles are rejected. Profiles are verified under the signature policy of the namespace of the pod, per repository, since policies are scoped by repository: a present profile is pulled once more for another namespace policy or another repository, even under an identical policy. Pulled profiles are kept in the "security-profiles" directory of the storage root until the kubelet removes them with RemoveSecurityProfile. To remove all of them, stop CRI-O and remove that directory.
+
 ## CRIO.NETWORK TABLE
 
 The `crio.network` table containers settings pertaining to the management of CNI plugins.
@@ -571,7 +577,7 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 **enable_metrics**=false
 Globally enable or disable metrics support.
 
-**metrics_collectors**=["image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime"]
+**metrics_collectors**=["image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime", "security_profiles_stored", "security_profiles_stored_bytes", "security_profile_merges_constrained_total"]
 Specify enabled metrics collectors. Per default all metrics are enabled.
 
 **metrics_host**="127.0.0.1"

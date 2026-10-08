@@ -11,14 +11,17 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"go.podman.io/common/pkg/seccomp"
 	imagetypes "go.podman.io/image/v5/types"
 	json "github.com/json-iterator/go"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	spmseccomp "sigs.k8s.io/security-profiles-merger/seccomp"
 
 	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"
 	"github.com/cri-o/cri-o/internal/log"
@@ -146,17 +149,57 @@ func removeStringFromSlice(s []string, i int) []string {
 // Config is the global seccomp configuration type.
 type Config struct {
 	enabled      bool
-	profile      *seccomp.Seccomp
 	notifierPath string
+
+	// state holds the profiles, which reloads replace while containers are
+	// created.
+	state atomic.Pointer[profileState]
+}
+
+// profileState holds the loaded profile and the baseline derived from it.
+type profileState struct {
+	profile *seccomp.Seccomp
+
+	// baseline is the floor OCI artifact profiles are intersected with.
+	baseline *baselineState
+}
+
+// baselineState describes the floor of OCI artifact profiles.
+type baselineState struct {
+	// configured is the baseline profile of the configuration, nil if none
+	// is configured and the floor is the loaded profile.
+	configured *seccomp.Seccomp
+
+	// withProfile adds the loaded profile to a configured baseline, for a
+	// runtime handler with a seccomp profile of its own.
+	withProfile bool
+
+	// err is why the floor cannot be merged, which makes every OCI profile
+	// fail.
+	err error
 }
 
 // New creates a new default seccomp configuration instance.
 func New() *Config {
-	return &Config{
+	c := &Config{
 		enabled:      seccomp.IsEnabled(),
-		profile:      DefaultProfile(),
 		notifierPath: "/var/run/crio/seccomp",
 	}
+	c.state.Store(&profileState{profile: DefaultProfile()})
+
+	return c
+}
+
+// Replace replaces the profiles with the ones of another configuration, at
+// once.
+func (c *Config) Replace(other *Config) {
+	c.state.Store(other.state.Load())
+}
+
+// setProfile replaces the loaded profile, which invalidates the baseline
+// derived from it until it is loaded again.
+func (c *Config) setProfile(profile *seccomp.Seccomp) {
+	c.state.Store(&profileState{profile: profile})
 }
 
 // SetNotifierPath sets the default path for creating seccomp notifier sockets.
@@ -187,7 +230,7 @@ func (c *Config) LoadProfile(profilePath string) error {
 		return fmt.Errorf("decoding seccomp profile failed: %w", err)
 	}
 
-	c.profile = tmpProfile
+	c.setProfile(tmpProfile)
 	logrus.Infof("Successfully loaded seccomp profile %q", profilePath)
 	logrus.Tracef("Current seccomp profile content: %s", profile)
 	return nil
@@ -196,10 +239,10 @@ func (c *Config) LoadProfile(profilePath string) error {
 // LoadDefaultProfile sets the internal default profile.
 func (c *Config) LoadDefaultProfile() error {
 	logrus.Info("Using the internal default seccomp profile")
-	c.profile = DefaultProfile()
+	c.setProfile(DefaultProfile())
 
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
-		profileString, err := json.MarshalToString(c.profile)
+		profileString, err := json.MarshalToString(DefaultProfile())
 		if err != nil {
 			return fmt.Errorf("marshal default seccomp profile to string: %w", err)
 		}
@@ -207,6 +250,102 @@ func (c *Config) LoadDefaultProfile() error {
 	}
 
 	return nil
+}
+
+// LoadBaselineProfile loads the profile from the provided path as the baseline
+// that OCI artifact profiles are intersected with. An empty path selects the
+// loaded profile, which RuntimeDefault stands for, so it has to be called
+// after loading that one. withProfile makes the floor the intersection of the
+// baseline and the loaded profile, for a runtime handler with a profile of its
+// own. The baseline is only replaced if loading succeeds. This method will not
+// fail if seccomp is disabled.
+func (c *Config) LoadBaselineProfile(profilePath string, withProfile bool) error {
+	if c.IsDisabled() {
+		return nil
+	}
+
+	state := &baselineState{withProfile: withProfile}
+
+	if profilePath != "" {
+		data, err := os.ReadFile(profilePath)
+		if err != nil {
+			return fmt.Errorf("open seccomp baseline profile: %w", err)
+		}
+
+		profile := &seccomp.Seccomp{}
+		if err := json.Unmarshal(data, profile); err != nil {
+			return fmt.Errorf("decoding seccomp baseline profile failed: %w", err)
+		}
+
+		if err := validateBaseline(profile, false); err != nil {
+			return fmt.Errorf("validate seccomp baseline profile %q: %w", profilePath, err)
+		}
+
+		state.configured = profile
+
+		logrus.Infof("Successfully loaded seccomp baseline profile %q", profilePath)
+	}
+
+	// Refusing a profile that used to load would break upgrades, so only
+	// OCI profiles become unsupported with it.
+	if state.configured == nil || withProfile {
+		if err := validateBaseline(c.Profile(), true); err != nil {
+			logrus.Warnf("The seccomp profile is not a valid baseline, OCI artifact profiles are unsupported: %v", err)
+
+			state.err = fmt.Errorf("invalid seccomp profile as baseline: %w", err)
+		}
+	}
+
+	c.state.Store(&profileState{profile: c.Profile(), baseline: state})
+
+	return nil
+}
+
+// OCIProfilesSupported returns true if OCI artifact profiles can be merged
+// with the baseline.
+func (c *Config) OCIProfilesSupported() bool {
+	state := c.state.Load().baseline
+
+	return !c.IsDisabled() && state != nil && state.err == nil
+}
+
+// validateBaseline checks that a profile can be merged as the baseline.
+// Rendering it without a container spec keeps every capability filtered entry.
+// A profile without a filter restricts nothing, which only suits a runtime
+// default.
+func validateBaseline(profile *seccomp.Seccomp, unconfinedOK bool) error {
+	linuxSpecs, err := seccomp.LoadProfileFromConfig(profile, nil)
+	if err != nil {
+		return err
+	}
+
+	if linuxSpecs == nil {
+		if unconfinedOK {
+			return nil
+		}
+
+		return errors.New("profile defines neither a default action nor syscalls")
+	}
+
+	return spmseccomp.Validate(linuxSpecs)
+}
+
+// renderProfile converts a node-local profile into the form of the runtime
+// spec for the capabilities and the architecture of the container. It returns
+// nil for a profile without a filter, which runs containers unconfined: such
+// a profile restricts nothing, so it stays out of the merge.
+func renderProfile(profile *seccomp.Seccomp, spec *rspec.Spec) (*rspec.LinuxSeccomp, error) {
+	return seccomp.LoadProfileFromConfig(profile, spec)
+}
+
+// BaselineProfile returns the configured baseline profile, or the loaded
+// profile if none is configured.
+func (c *Config) BaselineProfile() *seccomp.Seccomp {
+	if state := c.state.Load().baseline; state != nil && state.configured != nil {
+		return state.configured
+	}
+
+	return c.Profile()
 }
 
 // IsDisabled returns true if seccomp is disabled either via the missing
@@ -217,7 +356,7 @@ func (c *Config) IsDisabled() bool {
 
 // Profile returns the currently loaded seccomp profile.
 func (c *Config) Profile() *seccomp.Seccomp {
-	return c.profile
+	return c.state.Load().profile
 }
 
 // Setup can be used to setup the seccomp profile.
@@ -230,6 +369,7 @@ func (c *Config) Setup(
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
 	graphRoot string,
+	ociProfiles OCIProfiles,
 ) (*Notifier, string, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -281,6 +421,22 @@ func (c *Config) Setup(
 		// running w/o seccomp, aka unconfined
 		specGenerator.Config.Linux.Seccomp = nil
 		return nil, types.SecurityProfile_Unconfined.String(), nil
+	}
+
+	if profileField.GetProfileType() == types.SecurityProfile_OCI {
+		linuxSpecs, err := c.mergeOCIProfile(ctx, ociProfiles, profileField, specGenerator.Config)
+		if err != nil {
+			return nil, "", fmt.Errorf("merge OCI profile: %w", err)
+		}
+
+		notifier, err := c.injectNotifier(ctx, msgChan, containerID, sandboxAnnotations, linuxSpecs)
+		if err != nil {
+			return nil, "", fmt.Errorf("inject notifier: %w", err)
+		}
+
+		specGenerator.Config.Linux.Seccomp = linuxSpecs
+
+		return notifier, profileField.GetOciRef(), nil
 	}
 
 	if profileField.ProfileType == types.SecurityProfile_RuntimeDefault {
@@ -336,4 +492,107 @@ func (c *Config) applyProfileFromBytes(
 
 	specGenerator.Config.Linux.Seccomp = linuxSpecs
 	return notifier, nil
+}
+
+// mergeOCIProfile returns the profile for the OCI profile type: the pulled
+// profile intersected with the baseline and the optional base profile.
+func (c *Config) mergeOCIProfile(
+	ctx context.Context,
+	ociProfiles OCIProfiles,
+	profileField *types.SecurityProfile,
+	spec *rspec.Spec,
+) (*rspec.LinuxSeccomp, error) {
+	if ociProfiles == nil {
+		return nil, errors.New("OCI seccomp profiles are not supported")
+	}
+
+	profiles := c.state.Load()
+
+	state := profiles.baseline
+	if state == nil {
+		return nil, errors.New("seccomp baseline profile not loaded")
+	}
+
+	if state.err != nil {
+		return nil, state.err
+	}
+
+	// The floor is the configured baseline, the loaded profile, or both.
+	floor := []*seccomp.Seccomp{profiles.profile}
+	if state.configured != nil {
+		floor = []*seccomp.Seccomp{state.configured}
+		if state.withProfile {
+			floor = append(floor, profiles.profile)
+		}
+	}
+
+	baseline, err := intersectLocal(floor, spec)
+	if err != nil {
+		return nil, fmt.Errorf("load baseline profile: %w", err)
+	}
+
+	var base *rspec.LinuxSeccomp
+
+	// The zero value of the type selects RuntimeDefault, so only a base
+	// profile that is not set means the configured baseline alone.
+	baseProfile := profileField.GetBaseProfile()
+
+	switch {
+	case baseProfile == nil:
+
+	case baseProfile.GetType() == types.SecurityProfileBase_RuntimeDefault:
+		// Unless the floor includes it already.
+		if state.configured != nil && !state.withProfile {
+			base, err = renderProfile(profiles.profile, spec)
+			if err != nil {
+				return nil, fmt.Errorf("load default profile: %w", err)
+			}
+		}
+
+	case baseProfile.GetType() == types.SecurityProfileBase_Localhost:
+		localhostRef := filepath.FromSlash(baseProfile.GetLocalhostRef())
+
+		file, err := os.ReadFile(localhostRef)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load base profile %q: %w", localhostRef, err)
+		}
+
+		base, err = seccomp.LoadProfileFromBytes(file, spec)
+		if err != nil {
+			return nil, fmt.Errorf("load base profile %q: %w", localhostRef, err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unsupported base profile type %s", baseProfile.GetType())
+	}
+
+	return ociProfiles.MergeSeccomp(ctx, profileField.GetOciRef(), baseline, base)
+}
+
+// intersectLocal renders the node-local profiles and intersects them. It
+// returns nil if none of them restricts anything.
+func intersectLocal(profiles []*seccomp.Seccomp, spec *rspec.Spec) (*rspec.LinuxSeccomp, error) {
+	var rendered []*rspec.LinuxSeccomp
+
+	for _, profile := range profiles {
+		linuxSpecs, err := renderProfile(profile, spec)
+		if err != nil {
+			return nil, err
+		}
+
+		if linuxSpecs != nil {
+			rendered = append(rendered, linuxSpecs)
+		}
+	}
+
+	switch len(rendered) {
+	case 0:
+		return nil, nil
+
+	case 1:
+		return rendered[0], nil
+
+	default:
+		return spmseccomp.Intersect(rendered...)
+	}
 }
