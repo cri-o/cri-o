@@ -103,7 +103,26 @@ func catchShutdown(
 				}
 			}
 
-			gserver.GracefulStop()
+			const gracefulStopTimeout = 30 * time.Second
+
+			gracefulDone := make(chan struct{})
+
+			go func() {
+				gserver.GracefulStop()
+				close(gracefulDone)
+			}()
+
+			select {
+			case <-gracefulDone:
+				log.Debugf(ctx, "GRPC server stopped gracefully")
+			case <-time.After(gracefulStopTimeout):
+				log.Warnf(ctx,
+					"GRPC server graceful stop timed out after %v, forcing stop",
+					gracefulStopTimeout,
+				)
+				gserver.Stop()
+			}
+
 			hserver.Shutdown(ctx) //nolint:errcheck // best-effort shutdown during graceful stop
 
 			if err := streamingServer.StopStreamServer(); err != nil {
