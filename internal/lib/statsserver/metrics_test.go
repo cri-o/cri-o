@@ -131,6 +131,49 @@ func TestComputeAnonMemory(t *testing.T) {
 	}
 }
 
+// TestComputeFileMemory verifies that computeFileMemory reads the active and
+// inactive file (page cache) keys for the given cgroup version.
+func TestComputeFileMemory(t *testing.T) {
+	t.Parallel()
+
+	memStats := testMemoryStats()
+
+	tests := []struct {
+		name             string
+		isCgroupV2       bool
+		wantActiveFile   uint64
+		wantInactiveFile uint64
+	}{
+		{
+			name:             "cgroup v2",
+			isCgroupV2:       true,
+			wantActiveFile:   memStats.Stats["active_file"],
+			wantInactiveFile: memStats.Stats["inactive_file"],
+		},
+		{
+			name:             "cgroup v1",
+			isCgroupV2:       false,
+			wantActiveFile:   memStats.Stats["total_active_file"],
+			wantInactiveFile: memStats.Stats["total_inactive_file"],
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			activeFile, inactiveFile := computeFileMemory(&memStats, tt.isCgroupV2)
+			if activeFile != tt.wantActiveFile {
+				t.Errorf("activeFile: got %d, want %d", activeFile, tt.wantActiveFile)
+			}
+
+			if inactiveFile != tt.wantInactiveFile {
+				t.Errorf("inactiveFile: got %d, want %d", inactiveFile, tt.wantInactiveFile)
+			}
+		})
+	}
+}
+
 // TestComputeTransparentHugepages verifies that computeTransparentHugepages
 // reports the cgroup v2 THP counters and zero for cgroup v1, which has no THP
 // accounting.
@@ -224,6 +267,41 @@ func TestContainerMemoryExtraMetricValues(t *testing.T) {
 	}
 }
 
+// TestContainerMemoryFileMetricValues verifies that
+// generateContainerMemoryMetrics wires the file memory helper to the
+// cAdvisor-compatible total_active/inactive_file metric names.
+func TestContainerMemoryFileMetricValues(t *testing.T) {
+	t.Parallel()
+
+	ctr := newTestContainer(t)
+	memStats := testMemoryStats()
+
+	values := make(map[string]uint64)
+	for _, m := range generateContainerMemoryMetrics(ctr, &memStats) {
+		values[m.GetName()] = m.GetValue().GetValue()
+	}
+
+	activeFile, inactiveFile := computeFileMemory(&memStats, node.CgroupIsV2())
+
+	want := map[string]uint64{
+		"container_memory_total_active_file_bytes":   activeFile,
+		"container_memory_total_inactive_file_bytes": inactiveFile,
+	}
+
+	for name, wantValue := range want {
+		got, ok := values[name]
+		if !ok {
+			t.Errorf("metric %q not generated", name)
+
+			continue
+		}
+
+		if got != wantValue {
+			t.Errorf("metric %q: got value %d, want %d", name, got, wantValue)
+		}
+	}
+}
+
 // descriptorLabelCounts builds a lookup from metric name to expected label count.
 func descriptorLabelCounts() map[string]int {
 	m := make(map[string]int)
@@ -301,6 +379,9 @@ func testMemoryStats() cgroups.MemoryStats {
 		Stats: map[string]uint64{
 			"total_rss":           512 * 1024,
 			"total_inactive_file": 64 * 1024,
+			"total_active_file":   96 * 1024,
+			"inactive_file":       48 * 1024,
+			"active_file":         80 * 1024,
 			"total_mapped_file":   32 * 1024,
 			"pgfault":             100,
 			"pgmajfault":          5,
