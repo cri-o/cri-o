@@ -30,6 +30,12 @@ type StatsServer struct {
 	sboxMetrics      map[string]*SandboxMetrics
 	ctx              context.Context
 	mutex            sync.Mutex
+
+	// updating is set while update collects stats off-lock. removedDuringUpdate
+	// records sandboxes torn down during that window so the flush does not
+	// re-create their cached entries. Both are guarded by mutex.
+	updating            bool
+	removedDuringUpdate map[string]struct{}
 }
 
 // parentServerIface is an interface for requesting information from the parent ContainerServer.
@@ -93,6 +99,8 @@ func (ss *StatsServer) update() {
 	ss.mutex.Lock()
 	prevSboxStats := maps.Clone(ss.sboxStats)
 	prevCtrStats := maps.Clone(ss.ctrStats)
+	ss.updating = true
+	ss.removedDuringUpdate = make(map[string]struct{})
 	ss.mutex.Unlock()
 
 	results := make([]*sandboxCollectResult, len(sandboxes))
@@ -102,30 +110,45 @@ func (ss *StatsServer) update() {
 		wg.Add(1)
 		go func(i int, sb *sandbox.Sandbox) {
 			defer wg.Done()
+
 			results[i] = ss.collectSandbox(sb)
 		}(i, sb)
 	}
+
 	wg.Wait()
 
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
+	ss.updating = false
+
 	for i, r := range results {
 		if r == nil {
 			continue
 		}
+
 		sb := sandboxes[i]
+		// Skip sandboxes torn down while we were collecting off-lock, otherwise
+		// the write below would resurrect their cached entries and leak them.
+		if _, ok := ss.removedDuringUpdate[sb.ID()]; ok {
+			continue
+		}
+
 		for _, cStats := range r.sandboxStats.GetLinux().GetContainers() {
 			if old, ok := prevCtrStats[cStats.GetAttributes().GetId()]; ok {
 				updateUsageNanoCores(old.GetCpu(), cStats.GetCpu())
 			}
 		}
+
 		if old, ok := prevSboxStats[sb.ID()]; ok {
 			updateUsageNanoCores(old.GetLinux().GetCpu(), r.sandboxStats.GetLinux().GetCpu())
 		}
+
 		ss.sboxStats[sb.ID()] = r.sandboxStats
 		ss.sboxMetrics[sb.ID()] = r.sandboxMetrics
 	}
+
+	ss.removedDuringUpdate = nil
 }
 
 // updateUsageNanoCores calculates the usage nano cores by averaging the CPU usage between the timestamps
@@ -256,6 +279,16 @@ func (ss *StatsServer) RemoveStatsForSandbox(sb *sandbox.Sandbox) {
 	defer ss.mutex.Unlock()
 
 	delete(ss.sboxStats, sb.ID())
+	ss.markRemovedDuringUpdate(sb.ID())
+}
+
+// markRemovedDuringUpdate records a sandbox torn down while update is collecting
+// off-lock, so its flush does not re-create the cached entries.
+// The caller must hold ss.mutex.
+func (ss *StatsServer) markRemovedDuringUpdate(id string) {
+	if ss.updating {
+		ss.removedDuringUpdate[id] = struct{}{}
+	}
 }
 
 // StatsForContainer returns the stats for the given container.
@@ -364,4 +397,5 @@ func (ss *StatsServer) RemoveMetricsForPodSandbox(sb *sandbox.Sandbox) {
 	defer ss.mutex.Unlock()
 
 	delete(ss.sboxMetrics, sb.ID())
+	ss.markRemovedDuringUpdate(sb.ID())
 }
