@@ -308,40 +308,50 @@ func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 
 // ReloadRuntimes reloads the runtimes configuration if changed.
 func (c *Config) ReloadRuntimes(newConfig *Config) error {
-	var updated bool
-
-	if !RuntimesEqual(c.Runtimes, newConfig.Runtimes) {
-		logrus.Infof("Updating runtime configuration")
-
-		c.Runtimes = newConfig.Runtimes
-		updated = true
-	}
-
-	if c.DefaultRuntime != newConfig.DefaultRuntime {
-		c.DefaultRuntime = newConfig.DefaultRuntime
-		if err := c.ValidateDefaultRuntime(); err != nil {
-			return fmt.Errorf("unable to reload runtimes: %w", err)
-		}
-
-		logConfig("default_runtime", c.DefaultRuntime)
-
-		updated = true
-	}
-
-	if !updated {
+	if RuntimesEqual(c.Runtimes, newConfig.Runtimes) &&
+		c.DefaultRuntime == newConfig.DefaultRuntime {
 		return nil
 	}
 
-	if err := c.ValidateRuntimes(); err != nil {
+	logrus.Infof("Updating runtime configuration")
+
+	// Validate the candidate runtime configuration before making it visible
+	// to any consumer: all validation and inheritance happens on the
+	// candidate, while the shared configuration is only replaced once
+	// everything succeeded. This way a failed reload cannot leave the
+	// shared configuration in a half-applied state.
+	if newConfig.cgroupManager == nil {
+		newConfig.cgroupManager = c.cgroupManager
+	}
+
+	if err := newConfig.ValidateDefaultRuntime(); err != nil {
 		return fmt.Errorf("unable to reload runtimes: %w", err)
 	}
 
-	for name := range c.Runtimes {
-		if c.Runtimes[name].seccompConfig != nil {
-			c.Runtimes[name].seccompConfig.SetNotifierPath(
+	if err := newConfig.ValidateRuntimes(); err != nil {
+		return fmt.Errorf("unable to reload runtimes: %w", err)
+	}
+
+	for name := range newConfig.Runtimes {
+		if newConfig.Runtimes[name].seccompConfig != nil {
+			newConfig.Runtimes[name].seccompConfig.SetNotifierPath(
 				filepath.Join(filepath.Dir(c.Listen), "seccomp"),
 			)
 		}
+	}
+
+	// Store the validated runtime configuration and publish it as a single
+	// atomic snapshot, which is the only state observed by the runtime
+	// consumers. Concurrent readers therefore never observe a runtime table
+	// with a mismatching default runtime or any other intermediate state.
+	defaultChanged := c.DefaultRuntime != newConfig.DefaultRuntime
+
+	c.RuntimeConfig.Runtimes = newConfig.Runtimes
+	c.RuntimeConfig.DefaultRuntime = newConfig.DefaultRuntime
+	c.publishRuntimeSnapshot()
+
+	if defaultChanged {
+		logConfig("default_runtime", c.DefaultRuntime)
 	}
 
 	return nil

@@ -28,7 +28,7 @@ func TestGetInfo(t *testing.T) {
 	c.Root = "afoobarroot"
 	c.CgroupManagerName = systemdCgroupManager
 	c.APIConfig = config.APIConfig{}
-	s := &Server{config: *c}
+	s := &Server{config: c}
 
 	ci := s.getInfo()
 	if ci.CgroupDriver != systemdCgroupManager {
@@ -46,7 +46,7 @@ func TestGetInfo(t *testing.T) {
 
 func TestGetContainerInfo(t *testing.T) {
 	ctx := t.Context()
-	s := &Server{}
+	s := &Server{config: &config.Config{}}
 	created := time.Now()
 	labels := map[string]string{
 		"io.kubernetes.container.name": "POD",
@@ -221,7 +221,7 @@ func TestGetContainerInfo(t *testing.T) {
 
 func TestGetContainerInfoCtrNotFound(t *testing.T) {
 	ctx := t.Context()
-	s := &Server{}
+	s := &Server{config: &config.Config{}}
 	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		return nil
 	}
@@ -244,7 +244,7 @@ func TestGetContainerInfoCtrNotFound(t *testing.T) {
 
 func TestGetContainerInfoCtrStateNil(t *testing.T) {
 	ctx := t.Context()
-	s := &Server{}
+	s := &Server{config: &config.Config{}}
 	created := time.Now()
 	labels := map[string]string{}
 	annotations := map[string]string{}
@@ -316,7 +316,7 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 
 func TestGetContainerInfoSandboxNotFound(t *testing.T) {
 	ctx := t.Context()
-	s := &Server{}
+	s := &Server{config: &config.Config{}}
 	created := time.Now()
 	labels := map[string]string{}
 	annotations := map[string]string{}

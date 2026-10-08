@@ -12,6 +12,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 func TestAddOCIBindsRejectAbsentSources(t *testing.T) {
@@ -169,7 +170,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 		t.Error(err)
 	}
 
-	sut := &Server{}
+	sut := &Server{config: &config.Config{}}
 	ctrInfo := &storage.ContainerInfo{
 		MountLabel: "",
 	}
@@ -234,7 +235,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 		t.Error(err)
 	}
 
-	sut := &Server{}
+	sut := &Server{config: &config.Config{}}
 	ctrInfo := &storage.ContainerInfo{
 		MountLabel: "",
 	}
@@ -301,7 +302,7 @@ func TestAddOCIBindsRROMounts(t *testing.T) {
 
 	ctx := t.Context()
 
-	sut := &Server{}
+	sut := &Server{config: &config.Config{}}
 	ctrInfo := &storage.ContainerInfo{
 		MountLabel: "",
 	}
@@ -429,7 +430,7 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 				t.Fatalf("Should set container configuration, got: %v", err)
 			}
 
-			sut := &Server{}
+			sut := &Server{config: &config.Config{}}
 			ctrInfo := &storage.ContainerInfo{
 				MountLabel: "",
 			}
@@ -474,7 +475,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 		t.Error(err)
 	}
 
-	sut := &Server{}
+	sut := &Server{config: &config.Config{}}
 	ctrInfo := &storage.ContainerInfo{
 		MountLabel: "",
 	}
@@ -592,7 +593,7 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sut := &Server{}
+	sut := &Server{config: &config.Config{}}
 	ctrInfo := &storage.ContainerInfo{
 		MountLabel: "",
 	}
