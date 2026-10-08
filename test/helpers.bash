@@ -201,7 +201,7 @@ function setup_crio() {
         -c "" \
         -d "" \
         $OVERRIDE_OPTIONS \
-        config >"$CRIO_CUSTOM_CONFIG"
+        config >"$CRIO_CUSTOM_CONFIG" || return 1
     # make sure we don't run with nodev, or else mounting a readonly rootfs will fail: https://github.com/cri-o/cri-o/issues/1929#issuecomment-474240498
     sed -r -e 's/nodev(,)?//g' -i "$CRIO_CONFIG"
     sed -r -e 's/nodev(,)?//g' -i "$CRIO_CUSTOM_CONFIG"
@@ -244,7 +244,7 @@ function start_crio_no_setup() {
 # Start crio.
 # shellcheck disable=SC2120
 function start_crio() {
-    setup_crio "$@"
+    setup_crio "$@" || return 1
     start_crio_no_setup
     check_images
 }
