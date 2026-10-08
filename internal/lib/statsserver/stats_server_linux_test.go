@@ -25,6 +25,7 @@ type fakeRuntimeImpl struct {
 	cgroupStatsErr error
 	diskStats      *stats.DiskStats
 	diskStatsErr   error
+	onCgroupStats  func()
 }
 
 func (f *fakeRuntimeImpl) CgroupStats(
@@ -32,6 +33,10 @@ func (f *fakeRuntimeImpl) CgroupStats(
 	_ *oci.Container,
 	_ string,
 ) (*stats.CgroupStats, error) {
+	if f.onCgroupStats != nil {
+		f.onCgroupStats()
+	}
+
 	return f.cgroupStats, f.cgroupStatsErr
 }
 
@@ -52,13 +57,14 @@ func (f *fakeStore) GraphDriver() (drivers.Driver, error) {
 }
 
 type fakeParentServer struct {
-	runtime *oci.Runtime
-	cfg     *config.Config
+	runtime   *oci.Runtime
+	cfg       *config.Config
+	sandboxes []*sandbox.Sandbox
 }
 
 func (f *fakeParentServer) Runtime() *oci.Runtime              { return f.runtime }
 func (f *fakeParentServer) Store() cstorage.Store              { return &fakeStore{} }
-func (f *fakeParentServer) ListSandboxes() []*sandbox.Sandbox  { return nil }
+func (f *fakeParentServer) ListSandboxes() []*sandbox.Sandbox  { return f.sandboxes }
 func (f *fakeParentServer) GetSandbox(string) *sandbox.Sandbox { return nil }
 func (f *fakeParentServer) Config() *config.Config             { return f.cfg }
 
@@ -134,6 +140,50 @@ func newTestStatsServer(t *testing.T, rt *oci.Runtime, cfg *config.Config) *Stat
 		ctrStats:          make(map[string]*types.ContainerStats),
 		sboxMetrics:       make(map[string]*SandboxMetrics),
 		ctx:               context.Background(),
+	}
+}
+
+func TestUpdateDoesNotResurrectSandboxRemovedDuringCollection(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.DefaultConfig()
+	if err != nil {
+		t.Fatalf("DefaultConfig: %v", err)
+	}
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t, "ctr-1", "test-container")
+
+	sb := newTestSandbox(t, "sb-1")
+	sb.AddContainer(context.Background(), ctr)
+
+	ss := newTestStatsServer(t, rt, cfg)
+	ss.parentServerIface = &fakeParentServer{
+		runtime:   rt,
+		cfg:       cfg,
+		sandboxes: []*sandbox.Sandbox{sb},
+	}
+
+	// Simulate RemoveSandbox interleaving during the lock-free collection
+	// window: when the runtime is queried for container stats (inside
+	// collectSandbox, after update has released the mutex), tear down the
+	// sandbox's cached stats. The flush must not re-create them.
+	rt.SetRuntimeImpl("ctr-1", &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
+		onCgroupStats: func() {
+			ss.RemoveStatsForSandbox(sb)
+			ss.RemoveMetricsForPodSandbox(sb)
+		},
+	})
+
+	ss.update()
+
+	if _, ok := ss.sboxStats[sb.ID()]; ok {
+		t.Errorf("sboxStats leaked an entry for sandbox %s removed during collection", sb.ID())
+	}
+
+	if _, ok := ss.sboxMetrics[sb.ID()]; ok {
+		t.Errorf("sboxMetrics leaked an entry for sandbox %s removed during collection", sb.ID())
 	}
 }
 
