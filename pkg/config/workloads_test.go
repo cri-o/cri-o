@@ -259,4 +259,38 @@ var _ = t.Describe("Workloads config", func() {
 			})
 		}
 	})
+
+	It("should mutate container spec from annotation without default resources", func() {
+		const (
+			workloadsKey                = "management"
+			containerName               = "limitbox"
+			resourceContainerPrefix     = "resources.workload.openshift.io"
+			resourceContainerAnnotation = resourceContainerPrefix + "/" + containerName
+			workloadTargetAnnotation    = "target.workload.openshift.io/" + workloadsKey
+		)
+
+		workloads := config.Workloads{
+			workloadsKey: &config.WorkloadConfig{
+				AnnotationPrefix:     resourceContainerPrefix,
+				ActivationAnnotation: workloadTargetAnnotation,
+			},
+		}
+		g := &generate.Generator{
+			Config: &rspec.Spec{
+				Linux: &rspec.Linux{
+					Resources: &rspec.LinuxResources{},
+				},
+			},
+		}
+		annotations := map[string]string{
+			resourceContainerAnnotation: "{\"cpushares\":15}",
+			workloadTargetAnnotation:    "{\"effect\":\"PreferredDuringScheduling\"}",
+		}
+
+		err := workloads.MutateSpecGivenAnnotations(containerName, g, annotations)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(g.Config.Linux.Resources.CPU.Shares).ToNot(BeNil())
+		GinkgoWriter.Printf("cpushares=%d\n", *g.Config.Linux.Resources.CPU.Shares)
+		Expect(*g.Config.Linux.Resources.CPU.Shares).To(Equal(uint64(15)))
+	})
 })
