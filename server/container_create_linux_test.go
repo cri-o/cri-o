@@ -773,3 +773,52 @@ func TestIsSubDirectoryOf(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveBindMountConflicts(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		options   []string
+		mountOpts []string
+		want      []string
+	}{
+		{
+			name:      "appends supported options",
+			options:   []string{"rbind", "rprivate", "rw"},
+			mountOpts: []string{"noexec", "nosuid", "nodev"},
+			want:      []string{"rbind", "rprivate", "rw", "noexec", "nosuid", "nodev"},
+		},
+		{
+			name:      "removes conflicting option",
+			options:   []string{"rbind", "rprivate", "exec", "rw"},
+			mountOpts: []string{"noexec"},
+			want:      []string{"rbind", "rprivate", "rw", "noexec"},
+		},
+		{
+			name:      "deduplicates against existing options",
+			options:   []string{"rbind", "rprivate", "rw", "noexec"},
+			mountOpts: []string{"noexec"},
+			want:      []string{"rbind", "rprivate", "rw", "noexec"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := resolveBindMountConflicts(tt.options, tt.mountOpts)
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("got %v, want %v", got, tt.want)
+
+					break
+				}
+			}
+		})
+	}
+}
