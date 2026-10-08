@@ -6,6 +6,11 @@
 package oci
 
 import (
+	"context"
+	"syscall"
+
+	task "github.com/containerd/containerd/api/runtime/task/v2"
+
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
@@ -41,4 +46,48 @@ func NewRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeOCI {
 			handler: handler,
 		},
 	}
+}
+
+type RuntimeVM struct {
+	*runtimeVM
+}
+
+func NewRuntimeVM() RuntimeVM {
+	return RuntimeVM{
+		runtimeVM: &runtimeVM{
+			ctx:     context.Background(),
+			handler: &config.RuntimeHandler{},
+			ctrs:    make(map[string]containerInfo),
+		},
+	}
+}
+
+func (r RuntimeVM) UpdateContainerStatus(ctx context.Context, c *Container) error {
+	return r.updateContainerStatus(ctx, c)
+}
+
+func (r RuntimeVM) StopContainer(ctx context.Context, c *Container, timeout int64) error {
+	return r.runtimeVM.StopContainer(ctx, c, timeout)
+}
+
+func (r RuntimeVM) DeleteContainer(ctx context.Context, c *Container) error {
+	return r.runtimeVM.DeleteContainer(ctx, c)
+}
+
+func (r RuntimeVM) HasTask() bool {
+	return r.task != nil
+}
+
+func NewRuntimeVMWithTask(t task.TaskService) RuntimeVM {
+	return RuntimeVM{
+		runtimeVM: &runtimeVM{
+			task: t,
+			ctx:  context.Background(),
+			ctrs: make(map[string]containerInfo),
+		},
+	}
+}
+
+func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal) error {
+	return r.kill(ctrID, execID, signal)
 }
