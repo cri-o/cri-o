@@ -139,6 +139,28 @@ type ContainerState struct {
 	ContainerMonitorProcess *ContainerMonitorProcess `json:"containerMonitorProcess,omitempty"`
 }
 
+// DeepCopy returns a copy of the container state that shares no mutable
+// state with the receiver. The Annotations map and the ExitCode and
+// ContainerMonitorProcess pointers are cloned, so the copy can be read
+// or modified independently of the original.
+func (cs *ContainerState) DeepCopy() *ContainerState {
+	copied := *cs
+	copied.Annotations = maps.Clone(cs.Annotations)
+	copied.ExitCode = clonePtr(cs.ExitCode)
+	copied.ContainerMonitorProcess = clonePtr(cs.ContainerMonitorProcess)
+
+	return &copied
+}
+
+// clonePtr returns a pointer to a copy of *p, or nil when p is nil.
+func clonePtr[T any](p *T) *T {
+	if p == nil {
+		return nil
+	}
+
+	return new(*p)
+}
+
 // ContainerMonitorProcess represents a process of conmon, conmon-rs, etc.
 type ContainerMonitorProcess struct {
 	Pid int `json:"pid,omitempty"`
@@ -495,12 +517,13 @@ func (c *Container) Metadata() *types.ContainerMetadata {
 	return c.criContainer.GetMetadata()
 }
 
-// State returns the state of the running container.
+// State returns a snapshot of the container state that is safe to use
+// without holding opLock.
 func (c *Container) State() *ContainerState {
 	c.opLock.RLock()
 	defer c.opLock.RUnlock()
 
-	return c.state
+	return c.state.DeepCopy()
 }
 
 // StateNoLock returns the state of a container without using a lock.
