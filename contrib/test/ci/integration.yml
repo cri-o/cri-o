@@ -74,7 +74,7 @@
 - block:
     - name: run integration tests
       become: yes
-      shell: make localintegration 2>&1 > /tmp/artifacts/testout.txt
+      shell: set -o pipefail; make localintegration 2>&1 | tee {{ artifacts }}/testout.txt
       args:
         executable: /bin/bash
         chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"

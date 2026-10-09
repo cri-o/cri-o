@@ -30,6 +30,7 @@
       - "[sig-auth] Projected PodCertificate [FeatureGate:PodCertificateRequest] [FeatureGate:ClusterTrustBundle] [FeatureGate:ClusterTrustBundleProjection] should allow server and client pods to establish an mTLS connection"
   set_fact:
     e2e_shell_cmd: >
+      set -o pipefail;
       DBUS_SESSION_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket" KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
           "{{ ansible_env.GOPATH }}"/bin/kubetest
           --provider=local
@@ -38,11 +39,12 @@
                       --ginkgo.skip={{ skip_tests | join('|') | replace(' ', '\\s') | regex_replace('([][)(])', '\\\\\1') }}
                       --ginkgo.noColor
                       --report-dir={{ artifacts }}"
-          &> {{ artifacts }}/e2e.log
+          2>&1 | tee {{ artifacts }}/e2e.log
 
 - name: run e2e tests
   shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
   args:
+    executable: /bin/bash
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
   async: "{{ 60 * 60 * 4 }}" # seconds
   poll: 60
