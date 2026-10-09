@@ -1,0 +1,43 @@
+---
+- name: validate container_runtime
+  assert:
+    that:
+      - container_runtime in ['crun', 'runc', 'kata']
+    fail_msg: "Invalid container_runtime '{{ container_runtime }}'. Accepted values: crun, runc, kata"
+
+# crun is the default runtime in cri-o, no additional configuration needed.
+
+- name: configure cri-o to use runc for integration
+  set_fact:
+    int_test_env: "{{ int_test_env | combine(runc_int_test_env) }}"
+  vars:
+    runc_int_test_env:
+      CONTAINER_RUNTIMES: "runc:/usr/bin/runc:/run/runc:oci:false:"
+      CONTAINER_RUNTIME: "runc"
+      CONTAINER_DEFAULT_RUNTIME: "runc"
+      RUNTIME_NAME: "runc"
+      RUNTIME_ROOT: "/run/runc"
+      RUNTIME_TYPE: "oci"
+  when: "container_runtime == 'runc'"
+
+- name: configure cri-o to use kata for integration
+  set_fact:
+    int_test_env: "{{ int_test_env | combine(kata_int_test_env) }}"
+    userns_int_test_skip: True
+  vars:
+    kata_int_test_env:
+      CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"
+      CONTAINER_RUNTIME: "containerd-shim-kata-v2"
+      CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
+      RUNTIME_NAME: "containerd-shim-kata-v2"
+      RUNTIME_ROOT: "/run/vc"
+      RUNTIME_TYPE: "vm"
+      TESTFLAGS:
+        "{{ lookup('fileglob', '{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/*.bats', wantlist=True) \
+        | map('basename') | difference(kata_skip_files) | join(' ') }}"
+      JOBS: "1" # TODO: add support to parallelization in kata (causes failures in the integration tests)
+      PRIVILEGED_WITHOUT_HOST_DEVICES: true
+      RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
+      PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
+      CONTAINER_STORAGE_OPT: "overlay.skip_mount_home=true"
+  when: "container_runtime == 'kata'"
