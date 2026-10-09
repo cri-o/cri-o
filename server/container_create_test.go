@@ -53,6 +53,37 @@ var _ = t.Describe("ContainerCreate", func() {
 	}
 
 	t.Describe("ContainerCreate", func() {
+		createContainer := func(config *types.ContainerConfig) (*types.CreateContainerResponse, error) {
+			return sut.CreateContainer(
+				context.Background(),
+				&types.CreateContainerRequest{
+					Config:        config,
+					SandboxConfig: newPodSandboxConfig(),
+				},
+			)
+		}
+
+		It("should reject an unknown cgroup mount mode", func() {
+			config := newContainerConfig()
+			config.Linux.SecurityContext.CgroupMountMode = types.CgroupMountMode(99)
+
+			response, err := createContainer(config)
+
+			Expect(err).To(MatchError(ContainSubstring("unsupported cgroup mount mode")))
+			Expect(response).To(BeNil())
+		})
+
+		It("should reject read-only cgroups for a privileged container", func() {
+			config := newContainerConfig()
+			config.Linux.SecurityContext.Privileged = true
+			config.Linux.SecurityContext.CgroupMountMode = types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_ONLY
+
+			response, err := createContainer(config)
+
+			Expect(err).To(MatchError(ContainSubstring("not supported for privileged containers")))
+			Expect(response).To(BeNil())
+		})
+
 		It("should fail when container config image is nil", func() {
 			// Given
 			addContainerAndSandbox()
