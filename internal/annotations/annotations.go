@@ -37,6 +37,7 @@ var internalAnnotations = map[string]struct{}{
 	StdinOnce:          {},
 	Volumes:            {},
 	HostNetwork:        {},
+	NetworkIsolated:    {},
 	CNIResult:          {},
 	ContainerManager:   {},
 }
@@ -147,6 +148,10 @@ const (
 
 	// HostNetwork indicates whether the host network namespace is used or not.
 	HostNetwork = "io.kubernetes.cri-o.HostNetwork"
+
+	// NetworkIsolated indicates whether the sandbox opted out of the default
+	// pod network (KEP-6313, PodSandboxDefaultNetwork DEFAULT_NETWORK_NONE).
+	NetworkIsolated = "io.kubernetes.cri-o.NetworkIsolated"
 
 	// CNIResult is the JSON string representation of the Result from CNI.
 	CNIResult = "io.kubernetes.cri-o.CNIResult"

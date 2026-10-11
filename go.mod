@@ -259,3 +259,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.1 // indirect
 )
+
+replace k8s.io/cri-api => github.com/MikeZappa87/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20260930111337-a44fb854ed45
