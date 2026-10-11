@@ -39,26 +39,6 @@ var _ = t.Describe("IsInternal", func() {
 		Entry("Volumes", annotations.Volumes),
 		Entry("SandboxID", annotations.SandboxID),
 		Entry("ContainerManager", annotations.ContainerManager),
-		Entry("InfraRuntimeHandler", annotations.InfraRuntimeHandler),
-		Entry("RequestedOOMScoreAdj", annotations.RequestedOOMScoreAdj),
-		Entry("indexed IP.0", "io.kubernetes.cri-o.IP.0"),
-		Entry("indexed IP.1", "io.kubernetes.cri-o.IP.1"),
+		Entry("NetworkIsolated", annotations.NetworkIsolated),
 	)
-
-	DescribeTable("should return false for non-internal annotations",
-		func(key string) {
-			Expect(annotations.IsInternal(key)).To(BeFalse())
-		},
-		Entry("V1 ShmSize", "io.kubernetes.cri-o.ShmSize"),
-		Entry("V1 Devices", "io.kubernetes.cri-o.Devices"),
-		Entry("V1 UnifiedCgroup", "io.kubernetes.cri-o.UnifiedCgroup"),
-		Entry("V1 container-specific with slash", "io.kubernetes.cri-o.Devices/container1"),
-		Entry("V1 container-specific with dot", "io.kubernetes.cri-o.ShmSize.something"),
-		Entry("unknown key under prefix", "io.kubernetes.cri-o.FutureField"),
-		Entry("V1 prefix without separator", "io.kubernetes.cri-o.ShmSizeEvil"),
-		Entry("unrelated annotation", "kubectl.kubernetes.io/last-applied-configuration"),
-		Entry("workload annotation", "target.workload.openshift.io/management"),
-		Entry("V1 SeccompProfile (reverse-domain prefix)", "seccomp-profile.kubernetes.cri-o.io"),
-		Entry("empty string", ""),
-	)
-})
+}

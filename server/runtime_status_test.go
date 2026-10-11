@@ -59,5 +59,17 @@ var _ = t.Describe("Status", func() {
 			Expect(response).NotTo(BeNil())
 			Expect(response.GetInfo()).NotTo(BeNil())
 		})
+
+		It("should advertise default network none support", func() {
+			// When
+			response, err := sut.Status(context.Background(),
+				&types.StatusRequest{})
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response).NotTo(BeNil())
+			Expect(response.GetFeatures()).NotTo(BeNil())
+			Expect(response.GetFeatures().GetDefaultNetworkNone()).To(BeTrue())
+		})
 	})
 })
