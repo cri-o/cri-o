@@ -2229,6 +2229,10 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("should include all metrics by default", func() {
+			Expect(sut.IncludedPodMetrics).To(Equal([]string{config.AllMetrics}))
+		})
+
 		It("should succeed with valid config", func() {
 			// Given
 			sut.IncludedPodMetrics = []string{"cpu", "memory"}
