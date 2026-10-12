@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 12 Oct 2026 10:39:45 UTC for commit [a590a8c][0]._
+_Generated on Mon, 12 Oct 2026 14:44:07 UTC for commit [45583b1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a590a8c64f9e6e9eda17ea595a6755f5b9323b8d
+[0]: https://github.com/cri-o/cri-o/commit/45583b150bfd8b8df7a9612267d3fb812b69acc8
 
 ## Outdated Dependencies
 
@@ -14,6 +14,7 @@ _Generated on Mon, 12 Oct 2026 10:39:45 UTC for commit [a590a8c][0]._
 | github.com/containerd/nri                                                   | v0.12.2                            | v0.12.3                            | true   | true             |
 | github.com/containerd/ttrpc                                                 | v1.2.9                             | v1.2.10                            | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
+| github.com/go-chi/chi/v5                                                    | v5.3.2                             | v5.4.0                             | true   | true             |
 | github.com/godbus/dbus/v5                                                   | v5.2.2                             | v5.2.3                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.13.0                            | v0.14.0                            | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261012091047-62a4183aae60 | true   | true             |
@@ -53,7 +54,7 @@ _Generated on Mon, 12 Oct 2026 10:39:45 UTC for commit [a590a8c][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                       |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.2                              | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                             | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.370                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.371                           | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                             |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                               | v1.14.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                               | v1.16.0                            | false  | true             |
@@ -362,7 +363,7 @@ _Generated on Mon, 12 Oct 2026 10:39:45 UTC for commit [a590a8c][0]._
 | github.com/gkampitakis/go-diff                                              | v1.3.2                               |                                    | false  | true             |
 | github.com/gkampitakis/go-snaps                                             | v0.5.15                              | v0.5.23                            | false  | true             |
 | github.com/gliderlabs/ssh                                                   | v0.3.8                               |                                    | false  | true             |
-| github.com/go-chi/chi/v5                                                    | v5.3.2                               |                                    | true   | true             |
+| github.com/go-chi/chi/v5                                                    | v5.3.2                               | v5.4.0                             | true   | true             |
 | github.com/go-git/gcfg                                                      | v1.5.1-0.20230307220236-3a3c6141e376 |                                    | false  | true             |
 | github.com/go-git/go-billy/v5                                               | v5.9.0                               | v5.9.2                             | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                        | v4.3.2-0.20231010084843-55a94097c399 |                                    | false  | true             |
@@ -559,7 +560,7 @@ _Generated on Mon, 12 Oct 2026 10:39:45 UTC for commit [a590a8c][0]._
 | github.com/olekukonko/ts                                                    | v0.0.0-20171002115256-78ecb04241c0   |                                    | false  | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.32.1                              | v2.33.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.42.1                              | v1.44.0                            | true   | true             |
-| github.com/open-policy-agent/opa                                            | v1.8.0                               | v1.21.1                            | false  | true             |
+| github.com/open-policy-agent/opa                                            | v1.8.0                               | v1.21.2                            | false  | true             |
 | github.com/opencontainers/cgroups                                           | v0.1.0                               |                                    | true   | true             |
 | github.com/opencontainers/go-digest                                         | v1.0.0                               |                                    | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.1                               |                                    | true   | true             |
