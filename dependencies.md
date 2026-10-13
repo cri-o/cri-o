@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 12 Oct 2026 14:44:07 UTC for commit [45583b1][0]._
+_Generated on Tue, 13 Oct 2026 00:01:52 UTC for commit [617265f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/45583b150bfd8b8df7a9612267d3fb812b69acc8
+[0]: https://github.com/cri-o/cri-o/commit/617265f33955d0a9c457d41350db5ed0315ed4bc
 
 ## Outdated Dependencies
 
@@ -54,7 +54,7 @@ _Generated on Mon, 12 Oct 2026 14:44:07 UTC for commit [45583b1][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                       |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.2                              | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                             | v0.20.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.371                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.372                           | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                             |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                               | v1.14.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                               | v1.16.0                            | false  | true             |
@@ -428,7 +428,7 @@ _Generated on Mon, 12 Oct 2026 14:44:07 UTC for commit [45583b1][0]._
 | github.com/google/go-intervals                                              | v0.0.2                               |                                    | false  | true             |
 | github.com/google/go-querystring                                            | v1.2.0                               |                                    | false  | true             |
 | github.com/google/gofuzz                                                    | v1.2.0                               |                                    | false  | true             |
-| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936   | v0.0.0-20261008003335-7bae8d8c4c9e | false  | true             |
+| github.com/google/pprof                                                     | v0.0.0-20260402051712-545e8a4df936   | v0.0.0-20261012231050-2af12c3f4d87 | false  | true             |
 | github.com/google/renameio                                                  | v1.0.1                               |                                    | true   | true             |
 | github.com/google/s2a-go                                                    | v0.1.9                               | v0.1.11                            | false  | true             |
 | github.com/google/uuid                                                      | v1.6.0                               |                                    | true   | true             |
@@ -454,7 +454,7 @@ _Generated on Mon, 12 Oct 2026 14:44:07 UTC for commit [45583b1][0]._
 | github.com/hashicorp/hcl                                                    | v1.0.1-vault-7                       |                                    | false  | true             |
 | github.com/hashicorp/vault/api                                              | v1.22.0                              | v1.23.0                            | false  | true             |
 | github.com/huandu/xstrings                                                  | v1.5.0                               | v1.6.2                             | false  | true             |
-| github.com/ianlancetaylor/demangle                                          | v0.0.0-20250417193237-f615e6bd150b   | v0.0.0-20260724033716-83e58baca724 | false  | true             |
+| github.com/ianlancetaylor/demangle                                          | v0.0.0-20250417193237-f615e6bd150b   | v0.0.0-20261012173340-cbb8aaea4290 | false  | true             |
 | github.com/in-toto/attestation                                              | v1.1.2                               | v1.2.0                             | false  | true             |
 | github.com/in-toto/in-toto-golang                                           | v0.11.0                              |                                    | false  | true             |
 | github.com/inconshreveable/mousetrap                                        | v1.1.0                               |                                    | false  | true             |
@@ -511,7 +511,7 @@ _Generated on Mon, 12 Oct 2026 14:44:07 UTC for commit [45583b1][0]._
 | github.com/matttproud/golang_protobuf_extensions/v2                         | v2.0.0                               |                                    | false  | true             |
 | github.com/maxbrunsfeld/counterfeiter/v6                                    | v6.12.2                              | v6.14.0                            | false  | true             |
 | github.com/mdlayher/packet                                                  | v1.1.2                               | v1.2.0                             | false  | true             |
-| github.com/mdlayher/socket                                                  | v0.5.1                               | v0.7.0                             | false  | true             |
+| github.com/mdlayher/socket                                                  | v0.5.1                               | v0.8.0                             | false  | true             |
 | github.com/mdlayher/vsock                                                   | v1.2.1                               | v1.3.0                             | false  | true             |
 | github.com/mfridman/tparse                                                  | v0.18.0                              |                                    | false  | true             |
 | github.com/miekg/pkcs11                                                     | v1.1.2                               |                                    | false  | true             |
@@ -732,7 +732,7 @@ _Generated on Mon, 12 Oct 2026 14:44:07 UTC for commit [45583b1][0]._
 | golang.org/x/oauth2                                                         | v0.36.0                              | v0.37.0                            | false  | true             |
 | golang.org/x/sync                                                           | v0.23.0                              | v0.24.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.48.0                              | v0.49.0                            | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20260811182544-a038080d80e5   | v0.0.0-20261010193011-f71dc92da45e | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20260811182544-a038080d80e5   | v0.0.0-20261012210851-1a59c9e8ca9a | false  | true             |
 | golang.org/x/term                                                           | v0.45.0                              | v0.47.0                            | false  | true             |
 | golang.org/x/text                                                           | v0.41.0                              | v0.43.0                            | false  | true             |
 | golang.org/x/time                                                           | v0.15.0                              | v0.16.0                            | false  | true             |
@@ -741,10 +741,10 @@ _Generated on Mon, 12 Oct 2026 14:44:07 UTC for commit [45583b1][0]._
 | golang.org/x/tools/go/packages/packagestest                                 | v0.1.1-deprecated                    |                                    | false  | true             |
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1   | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.17.0                              |                                    | false  | true             |
-| google.golang.org/api                                                       | v0.280.0                             | v0.301.0                           | false  | true             |
-| google.golang.org/genproto                                                  | v0.0.0-20260319201613-d00831a3d3e7   | v0.0.0-20261005182115-fad411399dd8 | false  | true             |
-| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260819154853-08b0e4226688   | v0.0.0-20261005182115-fad411399dd8 | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260825221802-da73d73af1c5   | v0.0.0-20261005182115-fad411399dd8 | false  | true             |
+| google.golang.org/api                                                       | v0.280.0                             | v0.302.0                           | false  | true             |
+| google.golang.org/genproto                                                  | v0.0.0-20260319201613-d00831a3d3e7   | v0.0.0-20261012220534-4341edf3f941 | false  | true             |
+| google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260819154853-08b0e4226688   | v0.0.0-20261012220534-4341edf3f941 | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260825221802-da73d73af1c5   | v0.0.0-20261012220534-4341edf3f941 | false  | true             |
 | google.golang.org/grpc                                                      | v1.83.2                              | v1.84.0                            | true   | true             |
 | google.golang.org/protobuf                                                  | v1.36.12                             |                                    | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                              | v2.2.6                               | v2.4.0                             | false  | true             |
