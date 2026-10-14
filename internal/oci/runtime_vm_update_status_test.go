@@ -174,7 +174,7 @@ var _ = t.Describe("RuntimeVM DeleteContainer after restore", func() {
 var _ = t.Describe("RuntimeVM kill", func() {
 	It("should return nil when shim has already exited (ttrpc.ErrClosed) for stop signals", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(r.Kill("ctr-id", "", syscall.SIGTERM, false)).NotTo(HaveOccurred())
 	})
 
 	It("should propagate ttrpc.ErrClosed for signal 0 so IsContainerAlive returns false", func() {
@@ -190,12 +190,12 @@ var _ = t.Describe("RuntimeVM kill", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
 		rErr := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: context.DeadlineExceeded})
 
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
-		Expect(rErr.Kill("ctr-id", "", syscall.SIGTERM)).To(HaveOccurred())
+		Expect(r.Kill("ctr-id", "", syscall.SIGTERM, false)).NotTo(HaveOccurred())
+		Expect(rErr.Kill("ctr-id", "", syscall.SIGTERM, false)).To(HaveOccurred())
 	})
 
 	It("should return nil when kill succeeds", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: nil})
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(r.Kill("ctr-id", "", syscall.SIGTERM, false)).NotTo(HaveOccurred())
 	})
 })

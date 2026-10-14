@@ -55,9 +55,8 @@ type RuntimeVM struct {
 func NewRuntimeVM() RuntimeVM {
 	return RuntimeVM{
 		runtimeVM: &runtimeVM{
-			ctx:     context.Background(),
-			handler: &config.RuntimeHandler{},
-			ctrs:    make(map[string]containerInfo),
+			ctx:  context.Background(),
+			ctrs: make(map[string]containerInfo),
 		},
 	}
 }
@@ -88,6 +87,6 @@ func NewRuntimeVMWithTask(t task.TaskService) RuntimeVM {
 	}
 }
 
-func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal) error {
-	return r.kill(ctrID, execID, signal)
+func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal, all bool) error {
+	return r.kill(ctrID, execID, signal, all)
 }
