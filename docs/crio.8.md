@@ -314,7 +314,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--imagestore**="": Store newly pulled images in the specified path, rather than the path provided by --root. Defaults to the value from containers/storage configuration.
 
-**--included-pod-metrics**="": A list of pod metrics to include. Specify the names of the metrics to include in this list.
+**--included-pod-metrics**="": A list of pod metrics to include. Specify the names of the metrics to include in this list. (default: "all")
 
 **--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
 
