@@ -49,11 +49,43 @@ IMAGE=quay.io/crio/artifact:v1
 	IMAGE_MOUNT_ID=$(crictl inspect "$CTR_ID" | jq -e '.status.mounts[0].image.image')
 	[[ "$IMAGE_ID" == "$IMAGE_MOUNT_ID" ]]
 
+	# KEP-5365: the mount's image_ref should carry the resolved repo digest, not just the tag
+	IMAGE_DIGEST=$(crictl inspecti quay.io/crio/artifact:v1 | jq -e -r '.status.repoDigests[0]')
+	IMAGE_MOUNT_REF=$(crictl inspect "$CTR_ID" | jq -e -r '.status.mounts[0].image.imageRef')
+	[[ "$IMAGE_MOUNT_REF" == "$IMAGE_DIGEST" ]]
+
 	# Remove the container
 	crictl rm -f "$CTR_ID"
 
 	# Image removal should work now
 	crictl rmi $IMAGE
+}
+
+@test "OCI image volume mount reports resolved digest for a regular image" {
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		skip "test fails in a user namespace"
+	fi
+
+	start_crio
+
+	REGULAR_IMAGE=quay.io/crio/fedora-crio-ci:latest
+
+	# Set mounts in the same way as the kubelet would do
+	jq --arg IMAGE "$REGULAR_IMAGE" --arg CONTAINER_PATH "$CONTAINER_PATH" \
+		'.mounts = [{
+			host_path: "",
+			container_path: $CONTAINER_PATH,
+			image: { image: $IMAGE, user_specified_image: $IMAGE },
+			readonly: true
+		}]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
+
+	CTR_ID=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+
+	# KEP-5365: the mount's image_ref should carry the resolved repo digest, not just the tag
+	IMAGE_DIGEST=$(crictl inspecti "$REGULAR_IMAGE" | jq -e -r '.status.repoDigests[0]')
+	IMAGE_MOUNT_REF=$(crictl inspect "$CTR_ID" | jq -e -r '.status.mounts[0].image.imageRef')
+	[[ "$IMAGE_MOUNT_REF" == "$IMAGE_DIGEST" ]]
 }
 
 @test "OCI image volume SELinux" {
