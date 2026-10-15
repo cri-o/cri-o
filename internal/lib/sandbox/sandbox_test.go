@@ -114,6 +114,30 @@ var _ = t.Describe("Sandbox", func() {
 		})
 	})
 
+	t.Describe("NetworkIsolated", func() {
+		It("should default to false", func() {
+			// Given a freshly built sandbox without SetNetworkIsolated
+			// (DEFAULT_NETWORK_POD, historic behavior)
+
+			// Then
+			Expect(testSandbox.NetworkIsolated()).To(BeFalse())
+		})
+
+		It("should round-trip the setter", func() {
+			// When
+			testSandbox.SetNetworkIsolated(true)
+
+			// Then
+			Expect(testSandbox.NetworkIsolated()).To(BeTrue())
+
+			// When
+			testSandbox.SetNetworkIsolated(false)
+
+			// Then
+			Expect(testSandbox.NetworkIsolated()).To(BeFalse())
+		})
+	})
+
 	t.Describe("AddIPs", func() {
 		It("should succeed", func() {
 			// Given

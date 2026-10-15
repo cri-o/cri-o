@@ -103,6 +103,12 @@ type Builder interface {
 	// SetHostNetwork sets the host network.
 	SetHostNetwork(bool)
 
+	// SetNetworkIsolated sets whether the sandbox opts out of the default
+	// pod network (KEP-6313, PodSandboxDefaultNetwork DEFAULT_NETWORK_NONE).
+	// Optional like SetHostnamePath: no validation flag so existing callers
+	// keep building without changes.
+	SetNetworkIsolated(bool)
+
 	// SetUsernsMode sets the user namespace mode.
 	SetUsernsMode(string)
 
@@ -495,6 +501,13 @@ func (b *sandboxBuilder) SetPortMappings(portMappings []*hostport.PortMapping) {
 func (b *sandboxBuilder) SetHostNetwork(hostNetwork bool) {
 	b.validations.setValidation(validationSetHostNetwork)
 	b.sandboxRef.hostNetwork = hostNetwork
+}
+
+// SetNetworkIsolated sets the network-isolated flag for the sandbox.
+// Deliberately no validation flag: restored and legacy sandboxes default
+// to false (DEFAULT_NETWORK_POD, historic behavior).
+func (b *sandboxBuilder) SetNetworkIsolated(networkIsolated bool) {
+	b.sandboxRef.networkIsolated = networkIsolated
 }
 
 // SetUsernsMode sets the user namespace mode for the sidecar container.

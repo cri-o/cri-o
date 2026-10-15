@@ -68,6 +68,7 @@ type Sandbox struct {
 	networkStopped    bool
 	privileged        bool
 	hostNetwork       bool
+	networkIsolated   bool
 	usernsMode        string
 	containerEnvPath  string
 	podLinuxOverhead  *types.LinuxContainerResources
@@ -236,6 +237,14 @@ func (s *Sandbox) RuntimeHandler() string {
 // HostNetwork returns whether the sandbox runs in the host network namespace.
 func (s *Sandbox) HostNetwork() bool {
 	return s.hostNetwork
+}
+
+// NetworkIsolated returns whether the sandbox was requested with
+// PodSandboxDefaultNetwork DEFAULT_NETWORK_NONE (KEP-6313 Non Network Pods):
+// a dedicated network namespace with only loopback, no default pod network
+// plumbing. Runtimes MUST ignore this for host network sandboxes.
+func (s *Sandbox) NetworkIsolated() bool {
+	return s.networkIsolated
 }
 
 // ResolvPath returns the resolv path for the sandbox.

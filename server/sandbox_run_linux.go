@@ -548,7 +548,13 @@ func (s *Server) runPodSandbox(
 
 	securityContext, hostNetwork := s.prepareSecurityContext(sbox)
 
-	if !hostNetwork {
+	// KEP-6313 Non Network Pods: remember the request so networkStart/
+	// networkStop can skip CNI. Ignored for host network sandboxes, which
+	// have no sandbox netns (same contract as containerd).
+	networkIsolated := !hostNetwork && isNetworkIsolated(sbox.Config())
+	sbox.SetNetworkIsolated(networkIsolated)
+
+	if !hostNetwork && !networkIsolated {
 		if err := s.waitForCNIPlugin(ctx, sboxName); err != nil {
 			return nil, err
 		}
@@ -777,6 +783,7 @@ func (s *Server) runPodSandbox(
 		shmPath,
 		privileged,
 		hostNetwork,
+		networkIsolated,
 		result.labels,
 		kubeAnnotations,
 		result.metadata,
@@ -1366,7 +1373,7 @@ func (s *Server) setupSandboxAnnotations(
 	podContainer *istorage.ContainerInfo,
 	metadataJSON, labelsJSON, kubeAnnotationsJSON, nsOptsJSON []byte,
 	logPath, shmPath string,
-	privileged, hostNetwork bool,
+	privileged, hostNetwork, networkIsolated bool,
 	labels, kubeAnnotations map[string]string,
 	metadata *types.PodSandboxMetadata,
 ) (time.Time, error) {
@@ -1397,6 +1404,7 @@ func (s *Server) setupSandboxAnnotations(
 	g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
 	g.AddAnnotation(annotations.KubeName, kubeName)
 	g.AddAnnotation(annotations.HostNetwork, strconv.FormatBool(hostNetwork))
+	g.AddAnnotation(annotations.NetworkIsolated, strconv.FormatBool(networkIsolated))
 	g.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
 
 	if podContainer.Config.Config.StopSignal != "" {
