@@ -41,6 +41,8 @@ github.com/checkpoint-restore/checkpointctl v1.6.0 h1:e+hOhEFiUUYZRCbbfbceQ3lLGQ
 github.com/checkpoint-restore/checkpointctl v1.6.0/go.mod h1:LjfSgCtcTMbzwcA7d+vXJ7udJsWC/VRJpKUojTAGeCk=
 github.com/checkpoint-restore/go-criu/v8 v8.4.0 h1:w6WDxjde4pvXYTIBuj6dsWsaPorKwSWuCk/qSKTO3Jw=
 github.com/checkpoint-restore/go-criu/v8 v8.4.0/go.mod h1:SK5UexowK0P99gCcJJOavgVVlUWydGUfXSQUf1qDkHU=
+github.com/chrishenzie/cri-api v0.0.0-20260930205728-f2fc2e02f886 h1:NUrhQiEkNv9zSiri6gdEeJ0AyBwl+xngr7LnI80KcGc=
+github.com/chrishenzie/cri-api v0.0.0-20260930205728-f2fc2e02f886/go.mod h1:6V8Gb6wznJYVPToj8CLxgbxsFeeGIswNZCE7cy+xT90=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/logex v1.2.1 h1:XHDu3E6q+gdHgsdTPH6ImJMIp436vR6MPtH8gP05QzM=
 github.com/chzyer/logex v1.2.1/go.mod h1:JLbx6lG2kDbNRFnfkgvh4eRJRPX1QCoOIWomwysCBrQ=
@@ -734,8 +736,6 @@ k8s.io/client-go v0.37.0 h1:nsN31fy8wBySuZ+QRnKmrjRSQLOG2rvoGN0tKd12zhQ=
 k8s.io/client-go v0.37.0/go.mod h1:FcGqw+Ll/gNQiq+nPGY1Oyt9y7SgDh1d3MW3RFDEbn0=
 k8s.io/component-base v0.37.0 h1:3SdSa4+itMdFTDFTeR8CxKGmSTSMXFlKL4ky8OqjguM=
 k8s.io/component-base v0.37.0/go.mod h1:LjOebp4R9y6LODWZQv102ZQxGheLcDO2ZJLAw6bbh4I=
-k8s.io/cri-api v0.37.0 h1:8a3Rpw5NNRivF+q8GO/ECK3BrWT06M4Er8ndzLvTF7k=
-k8s.io/cri-api v0.37.0/go.mod h1:6V8Gb6wznJYVPToj8CLxgbxsFeeGIswNZCE7cy+xT90=
 k8s.io/cri-client v0.37.0 h1:X1TEEx74zCwqDoVnJ4OIXtrQLHY21AOe8vXbBNSOb40=
 k8s.io/cri-client v0.37.0/go.mod h1:x/nROOizpdhU/VGcokYhxtWioDPMhqinRRCHWOoVL2c=
 k8s.io/cri-streaming v0.37.0 h1:3YQVjdQtWD0jQAcMlBAQPSdizd7tMDcTyX1tL2z56is=
