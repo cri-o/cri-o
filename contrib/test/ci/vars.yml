@@ -31,6 +31,7 @@ int_test_env:
   CGROUP_MANAGER: "systemd"
   STORAGE_OPTIONS: >
     --storage-driver=overlay
+  ARTIFACT_DIR: "{{ artifacts }}"
 
 # Environment variables to set when executing integration tests with crun (mixed with int_test_env)
 crun_test_env:
