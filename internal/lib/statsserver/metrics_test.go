@@ -11,6 +11,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 // TestMetricLabelCardinality verifies that every metric produced by each
@@ -367,5 +368,102 @@ func testBlkioStats() cgroups.BlkioStats {
 			Full: cgroups.PSIData{Total: 300000},
 			Some: cgroups.PSIData{Total: 600000},
 		},
+	}
+}
+
+func TestCgroupStatsEnabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		metrics  []string
+		expected bool
+	}{
+		{"nil", nil, false},
+		{"empty", []string{}, false},
+		{"cpu", []string{config.CPUMetrics}, true},
+		{"memory", []string{config.MemoryMetrics}, true},
+		{"memoryExtra", []string{config.MemoryExtraMetrics}, true},
+		{"hugetlb", []string{config.HugetlbMetrics}, true},
+		{"diskIO", []string{config.DiskIOMetrics}, true},
+		{"process", []string{config.ProcessMetrics}, true},
+		{"pressure", []string{config.PressureMetrics}, true},
+		{
+			"only non-cgroup",
+			[]string{
+				config.DiskMetrics,
+				config.NetworkMetrics,
+				config.SpecMetrics,
+				config.OOMMetrics,
+			},
+			false,
+		},
+		{"cgroup and non-cgroup mixed", []string{config.DiskMetrics, config.CPUMetrics}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := CgroupStatsEnabled(tt.metrics); got != tt.expected {
+				t.Errorf("CgroupStatsEnabled(%v) = %v, want %v", tt.metrics, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDiskStatsEnabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		metrics  []string
+		expected bool
+	}{
+		{"nil", nil, false},
+		{"empty", []string{}, false},
+		{"disk", []string{config.DiskMetrics}, true},
+		{
+			"only non-disk",
+			[]string{config.CPUMetrics, config.MemoryMetrics, config.NetworkMetrics},
+			false,
+		},
+		{"disk and other mixed", []string{config.CPUMetrics, config.DiskMetrics}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := DiskStatsEnabled(tt.metrics); got != tt.expected {
+				t.Errorf("DiskStatsEnabled(%v) = %v, want %v", tt.metrics, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestNetworkMetricsEnabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		metrics  []string
+		expected bool
+	}{
+		{"nil", nil, false},
+		{"empty", []string{}, false},
+		{"network", []string{config.NetworkMetrics}, true},
+		{"only non-network", []string{config.CPUMetrics, config.DiskMetrics}, false},
+		{"network and other mixed", []string{config.CPUMetrics, config.NetworkMetrics}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := NetworkMetricsEnabled(tt.metrics); got != tt.expected {
+				t.Errorf("NetworkMetricsEnabled(%v) = %v, want %v", tt.metrics, got, tt.expected)
+			}
+		})
 	}
 }
