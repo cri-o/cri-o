@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -100,6 +101,12 @@ func New(c *config.Config) (*Runtime, error) {
 		return nil, fmt.Errorf("create oci runtime pid dir: %w", err)
 	}
 
+	// Publish the current runtime configuration as the initial snapshot,
+	// so that all lookups of this runtime are backed by it from the very
+	// beginning. This is idempotent with the publication of the validated
+	// configuration in Config.Validate.
+	c.PublishRuntimeSnapshot()
+
 	return &Runtime{
 		config:         c,
 		runtimeImplMap: make(map[string]RuntimeImpl),
@@ -108,7 +115,7 @@ func New(c *config.Config) (*Runtime, error) {
 
 // Runtimes returns the map of OCI runtimes.
 func (r *Runtime) Runtimes() config.Runtimes {
-	return r.config.Runtimes
+	return r.config.RuntimeSnapshot().Runtimes
 }
 
 // ValidateRuntimeHandler returns an error if the runtime handler string
@@ -118,28 +125,29 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 		return nil, errors.New("empty runtime handler")
 	}
 
-	runtimeHandler, ok := r.config.Runtimes[handler]
-	if !ok {
-		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
-			handler, r.config.Runtimes)
-	}
-
-	if runtimeHandler.RuntimePath == "" {
-		return nil, fmt.Errorf("empty runtime path for runtime handler %s", handler)
-	}
-
-	return runtimeHandler, nil
+	return r.config.RuntimeSnapshot().ValidateRuntimeHandler(handler)
 }
 
 func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
+	// Take a single snapshot of the runtime configuration, so that the
+	// default runtime and the handler table of this lookup always match,
+	// even when a reload publishes a new configuration concurrently.
+	snapshot := r.config.RuntimeSnapshot()
+
 	// Define the current runtime handler as the default runtime handler.
-	rh := r.config.Runtimes[r.config.DefaultRuntime]
+	rh := snapshot.RuntimeHandler("")
+	if rh == nil {
+		return nil, fmt.Errorf("default runtime handler %q not found in runtime list %v",
+			snapshot.DefaultRuntime, snapshot.Runtimes)
+	}
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this
-	// specific container.
+	// specific container. Validate against the same snapshot taken
+	// above, so the default resolution and the explicit lookup can
+	// never straddle a reload.
 	if handler != "" {
-		runtimeHandler, err := r.ValidateRuntimeHandler(handler)
+		runtimeHandler, err := snapshot.ValidateRuntimeHandler(handler)
 		if err != nil {
 			return nil, err
 		}
@@ -196,6 +204,42 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 	}
 
 	return rh.RuntimeType, nil
+}
+
+// RuntimeTypeInSnapshot returns the runtime type of the handler in the
+// provided runtime snapshot and, for an empty handler, whether the default
+// runtime of the snapshot is a kata runtime. All values describe the same
+// snapshot, so use it when the runtime type and the default runtime must
+// describe one configuration, like the kernel separation detection during
+// sandbox creation, where separate snapshot loads could observe different
+// configurations during a reload.
+func (r *Runtime) RuntimeTypeInSnapshot(snapshot *config.RuntimeSnapshot, handler string) (string, bool, error) {
+	// Callers that did not validate an explicit handler do not carry a
+	// snapshot; resolve the current one for them, so that all values of
+	// this call still describe a single configuration.
+	if snapshot == nil {
+		snapshot = r.config.RuntimeSnapshot()
+	}
+
+	var rh *config.RuntimeHandler
+	if handler != "" {
+		var err error
+		if rh, err = snapshot.ValidateRuntimeHandler(handler); err != nil {
+			return "", false, err
+		}
+	} else {
+		rh = snapshot.RuntimeHandler("")
+		if rh == nil {
+			return "", false, fmt.Errorf(
+				"default runtime handler %q not found in runtime list %v",
+				snapshot.DefaultRuntime, snapshot.Runtimes,
+			)
+		}
+	}
+
+	return rh.RuntimeType,
+		strings.Contains(strings.ToLower(snapshot.DefaultRuntime), "kata"),
+		nil
 }
 
 // Seccomp returns the seccomp config for the specified handler. Falls back to the runtime seccomp config if not exist.

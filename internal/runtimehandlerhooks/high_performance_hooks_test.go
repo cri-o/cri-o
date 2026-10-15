@@ -1781,7 +1781,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 		JustBeforeEach(func() {
 			// Simulate a restart of crio each time as we're modifying the config between runs.
-			cpuLoadBalancingAllowedAnywhereOnce = sync.Once{}
+			cpuLoadBalancingAllowedAnywhere.Store(nil)
 
 			hooksRetriever = NewHooksRetriever(ctx, cfg)
 

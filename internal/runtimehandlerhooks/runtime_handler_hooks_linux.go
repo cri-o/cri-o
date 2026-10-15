@@ -21,7 +21,7 @@ func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetr
 		highPerformanceHooks: nil,
 	}
 
-	for name, runtime := range config.Runtimes {
+	for name, runtime := range config.RuntimeSnapshot().Runtimes {
 		annotationMap := map[string]string{}
 		for _, v := range runtime.AllowedAnnotations {
 			annotationMap[v] = ""
@@ -52,7 +52,7 @@ func (hr *HooksRetriever) Get(
 
 	if strings.Contains(runtimeName, HighPerformance) ||
 		highPerformanceAnnotationsSpecified(sandboxAnnotations) {
-		runtimeConfig, ok := hr.config.Runtimes[runtimeName]
+		runtimeConfig, ok := hr.config.RuntimeSnapshot().Runtimes[runtimeName]
 		if !ok {
 			// This shouldn't happen because runtime is already validated
 			log.Errorf(ctx, "Config of runtime %s is not found", runtimeName)
@@ -60,7 +60,13 @@ func (hr *HooksRetriever) Get(
 			return nil
 		}
 
-		if hr.highPerformanceHooks == nil {
+		hr.highPerformanceHooksMutex.Lock()
+
+		if hp, ok := hr.highPerformanceHooks.(*HighPerformanceHooks); !ok ||
+			hp.execCPUAffinity != runtimeConfig.ExecCPUAffinity {
+			// (Re)create the hooks, so that reloaded ExecCPUAffinity
+			// configuration is applied to sandboxes created afterwards,
+			// while already created sandboxes keep their hook instance.
 			hr.highPerformanceHooks = &HighPerformanceHooks{
 				CgroupManager:             hr.config.CgroupManager(),
 				irqBalanceConfigFile:      hr.config.IrqBalanceConfigFile,
@@ -75,6 +81,8 @@ func (hr *HooksRetriever) Get(
 		}
 
 		hooks = append(hooks, hr.highPerformanceHooks)
+
+		hr.highPerformanceHooksMutex.Unlock()
 	} else if cpuLoadBalancingAllowed(
 		hr.config,
 	) {
@@ -115,23 +123,40 @@ func highPerformanceAnnotationsSpecified(annotations map[string]string) bool {
 }
 
 func cpuLoadBalancingAllowed(config *libconfig.Config) bool {
-	cpuLoadBalancingAllowedAnywhereOnce.Do(func() {
-		for _, runtime := range config.Runtimes {
-			for _, ann := range runtime.AllowedAnnotations {
-				if ann == crioann.CPULoadBalancing {
-					cpuLoadBalancingAllowedAnywhere = true
-				}
-			}
-		}
+	snapshot := config.RuntimeSnapshot()
 
-		for _, workload := range config.Workloads {
-			for _, ann := range workload.AllowedAnnotations {
-				if ann == crioann.CPULoadBalancing {
-					cpuLoadBalancingAllowedAnywhere = true
-				}
+	// Only recompute when the runtime configuration changed, so that
+	// reloads are reflected by subsequent requests while concurrent
+	// requests reuse the result computed for the same snapshot. Both
+	// values are published as one atomic unit, so a result can never be
+	// paired with a different snapshot than it was computed for.
+	if cached := cpuLoadBalancingAllowedAnywhere.Load(); cached != nil &&
+		cached.snapshot == snapshot {
+		return cached.allowed
+	}
+
+	allowed := false
+
+	for _, runtime := range snapshot.Runtimes {
+		for _, ann := range runtime.AllowedAnnotations {
+			if ann == crioann.CPULoadBalancing {
+				allowed = true
 			}
 		}
+	}
+
+	for _, workload := range config.Workloads {
+		for _, ann := range workload.AllowedAnnotations {
+			if ann == crioann.CPULoadBalancing {
+				allowed = true
+			}
+		}
+	}
+
+	cpuLoadBalancingAllowedAnywhere.Store(&cpuLoadBalancingCache{
+		snapshot: snapshot,
+		allowed:  allowed,
 	})
 
-	return cpuLoadBalancingAllowedAnywhere
+	return allowed
 }

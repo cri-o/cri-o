@@ -44,7 +44,12 @@ func (s *Server) Status(
 		},
 	}
 
-	for name, runtime := range s.config.Runtimes {
+	// Take a single snapshot, so that the handler list and the default
+	// runtime of this response always match, even when a reload publishes
+	// a new configuration concurrently.
+	runtimeSnapshot := s.config.RuntimeSnapshot()
+
+	for name, runtime := range runtimeSnapshot.Runtimes {
 		makeRuntimeHandler := func(name string, rro, userns bool) *types.RuntimeHandler {
 			return &types.RuntimeHandler{
 				Name: name,
@@ -61,7 +66,7 @@ func (s *Server) Status(
 		resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 
 		// if it is the default runtime, also add it with an empty name
-		if name == s.config.DefaultRuntime {
+		if name == runtimeSnapshot.DefaultRuntime {
 			h := makeRuntimeHandler("", rro, userns)
 			resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 		}
