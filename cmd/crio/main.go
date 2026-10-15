@@ -84,6 +84,8 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 				}
 			}
 
+			streamingServer.ShutdownCNIManager(ctx)
+
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx) //nolint:errcheck // best-effort shutdown during graceful stop
 
