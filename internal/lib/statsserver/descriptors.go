@@ -151,6 +151,36 @@ var (
 		Help:      "Current working set in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
+	containerMemoryFileDirtyBytes = &types.MetricDescriptor{
+		Name:      "container_memory_file_dirty_bytes",
+		Help:      "Number of bytes of file cache that has been modified but not yet written back to disk. Always zero on cgroup v1.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryFileWritebackBytes = &types.MetricDescriptor{
+		Name:      "container_memory_file_writeback_bytes",
+		Help:      "Number of bytes of file cache that is currently being written back to disk. Always zero on cgroup v1.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryPgscanTotal = &types.MetricDescriptor{
+		Name:      "container_memory_pgscan_total",
+		Help:      "Cumulative number of pages scanned by the page reclaim algorithm. Always zero on cgroup v1.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryPgstealTotal = &types.MetricDescriptor{
+		Name:      "container_memory_pgsteal_total",
+		Help:      "Cumulative number of pages reclaimed by the page reclaim algorithm. Always zero on cgroup v1.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryWorkingsetRefaultAnonTotal = &types.MetricDescriptor{
+		Name:      "container_memory_workingset_refault_anon_total",
+		Help:      "Cumulative number of refaults of previously evicted anonymous pages. Always zero on cgroup v1.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryWorkingsetRefaultFileTotal = &types.MetricDescriptor{
+		Name:      "container_memory_workingset_refault_file_total",
+		Help:      "Cumulative number of refaults of previously evicted file pages. Always zero on cgroup v1.",
+		LabelKeys: baseLabelKeys,
+	}
 	containerMemoryActiveAnonBytes = &types.MetricDescriptor{
 		Name:      "container_memory_active_anon_bytes",
 		Help:      "Current active anonymous memory in bytes.",
