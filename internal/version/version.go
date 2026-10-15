@@ -26,7 +26,7 @@ import (
 var Version = "1.38.0"
 
 // ReleaseMinorVersions are the currently supported minor versions.
-var ReleaseMinorVersions = []string{"1.37", "1.36", "1.35", "1.34"}
+var ReleaseMinorVersions = []string{"1.37", "1.36", "1.35"}
 
 // Variables injected during build-time.
 var (
