@@ -84,6 +84,9 @@ type Metrics struct {
 	metricResourcesStalledAtStage             *prometheus.CounterVec
 	metricContainersStoppedMonitorCount       *prometheus.CounterVec
 	metricDefaultRuntime                      *prometheus.GaugeVec
+	metricSecurityProfilesStored              prometheus.Gauge
+	metricSecurityProfilesStoredBytes         prometheus.Gauge
+	metricSecurityProfileMergesConstrained    prometheus.Counter
 }
 
 var instance *Metrics
@@ -258,6 +261,27 @@ func New(config *libconfig.MetricsConfig, apiConfig *libconfig.APIConfig) *Metri
 				Help:      "Default container runtime configured. Value is always 1.",
 			},
 			[]string{"runtime"},
+		),
+		metricSecurityProfilesStored: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.SecurityProfilesStored.String(),
+				Help:      "Number of security profile OCI artifacts in the artifact store.",
+			},
+		),
+		metricSecurityProfilesStoredBytes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.SecurityProfilesStoredBytes.String(),
+				Help:      "Size in bytes of the security profile OCI artifacts in the artifact store.",
+			},
+		),
+		metricSecurityProfileMergesConstrained: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.SecurityProfileMergesConstrainedTotal.String(),
+				Help:      "Cumulative number of OCI security profiles constrained by the merge with the node-local profiles.",
+			},
 		),
 	}
 
@@ -480,27 +504,39 @@ func (m *Metrics) MetricDefaultRuntimeSet(runtime string) {
 	g.Set(1)
 }
 
+func (m *Metrics) MetricSecurityProfilesStoredSet(count int, size int64) {
+	m.metricSecurityProfilesStored.Set(float64(count))
+	m.metricSecurityProfilesStoredBytes.Set(float64(size))
+}
+
+func (m *Metrics) MetricSecurityProfileMergesConstrainedInc() {
+	m.metricSecurityProfileMergesConstrained.Inc()
+}
+
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	for collector, metric := range map[collectors.Collector]prometheus.Collector{
-		collectors.ContainersEventsDropped:             m.metricContainersEventsDropped,
-		collectors.ContainersOOMCountTotal:             m.metricContainersOOMCountTotal,
-		collectors.ContainersOOMTotal:                  m.metricContainersOOMTotal,
-		collectors.ContainersSeccompNotifierCountTotal: m.metricContainersSeccompNotifierCountTotal,
-		collectors.ImageLayerReuseTotal:                m.metricImageLayerReuseTotal,
-		collectors.ImagePullsBytesTotal:                m.metricImagePullsBytesTotal,
-		collectors.ImagePullsFailureTotal:              m.metricImagePullsFailureTotal,
-		collectors.ImagePullsLayerSize:                 m.metricImagePullsLayerSize,
-		collectors.ImagePullsSkippedBytesTotal:         m.metricImagePullsSkippedBytesTotal,
-		collectors.ImagePullsSuccessTotal:              m.metricImagePullsSuccessTotal,
-		collectors.OperationsErrorsTotal:               m.metricOperationsErrorsTotal,
-		collectors.OperationsLatencySeconds:            m.metricOperationsLatencySeconds,
-		collectors.OperationsLatencySecondsTotal:       m.metricOperationsLatencySecondsTotal,
-		collectors.OperationsTotal:                     m.metricOperationsTotal,
-		collectors.ProcessesDefunct:                    m.metricProcessesDefunct,
-		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
-		collectors.ContainersStoppedMonitorCount:       m.metricContainersStoppedMonitorCount,
-		collectors.DefaultRuntime:                      m.metricDefaultRuntime,
+		collectors.ContainersEventsDropped:               m.metricContainersEventsDropped,
+		collectors.ContainersOOMCountTotal:               m.metricContainersOOMCountTotal,
+		collectors.ContainersOOMTotal:                    m.metricContainersOOMTotal,
+		collectors.ContainersSeccompNotifierCountTotal:   m.metricContainersSeccompNotifierCountTotal,
+		collectors.ImageLayerReuseTotal:                  m.metricImageLayerReuseTotal,
+		collectors.ImagePullsBytesTotal:                  m.metricImagePullsBytesTotal,
+		collectors.ImagePullsFailureTotal:                m.metricImagePullsFailureTotal,
+		collectors.ImagePullsLayerSize:                   m.metricImagePullsLayerSize,
+		collectors.ImagePullsSkippedBytesTotal:           m.metricImagePullsSkippedBytesTotal,
+		collectors.ImagePullsSuccessTotal:                m.metricImagePullsSuccessTotal,
+		collectors.OperationsErrorsTotal:                 m.metricOperationsErrorsTotal,
+		collectors.OperationsLatencySeconds:              m.metricOperationsLatencySeconds,
+		collectors.OperationsLatencySecondsTotal:         m.metricOperationsLatencySecondsTotal,
+		collectors.OperationsTotal:                       m.metricOperationsTotal,
+		collectors.ProcessesDefunct:                      m.metricProcessesDefunct,
+		collectors.ResourcesStalledAtStage:               m.metricResourcesStalledAtStage,
+		collectors.ContainersStoppedMonitorCount:         m.metricContainersStoppedMonitorCount,
+		collectors.DefaultRuntime:                        m.metricDefaultRuntime,
+		collectors.SecurityProfilesStored:                m.metricSecurityProfilesStored,
+		collectors.SecurityProfilesStoredBytes:           m.metricSecurityProfilesStoredBytes,
+		collectors.SecurityProfileMergesConstrainedTotal: m.metricSecurityProfileMergesConstrained,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())
