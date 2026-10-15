@@ -225,6 +225,12 @@ jobs:
             test/nri/nri.test
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
+      - name: Setup local registry for faster tests
+        run: sudo -E scripts/setup-local-registry.sh
+        env:
+          REGISTRY_PORT: 5000
+          MAX_RETRIES: 3
+          RETRY_DELAY: 5
       - name: Switch to runc instead of crun
         if: ${{ matrix.run.defaultRuntime == 'runc' }}
         run: |
@@ -238,6 +244,10 @@ jobs:
           RUNTIME_TYPE: ${{ matrix.run.runtimeType }}
           TEST_USERNS: ${{ matrix.run.userns }}
           CONTAINER_DEFAULT_RUNTIME: ${{ matrix.run.defaultRuntime }}
+          USE_LOCAL_REGISTRY: 1
+      - name: Verify local registry usage
+        if: always()
+        run: sudo -E scripts/verify-local-registry-usage.sh
       # Codecov
       - run: |
           sudo chown -R $(id -u):$(id -g) build
