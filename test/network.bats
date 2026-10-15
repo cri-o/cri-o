@@ -116,8 +116,9 @@ function check_networking() {
 	fi
 
 	# TODO FIXME find a way for sandbox setup to fail if manage ns is true
+	ORIGINAL_CONMON="$CONMON_BINARY"
 	CONMON_BINARY="$TESTDIR"/conmon
-	cp "$(command -v conmon)" "$CONMON_BINARY"
+	cp "$ORIGINAL_CONMON" "$CONMON_BINARY"
 	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 

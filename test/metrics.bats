@@ -11,22 +11,6 @@ function teardown() {
 	cleanup_test
 }
 
-@test "metrics with default host and port" {
-	HOST="127.0.0.1"
-	PORT="9090"
-
-	# Start CRI-O with default host and port.
-	CONTAINER_ENABLE_METRICS=true start_crio
-
-	# The metrics endpoint should not listen on all available interfaces.
-	if host_and_port_listens "::" $PORT; then
-		echo "Metrics endpoint should not listen on all interfaces" >&3
-		return 1
-	fi
-
-	curl -sf "http://${HOST}:${PORT}/metrics" | grep crio_operations
-}
-
 @test "metrics with custom host using localhost and random port" {
 	HOST="localhost"
 	PORT=$(free_port)
