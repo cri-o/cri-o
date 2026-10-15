@@ -103,6 +103,7 @@ func catchShutdown(
 				}
 			}
 
+			streamingServer.StartShutdown()
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx) //nolint:errcheck // best-effort shutdown during graceful stop
 

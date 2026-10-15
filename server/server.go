@@ -95,6 +95,9 @@ type Server struct {
 	containerEventClients           sync.Map
 	containerEventStreamBroadcaster sync.Once
 
+	shutdownCtx    context.Context
+	shutdownCancel context.CancelFunc
+
 	// NRI runtime interface
 	nri *nriAPI
 	// hooksRetriever allows getting the runtime hooks for the sandboxes.
@@ -368,6 +371,11 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	return imagesOfDeletedContainers
 }
 
+// StartShutdown signals all in-flight RPCs that the server is shutting down.
+func (s *Server) StartShutdown() {
+	s.shutdownCancel()
+}
+
 // Shutdown attempts to shut down the server's storage cleanly.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.config.CNIManagerShutdown()
@@ -529,6 +537,8 @@ func New(
 		return nil, err
 	}
 
+	shutdownCtx, shutdownCancel := context.WithCancel(context.Background())
+
 	s := &Server{
 		ContainerServer:          containerServer,
 		hostportManager:          hostportManager,
@@ -542,6 +552,8 @@ func New(
 		resourceStore:            resourcestore.New(),
 		hooksRetriever:           runtimehandlerhooks.NewHooksRetriever(ctx, config),
 		artifactStore:            artifactStore,
+		shutdownCtx:              shutdownCtx,
+		shutdownCancel:           shutdownCancel,
 	}
 
 	if s.config.EnablePodEvents {
