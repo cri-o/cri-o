@@ -93,6 +93,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 			updateUsageNanoCores(oldcStats.GetCpu(), cStats.GetCpu())
 		}
 
+		ss.ctrStats[c.ID()] = cStats
 		containerStats = append(containerStats, cStats)
 
 		// Convert cgroups stats to CRI metrics.
