@@ -2371,4 +2371,10 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.APIConfig.GetTLSCipherSuites()).To(BeNil())
 		})
 	})
+
+	t.Describe("DefaultConfig", func() {
+		It("should default collection_period to 10 seconds", func() {
+			Expect(sut.CollectionPeriod).To(Equal(10))
+		})
+	})
 })

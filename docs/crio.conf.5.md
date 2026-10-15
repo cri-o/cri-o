@@ -609,7 +609,7 @@ The `crio.stats` table specifies all necessary configuration for reporting conta
 **stats_collection_period**=0
 The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. **DEPRECATED:** This option will be removed in the future. Please use `collection_period` instead.
 
-**collection_period**=0
+**collection_period**=10
 The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.
 
 **included_pod_metrics**=[]
