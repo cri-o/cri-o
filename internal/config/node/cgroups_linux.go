@@ -4,11 +4,14 @@ package node
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 
+	"github.com/moby/sys/mountinfo"
 	libctrcgroups "github.com/opencontainers/cgroups"
 	"go.podman.io/common/pkg/cgroups"
 )
@@ -117,4 +120,47 @@ func checkRelevantControllers() {
 			}
 		}
 	})
+}
+
+// CgroupMountOptions returns the superblock options of the cgroup v2 hierarchy
+// mounted at /sys/fs/cgroup, without the access mode. It returns nil on cgroup
+// v1.
+func CgroupMountOptions() ([]string, error) {
+	isV2, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, fmt.Errorf("detect cgroup version: %w", err)
+	}
+
+	if !isV2 {
+		return nil, nil
+	}
+
+	mounts, err := mountinfo.GetMounts(func(m *mountinfo.Info) (skip, stop bool) {
+		return m.Mountpoint != cgroupRoot || m.FSType != "cgroup2", false
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return cgroupMountOptions(mounts)
+}
+
+func cgroupMountOptions(mounts []*mountinfo.Info) ([]string, error) {
+	if len(mounts) == 0 {
+		return nil, fmt.Errorf("no cgroup2 mount at %s", cgroupRoot)
+	}
+
+	var options []string
+
+	// The mount table lists mounts in mount order. The last mount at a path is
+	// the one on top.
+	for option := range strings.SplitSeq(mounts[len(mounts)-1].VFSOptions, ",") {
+		if option == "" || option == "rw" || option == "ro" {
+			continue
+		}
+
+		options = append(options, option)
+	}
+
+	return options, nil
 }
