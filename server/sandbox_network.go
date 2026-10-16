@@ -275,23 +275,14 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 		}
 	}
 
-	// Always attempt CNI teardown to prevent IP leaks, even if netns is invalid.
+	// Skip CNI teardown if namespace is invalid to prevent setns() deadlock (OCPBUGS-127476)
+	if !netnsValid {
+		s.cleanupCNIResultFiles(ctx, sb.ID())
+		return sb.SetNetworkStopped(ctx, true)
+	}
+
+	// Call CNI teardown only when namespace is valid
 	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
-		if !netnsValid {
-			// This is expected when the network namespace is missing/invalid.
-			log.Debugf(
-				ctx,
-				"CNI teardown failed due to missing/invalid network namespace for pod sandbox %s(%s): %v",
-				sb.Name(),
-				sb.ID(),
-				err,
-			)
-
-			// Clean up CNI result files even when NetNS is invalid.
-			s.cleanupCNIResultFiles(ctx, sb.ID())
-
-			return sb.SetNetworkStopped(ctx, true)
-		}
 
 		log.Warnf(
 			ctx,
