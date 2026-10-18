@@ -12,6 +12,7 @@ import (
 
 	"github.com/containerd/nri/pkg/api"
 	"github.com/stretchr/testify/require"
+	cri "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 var (
@@ -96,6 +97,35 @@ func TestPodEvents(stdT *testing.T) {
 	}
 	require.NoError(t, t.plugins[0].VerifyEventStream(expected, true, eventTimeout),
 		"received pod event stream")
+}
+
+func TestPodUpdateEvents(stdT *testing.T) {
+	skipTestForCondition(stdT,
+		map[string]bool{
+			"no runtime connection": crio == nil,
+		},
+	)
+
+	t := &nriTest{
+		plugins: []*plugin{nil},
+	}
+
+	t.Setup(stdT)
+	t.StartPlugins(WaitForPluginSync)
+
+	pod := t.createPod()
+	t.updatePod(pod,
+		&cri.LinuxContainerResources{MemoryLimitInBytes: 10 * 1024 * 1024},
+		&cri.LinuxContainerResources{MemoryLimitInBytes: 20 * 1024 * 1024},
+	)
+
+	expected := []*event{
+		RunPodEvent(pod),
+		UpdatePodEvent(pod, nil, nil),
+		PostUpdatePodEvent(pod),
+	}
+	require.NoError(t, t.plugins[0].VerifyEventStream(expected, true, eventTimeout),
+		"received pod update event stream")
 }
 
 func TestContainerEvents(stdT *testing.T) {
