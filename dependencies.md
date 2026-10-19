@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 19 Oct 2026 14:14:33 UTC for commit [897d448][0]._
+_Generated on Mon, 19 Oct 2026 17:46:46 UTC for commit [4d6ec12][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/897d4482e16f04cdacbcf2268fb21d7a94dceb5b
+[0]: https://github.com/cri-o/cri-o/commit/4d6ec12d8d6922ef3ed043d9e0d0259258aad7eb
 
 ## Outdated Dependencies
 
@@ -19,7 +19,7 @@ _Generated on Mon, 19 Oct 2026 14:14:33 UTC for commit [897d448][0]._
 | github.com/go-chi/chi/v5                                                    | v5.3.2                             | v5.5.0                             | true   | true             |
 | github.com/godbus/dbus/v5                                                   | v5.2.2                             | v5.2.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.13.0                            | v0.14.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261019123413-9b2fdfd706d4 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261019161150-d5f5e61c7234 | true   | true             |
 | github.com/moby/sys/userns                                                  | v0.2.0                             | v0.2.1                             | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.32.1                            | v2.33.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.42.1                            | v1.44.0                            | true   | true             |
@@ -57,7 +57,7 @@ _Generated on Mon, 19 Oct 2026 14:14:33 UTC for commit [897d448][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                       |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.2                              | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                             | v0.21.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.398                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.399                           | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                             |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                               | v1.14.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                               | v1.16.0                            | false  | true             |
@@ -475,7 +475,7 @@ _Generated on Mon, 19 Oct 2026 14:14:33 UTC for commit [897d448][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                               |                                    | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                              |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                               |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20261019123413-9b2fdfd706d4 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239   | v0.0.0-20261019161150-d5f5e61c7234 | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                               |                                    | false  | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                               | v1.6.0                             | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                               |                                    | false  | true             |
@@ -623,7 +623,7 @@ _Generated on Mon, 19 Oct 2026 14:14:33 UTC for commit [897d448][0]._
 | github.com/sigstore/sigstore/pkg/signature/kms/azure                        | v1.10.6                              | v1.11.1                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/gcp                          | v1.10.6                              | v1.11.1                            | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/hashivault                   | v1.10.6                              | v1.11.1                            | false  | true             |
-| github.com/sigstore/timestamp-authority/v2                                  | v2.0.6                               | v2.1.4                             | false  | true             |
+| github.com/sigstore/timestamp-authority/v2                                  | v2.0.6                               | v2.1.5                             | false  | true             |
 | github.com/sirupsen/logrus                                                  | v1.10.2                              |                                    | true   | true             |
 | github.com/skeema/knownhosts                                                | v1.3.2                               | v1.3.3                             | false  | true             |
 | github.com/smallstep/pkcs7                                                  | v0.2.1                               | v0.2.3                             | false  | true             |
@@ -744,7 +744,7 @@ _Generated on Mon, 19 Oct 2026 14:14:33 UTC for commit [897d448][0]._
 | golang.org/x/tools/go/packages/packagestest                                 | v0.1.1-deprecated                    |                                    | false  | true             |
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1   | v0.0.0-20240903120638-7835f813f4da | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.17.0                              |                                    | false  | true             |
-| google.golang.org/api                                                       | v0.280.0                             | v0.304.0                           | false  | true             |
+| google.golang.org/api                                                       | v0.280.0                             | v0.305.0                           | false  | true             |
 | google.golang.org/genproto                                                  | v0.0.0-20260319201613-d00831a3d3e7   | v0.0.0-20261012220534-4341edf3f941 | false  | true             |
 | google.golang.org/genproto/googleapis/api                                   | v0.0.0-20260819154853-08b0e4226688   | v0.0.0-20261012220534-4341edf3f941 | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20260825221802-da73d73af1c5   | v0.0.0-20261012220534-4341edf3f941 | false  | true             |
