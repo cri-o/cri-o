@@ -46,6 +46,23 @@ var _ = t.Describe("ConmonManager", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(mgr).To(BeNil())
 		})
+		It("should fail with a hint when the monitor is conmonrs", func() {
+			// Given
+			gomock.InOrder(
+				runner.EXPECT().
+					CombinedOutput(gomock.Any(), gomock.Any()).
+					Return([]byte("version: 0.6.3\ntag: v0.6.3\ncommit: abc\n"), nil),
+			)
+
+			// When
+			mgr, err := New(validPath)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring(`runtime_type = "pod"`))
+			Expect(mgr).To(BeNil())
+		})
+
 		It("should fail when output unexpected", func() {
 			// Given
 			gomock.InOrder(
