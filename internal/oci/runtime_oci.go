@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -1752,22 +1753,31 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
-func (r *runtimeOCI) prepareEnv(cmd *exec.Cmd, addOCISyncPipe bool) {
-	// Always inherit the monitor_env
-	cmd.Env = r.handler.MonitorEnv
+// monitorEnv returns the environment of the container monitor and the OCI
+// runtime commands of the handler.
+func monitorEnv(handler *config.RuntimeHandler) []string {
+	// Always inherit the monitor_env. The copy keeps the appends below from
+	// writing into the backing array of the handler.
+	env := slices.Clone(handler.MonitorEnv)
 
 	// Set a single environment variable to not automatically inherit the values
 	// set in the CRI-O execution environment.
-	cmd.Env = append(cmd.Env, "CRI_O_EXTERNAL=1")
+	env = append(env, "CRI_O_EXTERNAL=1")
 
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
+		env = append(env, "XDG_RUNTIME_DIR="+v)
 	}
 
 	// Mainly for CRIU support
 	if v, found := os.LookupEnv("PATH"); found {
-		cmd.Env = append(cmd.Env, "PATH="+v)
+		env = append(env, "PATH="+v)
 	}
+
+	return env
+}
+
+func (r *runtimeOCI) prepareEnv(cmd *exec.Cmd, addOCISyncPipe bool) {
+	cmd.Env = monitorEnv(r.handler)
 
 	if addOCISyncPipe {
 		cmd.Env = append(cmd.Env,
