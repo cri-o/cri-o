@@ -382,10 +382,9 @@ func (svc *imageService) buildImageResult(
 	previousName := ""
 
 	if len(image.NamesHistory) > 0 {
-		// Remove the tag because we can only keep the name as indicator
-		split := strings.SplitN(image.NamesHistory[0], ":", 2)
-		if len(split) > 0 {
-			previousName = split[0]
+		// Remove the tag and digest because we can only keep the name as indicator
+		if named, err := reference.ParseNormalizedNamed(image.NamesHistory[0]); err == nil {
+			previousName = named.Name()
 		}
 	}
 
