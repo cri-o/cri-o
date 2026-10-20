@@ -87,7 +87,15 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 	if sc.GetNamespaceOptions().GetUsernsOptions() != nil {
 		switch sc.GetNamespaceOptions().GetUsernsOptions().GetMode() {
 		case types.NamespaceMode_NODE:
-			return nil, nil
+			// If the UserNamespacesSupport feature gate is enabled on Kubelet, then
+			// NODE is set in the CRI request. However a CRI-O userns-mode annotation
+			// or config can be present and those should take precedence.
+			if mode == "" && s.defaultIDMappings == nil {
+				return nil, nil
+			}
+			// Clear UsernsOptions; CRI-O is going to use its own config instead.
+			sc.GetNamespaceOptions().UsernsOptions = nil
+
 		case types.NamespaceMode_POD:
 			return &storage.IDMappingOptions{
 				UIDMap: convertToStorageIDMap(sc.GetNamespaceOptions().GetUsernsOptions().GetUids()),
