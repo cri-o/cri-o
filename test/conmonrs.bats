@@ -37,10 +37,16 @@ function teardown() {
 @test "conmonrs streaming server for attach" {
 	start_crio_with_websocket_stream_server
 	POD=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	CTR=$(crictl create "$POD" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	# Attach only forwards the output written while attached. With stdin once,
+	# the stdin EOF of the client closes the container stdin and the attach
+	# keeps forwarding the output written afterwards until the container ends.
+	jq '.command = ["/bin/sh", "-c", "cat && echo stdin closed"] | .args = [] | .stdin = true | .stdin_once = true' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container_attach.json
+	CTR=$(crictl create "$POD" "$TESTDIR"/container_attach.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$CTR"
 
-	OUTPUT=$(crictl attach -r websocket -i "$CTR")
-	[[ "$OUTPUT" == *"Redis is starting"* ]]
+	OUTPUT=$(echo attached | crictl attach -r websocket -i "$CTR")
+	[[ "$OUTPUT" == *"attached"* ]]
+	[[ "$OUTPUT" == *"stdin closed"* ]]
 	grep -q "Using attach URL from container monitor" "$CRIO_LOG"
 }

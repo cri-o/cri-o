@@ -19,7 +19,7 @@ require (
 	github.com/containernetworking/cni v1.3.1
 	github.com/containernetworking/plugins v1.9.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v1.0.1
+	github.com/containers/conmon-rs v1.1.1
 	github.com/containers/kubensmnt v1.3.0
 	github.com/containers/ocicrypt v1.3.2
 	github.com/coreos/go-systemd/v22 v22.7.0
@@ -201,7 +201,6 @@ require (
 	github.com/olekukonko/errors v1.2.0 // indirect
 	github.com/olekukonko/ll v0.1.6 // indirect
 	github.com/olekukonko/tablewriter v1.1.4 // indirect
-	github.com/opencontainers/runc v1.5.1 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/proglottis/gpgme v0.1.6 // indirect
