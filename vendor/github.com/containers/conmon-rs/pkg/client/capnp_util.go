@@ -69,7 +69,7 @@ func remoteFDSliceToUInt64List(src []RemoteFD, newFunc func(int32) (capnp.UInt64
 
 	list, err := newFunc(l)
 	if err != nil {
-		return err
+		return fmt.Errorf("create list: %w", err)
 	}
 
 	for i := range src {

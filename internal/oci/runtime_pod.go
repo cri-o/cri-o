@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
@@ -54,54 +55,7 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		runRoot = handler.RuntimeRoot
 	}
 
-	cgroupManager := conmonClient.CgroupManagerSystemd
-	if !r.config.CgroupManager().IsSystemd() {
-		cgroupManager = conmonClient.CgroupManagerCgroupfs
-	}
-
-	heaptrack := &conmonClient.Heaptrack{}
-	logDriver := conmonClient.LogDriverNone
-
-	for _, env := range handler.MonitorEnv {
-		keyVal := strings.SplitN(env, "=", 2)
-		if len(keyVal) != 2 {
-			logrus.Warnf("Skipping monitor env %q because it is not in key=value format", env)
-
-			continue
-		}
-
-		switch keyVal[0] {
-		case "LOG_DRIVER":
-			logDriver = conmonClient.LogDriver(keyVal[1])
-
-		case "HEAPTRACK_OUTPUT_PATH":
-			heaptrack.Enabled = true
-			heaptrack.OutputPath = filepath.Join(keyVal[1], "cri-o.conmon-rs."+c.ID())
-
-		case "HEAPTRACK_BINARY_PATH":
-			heaptrack.Enabled = true
-			heaptrack.BinaryPath = keyVal[1]
-
-		default:
-			logrus.Warnf("Unknown monitor env option %q", env)
-		}
-	}
-
-	client, err := conmonClient.New(&conmonClient.ConmonServerConfig{
-		ConmonServerPath: handler.MonitorPath,
-		LogLevel:         conmonClient.FromLogrusLevel(logrus.GetLevel()),
-		LogDriver:        logDriver,
-		Runtime:          handler.RuntimePath,
-		ServerRunDir:     c.dir,
-		RuntimeRoot:      runRoot,
-		CgroupManager:    cgroupManager,
-		Tracing: &conmonClient.Tracing{
-			Tracer:   opentelemetry.Tracer(),
-			Enabled:  r.config.EnableTracing,
-			Endpoint: "http://" + r.config.TracingEndpoint,
-		},
-		Heaptrack: heaptrack,
-	})
+	client, err := conmonClient.New(newConmonServerConfig(r, handler, c, runRoot))
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +72,99 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		client:    client,
 		serverDir: c.dir,
 	}, nil
+}
+
+// newConmonServerConfig returns the configuration of the conmon-rs server of
+// the pod of the infra container c.
+func newConmonServerConfig(
+	r *Runtime,
+	handler *config.RuntimeHandler,
+	c *Container,
+	runRoot string,
+) *conmonClient.ConmonServerConfig {
+	cgroupManager := conmonClient.CgroupManagerSystemd
+	if !r.config.CgroupManager().IsSystemd() {
+		cgroupManager = conmonClient.CgroupManagerCgroupfs
+	}
+
+	heaptrack := &conmonClient.Heaptrack{}
+	logDriver := conmonClient.LogDriverNone
+
+	for _, env := range handler.MonitorEnv {
+		keyVal := strings.SplitN(env, "=", 2)
+		if len(keyVal) != 2 {
+			logrus.Warnf("Skipping monitor env %q because it is not in key=value format", env)
+
+			continue
+		}
+
+		// Every other entry is only part of the server environment below.
+		switch keyVal[0] {
+		case monitorEnvLogDriver:
+			logDriver = conmonClient.LogDriver(keyVal[1])
+
+		case monitorEnvHeaptrackOutputPath:
+			heaptrack.Enabled = true
+			heaptrack.OutputPath = filepath.Join(keyVal[1], "cri-o.conmon-rs."+c.ID())
+
+		case monitorEnvHeaptrackBinaryPath:
+			heaptrack.Enabled = true
+			heaptrack.BinaryPath = keyVal[1]
+		}
+	}
+
+	return &conmonClient.ConmonServerConfig{
+		ConmonServerPath: handler.MonitorPath,
+		LogLevel:         conmonClient.FromLogrusLevel(logrus.GetLevel()),
+		LogDriver:        logDriver,
+		Runtime:          handler.RuntimePath,
+		ServerRunDir:     c.dir,
+		RuntimeRoot:      runRoot,
+		CgroupManager:    cgroupManager,
+		Tracing: &conmonClient.Tracing{
+			Tracer:   opentelemetry.Tracer(),
+			Enabled:  r.config.EnableTracing,
+			Endpoint: "http://" + r.config.TracingEndpoint,
+		},
+		Heaptrack: heaptrack,
+		// The server passes its environment on to the OCI runtime and the
+		// processes it starts, like conmon does, so it gets the same one
+		// instead of the whole environment of CRI-O. The options consumed
+		// above only configure the server and are left out.
+		Env: slices.DeleteFunc(monitorEnv(handler), isConmonServerOption),
+	}
+}
+
+// The monitor_env entries which configure the conmon-rs server.
+const (
+	monitorEnvLogDriver           = "LOG_DRIVER"
+	monitorEnvHeaptrackOutputPath = "HEAPTRACK_OUTPUT_PATH"
+	monitorEnvHeaptrackBinaryPath = "HEAPTRACK_BINARY_PATH"
+)
+
+// isConmonServerOption returns whether the monitor_env entry env configures
+// the conmon-rs server rather than being part of its environment.
+func isConmonServerOption(env string) bool {
+	key, _, found := strings.Cut(env, "=")
+	if !found {
+		return false
+	}
+
+	switch key {
+	case monitorEnvLogDriver, monitorEnvHeaptrackOutputPath, monitorEnvHeaptrackBinaryPath:
+		return true
+	}
+
+	return false
+}
+
+// stopAfterStdinEOF returns whether the server closes the container stdin
+// once an attach client closed its stdin. It matches conmon, which runs a
+// stdin once container without a terminal without --leave-stdin-open. The
+// server applies the latest value to every attach of the container, so it
+// comes from the container config rather than from the attach request.
+func stopAfterStdinEOF(c *Container) bool {
+	return c.stdin && c.StdinOnce() && !c.terminal
 }
 
 func (r *runtimePod) CreateContainer(
@@ -384,7 +431,7 @@ func (r *runtimePod) AttachContainer(
 		ID:                c.ID(),
 		SocketPath:        attachSocketPath,
 		Tty:               tty,
-		StopAfterStdinEOF: c.stdin && c.StdinOnce() && !tty,
+		StopAfterStdinEOF: stopAfterStdinEOF(c),
 		ContainerStdin:    c.stdin,
 		Resize:            libpodResize,
 		Streams: conmonClient.AttachStreams{
@@ -446,10 +493,11 @@ func (r *runtimePod) ServeAttachContainer(
 	stdin, stdout, stderr bool,
 ) (string, error) {
 	res, err := r.client.ServeAttachContainer(ctx, &conmonClient.ServeAttachContainerConfig{
-		ID:     c.ID(),
-		Stdin:  stdin,
-		Stdout: stdout,
-		Stderr: stderr,
+		ID:                c.ID(),
+		Stdin:             stdin,
+		Stdout:            stdout,
+		Stderr:            stderr,
+		StopAfterStdinEOF: stopAfterStdinEOF(c),
 	})
 	if err != nil {
 		return "", fmt.Errorf("call ServeAttachContainer RPC: %w", err)
