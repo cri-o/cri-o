@@ -3,6 +3,10 @@
 . common.sh
 bats_require_minimum_version 1.9.0
 export BATS_VERBOSE_RUN=1
+# bats resets BATS_TEST_RETRIES for every file, so it has to be set here.
+# https://bats-core.readthedocs.io/en/stable/writing-tests.html#special-variables
+# shellcheck disable=SC2034
+BATS_TEST_RETRIES=${TEST_RETRIES:-0}
 
 function setup_test() {
     TESTDIR=$(mktemp -d)
@@ -27,12 +31,7 @@ function setup_test() {
         ;;
     esac
 
-    if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
-        # shellcheck disable=SC1091
-        . /etc/selinux/config
-        filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' "/etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts")
-        chcon -R "$filelabel" "$TESTDIR"
-    fi
+    label_container_files "$TESTDIR"
     CRIO_SOCKET="$TESTDIR/crio.sock"
     CRIO_CONFIG_DIR="$TESTDIR/crio.conf.d"
     mkdir "$CRIO_CONFIG_DIR"
@@ -74,6 +73,16 @@ EOF
         --set disable-pull-on-run=true
 
     PATH=$PATH:$TESTDIR
+}
+
+# Apply the SELinux label for container files to the directory $1.
+function label_container_files() {
+    if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
+        # shellcheck disable=SC1091
+        . /etc/selinux/config
+        filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' "/etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts")
+        chcon -R "$filelabel" "$1"
+    fi
 }
 
 # Run crio using the binary specified by $CRIO_BINARY_PATH.
@@ -131,9 +140,16 @@ function retry() {
     false
 }
 
-# Waits until crio becomes reachable.
+# Waits up to 15 seconds until crio becomes reachable.
 function wait_until_reachable() {
-    retry 15 1 crictl info
+    local deadline=$((SECONDS + 15))
+    until output=$(crictl info 2>&1); do
+        if ((SECONDS >= deadline)); then
+            echo "crio is not reachable :: $output"
+            return 1
+        fi
+        sleep 0.1
+    done
 }
 
 function copyimg() {
@@ -156,15 +172,65 @@ function setup_img() {
     copyimg --image-name="$name" --import-from="dir:$dir"
 }
 
+# Import $IMAGES into the storage of the test. Importing them takes seconds, so
+# it happens once per bats run into a template storage, which gets copied for
+# every test. This includes the run root, which caches the results of the
+# storage driver feature checks. The layer contents get hard linked instead of
+# copied, since writing them for every test makes the syncfs on crio shutdown
+# wait for seconds. The storage replaces but never modifies them, unlike its
+# other files, such as the lock files. An existing storage, for example when
+# restarting crio, still gets the images imported directly. So do VM runtimes,
+# because the Kata guest does not see the /etc/hostname bind mount over the
+# shared container rootfs with the template storage.
+function setup_images() {
+    local img template
+
+    if [[ -d "$TESTDIR/crio" || "$RUNTIME_TYPE" == "vm" ]]; then
+        for img in "${IMAGES[@]}"; do
+            setup_img "$img"
+        done
+        return
+    fi
+
+    template="$BATS_RUN_TMPDIR/storage-template-$(md5sum <<<"$STORAGE_OPTIONS ${IMAGES[*]}" | cut -c1-8)"
+    (
+        flock 9
+        if [[ ! -d "$template" ]]; then
+            create_storage_template "$template"
+        fi
+    ) 9>"$template.lock"
+    cp -a "$template/crio-run" "$TESTDIR"
+    cp -al "$template/crio" "$TESTDIR"
+    find "$TESTDIR/crio" -type f ! -path "$TESTDIR/crio/overlay/*/diff/*" -print0 |
+        while IFS= read -r -d '' file; do
+            cp -p "$file" "$file.copy"
+            mv -f "$file.copy" "$file"
+        done
+}
+
+# Create the template storage $1 by importing the images like for a test, with
+# TESTDIR pointing to a temporary directory.
+function create_storage_template() {
+    local template="$1" img
+    local TESTDIR="$template.tmp"
+    rm -rf "$TESTDIR"
+    mkdir -p "$TESTDIR"
+    label_container_files "$TESTDIR"
+    for img in "${IMAGES[@]}"; do
+        setup_img "$img"
+    done
+    # The storage may leave mounts behind, which would keep it from being moved.
+    umount_testdir
+    mv "$TESTDIR" "$template"
+}
+
 function setup_crio() {
     apparmor=""
     if [[ -n "$1" ]]; then
         apparmor="$1"
     fi
 
-    for img in "${IMAGES[@]}"; do
-        setup_img "$img"
-    done
+    setup_images
 
     # Prepare the CNI configuration files, we're running with non host
     # networking by default
@@ -375,7 +441,26 @@ function restart_crio() {
     fi
 }
 
-function cleanup_testdir() {
+# Kill processes which still reference the test directory after cleaning up,
+# for example the conmon-rs of a pod that did not get removed. They would keep
+# bats from exiting by holding its FD 3. The test gets recorded for the summary
+# of the test reports.
+function kill_leaked_processes() {
+    local pids
+    for _ in {1..10}; do
+        pids=$(pgrep -f -- "$TESTDIR") || return 0
+        sleep 0.5
+    done
+    echo "Killing processes still running after the test cleanup:"
+    ps -o pid,args -p "${pids//$'\n'/,}" || true
+    if [[ -n ${TEST_REPORT_DIR:-} ]]; then
+        echo "$(basename "$BATS_TEST_FILENAME"): $BATS_TEST_DESCRIPTION" >>"$TEST_REPORT_DIR/leaked"
+    fi
+    # shellcheck disable=SC2086
+    kill -9 $pids || true
+}
+
+function umount_testdir() {
     # shellcheck disable=SC2013
     # Note: By using 'sort -r' we're ensuring longer paths go first, which
     # means that if there are nested mounts, the innermost mountpoints get
@@ -383,6 +468,10 @@ function cleanup_testdir() {
     for mnt in $(awk '{print $2}' /proc/self/mounts | grep ^"$TESTDIR" | sort -r); do
         umount "$mnt"
     done
+}
+
+function cleanup_testdir() {
+    umount_testdir
     rm -rf "$TESTDIR" || true
     unset TESTDIR
 }
@@ -411,12 +500,13 @@ function cleanup_test() {
         cleanup_ctrs
         cleanup_pods
         stop_crio
-        cleanup_testdir
         if [ "$RUNTIME_TYPE" == "vm" ]; then
             # cleanup left over kata processes
             # don't fail if there is none
             run killall containerd-shim-kata-v2
         fi
+        kill_leaked_processes
+        cleanup_testdir
     else
         echo >&3 "* Failed \"$BATS_TEST_DESCRIPTION\", TESTDIR=$TESTDIR, LVM_DEVICE=${LVM_DEVICE:-}"
     fi

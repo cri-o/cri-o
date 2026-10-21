@@ -28,3 +28,9 @@ coverage:
     changes: false
 
 comment: false
+
+# Keep the coverage of a flag from the parent commit if it has no upload, for
+# example when the integration tests got skipped or failed.
+flag_management:
+  default_rules:
+    carryforward: true
