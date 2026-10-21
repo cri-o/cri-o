@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"os"
 	"os/exec"
@@ -15,11 +16,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
+	"capnproto.org/go/capnp/v3"
 	"capnproto.org/go/capnp/v3/rpc"
-	"github.com/blang/semver/v4"
 	"github.com/containers/conmon-rs/internal/proto"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
@@ -42,21 +44,31 @@ var (
 	errInvalidValue       = errors.New("invalid value")
 	errRunDirNotCreated   = errors.New("could not create RunDir")
 	errTimeoutWaitForPid  = errors.New("timed out waiting for server PID to disappear")
+	errServerExited       = errors.New("server exited before accepting connections")
+	errServerNotUp        = errors.New("server did not accept connections")
 )
+
+// ErrServerNotResponding is returned by New if a server accepts connections
+// on the socket of the run directory but does not answer in time. New does
+// not start another server then, it would take over the sockets of the one
+// which runs and orphan its containers.
+var ErrServerNotResponding = errors.New("server accepted the connection but did not respond")
 
 // ConmonClient is the main client structure of this package.
 type ConmonClient struct {
 	serverPID      uint32
 	runDir         string
 	logger         *logrus.Logger
-	attachReaders  *sync.Map // K: UUID string, V: *attachReaderValue
+	attachReaders  map[uint64]*attachReaderValue
+	attachReaderMu sync.Mutex
+	attachReaderID atomic.Uint64
 	tracingEnabled bool
 	tracer         trace.Tracer
-	serverVersion  semver.Version
 	cgroupManager  CgroupManager
+	featuresMu     sync.Mutex
+	features       map[string]bool
 	connMu         sync.Mutex
-	conn           *rpc.Conn
-	rpcClient      proto.Conmon
+	conn           *rpcConn
 }
 
 // ConmonServerConfig is the configuration for the conmon server instance.
@@ -89,14 +101,24 @@ type ConmonServerConfig struct {
 	ServerRunDir string
 
 	// Stdout is the standard output stream of the server when the log driver
-	// "stdout" is being used (can be nil).
-	Stdout io.WriteCloser
+	// "stdout" is being used, os.Stdout if nil.
+	//
+	// An *os.File is passed to the server as it is. Any other writer gets fed
+	// through a pipe by a goroutine of the client process, as long as any
+	// process holds the pipe open: the server and the processes it starts
+	// which inherit its output, like the pause process or cleanup commands,
+	// which can outlive the server. Such a writer has to stay usable for that
+	// time and must be safe to write to from another goroutine. It does not
+	// get closed. The output is then tied to the client process: once it
+	// exits, for example on a restart, the output is lost silently.
+	Stdout io.Writer
 
 	// Stderr is the standard error stream of the server when the log driver
-	// "stdout" is being used (can be nil).
-	Stderr io.WriteCloser
+	// "stdout" is being used, os.Stderr if nil. It works like Stdout, the same
+	// writer can be used for both.
+	Stderr io.Writer
 
-	// CgroupManager can be use to select the cgroup manager.
+	// CgroupManager can be used to select the cgroup manager.
 	CgroupManager CgroupManager
 
 	// Tracing can be used to enable OpenTelemetry tracing.
@@ -104,6 +126,13 @@ type ConmonServerConfig struct {
 
 	// Heaptrack can be used to memory profile the server.
 	Heaptrack *Heaptrack
+
+	// Env is the environment of the server, in the form of "key=value". The
+	// server passes it on to the OCI runtime, its hooks and the cleanup
+	// commands, so callers should pass a curated environment rather than
+	// their own. If nil, the server inherits the environment of the client
+	// process, an empty slice starts it without any.
+	Env []string
 }
 
 // Tracing is the structure for managing server-side OpenTelemetry tracing.
@@ -111,7 +140,7 @@ type Tracing struct {
 	// Enabled tells the server to run with OpenTelemetry tracing.
 	Enabled bool
 
-	// Endpoint is the GRPC tracing endpoint for OLTP.
+	// Endpoint is the GRPC tracing endpoint for OTLP.
 	// Defaults to "http://127.0.0.1:4317"
 	Endpoint string
 
@@ -175,12 +204,32 @@ func FromLogrusLevel(level logrus.Level) LogLevel {
 	return LogLevelDebug
 }
 
+// serverProbeTimeout bounds the Version call New uses to check a server which
+// accepted the connection. A running server answers within milliseconds, the
+// call does not wait for any container. A few seconds cover a loaded host,
+// while a caller which holds a lock during New, like CRI-O, does not stall
+// for the whole default timeout. A server which is slower than that is not
+// replaced either, New returns ErrServerNotResponding.
+const serverProbeTimeout = 3 * time.Second
+
 // New creates a new conmon server, starts it and connects a new client to it.
 //
 // If a server is already started with the same `ServerRunDir` specified
 // the client connects to the existing server instead.
 // Note: Other options from the `ConmonServerConfig` will be ignored
 // and the settings of the existing server will remain unchanged.
+//
+// A new server only gets started if no server runs on the socket of the run
+// directory: the socket does not exist or refuses the connection, the
+// process which listens on it exited, or it closed the connection, like a
+// server which shuts down, and exits or stops accepting connections within
+// a few seconds. If a server which runs accepts the connection but does not
+// answer within a few seconds, New returns an error matching
+// ErrServerNotResponding which names the PID of the server. The caller may
+// kill that process to recover, the next New starts a new server then. If
+// dialing the socket fails otherwise, for example because of missing
+// permissions, New returns that error. In neither case it starts a second
+// server.
 func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 	cl, err := config.toClient()
 	if err != nil {
@@ -195,13 +244,15 @@ func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 		defer span.End()
 	}
 
-	if resp, err := cl.Version(ctx, &VersionConfig{}); err == nil {
-		cl.serverPID = resp.ProcessID
+	if connected, err := cl.connectRunningServer(ctx); connected || err != nil {
+		if err != nil {
+			return nil, err
+		}
 
 		return cl, nil
 	}
 
-	if err := cl.startServer(config); err != nil {
+	if err := cl.startServer(ctx, config); err != nil {
 		return nil, fmt.Errorf("start server: %w", err)
 	}
 
@@ -226,7 +277,7 @@ func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 		}
 	}()
 
-	if err := cl.waitUntilServerUp(); err != nil {
+	if err := cl.waitUntilServerUp(ctx); err != nil {
 		return nil, fmt.Errorf("wait until server is up: %w", err)
 	}
 
@@ -235,6 +286,114 @@ func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 	}
 
 	return cl, nil
+}
+
+// connectRunningServer connects to the server which listens on the socket of
+// the run directory. It returns false without an error if there is none, so
+// that a new one has to be started.
+func (c *ConmonClient) connectRunningServer(ctx context.Context) (bool, error) {
+	socketConn, err := DialLongSocket("unix", c.socket())
+	if err != nil {
+		if serverMissing(err) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("dial server socket %s, not starting another server: %w", c.socket(), err)
+	}
+
+	// Known before the probe, which may not get an answer.
+	pid, pidErr := peerPID(socketConn)
+
+	conn := newRPCConn(ctx, socketConn)
+
+	c.connMu.Lock()
+	c.closeConnLocked()
+	c.conn = conn
+	c.connMu.Unlock()
+
+	probeCtx, cancel := context.WithTimeout(ctx, serverProbeTimeout)
+	defer cancel()
+
+	resp, err := c.Version(probeCtx, &VersionConfig{})
+	if err == nil {
+		c.serverPID = resp.ProcessID
+
+		return true, nil
+	}
+
+	// A failed read or write means that the server closed the connection.
+	closed := conn.broken.Load()
+
+	c.resetConn()
+
+	if c.serverGone(ctx, pid, pidErr == nil, closed) {
+		c.logger.WithError(err).Warnf("Server on %s is gone, starting a new one", c.socket())
+
+		return false, nil
+	}
+
+	server := "PID " + strconv.FormatInt(int64(pid), 10)
+	if pidErr != nil {
+		server = "unknown PID: " + pidErr.Error()
+	}
+
+	return false, fmt.Errorf("%w: server %s on %s: %w", ErrServerNotResponding, server, c.socket(), err)
+}
+
+// serverGoneTimeout bounds the wait for a server which closed the probe
+// connection, for example because it shuts down, to exit or to stop
+// accepting connections.
+const serverGoneTimeout = 3 * time.Second
+
+// serverGone reports whether the server which accepted the probe connection
+// but did not answer is gone, so that a new one can be started. That is the
+// case if its process exited, also if something else still holds its
+// socket, or if it closed the connection and exits or stops accepting
+// connections within serverGoneTimeout.
+func (c *ConmonClient) serverGone(ctx context.Context, pid int32, pidKnown, closed bool) bool {
+	exited := func() bool {
+		return pidKnown && processExited(uint32(pid))
+	}
+
+	if exited() {
+		return true
+	}
+
+	if !closed {
+		return false
+	}
+
+	waitCtx, cancel := context.WithTimeout(ctx, serverGoneTimeout)
+	defer cancel()
+
+	const interval = 50 * time.Millisecond
+
+	for {
+		if exited() {
+			return true
+		}
+
+		conn, err := DialLongSocket("unix", c.socket())
+		if err != nil {
+			if serverMissing(err) {
+				return true
+			}
+		} else {
+			conn.Close()
+		}
+
+		select {
+		case <-waitCtx.Done():
+			return false
+		case <-time.After(interval):
+		}
+	}
+}
+
+// serverMissing reports whether a dial error means that no server listens on
+// the socket: it does not exist, or it is left over by one which exited.
+func serverMissing(err error) bool {
+	return errors.Is(err, syscall.ENOENT) || errors.Is(err, syscall.ECONNREFUSED)
 }
 
 // ServerVersion contains the version data of the server instance.
@@ -262,7 +421,14 @@ type ServerVersion struct {
 
 	// The cargo dependency tree, only available in verbose output.
 	CargoTree string `json:"cargo_tree"` //nolint:tagliatelle // Rust's serde will use that format.
+
+	// The optional features the server supports, see the `Feature*`
+	// constants.
+	Features []string `json:"features"`
 }
+
+// versionTimeout bounds running the binary for its version.
+const versionTimeout = 10 * time.Second
 
 // Version can be used to retrieve the server version without requiring a
 // running Server.
@@ -276,7 +442,16 @@ func Version(binaryPath string) (res *ServerVersion, err error) {
 
 	const arg = "--version-json"
 
-	data, err := exec.CommandContext(context.Background(), binaryPath, arg).CombinedOutput()
+	// A hanging binary must not block the caller forever.
+	ctx, cancel := context.WithTimeout(context.Background(), versionTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, binaryPath, arg)
+	// A child holding the pipes open must not keep the wait going after the
+	// kill.
+	cmd.WaitDelay = time.Second
+
+	data, err := cmd.CombinedOutput()
 	if err != nil {
 		if bytes.Contains(data, []byte("error: unexpected argument")) {
 			return nil, ErrUnsupported
@@ -294,7 +469,7 @@ func Version(binaryPath string) (res *ServerVersion, err error) {
 
 func (c *ConmonServerConfig) toClient() (*ConmonClient, error) {
 	const perm = 0o755
-	if err := os.MkdirAll(c.ServerRunDir, perm); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(c.ServerRunDir, perm); err != nil {
 		return nil, fmt.Errorf("%s: %w", c.ServerRunDir, errRunDirNotCreated)
 	}
 
@@ -310,9 +485,12 @@ func (c *ConmonServerConfig) toClient() (*ConmonClient, error) {
 	return &ConmonClient{
 		runDir:        c.ServerRunDir,
 		logger:        c.ClientLogger,
-		attachReaders: &sync.Map{},
-		tracer:        tracer,
-		cgroupManager: c.CgroupManager,
+		attachReaders: map[uint64]*attachReaderValue{},
+		// Also set if New connects to a running server, which gets started
+		// with the same configuration.
+		tracingEnabled: c.Tracing != nil && c.Tracing.Enabled,
+		tracer:         tracer,
+		cgroupManager:  c.CgroupManager,
 	}, nil
 }
 
@@ -328,8 +506,8 @@ func (c *ConmonClient) startSpan(ctx context.Context, name string) (context.Cont
 	return c.tracer.Start(ctx, prefix+name, trace.WithSpanKind(trace.SpanKindClient))
 }
 
-func (c *ConmonClient) startServer(config *ConmonServerConfig) error {
-	_, span := c.startSpan(context.TODO(), "startServer")
+func (c *ConmonClient) startServer(ctx context.Context, config *ConmonServerConfig) error {
+	_, span := c.startSpan(ctx, "startServer")
 	if span != nil {
 		defer span.End()
 	}
@@ -339,23 +517,26 @@ func (c *ConmonClient) startServer(config *ConmonServerConfig) error {
 		return fmt.Errorf("convert config to args: %w", err)
 	}
 
-	cmd := exec.CommandContext(context.Background(), entrypoint, args...)
+	// The server launcher gets no deadline, a loaded node must not end up
+	// with a killed server. The context only carries the span.
+	cmd := exec.CommandContext(context.WithoutCancel(ctx), entrypoint, args...)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
 
+	// A nil environment inherits the one of the client process.
+	cmd.Env = config.Env
+
 	if config.LogDriver == LogDriverStdout {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		if config.Stdout != nil {
-			cmd.Stdout = config.Stdout
+		release, err := c.setServerOutput(cmd, config)
+		if err != nil {
+			return fmt.Errorf("set server output: %w", err)
 		}
 
-		if config.Stderr != nil {
-			cmd.Stderr = config.Stderr
-		}
+		// The server inherits the files, the copies of the parent are not
+		// needed once it got launched.
+		defer release()
 	}
 
 	if err := cmd.Run(); err != nil {
@@ -365,11 +546,99 @@ func (c *ConmonClient) startServer(config *ConmonServerConfig) error {
 	return nil
 }
 
-func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, args []string, err error) {
-	if c == nil {
-		return "", args, nil
+// setServerOutput sets the stdout and stderr of the server command. The
+// returned function releases the files of the parent.
+func (c *ConmonClient) setServerOutput(cmd *exec.Cmd, config *ConmonServerConfig) (release func(), err error) {
+	var stdout, stderr io.Writer = os.Stdout, os.Stderr
+
+	if config.Stdout != nil {
+		stdout = config.Stdout
 	}
 
+	if config.Stderr != nil {
+		stderr = config.Stderr
+	}
+
+	stdoutFile, releaseStdout, err := serverOutputFile(c.logger, stdout)
+	if err != nil {
+		return nil, fmt.Errorf("stdout: %w", err)
+	}
+
+	cmd.Stdout = stdoutFile
+
+	// A shared writer gets a single pipe, two copies could write to it at the
+	// same time.
+	if sameWriter(stdout, stderr) {
+		cmd.Stderr = stdoutFile
+
+		return releaseStdout, nil
+	}
+
+	stderrFile, releaseStderr, err := serverOutputFile(c.logger, stderr)
+	if err != nil {
+		releaseStdout()
+
+		return nil, fmt.Errorf("stderr: %w", err)
+	}
+
+	cmd.Stderr = stderrFile
+
+	return func() {
+		releaseStdout()
+		releaseStderr()
+	}, nil
+}
+
+// serverOutputFile returns the file the server writes the output for w into.
+//
+// The command would copy a writer other than an *os.File through a pipe and
+// wait for its end. The daemonized server outlives the command and keeps the
+// pipe open, so the command would never return. Such a writer gets fed by an
+// own pipe instead, whose copy runs as long as any process keeps it open:
+// the server, and the processes it starts which inherit its output and may
+// outlive it. The returned function closes the write end of the parent, so
+// that only those keep the copy going.
+func serverOutputFile(logger *logrus.Logger, w io.Writer) (file *os.File, release func(), err error) {
+	if file, ok := w.(*os.File); ok {
+		return file, func() {}, nil
+	}
+
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		return nil, nil, fmt.Errorf("create pipe: %w", err)
+	}
+
+	go func() {
+		defer reader.Close()
+
+		if _, err := io.Copy(w, reader); err != nil {
+			logger.WithError(err).Debug("Unable to copy server output, discarding it")
+
+			// The server must neither block on nor fail to write its output.
+			_, _ = io.Copy(io.Discard, reader) //nolint:errcheck // nothing left to report it to
+		}
+	}()
+
+	return writer, func() {
+		if err := writer.Close(); err != nil {
+			logger.WithError(err).Debug("Unable to close server output pipe")
+		}
+	}, nil
+}
+
+// sameWriter reports whether both writers are the same, like os/exec does
+// it. A writer whose type is not comparable is never the same.
+func sameWriter(a, b io.Writer) (same bool) {
+	defer func() {
+		if recover() != nil {
+			same = false
+		}
+	}()
+
+	return a == b
+}
+
+func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, args []string, err error) {
 	entrypoint = config.ConmonServerPath
 	if entrypoint == "" {
 		path, err := exec.LookPath(binaryName)
@@ -413,8 +682,6 @@ func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, ar
 	}
 
 	if config.Tracing != nil && config.Tracing.Enabled {
-		c.tracingEnabled = true
-
 		args = append(args, "--enable-tracing")
 
 		if config.Tracing.Endpoint != "" {
@@ -475,39 +742,81 @@ func pidGivenFile(file string) (uint32, error) {
 	return uint32(pidU64), nil
 }
 
-func (c *ConmonClient) waitUntilServerUp() (err error) {
-	_, span := c.startSpan(context.TODO(), "waitUntilServerUp")
+func (c *ConmonClient) waitUntilServerUp(ctx context.Context) (err error) {
+	_, span := c.startSpan(ctx, "waitUntilServerUp")
 	if span != nil {
 		defer span.End()
 	}
 
-	for range 100 {
-		ctx, cancel := defaultContext()
+	// The polls share their own deadline, the context only carries the span.
+	pollCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), defaultTimeout)
+	defer cancel()
 
-		_, err = c.Version(ctx, &VersionConfig{})
+	const (
+		minInterval = time.Millisecond
+		maxInterval = 100 * time.Millisecond
+		backoff     = 2
+	)
+
+	for interval := minInterval; ; interval = min(backoff*interval, maxInterval) {
+		_, err = c.Version(pollCtx, &VersionConfig{})
 		if err == nil {
-			cancel()
-
-			break
+			return nil
 		}
 
-		cancel()
-		time.Sleep(1 * time.Millisecond)
+		// A dial fails right away, a crashed server would otherwise only
+		// show up as a timeout with the last dial error.
+		if processExited(c.serverPID) {
+			return fmt.Errorf("%w: PID %d: %w", errServerExited, c.serverPID, err)
+		}
+
+		select {
+		case <-pollCtx.Done():
+			return fmt.Errorf("%w after %s: %w", errServerNotUp, defaultTimeout, err)
+		case <-time.After(interval):
+		}
+	}
+}
+
+// processExited reports whether the process is gone or a zombie, which
+// does not run anymore either. A process which cannot be checked counts as
+// running.
+func processExited(pid uint32) bool {
+	if err := syscall.Kill(int(pid), 0); errors.Is(err, syscall.ESRCH) {
+		return true
 	}
 
-	return err
+	// Without a readable /proc, for example in a chroot, the process counts
+	// as running.
+	stat, err := os.ReadFile("/proc/" + strconv.FormatUint(uint64(pid), 10) + "/stat")
+	if err != nil {
+		return false
+	}
+
+	// The state follows the command in parentheses, which can contain any
+	// character.
+	state := bytes.TrimSpace(stat[bytes.LastIndexByte(stat, ')')+1:])
+
+	return len(state) > 0 && (state[0] == 'Z' || state[0] == 'X')
 }
 
 func defaultContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), defaultTimeout)
 }
 
+// client returns the RPC client. A connection which got unusable gets
+// replaced by a new one.
 func (c *ConmonClient) client(ctx context.Context) (proto.Conmon, error) {
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 
 	if c.conn != nil {
-		return c.rpcClient, nil
+		if c.conn.usable() {
+			return c.conn.client, nil
+		}
+
+		c.logger.Debug("RPC connection unusable, dialing a new one")
+		c.closeConnLocked()
 	}
 
 	socketConn, err := DialLongSocket("unix", c.socket())
@@ -515,20 +824,118 @@ func (c *ConmonClient) client(ctx context.Context) (proto.Conmon, error) {
 		return proto.Conmon{}, fmt.Errorf("dial long socket: %w", err)
 	}
 
-	c.conn = rpc.NewConn(rpc.NewStreamTransport(socketConn), nil)
-	c.rpcClient = proto.Conmon(c.conn.Bootstrap(ctx))
+	c.conn = newRPCConn(ctx, socketConn)
 
-	return c.rpcClient, nil
+	return c.conn.client, nil
 }
 
+// rpcConn is a connection to the server with its bootstrap capability.
+type rpcConn struct {
+	conn   *rpc.Conn
+	client proto.Conmon
+
+	// broken is set once the socket or the bootstrap capability failed,
+	// either makes the connection unusable for good. Other errors of a call,
+	// like a rejected request or an ended context, keep the connection for
+	// the calls in flight.
+	broken atomic.Bool
+}
+
+// newRPCConn creates a connection on the socket.
+func newRPCConn(ctx context.Context, socket net.Conn) *rpcConn {
+	r := &rpcConn{}
+	r.conn = rpc.NewConn(rpc.NewStreamTransport(&watchedSocket{Conn: socket, broken: &r.broken}), nil)
+
+	// The bootstrap capability is shared by all later calls, the end of the
+	// context of the first one must not break it.
+	ctx = context.WithoutCancel(ctx)
+	bootstrap := r.conn.Bootstrap(ctx)
+	r.client = proto.Conmon(bootstrap)
+
+	go r.watchBootstrap(ctx, bootstrap)
+
+	return r
+}
+
+// usable reports whether the connection can still be used. It only reads
+// state recorded once, so that the calls do not contend on it.
+func (r *rpcConn) usable() bool {
+	if r.broken.Load() {
+		return false
+	}
+
+	select {
+	case <-r.conn.Done():
+		return false
+	default:
+		return true
+	}
+}
+
+// watchBootstrap marks the connection as broken if its bootstrap capability
+// fails. It returns once the bootstrap resolved, which a closed connection
+// makes it do as well.
+func (r *rpcConn) watchBootstrap(ctx context.Context, bootstrap capnp.Client) {
+	if err := bootstrap.Resolve(ctx); err != nil {
+		r.broken.Store(true)
+
+		return
+	}
+
+	// A failed bootstrap resolves to an error client, whose brand is the
+	// error.
+	snapshot := bootstrap.Snapshot()
+	defer snapshot.Release()
+
+	if _, failed := snapshot.Brand().Value.(error); failed {
+		r.broken.Store(true)
+	}
+}
+
+// watchedSocket marks the connection as broken once a read or write of its
+// socket fails, for example because the server exited. That happens before
+// a call fails because of it, while the connection only reports to be done
+// once its shutdown finished, so a retry would get the broken one again.
+type watchedSocket struct {
+	net.Conn
+
+	broken *atomic.Bool
+}
+
+func (s *watchedSocket) Read(b []byte) (int, error) {
+	n, err := s.Conn.Read(b)
+	if err != nil {
+		s.broken.Store(true)
+	}
+
+	return n, err //nolint:wrapcheck // the transport checks for io.EOF
+}
+
+func (s *watchedSocket) Write(b []byte) (int, error) {
+	n, err := s.Conn.Write(b)
+	if err != nil {
+		s.broken.Store(true)
+	}
+
+	return n, err //nolint:wrapcheck // passed on as it is like Read
+}
+
+// resetConn closes the connection, the next call dials a new one.
 func (c *ConmonClient) resetConn() {
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 
+	c.closeConnLocked()
+}
+
+// closeConnLocked closes the connection, the caller has to hold connMu.
+func (c *ConmonClient) closeConnLocked() {
 	if c.conn != nil {
-		c.conn.Close()
+		if err := c.conn.conn.Close(); err != nil {
+			c.logger.WithError(err).Debug("Unable to close RPC connection")
+		}
+
 		c.conn = nil
-		c.rpcClient = proto.Conmon{}
 	}
 }
 
@@ -599,6 +1006,38 @@ type VersionResponse struct {
 	// CargoTree is the used dependency tree.
 	// Only set if request was in verbose mode.
 	CargoTree string
+
+	// Features are the optional features the server supports, see the
+	// `Feature*` constants.
+	Features []string
+}
+
+// FeatureSdNotify is reported by servers which relay sd_notify messages.
+const FeatureSdNotify = "sdnotify"
+
+// requireServerFeature fails with ErrUnsupported if the server does not
+// report the feature. The features are asked once.
+func (c *ConmonClient) requireServerFeature(ctx context.Context, feature, usage string) error {
+	c.featuresMu.Lock()
+	defer c.featuresMu.Unlock()
+
+	if c.features == nil {
+		resp, err := c.Version(ctx, &VersionConfig{})
+		if err != nil {
+			return fmt.Errorf("get server version: %w", err)
+		}
+
+		c.features = make(map[string]bool, len(resp.Features))
+		for _, feature := range resp.Features {
+			c.features[feature] = true
+		}
+	}
+
+	if !c.features[feature] {
+		return fmt.Errorf("%s needs the %q feature of the server: %w", usage, feature, ErrUnsupported)
+	}
+
+	return nil
 }
 
 // Version can be used to retrieve all available version information.
@@ -638,61 +1077,68 @@ func (c *ConmonClient) Version(
 
 	result, err := future.Struct()
 	if err != nil {
-		c.resetConn()
-
-		return nil, fmt.Errorf("create result: %w", err)
+		return nil, fmt.Errorf("get result: %w", err)
 	}
 
 	response, err := result.Response()
 	if err != nil {
-		return nil, fmt.Errorf("set response: %w", err)
+		return nil, fmt.Errorf("get response: %w", err)
 	}
 
 	version, err := response.Version()
 	if err != nil {
-		return nil, fmt.Errorf("set version: %w", err)
+		return nil, fmt.Errorf("get version: %w", err)
 	}
-
-	semverVersion, err := semver.Parse(version)
-	if err != nil {
-		return nil, fmt.Errorf("parse server version to semver: %w", err)
-	}
-
-	c.serverVersion = semverVersion
 
 	tag, err := response.Tag()
 	if err != nil {
-		return nil, fmt.Errorf("set tag: %w", err)
+		return nil, fmt.Errorf("get tag: %w", err)
 	}
 
 	commit, err := response.Commit()
 	if err != nil {
-		return nil, fmt.Errorf("set commit: %w", err)
+		return nil, fmt.Errorf("get commit: %w", err)
 	}
 
 	buildDate, err := response.BuildDate()
 	if err != nil {
-		return nil, fmt.Errorf("set build date: %w", err)
+		return nil, fmt.Errorf("get build date: %w", err)
 	}
 
 	target, err := response.Target()
 	if err != nil {
-		return nil, fmt.Errorf("set target: %w", err)
+		return nil, fmt.Errorf("get target: %w", err)
 	}
 
 	rustVersion, err := response.RustVersion()
 	if err != nil {
-		return nil, fmt.Errorf("set rust version: %w", err)
+		return nil, fmt.Errorf("get rust version: %w", err)
 	}
 
 	cargoVersion, err := response.CargoVersion()
 	if err != nil {
-		return nil, fmt.Errorf("set cargo version: %w", err)
+		return nil, fmt.Errorf("get cargo version: %w", err)
 	}
 
 	cargoTree, err := response.CargoTree()
 	if err != nil {
-		return nil, fmt.Errorf("set cargo version: %w", err)
+		return nil, fmt.Errorf("get cargo tree: %w", err)
+	}
+
+	featureList, err := response.Features()
+	if err != nil {
+		return nil, fmt.Errorf("get features: %w", err)
+	}
+
+	features := make([]string, 0, featureList.Len())
+
+	for i := range featureList.Len() {
+		feature, err := featureList.At(i)
+		if err != nil {
+			return nil, fmt.Errorf("get feature %d: %w", i, err)
+		}
+
+		features = append(features, feature)
 	}
 
 	return &VersionResponse{
@@ -705,7 +1151,19 @@ func (c *ConmonClient) Version(
 		RustVersion:  rustVersion,
 		CargoVersion: cargoVersion,
 		CargoTree:    cargoTree,
+		Features:     features,
 	}, nil
+}
+
+// validateCgroupManager checks a per command cgroup manager before a request
+// gets built, a validation error must not tear down the RPC connection.
+func (c *ConmonClient) validateCgroupManager(cfg CgroupManager) error {
+	// The server knows no per command value, it would reject the request.
+	if c.cgroupManager == CgroupManagerPerCommand && cfg == CgroupManagerPerCommand {
+		return ErrCgroupManagerPerCommand
+	}
+
+	return nil
 }
 
 func (c *ConmonClient) setCgroupManager(
@@ -764,7 +1222,7 @@ type CreateContainerConfig struct {
 	// EnvVars are the environment variables passed to the create runtime call.
 	EnvVars map[string]string
 
-	// CgroupManager can be use to select the cgroup manager.
+	// CgroupManager can be used to select the cgroup manager.
 	//
 	// To use this option set `ConmonServerConfig.CgroupManager` to `CgroupManagerPerCommand`.
 	CgroupManager CgroupManager
@@ -774,6 +1232,17 @@ type CreateContainerConfig struct {
 
 	// LeakFDs can be used to keep file descriptors open as long as the container is running.
 	LeakFDs []RemoteFD
+
+	// SdNotifySocket is the path of the host sd_notify socket, usually the
+	// NOTIFY_SOCKET of systemd. If set, the server binds
+	// `<BundlePath>/notify/notify.sock` before it runs the runtime and relays
+	// the messages sent there to the host socket until the container exits.
+	// Like conmon, it only passes READY=1, RELOADING=1, STOPPING=1,
+	// WATCHDOG=1, WATCHDOG=trigger, STATUS=, ERRNO=, BUSERROR= and
+	// MONOTONIC_USEC=, it drops all other assignments. The caller mounts
+	// the `notify` directory into the container and sets NOTIFY_SOCKET for
+	// the container process accordingly.
+	SdNotifySocket string
 }
 
 // ContainerLogDriver specifies a selected logging mechanism.
@@ -806,6 +1275,9 @@ type CreateContainerResponse struct {
 	PID uint32
 
 	// NamespacesPath is the base path where the namespaces are mounted.
+	//
+	// Deprecated: The server never reported it, so it is always empty. Use
+	// the paths returned by CreateNamespaces instead.
 	NamespacesPath string
 }
 
@@ -816,6 +1288,22 @@ func (c *ConmonClient) CreateContainer(
 	ctx, span := c.startSpan(ctx, "CreateContainer")
 	if span != nil {
 		defer span.End()
+	}
+
+	if err := c.validateCgroupManager(cfg.CgroupManager); err != nil {
+		return nil, err
+	}
+
+	// An older server ignores the field, the unit would never get ready.
+	if cfg.SdNotifySocket != "" {
+		if err := c.requireServerFeature(ctx, FeatureSdNotify, "sd_notify socket"); err != nil {
+			return nil, err
+		}
+	}
+
+	logDrivers, err := logDriversToProto(cfg.LogDrivers)
+	if err != nil {
+		return nil, err
 	}
 
 	rpcClient, err := c.client(ctx)
@@ -852,7 +1340,7 @@ func (c *ConmonClient) CreateContainer(
 			return fmt.Errorf("convert oom exit paths string slice to text list: %w", err)
 		}
 
-		if err := c.initLogDrivers(&req, cfg.LogDrivers); err != nil {
+		if err := initLogDrivers(&req, logDrivers); err != nil {
 			return fmt.Errorf("init log drivers: %w", err)
 		}
 
@@ -869,7 +1357,7 @@ func (c *ConmonClient) CreateContainer(
 		}
 
 		if err := stringStringMapToMapEntryList(cfg.EnvVars, req.NewEnvVars); err != nil {
-			return fmt.Errorf("convert environment variables string slice to text list: %w", err)
+			return fmt.Errorf("convert environment variables to map entry list: %w", err)
 		}
 
 		c.setCgroupManager(cfg.CgroupManager, req)
@@ -882,20 +1370,22 @@ func (c *ConmonClient) CreateContainer(
 			return fmt.Errorf("convert file descriptor slice to slot list: %w", err)
 		}
 
+		if err := req.SetSdnotifySocket(cfg.SdNotifySocket); err != nil {
+			return fmt.Errorf("set sd_notify socket: %w", err)
+		}
+
 		return nil
 	})
 	defer free()
 
 	result, err := future.Struct()
 	if err != nil {
-		c.resetConn()
-
-		return nil, fmt.Errorf("create result: %w", err)
+		return nil, fmt.Errorf("get result: %w", err)
 	}
 
 	response, err := result.Response()
 	if err != nil {
-		return nil, fmt.Errorf("set response: %w", err)
+		return nil, fmt.Errorf("get response: %w", err)
 	}
 
 	return &CreateContainerResponse{
@@ -912,7 +1402,13 @@ type ExecSyncConfig struct {
 	// Command is a slice of command line arguments.
 	Command []string
 
-	// Timeout is the maximum time the command can run in seconds.
+	// Timeout is the maximum time the command can run in seconds, 0 for no
+	// limit. A deadline of the context limits it further, rounded down to
+	// whole seconds, so that the server usually reports the timeout before
+	// the context ends the call. The server needs at least one second, with
+	// less time left the command may outlive the caller by less than a
+	// second. A context which already ended fails the call without running
+	// the command.
 	Timeout uint64
 
 	// Terminal specifies if a tty should be used.
@@ -921,7 +1417,7 @@ type ExecSyncConfig struct {
 	// EnvVars are the environment variables passed to the exec runtime call.
 	EnvVars map[string]string
 
-	// CgroupManager can be use to select the cgroup manager.
+	// CgroupManager can be used to select the cgroup manager.
 	//
 	// To use this option set `ConmonServerConfig.CgroupManager` to `CgroupManagerPerCommand`.
 	CgroupManager CgroupManager
@@ -929,7 +1425,9 @@ type ExecSyncConfig struct {
 
 // ExecContainerResult is the result for calling the ExecSyncContainer method.
 type ExecContainerResult struct {
-	// ExitCode specifies the returned exit status.
+	// ExitCode specifies the returned exit status. It is -2 if the server
+	// could not start the command at all, for example because the runtime
+	// failed.
 	ExitCode int32
 
 	// Stdout contains the stdout stream result.
@@ -948,6 +1446,15 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 	ctx, span := c.startSpan(ctx, "ExecSyncContainer")
 	if span != nil {
 		defer span.End()
+	}
+
+	if err := c.validateCgroupManager(cfg.CgroupManager); err != nil {
+		return nil, err
+	}
+
+	// The command would get at least the minimum timeout of the server.
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("exec sync: %w", err)
 	}
 
 	rpcClient, err := c.client(ctx)
@@ -969,16 +1476,16 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 			return fmt.Errorf("set ID: %w", err)
 		}
 
-		req.SetTimeoutSec(cfg.Timeout)
+		req.SetTimeoutSec(execTimeout(ctx, cfg.Timeout))
 
 		if err := stringSliceToTextList(cfg.Command, req.NewCommand); err != nil {
-			return err
+			return fmt.Errorf("convert command string slice to text list: %w", err)
 		}
 
 		req.SetTerminal(cfg.Terminal)
 
 		if err := stringStringMapToMapEntryList(cfg.EnvVars, req.NewEnvVars); err != nil {
-			return err
+			return fmt.Errorf("convert environment variables to map entry list: %w", err)
 		}
 
 		c.setCgroupManager(cfg.CgroupManager, req)
@@ -989,14 +1496,12 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 
 	result, err := future.Struct()
 	if err != nil {
-		c.resetConn()
-
-		return nil, fmt.Errorf("create result: %w", err)
+		return nil, fmt.Errorf("get result: %w", err)
 	}
 
 	resp, err := result.Response()
 	if err != nil {
-		return nil, fmt.Errorf("set response: %w", err)
+		return nil, fmt.Errorf("get response: %w", err)
 	}
 
 	stdout, err := resp.Stdout()
@@ -1013,15 +1518,66 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 		ExitCode: resp.ExitCode(),
 		// Copy content of both slices as the `capnp.ReleaseFunc` will
 		// zero them when the deferred call to `free()` takes place.
-		Stdout:   append(stdout[:0:0], stdout...),
-		Stderr:   append(stderr[:0:0], stderr...),
+		Stdout:   bytes.Clone(stdout),
+		Stderr:   bytes.Clone(stderr),
 		TimedOut: resp.TimedOut(),
 	}
 
 	return execContainerResult, nil
 }
 
-func (c *ConmonClient) initLogDrivers(req *proto.Conmon_CreateContainerRequest, logDrivers []ContainerLogDriver) error {
+// execTimeout returns the timeout of an exec in seconds, see
+// ExecSyncConfig.Timeout.
+func execTimeout(ctx context.Context, timeout uint64) uint64 {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return timeout
+	}
+
+	// Rounded down, so that the server usually reports the timeout before
+	// the context of the call ends. A short deadline still needs a timeout,
+	// 0 would mean none.
+	remaining := max(uint64(max(time.Until(deadline), 0)/time.Second), 1)
+
+	if timeout == 0 {
+		return remaining
+	}
+
+	return min(timeout, remaining)
+}
+
+// logDriverTypes maps the log driver types to their protocol values.
+var logDriverTypes = enumTable[LogDriverType, proto.Conmon_LogDriver_Type]{
+	{LogDriverTypeContainerRuntimeInterface, proto.Conmon_LogDriver_Type_containerRuntimeInterface},
+	{LogDriverTypeJSONLogger, proto.Conmon_LogDriver_Type_json},
+	{LogDriverTypeJournald, proto.Conmon_LogDriver_Type_journald},
+}
+
+// protoLogDriver is a log driver with its type converted for a request.
+type protoLogDriver struct {
+	typ     proto.Conmon_LogDriver_Type
+	path    string
+	maxSize uint64
+}
+
+// logDriversToProto converts the log drivers for a request, before it gets
+// built.
+func logDriversToProto(logDrivers []ContainerLogDriver) ([]protoLogDriver, error) {
+	res := make([]protoLogDriver, 0, len(logDrivers))
+
+	for _, logDriver := range logDrivers {
+		typ, err := logDriverTypes.toProto(logDriver.Type)
+		if err != nil {
+			return nil, fmt.Errorf("log driver type: %w", err)
+		}
+
+		res = append(res, protoLogDriver{typ: typ, path: logDriver.Path, maxSize: logDriver.MaxSize})
+	}
+
+	return res, nil
+}
+
+func initLogDrivers(req *proto.Conmon_CreateContainerRequest, logDrivers []protoLogDriver) error {
 	newLogDrivers, err := req.NewLogDrivers(int32(len(logDrivers)))
 	if err != nil {
 		return fmt.Errorf("create log drivers: %w", err)
@@ -1029,24 +1585,48 @@ func (c *ConmonClient) initLogDrivers(req *proto.Conmon_CreateContainerRequest, 
 
 	for i, logDriver := range logDrivers {
 		n := newLogDrivers.At(i)
+		n.SetType(logDriver.typ)
 
-		switch logDriver.Type {
-		case LogDriverTypeContainerRuntimeInterface:
-			n.SetType(proto.Conmon_LogDriver_Type_containerRuntimeInterface)
-		case LogDriverTypeJSONLogger:
-			n.SetType(proto.Conmon_LogDriver_Type_json)
-		case LogDriverTypeJournald:
-			n.SetType(proto.Conmon_LogDriver_Type_journald)
-		}
-
-		if err := n.SetPath(logDriver.Path); err != nil {
+		if err := n.SetPath(logDriver.path); err != nil {
 			return fmt.Errorf("set log driver path: %w", err)
 		}
 
-		n.SetMaxSize(logDriver.MaxSize)
+		n.SetMaxSize(logDriver.maxSize)
 	}
 
 	return nil
+}
+
+// enumTable maps the values of a client enum to the ones of the protocol.
+type enumTable[C, P comparable] []struct {
+	client C
+	proto  P
+}
+
+//nolint:ireturn // the type parameters are enums, not interfaces
+func (t enumTable[C, P]) toProto(value C) (P, error) {
+	for _, entry := range t {
+		if entry.client == value {
+			return entry.proto, nil
+		}
+	}
+
+	var zero P
+
+	return zero, fmt.Errorf("%w: %v", errInvalidValue, value)
+}
+
+//nolint:ireturn // the type parameters are enums, not interfaces
+func (t enumTable[C, P]) fromProto(value P) (C, error) {
+	for _, entry := range t {
+		if entry.proto == value {
+			return entry.client, nil
+		}
+	}
+
+	var zero C
+
+	return zero, fmt.Errorf("%w: %v from server", errInvalidValue, value)
 }
 
 // PID returns the server process ID.
@@ -1054,19 +1634,29 @@ func (c *ConmonClient) PID() uint32 {
 	return c.serverPID
 }
 
-// Shutdown kill the server via SIGINT. Waits up to 10 seconds for the server
-// PID to be removed from the system.
+// Shutdown kills the server via SIGINT and waits up to 10 seconds for the
+// server PID to be removed from the system.
 func (c *ConmonClient) Shutdown() error {
-	_, span := c.startSpan(context.TODO(), "Shutdown")
+	return c.ShutdownContext(context.Background())
+}
+
+// ShutdownContext kills the server via SIGINT and waits for the server PID
+// to be removed from the system, up to 10 seconds or until the context ends.
+func (c *ConmonClient) ShutdownContext(ctx context.Context) error {
+	_, span := c.startSpan(ctx, "Shutdown")
 	if span != nil {
 		defer span.End()
 	}
 
-	c.attachReaders.Range(func(_, in any) bool {
-		c.closeAttachReader(in)
+	// Taken out of the map first, so that no attach finds its reader again.
+	c.attachReaderMu.Lock()
+	readers := slices.Collect(maps.Values(c.attachReaders))
+	clear(c.attachReaders)
+	c.attachReaderMu.Unlock()
 
-		return true
-	})
+	for _, reader := range readers {
+		c.closeAttachReader(reader)
+	}
 
 	c.resetConn()
 
@@ -1086,11 +1676,16 @@ func (c *ConmonClient) Shutdown() error {
 	)
 
 	for range waitCount {
-		if err := syscall.Kill(pid, 0); errors.Is(err, syscall.ESRCH) {
+		// A zombie server, which nobody reaped yet, is gone as well.
+		if processExited(c.serverPID) {
 			return nil
 		}
 
-		time.Sleep(waitInterval)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("wait for server PID: %w", ctx.Err())
+		case <-time.After(waitInterval):
+		}
 	}
 
 	return errTimeoutWaitForPid
@@ -1144,24 +1739,23 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 
 	result, err := future.Struct()
 	if err != nil {
-		c.resetConn()
-
-		return fmt.Errorf("create result: %w", err)
+		return fmt.Errorf("get result: %w", err)
 	}
 
 	if _, err := result.Response(); err != nil {
-		return fmt.Errorf("set response: %w", err)
+		return fmt.Errorf("get response: %w", err)
 	}
 
 	return nil
 }
 
-type RequestWithMetadata interface {
+// requestWithMetadata is a request which carries the tracing metadata.
+type requestWithMetadata interface {
 	NewMetadata(n int32) (proto.Conmon_TextTextMapEntry_List, error)
 }
 
 // setMetadata sets the tracing metadata properties on the request.
-func (c *ConmonClient) setMetadata(ctx context.Context, req RequestWithMetadata) error {
+func (c *ConmonClient) setMetadata(ctx context.Context, req requestWithMetadata) error {
 	if !c.tracingEnabled {
 		return nil
 	}
@@ -1187,7 +1781,8 @@ func (c *ConmonClient) setMetadata(ctx context.Context, req RequestWithMetadata)
 // CreateNamespacesConfig is the configuration for calling the
 // CreateNamespaces method.
 type CreateNamespacesConfig struct {
-	// Namespaces are the list of namespaces to unshare.
+	// Namespaces are the list of namespaces to unshare. A namespace listed
+	// twice is created and reported once.
 	Namespaces []Namespace
 
 	// IDMappings are the user and group ID mappings when unsharing the user
@@ -1204,6 +1799,10 @@ type CreateNamespacesConfig struct {
 
 // CreateNamespacesResponse is the response of the CreateNamespaces method.
 type CreateNamespacesResponse struct {
+	// Namespaces are the created namespaces, one per requested type. A
+	// server holds the namespaces of a single pod and answers later calls
+	// for it from the first one, so the order is that of the first request.
+	// Match the entries by their Type.
 	Namespaces []*NamespacesResponse
 }
 
@@ -1212,17 +1811,20 @@ type NamespacesResponse struct {
 	// Namespace is the type of namespace.
 	Type Namespace
 
-	// Path is the base path to the namespaces directory.
+	// Path is the bind mount of the namespace, which can be joined via
+	// setns(2).
 	Path string
 }
 
 // CreateNamespaces can be used to create a new set of unshared namespaces by
 // bind mounting it to the local filesystem.
 //
-// If a namespace is not selected by the CreateNamespacesConfig, then the
-// server will fallback to the host namespace and still create the bind mount
-// to it. All namespaces are mounted to /var/run/[ipc,pid,net,user,uts]ns/$POD_ID,
-// whereas the POD_ID is being used from the CreateNamespacesConfig as well.
+// Only the namespaces selected by the CreateNamespacesConfig are created and
+// returned, in the requested order and without duplicates. They are mounted to
+// $BASE_PATH/[ipc,pid,net,user,uts]ns/$POD_ID, where BASE_PATH and POD_ID are
+// taken from the CreateNamespacesConfig. A pause process only stays around as
+// init of a requested PID namespace, all other namespaces are kept alive by
+// their bind mounts.
 //
 // UID and GID mappings are required if unsharing of the user namespace is
 // requested.
@@ -1232,6 +1834,16 @@ func (c *ConmonClient) CreateNamespaces(
 	ctx, span := c.startSpan(ctx, "CreateNamespaces")
 	if span != nil {
 		defer span.End()
+	}
+
+	namespaces, err := namespacesToProto(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	basePath := cfg.BasePath
+	if basePath == "" {
+		basePath = "/var/run"
 	}
 
 	rpcClient, err := c.client(ctx)
@@ -1249,64 +1861,37 @@ func (c *ConmonClient) CreateNamespaces(
 			return err
 		}
 
-		namespaces, err := req.NewNamespaces(int32(len(cfg.Namespaces)))
+		namespaceList, err := req.NewNamespaces(int32(len(namespaces)))
 		if err != nil {
 			return fmt.Errorf("init namespaces: %w", err)
 		}
 
-		for i, namespace := range cfg.Namespaces {
-			switch namespace {
-			case NamespaceIPC:
-				namespaces.Set(i, proto.Conmon_Namespace_ipc)
+		for i, namespace := range namespaces {
+			namespaceList.Set(i, namespace)
+		}
 
-			case NamespaceNet:
-				namespaces.Set(i, proto.Conmon_Namespace_net)
+		if slices.Contains(namespaces, proto.Conmon_Namespace_user) {
+			if err := stringSliceToTextList(
+				mappingsToSlice(cfg.IDMappings.UIDs()),
+				req.NewUidMappings,
+			); err != nil {
+				return fmt.Errorf("convert user ID mappings to text list: %w", err)
+			}
 
-			case NamespacePID:
-				namespaces.Set(i, proto.Conmon_Namespace_pid)
-
-			case NamespaceUser:
-				if cfg.IDMappings == nil ||
-					len(cfg.IDMappings.UIDs()) == 0 ||
-					len(cfg.IDMappings.GIDs()) == 0 {
-					return ErrMissingIDMappings
-				}
-
-				namespaces.Set(i, proto.Conmon_Namespace_user)
-
-				if err := stringSliceToTextList(
-					mappingsToSlice(cfg.IDMappings.UIDs()),
-					req.NewUidMappings,
-				); err != nil {
-					return fmt.Errorf("convert user ID mappings to text list: %w", err)
-				}
-
-				if err := stringSliceToTextList(
-					mappingsToSlice(cfg.IDMappings.GIDs()),
-					req.NewGidMappings,
-				); err != nil {
-					return fmt.Errorf("convert group ID mappings to text list: %w", err)
-				}
-
-			case NamespaceUTS:
-				namespaces.Set(i, proto.Conmon_Namespace_uts)
+			if err := stringSliceToTextList(
+				mappingsToSlice(cfg.IDMappings.GIDs()),
+				req.NewGidMappings,
+			); err != nil {
+				return fmt.Errorf("convert group ID mappings to text list: %w", err)
 			}
 		}
 
-		if err := req.SetNamespaces(namespaces); err != nil {
-			return fmt.Errorf("set namespaces: %w", err)
-		}
-
-		if cfg.BasePath == "" {
-			cfg.BasePath = "/var/run"
-		}
-
-		if err := req.SetBasePath(cfg.BasePath); err != nil {
+		if err := req.SetBasePath(basePath); err != nil {
 			return fmt.Errorf("set base path: %w", err)
 		}
 
 		if err := req.SetPodId(cfg.PodID); err != nil {
-			return fmt.Errorf("set base path: %w", err)
+			return fmt.Errorf("set pod ID: %w", err)
 		}
 
 		return nil
@@ -1315,43 +1900,27 @@ func (c *ConmonClient) CreateNamespaces(
 
 	result, err := future.Struct()
 	if err != nil {
-		c.resetConn()
-
-		return nil, fmt.Errorf("create result: %w", err)
+		return nil, fmt.Errorf("get result: %w", err)
 	}
 
 	response, err := result.Response()
 	if err != nil {
-		return nil, fmt.Errorf("set response: %w", err)
+		return nil, fmt.Errorf("get response: %w", err)
 	}
 
-	namespaces, err := response.Namespaces()
+	responseNamespaces, err := response.Namespaces()
 	if err != nil {
-		return nil, fmt.Errorf("set path: %w", err)
+		return nil, fmt.Errorf("get namespaces: %w", err)
 	}
 
-	namespacesResponse := make([]*NamespacesResponse, 0, namespaces.Len())
+	namespacesResponse := make([]*NamespacesResponse, 0, responseNamespaces.Len())
 
-	for i := range namespaces.Len() {
-		namespace := namespaces.At(i)
+	for i := range responseNamespaces.Len() {
+		namespace := responseNamespaces.At(i)
 
-		var typ Namespace
-
-		switch namespace.Type() {
-		case proto.Conmon_Namespace_ipc:
-			typ = NamespaceIPC
-
-		case proto.Conmon_Namespace_net:
-			typ = NamespaceNet
-
-		case proto.Conmon_Namespace_pid:
-			typ = NamespacePID
-
-		case proto.Conmon_Namespace_user:
-			typ = NamespaceUser
-
-		case proto.Conmon_Namespace_uts:
-			typ = NamespaceUTS
+		typ, err := namespaceTypes.fromProto(namespace.Type())
+		if err != nil {
+			return nil, fmt.Errorf("namespace: %w", err)
 		}
 
 		path, err := namespace.Path()
@@ -1370,6 +1939,38 @@ func (c *ConmonClient) CreateNamespaces(
 	return &CreateNamespacesResponse{
 		Namespaces: namespacesResponse,
 	}, nil
+}
+
+// namespacesToProto converts the requested namespaces and checks that a
+// user namespace comes with ID mappings.
+func namespacesToProto(cfg *CreateNamespacesConfig) ([]proto.Conmon_Namespace, error) {
+	namespaces := make([]proto.Conmon_Namespace, 0, len(cfg.Namespaces))
+
+	for _, namespace := range cfg.Namespaces {
+		typ, err := namespaceTypes.toProto(namespace)
+		if err != nil {
+			return nil, fmt.Errorf("namespace: %w", err)
+		}
+
+		if typ == proto.Conmon_Namespace_user && (cfg.IDMappings == nil ||
+			len(cfg.IDMappings.UIDs()) == 0 ||
+			len(cfg.IDMappings.GIDs()) == 0) {
+			return nil, ErrMissingIDMappings
+		}
+
+		namespaces = append(namespaces, typ)
+	}
+
+	return namespaces, nil
+}
+
+// namespaceTypes maps the namespaces to their protocol values.
+var namespaceTypes = enumTable[Namespace, proto.Conmon_Namespace]{
+	{NamespaceIPC, proto.Conmon_Namespace_ipc},
+	{NamespacePID, proto.Conmon_Namespace_pid},
+	{NamespaceNet, proto.Conmon_Namespace_net},
+	{NamespaceUser, proto.Conmon_Namespace_user},
+	{NamespaceUTS, proto.Conmon_Namespace_uts},
 }
 
 func mappingsToSlice(mappings []idtools.IDMap) []string {
@@ -1401,7 +2002,7 @@ type ServeExecContainerConfig struct {
 	// Stderr indicates if stderr should be available or not.
 	Stderr bool
 
-	// CgroupManager can be use to select the cgroup manager.
+	// CgroupManager can be used to select the cgroup manager.
 	//
 	// To use this option set `ConmonServerConfig.CgroupManager` to
 	// `CgroupManagerPerCommand`.
@@ -1422,6 +2023,10 @@ func (c *ConmonClient) ServeExecContainer(
 	ctx, span := c.startSpan(ctx, "ServeExecContainer")
 	if span != nil {
 		defer span.End()
+	}
+
+	if err := c.validateCgroupManager(cfg.CgroupManager); err != nil {
+		return nil, err
 	}
 
 	rpcClient, err := c.client(ctx)
@@ -1460,14 +2065,12 @@ func (c *ConmonClient) ServeExecContainer(
 
 	result, err := future.Struct()
 	if err != nil {
-		c.resetConn()
-
-		return nil, fmt.Errorf("create result: %w", err)
+		return nil, fmt.Errorf("get result: %w", err)
 	}
 
 	resp, err := result.Response()
 	if err != nil {
-		return nil, fmt.Errorf("set response: %w", err)
+		return nil, fmt.Errorf("get response: %w", err)
 	}
 
 	url, err := resp.Url()
@@ -1492,10 +2095,15 @@ type ServeAttachContainerConfig struct {
 	// Stderr indicates if stderr should be available or not.
 	Stderr bool
 
-	// CgroupManager can be use to select the cgroup manager.
+	// StopAfterStdinEOF indicates if the container stdin should be closed
+	// once the client closes its stdin (stdin once). The output is then still
+	// forwarded until the container closes it. A terminal is never closed.
+	StopAfterStdinEOF bool
+
+	// CgroupManager can be used to select the cgroup manager.
 	//
-	// To use this option set `ConmonServerConfig.CgroupManager` to
-	// `CgroupManagerPerCommand`.
+	// Deprecated: Attach does not run the runtime, so the value was never
+	// sent and has no effect.
 	CgroupManager CgroupManager
 }
 
@@ -1537,6 +2145,7 @@ func (c *ConmonClient) ServeAttachContainer(
 		req.SetStdin(cfg.Stdin)
 		req.SetStdout(cfg.Stdout)
 		req.SetStderr(cfg.Stderr)
+		req.SetStopAfterStdinEof(cfg.StopAfterStdinEOF)
 
 		return nil
 	})
@@ -1544,14 +2153,12 @@ func (c *ConmonClient) ServeAttachContainer(
 
 	result, err := future.Struct()
 	if err != nil {
-		c.resetConn()
-
-		return nil, fmt.Errorf("create result: %w", err)
+		return nil, fmt.Errorf("get result: %w", err)
 	}
 
 	resp, err := result.Response()
 	if err != nil {
-		return nil, fmt.Errorf("set response: %w", err)
+		return nil, fmt.Errorf("get response: %w", err)
 	}
 
 	url, err := resp.Url()
@@ -1574,57 +2181,20 @@ type ServePortForwardContainerResult struct {
 	URL string
 }
 
-// ServePortForwardContainer can be used to forward ports to a running container.
+// ServePortForwardContainer is meant to forward ports to a running container.
+// The server has no implementation for it yet and always returns
+// ErrUnsupported, without making a request.
 func (c *ConmonClient) ServePortForwardContainer(
 	ctx context.Context,
-	cfg *ServePortForwardContainerConfig,
+	_ *ServePortForwardContainerConfig,
 ) (*ServePortForwardContainerResult, error) {
-	ctx, span := c.startSpan(ctx, "ServePortForwardContainer")
+	_, span := c.startSpan(ctx, "ServePortForwardContainer")
 	if span != nil {
 		defer span.End()
 	}
 
-	rpcClient, err := c.client(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("create RPC client: %w", err)
-	}
-
-	future, free := rpcClient.ServePortForwardContainer(ctx, func(p proto.Conmon_servePortForwardContainer_Params) error {
-		req, err := p.NewRequest()
-		if err != nil {
-			return fmt.Errorf("create request: %w", err)
-		}
-
-		if err := c.setMetadata(ctx, req); err != nil {
-			return err
-		}
-
-		if err := req.SetNetNsPath(cfg.NetNsPath); err != nil {
-			return fmt.Errorf("set ID: %w", err)
-		}
-
-		return nil
-	})
-	defer free()
-
-	result, err := future.Struct()
-	if err != nil {
-		c.resetConn()
-
-		return nil, fmt.Errorf("create result: %w", err)
-	}
-
-	resp, err := result.Response()
-	if err != nil {
-		return nil, fmt.Errorf("set response: %w", err)
-	}
-
-	url, err := resp.Url()
-	if err != nil {
-		return nil, fmt.Errorf("get url: %w", err)
-	}
-
-	return &ServePortForwardContainerResult{URL: url}, nil
+	// The server would only reject the request, so it does not get sent.
+	return nil, fmt.Errorf("port forwarding: %w", ErrUnsupported)
 }
 
 func (c *ConmonClient) attachHeaptrack(config *ConmonServerConfig, pid uint32) {
