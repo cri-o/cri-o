@@ -21,6 +21,7 @@ coverprofile
 lib/state.json
 result
 *_junit.xml
+junit*.xml
 
 ./Vagrantfile
 .vagrant/
