@@ -58,6 +58,27 @@ EOF
 	[[ "$output" == *"Burstablecriotest123.slice"* ]]
 }
 
+@test "conmon scope has CollectMode set for automatic cleanup on failure" {
+	if [ "$CONTAINER_CGROUP_MANAGER" != "systemd" ]; then
+		skip "test requires the systemd cgroup manager"
+	fi
+	systemd_supports_collect_mode=$(systemctl show --property=CollectMode systemd || true)
+	if [[ -z "$systemd_supports_collect_mode" ]]; then
+		skip "systemd does not support the CollectMode property"
+	fi
+
+	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=false start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	# CollectMode=inactive-or-failed ensures a crio-conmon-*.scope that ends up
+	# failed (e.g. if its conmon is reaped by a crio.service restart before it
+	# can be moved into this scope) is garbage collected by systemd instead of
+	# persisting in `systemctl --failed` forever.
+	output=$(systemctl show "crio-conmon-$pod_id.scope" -p CollectMode)
+	[[ "$output" == "CollectMode=inactive-or-failed" ]]
+}
+
 @test "conmon custom cgroup" {
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		skip "not yet supported by conmonrs"
