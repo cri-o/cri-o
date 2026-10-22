@@ -21,7 +21,7 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
-	"go.podman.io/image/v5/copy"
+	imagecopy "go.podman.io/image/v5/copy"
 	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/docker/reference"
 	cimage "go.podman.io/image/v5/image"
@@ -111,7 +111,7 @@ type CgroupPullConfiguration struct {
 	ParentCgroup string
 }
 
-// subset of copy.Options that is supported by reexec.
+// subset of imagecopy.Options that is supported by reexec.
 // WARNING: All ofImageCopyOptions must be JSON-representable because it is included in pullImageArgs.
 type ImageCopyOptions struct {
 	SourceCtx        *types.SystemContext
@@ -1003,7 +1003,7 @@ func pullImageImplementation(
 		return RegistryImageReference{}, err
 	}
 
-	manifestBytes, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+	manifestBytes, err := imagecopy.Image(ctx, policyContext, destRef, srcRef, &imagecopy.Options{
 		SourceCtx:        &srcSystemContext,
 		DestinationCtx:   options.DestinationCtx,
 		OciDecryptConfig: options.OciDecryptConfig,
