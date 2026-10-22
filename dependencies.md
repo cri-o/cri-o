@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 22 Oct 2026 08:23:13 UTC for commit [0983bc3][0]._
+_Generated on Thu, 22 Oct 2026 13:15:10 UTC for commit [cb6c845][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0983bc3737bb481a7ee0d86780bc153dc2d58c81
+[0]: https://github.com/cri-o/cri-o/commit/cb6c845d51ba9743c7c88f875b4503fbca8f7df7
 
 ## Outdated Dependencies
 
@@ -16,6 +16,7 @@ _Generated on Thu, 22 Oct 2026 08:23:13 UTC for commit [0983bc3][0]._
 | github.com/containerd/nri                                                   | v0.12.2                            | v0.12.3                            | true   | true             |
 | github.com/containerd/ttrpc                                                 | v1.2.9                             | v1.2.10                            | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
+| github.com/containers/conmon-rs                                             | v1.1.1                             | v1.2.0                             | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.3.2                             | v5.5.0                             | true   | true             |
 | github.com/godbus/dbus/v5                                                   | v5.2.2                             | v5.2.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.13.0                            | v0.14.0                            | true   | true             |
@@ -320,7 +321,7 @@ _Generated on Thu, 22 Oct 2026 08:23:13 UTC for commit [0983bc3][0]._
 | github.com/containernetworking/cni                                          | v1.3.1                               |                                    | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.9.1                               |                                    | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                 | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                                             | v1.1.1                               |                                    | true   | true             |
+| github.com/containers/conmon-rs                                             | v1.1.1                               | v1.2.0                             | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.3.0                               |                                    | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01   |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.3.2                               |                                    | true   | true             |
