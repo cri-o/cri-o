@@ -95,10 +95,13 @@ install_bats() {
 }
 
 install_conmon() {
-    CONMON_BINARY=/usr/local/bin/conmon
-    curl_retry "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$GOARCH" \
-        -o $CONMON_BINARY
-    sudo chmod +x $CONMON_BINARY
+    install_from_github_org_repo \
+        containers \
+        conmon \
+        "${VERSIONS["conmon"]}" \
+        sudo make -j "$(nproc)" PREFIX=/usr/local all install.bin
+
+    conmon --version
 }
 
 install_conmonrs() {

@@ -387,6 +387,10 @@ localintegration: clean binaries test-binaries ## Run the local integration test
 verify-dependencies: ${ZEITGEIST} ## Verify the local dependencies.
 	${BUILD_BIN_PATH}/zeitgeist validate --local-only --base-path . --config dependencies.yaml
 
+.PHONY: update-dependencies
+update-dependencies: ## Update CI dependencies to their latest upstream commits.
+	./scripts/update-dependencies
+
 .PHONY: verify-gosec
 verify-gosec: ${GOSEC} ## Run gosec on the project.
 	${BUILD_BIN_PATH}/gosec -exclude-dir=test -exclude-dir=_output -severity high -confidence high -exclude G304,G108,G703 ./...
