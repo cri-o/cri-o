@@ -68,6 +68,7 @@ jobs:
             test/checkcriu/checkcriu
             test/checkseccomp/checkseccomp
             test/copyimg/copyimg
+            test/securityprofile/securityprofile
             test/updateunified/updateunified
             test/nri/nri.test
 
@@ -170,6 +171,7 @@ jobs:
             test/checkcriu/checkcriu \
             test/checkseccomp/checkseccomp \
             test/copyimg/copyimg \
+            test/securityprofile/securityprofile \
             test/updateunified/updateunified \
             test/nri/nri.test
       - run: scripts/github-actions-packages runtime

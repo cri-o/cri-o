@@ -70,6 +70,13 @@ func (s *Server) RunPodSandbox(
 	ctx context.Context,
 	req *types.RunPodSandboxRequest,
 ) (*types.RunPodSandboxResponse, error) {
+	if err := s.validateSecurityProfiles(
+		req.GetConfig().GetLinux().GetSecurityContext().GetSeccomp(),
+		req.GetConfig().GetLinux().GetSecurityContext().GetApparmor(),
+	); err != nil {
+		return nil, err
+	}
+
 	// platform dependent call
 	return s.runPodSandbox(ctx, req)
 }

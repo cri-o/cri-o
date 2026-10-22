@@ -446,6 +446,13 @@ func (s *Server) CreateContainer(
 		return nil, errors.New("sandbox config metadata is nil")
 	}
 
+	if err := s.validateSecurityProfiles(
+		req.GetConfig().GetLinux().GetSecurityContext().GetSeccomp(),
+		req.GetConfig().GetLinux().GetSecurityContext().GetApparmor(),
+	); err != nil {
+		return nil, err
+	}
+
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
@@ -1422,6 +1429,10 @@ func (s *Server) setupSeccomp(
 			specgen,
 			securityContext.GetSeccomp(),
 			s.Store().GraphRoot(),
+			s.securityProfiles.For(
+				sb.Namespace(),
+				sb.Namespace()+"/"+sb.KubeName()+"/"+ctr.Config().GetMetadata().GetName(),
+			),
 		)
 		if err != nil {
 			return "", fmt.Errorf("setup seccomp: %w", err)

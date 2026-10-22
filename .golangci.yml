@@ -143,6 +143,11 @@ linters:
         - /sys
     gocritic:
       enable-all: true
+    gomoddirectives:
+      # The CRI API of KEP-6061 until it is released.
+      replace-allow-list:
+        - k8s.io/cri-api
+        - k8s.io/cri-client
     gocyclo:
       min-complexity: 60
     nakedret:
