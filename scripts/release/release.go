@@ -154,7 +154,7 @@ func updateVersionAndCreatePR(
 	headBranchName := fmt.Sprintf("%s:%s", org, newBranch)
 	title := "Bump version to " + newVersion
 	body := fmt.Sprintf(
-		"Automated version bump to version `%s`\n\n```release-note\nNone\n```",
+		"Automated version bump to version %#q\n\n```release-note\nNone\n```",
 		newVersion,
 	)
 
