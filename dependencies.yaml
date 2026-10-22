@@ -2,7 +2,7 @@
 # It verifies that the versions specified here match across all referenced files.
 dependencies:
   - name: go
-    version: 1.27.1
+    version: 1.27.2
     refPaths:
       - path: nix/derivation.nix
         match: buildGo127Module
@@ -130,7 +130,7 @@ dependencies:
         match: GOVULNCHECK_VERSION
 
   - name: gosec
-    version: 2.29.0
+    version: 2.30.0
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
