@@ -1028,6 +1028,29 @@ func (r *runtimeOCI) StopContainer(
 	return c.WaitOnStopTimeout(ctx, timeout)
 }
 
+// containerNeverStarted reports whether the container is in the created state,
+// i.e. it exists in the runtime but its user process was never started. The
+// cached status can be outdated, so it is confirmed with the runtime.
+func (r *runtimeOCI) containerNeverStarted(ctx context.Context, c *Container) bool {
+	if c.state.Status != ContainerStateCreated {
+		return false
+	}
+
+	out, err := r.runtimeCmd("state", c.ID())
+	if err != nil {
+		return false
+	}
+
+	var state ContainerState
+	if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
+		log.Debugf(ctx, "Unable to decode state of container %s: %v", c.ID(), err)
+
+		return false
+	}
+
+	return state.Status == ContainerStateCreated
+}
+
 func (r *runtimeOCI) StopLoopForContainer(
 	ctx context.Context,
 	c *Container,
@@ -1059,14 +1082,23 @@ func (r *runtimeOCI) StopLoopForContainer(
 		}
 	}
 
-	// Begin the actual kill.
-	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
-		if err := c.Living(); err != nil {
-			// The initial container process either doesn't exist, or isn't ours.
-			// Set state accordingly.
-			c.setFinishedIfUnset()
+	// A container that was created but never started has no process that
+	// could handle the stop signal, so do not wait for the stop timeout.
+	neverStarted := r.containerNeverStarted(ctx, c)
+	if neverStarted {
+		log.Debugf(ctx, "Container %s was created but never started, killing it right away", c.ID())
+	}
 
-			return
+	// Begin the actual kill.
+	if !neverStarted {
+		if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
+			if err := c.Living(); err != nil {
+				// The initial container process either doesn't exist, or isn't ours.
+				// Set state accordingly.
+				c.setFinishedIfUnset()
+
+				return
+			}
 		}
 	}
 
@@ -1102,6 +1134,9 @@ func (r *runtimeOCI) StopLoopForContainer(
 	// to catch a new timeout (and possibly ignore that new timeout if it's not correct to
 	// take a new one).
 	targetTime := time.Now().AddDate(+1, 0, 0) // A year from this one.
+	if neverStarted {
+		targetTime = time.Now()
+	}
 
 	blockedTimer := time.AfterFunc(stopProcessBlockedInterval, func() {
 		if state, err := c.ProcessState(); err == nil && state == "D" {
