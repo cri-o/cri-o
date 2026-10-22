@@ -46,9 +46,10 @@
       defaultTestContainerImage: {{ critest_mirror_repo }}/busybox:1
       webServerTestImage: {{ critest_mirror_repo }}/nginx:1.18
 
+# TODO: Remove the metrics test skip after https://github.com/cri-o/cri-o/pull/10420.
 - name: run critest validation
   become: yes
-  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint unix:///var/run/crio/crio.sock --image-endpoint unix:///var/run/crio/crio.sock --ginkgo.flakeAttempts=3 --test-images-file=critest-images.yml"
+  shell: "critest --report-dir={{ artifacts }} --runtime-endpoint unix:///var/run/crio/crio.sock --image-endpoint unix:///var/run/crio/crio.sock --nri-socket /var/run/nri/nri.sock --ginkgo.skip 'runtime should support (returning metrics descriptors|listing pod sandbox metrics)' --ginkgo.flakeAttempts=3 --test-images-file=critest-images.yml"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
   async: 5400
