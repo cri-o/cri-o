@@ -284,6 +284,9 @@ func setupContainerUser(
 
 	if homedir == "" {
 		homedir = specgen.Config.Process.Cwd
+		if strings.ContainsAny(homedir, "\n\r") {
+			return errors.New("invalid cwd as homedir; newline not allowed")
+		}
 	}
 
 	if imageConfig != nil {
@@ -295,6 +298,9 @@ func setupContainerUser(
 		imageUser,
 		sc.GetRunAsUser(),
 	)
+	if strings.ContainsAny(containerUser, "\n\r:") {
+		return errors.New("invalid username; newline, carriage return or colon not allowed")
+	}
 	log.Debugf(ctx, "Container user: %q", containerUser)
 
 	// Add uid, gid and groups from user
