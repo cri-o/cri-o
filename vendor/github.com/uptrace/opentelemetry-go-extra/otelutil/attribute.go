@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/log"
 )
 
 func Attribute(key string, value interface{}) attribute.KeyValue {
@@ -65,24 +64,24 @@ func Attribute(key string, value interface{}) attribute.KeyValue {
 	return attribute.String(key, fmt.Sprint(value))
 }
 
-func LogValue(value interface{}) log.Value {
+func LogValue(value interface{}) attribute.Value {
 	switch value := value.(type) {
 	case nil:
-		return log.StringValue("<nil>")
+		return attribute.StringValue("<nil>")
 	case string:
-		return log.StringValue(value)
+		return attribute.StringValue(value)
 	case int:
-		return log.IntValue(value)
+		return attribute.IntValue(value)
 	case int64:
-		return log.Int64Value(value)
+		return attribute.Int64Value(value)
 	case uint64:
-		return log.Int64Value(int64(value))
+		return attribute.Int64Value(int64(value))
 	case float64:
-		return log.Float64Value(value)
+		return attribute.Float64Value(value)
 	case bool:
-		return log.BoolValue(value)
+		return attribute.BoolValue(value)
 	case fmt.Stringer:
-		return log.StringValue(value.String())
+		return attribute.StringValue(value.String())
 	}
 
 	rv := reflect.ValueOf(value)
@@ -92,22 +91,22 @@ func LogValue(value interface{}) log.Value {
 		rv = rv.Slice(0, rv.Len())
 		fallthrough
 	case reflect.Slice:
-		values := make([]log.Value, rv.Len())
+		values := make([]attribute.Value, rv.Len())
 		for i := range values {
 			values[i] = LogValue(rv.Index(i).Interface())
 		}
-		return log.SliceValue(values...)
+		return attribute.SliceValue(values...)
 	case reflect.Bool:
-		return log.BoolValue(rv.Bool())
+		return attribute.BoolValue(rv.Bool())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return log.Int64Value(rv.Int())
+		return attribute.Int64Value(rv.Int())
 	case reflect.Float64:
-		return log.Float64Value(rv.Float())
+		return attribute.Float64Value(rv.Float())
 	case reflect.String:
-		return log.StringValue(rv.String())
+		return attribute.StringValue(rv.String())
 	}
 	if b, err := json.Marshal(value); err == nil {
-		return log.StringValue(string(b))
+		return attribute.StringValue(string(b))
 	}
-	return log.StringValue(fmt.Sprint(value))
+	return attribute.StringValue(fmt.Sprint(value))
 }
