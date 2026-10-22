@@ -6,7 +6,6 @@ declare -A VERSIONS=(
     ["crun"]=1.29.1
     ["runc"]=v1.5.1
     ["bats"]=v1.14.0
-    ["buildah"]=v1.45.0
 )
 
 declare -A RUNC_CHECKSUMS=(

@@ -11,11 +11,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/godbus/dbus/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/cgroups"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.uber.org/mock/gomock"
+	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/utils/cpuset"
@@ -2314,4 +2317,108 @@ var _ = Describe("high_performance_hooks", func() {
 			Expect(isRequestedHousekeepingCPUs(annotations, "container2")).To(BeTrue())
 		})
 	})
+
+	Describe("addOrRemoveCpusetFromManagers", func() {
+		BeforeEach(func() {
+			cgroups.TestMode = true
+
+			DeferCleanup(func() { cgroups.TestMode = false })
+		})
+
+		It("should not reorder the states of the caller when removing", func() {
+			parentDir, childDir := GinkgoT().TempDir(), GinkgoT().TempDir()
+			for dir, cpus := range map[string]string{parentDir: "0-3", childDir: "2"} {
+				Expect(
+					os.WriteFile(filepath.Join(dir, "cpuset.cpus"), []byte(cpus), 0o600),
+				).To(Succeed())
+				Expect(
+					os.WriteFile(filepath.Join(dir, "cpuset.cpus.exclusive"), []byte("2"), 0o600),
+				).To(Succeed())
+			}
+
+			parent := &desiredManagerCPUSetState{
+				manager:       &fakeCgroupManager{path: parentDir},
+				exclusiveCPUs: cpuset.New(2),
+				cpus:          cpuset.New(0, 1, 2, 3),
+			}
+			child := &desiredManagerCPUSetState{
+				manager:       &fakeCgroupManager{path: childDir},
+				exclusiveCPUs: cpuset.New(2),
+				cpus:          cpuset.New(2),
+			}
+			states := []*desiredManagerCPUSetState{parent, child}
+
+			Expect(
+				(&HighPerformanceHooks{}).addOrRemoveCpusetFromManagers(states, false),
+			).To(Succeed())
+
+			// The caller reverts failed changes with the same states, which
+			// has to happen from the parent to the child.
+			Expect(states).To(Equal([]*desiredManagerCPUSetState{parent, child}))
+
+			for _, dir := range []string{parentDir, childDir} {
+				Expect(
+					os.ReadFile(filepath.Join(dir, "cpuset.cpus.exclusive")),
+				).To(BeEquivalentTo("\n"))
+			}
+
+			Expect(os.ReadFile(filepath.Join(childDir, "cpuset.cpus"))).To(BeEmpty())
+		})
+	})
+
+	Describe("isCgroupRemoved", func() {
+		DescribeTable(
+			"should detect removed cgroups",
+			func(err error, expected bool) {
+				Expect(isCgroupRemoved(err)).To(Equal(expected))
+			},
+			Entry("no error", nil, false),
+			Entry("missing cgroup file",
+				&os.PathError{Op: "openat2", Path: "cpuset.cpus", Err: unix.ENOENT}, true),
+			Entry(
+				"write to cgroup in removal",
+				fmt.Errorf(
+					"failed to write: %w",
+					&os.PathError{Op: "write", Path: "cpuset.cpus", Err: unix.ENODEV},
+				),
+				true,
+			),
+			Entry(
+				"unknown systemd unit",
+				fmt.Errorf(
+					"unable to set unit properties: %w",
+					dbus.Error{Name: "org.freedesktop.systemd1.NoSuchUnit"},
+				),
+				true,
+			),
+			Entry(
+				"other systemd error",
+				fmt.Errorf(
+					"unable to set unit properties: %w",
+					dbus.Error{Name: "org.freedesktop.DBus.Error.AccessDenied"},
+				),
+				false,
+			),
+			Entry(
+				"other error",
+				&os.PathError{Op: "write", Path: "cpuset.cpus", Err: unix.EINVAL},
+				false,
+			),
+		)
+	})
 })
+
+// fakeCgroupManager writes the cpuset of Set directly to the files in path.
+type fakeCgroupManager struct {
+	cgroups.Manager
+
+	path string
+}
+
+func (m *fakeCgroupManager) Path(string) string {
+	return m.path
+}
+
+func (m *fakeCgroupManager) Set(r *cgroups.Resources) error {
+	return cgroups.WriteFile(m.path, "cpuset.cpus", r.CpusetCpus)
+}

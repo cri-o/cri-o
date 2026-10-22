@@ -35,11 +35,22 @@ and arm64 (root), with coverage uploaded to Codecov.
 [`integration.yml`](../.github/workflows/integration.yml) runs
 [BATS](https://github.com/bats-core/bats-core) integration tests and
 [critest](https://github.com/kubernetes-sigs/cri-tools) CRI conformance across
-conmon/conmon-rs, amd64/arm64, and user namespace mode. All jobs use crun.
+conmon/conmon-rs, amd64/arm64, and user namespace mode. All jobs use crun. Each
+integration configuration is split into `INTEGRATION_SHARDS` shards for the
+parallel tests plus one shard for the serial tests (`TEST_SHARD` in
+[`test/test_runner.sh`](../test/test_runner.sh)), which distributes the parallel
+tests round-robin, so the tests of every file get split evenly across the
+shards. Every job adds its failed, retried and slowest tests, and tests which
+left processes behind, to the job summary and uploads its JUnit reports as
+`test-report-*` artifact. A final job uploads the merged coverage of all jobs to
+Codecov. Pull requests that only change documentation skip the workflow, and
+Codecov carries the integration coverage forward.
 
 The integration workflow installs dependencies via
 [`scripts/github-actions-setup`](../scripts/github-actions-setup) with versions
-pinned in [`scripts/versions`](../scripts/versions).
+pinned in [`scripts/versions`](../scripts/versions). The tools built from source
+(cri-tools and crun) are built once per architecture, cached by those versions,
+and shared with the test jobs.
 
 ## OpenShift CI (Prow)
 

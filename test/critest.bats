@@ -2,6 +2,10 @@
 
 load helpers
 
+# critest retries flaky specs itself, retrying the whole suite takes too long.
+# shellcheck disable=SC2034
+BATS_TEST_RETRIES=0
+
 function setup() {
 	if [[ "$RUN_CRITEST" != "1" ]]; then
 		skip "critest because RUN_CRITEST is not set"

@@ -1,40 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-. /etc/os-release
-CRIU_REPO="https://download.opensuse.org/repositories/devel:/tools:/criu/xUbuntu_$VERSION_ID"
+# Packages needed to run the integration tests. The CRI-O and test binaries
+# link against libgpgme and libseccomp, crun as built by
+# scripts/github-actions-setup against the others.
+RUNTIME_PACKAGES=(
+    conmon
+    libcap-dev
+    libgpgme11-dev
+    libjson-c-dev
+    libseccomp-dev
+    libsystemd-dev
+    socat
+)
 
-curl -fSsL $CRIU_REPO/Release.key | sudo apt-key add -
-echo "deb $CRIU_REPO/ /" | sudo tee /etc/apt/sources.list.d/criu.list
+# Packages only needed to build and unit test CRI-O. The integration tests use
+# criu only for checkpoint tests, which require runc.
+BUILD_PACKAGES=(
+    autoconf
+    automake
+    criu
+    libaio-dev
+    libapparmor-dev
+    libbtrfs-dev
+    libdevmapper-dev
+    libfuse-dev
+    libnet1-dev
+    libnl-3-dev
+    libprotobuf-c-dev
+    libprotobuf-dev
+    libtool
+    libudev-dev
+    libyajl-dev
+    make
+    sed
+    uuid-dev
+    wget
+)
+
+PACKAGES=("${RUNTIME_PACKAGES[@]}")
+if [[ "${1:-}" != runtime ]]; then
+    PACKAGES+=("${BUILD_PACKAGES[@]}")
+
+    . /etc/os-release
+    CRIU_REPO="https://download.opensuse.org/repositories/devel:/tools:/criu/xUbuntu_$VERSION_ID"
+
+    curl -fSsL "$CRIU_REPO/Release.key" | sudo apt-key add -
+    echo "deb $CRIU_REPO/ /" | sudo tee /etc/apt/sources.list.d/criu.list
+fi
 
 sudo apt update
-sudo apt install -y \
-    autoconf \
-    automake \
-    cargo \
-    conmon \
-    criu \
-    libaio-dev \
-    libapparmor-dev \
-    libbtrfs-dev \
-    libcap-dev \
-    libdevmapper-dev \
-    libfuse-dev \
-    libgpgme11-dev \
-    libjson-c-dev \
-    libnet1-dev \
-    libnl-3-dev \
-    libprotobuf-c-dev \
-    libprotobuf-dev \
-    libseccomp-dev \
-    libsystemd-dev \
-    libtool \
-    libudev-dev \
-    libyajl-dev \
-    lld \
-    make \
-    rustc \
-    sed \
-    socat \
-    uuid-dev \
-    wget
+sudo apt install -y "${PACKAGES[@]}"
