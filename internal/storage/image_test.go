@@ -559,6 +559,48 @@ var _ = t.Describe("Image", func() {
 			Expect(res).To(HaveLen(2))
 		})
 
+		DescribeTable("should report the previous name without tag and digest",
+			func(history []string, expected string) {
+				// Given
+				mockutils.InOrder(
+					storeMock.EXPECT().Images().Return(
+						[]cs.Image{{ID: testSHA256, NamesHistory: history}}, nil),
+					// buildImageCacheItem:
+					mockNewImage(storeMock, "", testSHA256, testSHA256),
+					storeMock.EXPECT().Image(gomock.Any()).
+						Return(&cs.Image{
+							ID:    testSHA256,
+							Names: []string{"localhost/c:latest"},
+						}, nil),
+					storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
+						Return(nil, nil),
+					// makeRepoDigests:
+					storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
+						Return(digest.Digest(""), nil),
+					storeMock.EXPECT().Layer(gomock.Any()).Return(&cs.Layer{}, nil),
+				)
+
+				// When
+				res, err := sut.ListImages(&types.SystemContext{})
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(res).To(HaveLen(1))
+				Expect(res[0].PreviousName).To(Equal(expected))
+			},
+			Entry("with a tag",
+				[]string{"localhost/c:latest"}, "localhost/c"),
+			Entry("with a registry port and a tag",
+				[]string{"registry.example.com:5000/team/app:v1"},
+				"registry.example.com:5000/team/app"),
+			Entry("with a digest",
+				[]string{"example.com/team/app@sha256:" + testSHA256}, "example.com/team/app"),
+			Entry("with a short name",
+				[]string{"image:latest"}, "docker.io/library/image"),
+			Entry("with a name that does not parse",
+				[]string{"Not A Name:v1"}, ""),
+		)
+
 		It("should fail to list images without a filter on failing store", func() {
 			// Given
 			gomock.InOrder(
