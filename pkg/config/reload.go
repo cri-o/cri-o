@@ -307,42 +307,51 @@ func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 }
 
 // ReloadRuntimes reloads the runtimes configuration if changed.
+//
+// It validates copies of the new runtime handlers and publishes them
+// afterwards, because the validation fills fields like the conmon-rs features
+// and may disable stream_websockets. Concurrent CRI calls must not see a
+// handler which is only partly validated.
 func (c *Config) ReloadRuntimes(newConfig *Config) error {
-	var updated bool
-
-	if !RuntimesEqual(c.Runtimes, newConfig.Runtimes) {
-		logrus.Infof("Updating runtime configuration")
-
-		c.Runtimes = newConfig.Runtimes
-		updated = true
-	}
-
-	if c.DefaultRuntime != newConfig.DefaultRuntime {
-		c.DefaultRuntime = newConfig.DefaultRuntime
-		if err := c.ValidateDefaultRuntime(); err != nil {
-			return fmt.Errorf("unable to reload runtimes: %w", err)
-		}
-
-		logConfig("default_runtime", c.DefaultRuntime)
-
-		updated = true
-	}
-
-	if !updated {
+	runtimesChanged := !RuntimesEqual(c.Runtimes, newConfig.Runtimes)
+	if !runtimesChanged && c.DefaultRuntime == newConfig.DefaultRuntime {
 		return nil
 	}
 
-	if err := c.ValidateRuntimes(); err != nil {
+	if runtimesChanged {
+		logrus.Infof("Updating runtime configuration")
+	}
+
+	validated := c.RuntimeConfig
+	validated.DefaultRuntime = newConfig.DefaultRuntime
+
+	validated.Runtimes = make(Runtimes, len(newConfig.Runtimes))
+	for name, handler := range newConfig.Runtimes {
+		handlerCopy := *handler
+		validated.Runtimes[name] = &handlerCopy
+	}
+
+	if err := validated.ValidateDefaultRuntime(); err != nil {
 		return fmt.Errorf("unable to reload runtimes: %w", err)
 	}
 
-	for name := range c.Runtimes {
-		if c.Runtimes[name].seccompConfig != nil {
-			c.Runtimes[name].seccompConfig.SetNotifierPath(
+	if err := validated.ValidateRuntimes(); err != nil {
+		return fmt.Errorf("unable to reload runtimes: %w", err)
+	}
+
+	for _, handler := range validated.Runtimes {
+		if handler.seccompConfig != nil {
+			handler.seccompConfig.SetNotifierPath(
 				filepath.Join(filepath.Dir(c.Listen), "seccomp"),
 			)
 		}
 	}
+
+	if c.DefaultRuntime != validated.DefaultRuntime {
+		logConfig("default_runtime", validated.DefaultRuntime)
+	}
+
+	c.setRuntimeHandlers(validated.Runtimes, validated.DefaultRuntime)
 
 	return nil
 }

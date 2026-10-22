@@ -91,6 +91,7 @@ type RuntimeImpl interface {
 		bool,
 	) (string, error)
 	ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error)
+	ServePortForwardContainer(context.Context, *Container, string) (string, error)
 }
 
 // New creates a new Runtime with options provided.
@@ -108,7 +109,9 @@ func New(c *config.Config) (*Runtime, error) {
 
 // Runtimes returns the map of OCI runtimes.
 func (r *Runtime) Runtimes() config.Runtimes {
-	return r.config.Runtimes
+	runtimes, _ := r.config.RuntimeHandlers()
+
+	return runtimes
 }
 
 // ValidateRuntimeHandler returns an error if the runtime handler string
@@ -118,10 +121,12 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 		return nil, errors.New("empty runtime handler")
 	}
 
-	runtimeHandler, ok := r.config.Runtimes[handler]
+	runtimes, _ := r.config.RuntimeHandlers()
+
+	runtimeHandler, ok := runtimes[handler]
 	if !ok {
 		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
-			handler, r.config.Runtimes)
+			handler, runtimes)
 	}
 
 	if runtimeHandler.RuntimePath == "" {
@@ -133,7 +138,8 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 
 func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
 	// Define the current runtime handler as the default runtime handler.
-	rh := r.config.Runtimes[r.config.DefaultRuntime]
+	runtimes, defaultRuntime := r.config.RuntimeHandlers()
+	rh := runtimes[defaultRuntime]
 
 	// Override the current runtime handler with the runtime handler
 	// corresponding to the runtime handler key provided with this
@@ -276,6 +282,17 @@ func (r *Runtime) RuntimeStreamWebsockets(runtimeHandler string) (bool, error) {
 	return rh.RuntimeStreamWebsockets(), nil
 }
 
+// RuntimeStreamPortForward returns whether the container monitor of this
+// handler serves port forwarding.
+func (r *Runtime) RuntimeStreamPortForward(runtimeHandler string) (bool, error) {
+	rh, err := r.getRuntimeHandler(runtimeHandler)
+	if err != nil {
+		return false, err
+	}
+
+	return rh.RuntimeStreamPortForward(), nil
+}
+
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
 	if err != nil {
@@ -314,6 +331,28 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	}
 
 	r.runtimeImplMap[c.ID()] = impl
+
+	return impl, nil
+}
+
+// streamingRuntimeImpl returns the runtime implementation of the container
+// for the exec, attach and port forward requests of the CRI without creating
+// one. Creating one would start a conmon-rs server if the pod got removed
+// after the request found its container, and nothing would stop that server.
+// CRI-O creates the implementation when it creates or restores a container,
+// so a missing one means that the container is gone or going away. It fails
+// with errors.ErrUnsupported then, like a runtime which does not serve the
+// request, and CRI-O's streaming server handles it.
+func (r *Runtime) streamingRuntimeImpl(c *Container) (RuntimeImpl, error) {
+	r.runtimeImplMapMutex.RLock()
+	impl, ok := r.runtimeImplMap[c.ID()]
+	r.runtimeImplMapMutex.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf(
+			"no runtime implementation for container %s: %w", c.ID(), errors.ErrUnsupported,
+		)
+	}
 
 	return impl, nil
 }
@@ -654,7 +693,7 @@ func (r *Runtime) ServeExecContainer(
 	cmd []string,
 	tty, stdin, stdout, stderr bool,
 ) (string, error) {
-	impl, err := r.RuntimeImpl(c)
+	impl, err := r.streamingRuntimeImpl(c)
 	if err != nil {
 		return "", err
 	}
@@ -667,10 +706,23 @@ func (r *Runtime) ServeAttachContainer(
 	c *Container,
 	stdin, stdout, stderr bool,
 ) (string, error) {
-	impl, err := r.RuntimeImpl(c)
+	impl, err := r.streamingRuntimeImpl(c)
 	if err != nil {
 		return "", err
 	}
 
 	return impl.ServeAttachContainer(ctx, c, stdin, stdout, stderr)
+}
+
+func (r *Runtime) ServePortForwardContainer(
+	ctx context.Context,
+	c *Container,
+	netNsPath string,
+) (string, error) {
+	impl, err := r.streamingRuntimeImpl(c)
+	if err != nil {
+		return "", err
+	}
+
+	return impl.ServePortForwardContainer(ctx, c, netNsPath)
 }

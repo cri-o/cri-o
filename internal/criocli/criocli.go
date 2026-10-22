@@ -1450,7 +1450,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "stream-idle-timeout",
-			Usage:   "Length of time until open streams terminate due to lack of activity.",
+			Usage:   "Length of time until open streams of the CRI-O streaming server and conmon-rs terminate due to lack of activity. Defaults to 4h if not set, 0 disables it and negative values are invalid.",
 			EnvVars: []string{"STREAM_IDLE_TIMEOUT"},
 			Value:   defConf.StreamIdleTimeout,
 		},
