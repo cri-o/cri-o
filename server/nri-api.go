@@ -92,6 +92,24 @@ func (a *nriAPI) updatePodSandbox(
 	)
 }
 
+func (a *nriAPI) postUpdatePodSandbox(
+	ctx context.Context,
+	criPod *sandbox.Sandbox,
+	overhead, resources *cri.LinuxContainerResources,
+) error {
+	if !a.isEnabled() {
+		return nil
+	}
+
+	// The sandbox still holds the resources it was created with, so report
+	// the updated values to plugins.
+	pod := nriPodSandbox(ctx, criPod)
+	pod.updatedOverhead = overhead
+	pod.updatedResources = resources
+
+	return a.nri.PostUpdatePodSandbox(ctx, pod)
+}
+
 func (a *nriAPI) stopPodSandbox(ctx context.Context, criPod *sandbox.Sandbox) error {
 	if !a.isEnabled() {
 		return nil
@@ -550,6 +568,11 @@ type criPodSandbox struct {
 
 	spec *rspec.Spec
 	pid  int
+
+	// Pod overhead and resources from an update request, used instead of
+	// the values stored in the sandbox when set.
+	updatedOverhead  *cri.LinuxContainerResources
+	updatedResources *cri.LinuxContainerResources
 }
 
 func nriPodSandbox(ctx context.Context, pod *sandbox.Sandbox) *criPodSandbox {
@@ -655,6 +678,10 @@ func (p *criPodSandbox) GetLinuxNamespaces() []*api.LinuxNamespace {
 }
 
 func (p *criPodSandbox) GetPodLinuxOverhead() *api.LinuxResources {
+	if p.updatedOverhead != nil {
+		return fromCRILinuxResources(p.updatedOverhead)
+	}
+
 	if p.Sandbox == nil {
 		return nil
 	}
@@ -663,6 +690,10 @@ func (p *criPodSandbox) GetPodLinuxOverhead() *api.LinuxResources {
 }
 
 func (p *criPodSandbox) GetPodLinuxResources() *api.LinuxResources {
+	if p.updatedResources != nil {
+		return fromCRILinuxResources(p.updatedResources)
+	}
+
 	if p.Sandbox == nil {
 		return nil
 	}

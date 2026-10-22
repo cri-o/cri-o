@@ -249,6 +249,21 @@ func (p *plugin) UpdatePodSandbox(
 	return nil
 }
 
+func (p *plugin) PostUpdatePodSandbox(_ context.Context, pod *api.PodSandbox) error {
+	if !p.inNamespace(pod.GetNamespace()) {
+		return nil
+	}
+
+	p.emitEvent(
+		&event{
+			kind: "PostUpdatePodSandbox",
+			pod:  pod,
+		},
+	)
+
+	return nil
+}
+
 func (p *plugin) StopPodSandbox(_ context.Context, pod *api.PodSandbox) error {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil
@@ -700,6 +715,10 @@ func UpdatePodEvent(pod string, overhead, resources *api.LinuxResources) *event 
 		overhead:  overhead,
 		resources: resources,
 	}
+}
+
+func PostUpdatePodEvent(pod string) *event {
+	return PodEvent("PostUpdatePodSandbox", pod)
 }
 
 func PodEvent(kind, pod string) *event {
