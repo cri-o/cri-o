@@ -33,7 +33,7 @@ func (s *Server) UpdatePodSandboxResources(
 		return nil, err
 	}
 
-	if err := s.nri.postUpdatePodSandbox(ctx, sb); err != nil {
+	if err := s.nri.postUpdatePodSandbox(ctx, sb, req.GetOverhead(), req.GetResources()); err != nil {
 		log.Warnf(ctx, "NRI post-update failed for pod sandbox %q: %v", sb.ID(), err)
 	}
 

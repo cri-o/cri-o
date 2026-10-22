@@ -122,10 +122,18 @@ func TestPodUpdateEvents(stdT *testing.T) {
 	expected := []*event{
 		RunPodEvent(pod),
 		UpdatePodEvent(pod, nil, nil),
-		PostUpdatePodEvent(pod),
 	}
 	require.NoError(t, t.plugins[0].VerifyEventStream(expected, true, eventTimeout),
 		"received pod update event stream")
+
+	evt := t.plugins[0].WaitEvent(PostUpdatePodEvent(pod), eventTimeout)
+	require.NotNil(t, evt, "received PostUpdatePodSandbox event")
+	require.Equal(t, int64(10*1024*1024),
+		evt.pod.GetLinux().GetPodOverhead().GetMemory().GetLimit().GetValue(),
+		"updated pod overhead in PostUpdatePodSandbox")
+	require.Equal(t, int64(20*1024*1024),
+		evt.pod.GetLinux().GetPodResources().GetMemory().GetLimit().GetValue(),
+		"updated pod resources in PostUpdatePodSandbox")
 }
 
 func TestContainerEvents(stdT *testing.T) {
