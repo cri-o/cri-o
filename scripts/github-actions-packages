@@ -20,6 +20,7 @@ sudo apt install -y \
     libcap-dev \
     libdevmapper-dev \
     libfuse-dev \
+    libglib2.0-dev \
     libgpgme11-dev \
     libjson-c-dev \
     libnet1-dev \

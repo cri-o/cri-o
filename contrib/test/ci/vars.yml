@@ -14,6 +14,7 @@ evented_pleg_fg: "{{ EVENTED_PLEG | default(False) | bool }}"
 
 critest_mirror_repo: quay.io/crio
 cri_tools_git_version: v1.36.0
+conmon_git_version: v2.2.1
 
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts" # Base-directory for collection

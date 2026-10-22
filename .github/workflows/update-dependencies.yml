@@ -1,0 +1,61 @@
+name: update dependencies
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 0" # Every Sunday at 06:00 UTC
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  update-dependencies:
+    permissions:
+      contents: write
+      pull-requests: write
+    if: github.ref == 'refs/heads/main' && github.repository == 'cri-o/cri-o'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Update dependency commits
+        run: make update-dependencies
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create or update PR
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          commit-message: Update crun, cri-tools and conmon to latest commits
+          title: Update crun, cri-tools and conmon to latest commits
+          body: |
+            #### What type of PR is this?
+
+            /kind dependency-change
+
+            #### What this PR does / why we need it:
+
+            Update crun, cri-tools and conmon to their latest default-branch
+            commits in dependencies.yaml and the corresponding CI references.
+
+            #### Which issue(s) this PR fixes:
+
+            None
+
+            #### Special notes for your reviewer:
+
+            Automated weekly dependency update. Validated with
+            `make verify-dependencies`.
+
+            #### Does this PR introduce a user-facing change?
+
+            ```release-note
+            None
+            ```
+          labels: kind/dependency-change, release-note-none, ok-to-test
+          branch: update-dependencies
+          base: main
+          delete-branch: true
+          signoff: true
+          add-paths: |
+            dependencies.yaml
+            scripts/versions
+            contrib/test/ci/vars.yml

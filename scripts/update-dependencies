@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dependencies=(crun cri-tools conmon)
+declare -A repositories=(
+    ["crun"]=containers/crun
+    ["cri-tools"]=kubernetes-sigs/cri-tools
+    ["conmon"]=containers/conmon
+)
+declare -A revisions
+
+# Resolve all upstream commits before changing any files.
+for dependency in "${dependencies[@]}"; do
+    revision=$(gh api -X GET "repos/${repositories[$dependency]}/commits?per_page=1" --jq '.[0].sha')
+    if [[ ! $revision =~ ^[0-9a-f]{40}$ ]]; then
+        echo "Invalid commit for $dependency: $revision" >&2
+        exit 1
+    fi
+    revisions[$dependency]=$revision
+done
+
+for dependency in "${dependencies[@]}"; do
+    revision=${revisions[$dependency]}
+    echo "Updating $dependency to $revision"
+
+    # Preserve comments and formatting, as in the patch-release updater.
+    sed -i "/^  - name: $dependency\$/ {n; s/^    version: .*/    version: \"$revision\"/;}" dependencies.yaml
+    sed -i -E "s/^(    \[\"$dependency\"\]=).*/\1$revision/" scripts/versions
+    variable=${dependency//-/_}_git_version
+    sed -i -E "s/^($variable: ).*/\1\"$revision\"/" contrib/test/ci/vars.yml
+done
