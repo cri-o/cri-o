@@ -766,12 +766,12 @@ func (c *container) SpecSetupCapabilities(
 		}
 	}
 
-	for _, cap := range caps.GetAddCapabilities() {
-		if strings.EqualFold(cap, "ALL") {
+	for _, capStr := range caps.GetAddCapabilities() {
+		if strings.EqualFold(capStr, "ALL") {
 			continue
 		}
 
-		capPrefixed := toCAPPrefixed(cap)
+		capPrefixed := toCAPPrefixed(capStr)
 		// Validate capability
 		if !inStringSlice(capabilitiesList, capPrefixed) {
 			return fmt.Errorf("unknown capability %q to add", capPrefixed)
@@ -796,12 +796,12 @@ func (c *container) SpecSetupCapabilities(
 		}
 	}
 
-	for _, cap := range caps.GetDropCapabilities() {
-		if strings.EqualFold(cap, "ALL") {
+	for _, capStr := range caps.GetDropCapabilities() {
+		if strings.EqualFold(capStr, "ALL") {
 			continue
 		}
 
-		capPrefixed := toCAPPrefixed(cap)
+		capPrefixed := toCAPPrefixed(capStr)
 		if err := specgen.DropProcessCapabilityBounding(capPrefixed); err != nil {
 			return fmt.Errorf("failed to drop cap %s %w", capPrefixed, err)
 		}
@@ -845,12 +845,12 @@ func getOCICapabilitiesList() ([]string, error) {
 		return nil, fmt.Errorf("get last capability: %w", err)
 	}
 
-	for _, cap := range capability.ListKnown() {
-		if cap > lastCap {
+	for _, knownCap := range capability.ListKnown() {
+		if knownCap > lastCap {
 			continue
 		}
 
-		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
+		caps = append(caps, "CAP_"+strings.ToUpper(knownCap.String()))
 	}
 
 	return caps, nil
@@ -877,8 +877,8 @@ func (c *container) SpecSetPrivileges(
 
 	if securityContext.GetNoNewPrivs() {
 		const sysAdminCap = "CAP_SYS_ADMIN"
-		for _, cap := range specgen.Config.Process.Capabilities.Bounding {
-			if cap == sysAdminCap {
+		for _, capStr := range specgen.Config.Process.Capabilities.Bounding {
+			if capStr == sysAdminCap {
 				log.Warnf(
 					ctx,
 					"Setting `noNewPrivileges` flag has no effect because container has %s capability",

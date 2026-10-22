@@ -846,7 +846,7 @@ func (r *runtimeOCI) ExecSyncContainer(
 
 	if waitErr != nil {
 		// if we aren't a ExitError, some I/O problems probably occurred
-		if _, ok := errors.AsType[*exec.ExitError]( //nolint:errcheck // type assertion check
+		if _, ok := errors.AsType[*exec.ExitError](
 			waitErr,
 		); !ok {
 			return nil, &ExecSyncError{
@@ -1553,7 +1553,7 @@ func (r *runtimeOCI) AttachContainer(
 			return nil
 		}
 
-		if _, ok := errors.AsType[utils.DetachError]( //nolint:errcheck // type assertion check
+		if _, ok := errors.AsType[utils.DetachError](
 			err,
 		); ok {
 			return nil

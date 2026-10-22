@@ -716,7 +716,16 @@ func (r *runtimeVM) execContainerCommon(
 			return execError, killErr
 		}
 
-		<-execCh
+		if execErr := <-execCh; execErr != nil {
+			log.Debugf(
+				ctx,
+				"Unable to wait for exec process %s in container %s after timeout: %v",
+				execID,
+				c.ID(),
+				execErr,
+			)
+		}
+
 		// do not make an error for timeout: report it with a specific error code
 		return execTimeout, nil
 	}
