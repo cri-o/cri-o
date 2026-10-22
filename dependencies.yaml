@@ -58,7 +58,7 @@ dependencies:
         match: conmon
 
   - name: cri-tools
-    version: v1.36.0
+    version: v1.37.0
     refPaths:
       - path: contrib/test/ci/vars.yml
         match: cri_tools_git_version
