@@ -1991,7 +1991,7 @@ func (r *runtimeOCI) ServeExecContainer(
 	bool,
 	bool,
 ) (string, error) {
-	return "", nil
+	return "", fmt.Errorf("serve exec: %w", errors.ErrUnsupported)
 }
 
 func (r *runtimeOCI) ServeAttachContainer(
@@ -2001,5 +2001,13 @@ func (r *runtimeOCI) ServeAttachContainer(
 	bool,
 	bool,
 ) (string, error) {
-	return "", nil
+	return "", fmt.Errorf("serve attach: %w", errors.ErrUnsupported)
+}
+
+func (r *runtimeOCI) ServePortForwardContainer(
+	context.Context,
+	*Container,
+	string,
+) (string, error) {
+	return "", fmt.Errorf("serve port forward: %w", errors.ErrUnsupported)
 }

@@ -61,7 +61,10 @@ func stringStringMapToMapEntryList(
 	return nil
 }
 
-func remoteFDSliceToUInt64List(src []RemoteFD, newFunc func(int32) (capnp.UInt64List, error)) error {
+func remoteFDSliceToUInt64List(
+	src []RemoteFD,
+	newFunc func(int32) (capnp.UInt64List, error),
+) error {
 	l := int32(len(src))
 	if l == 0 {
 		return nil

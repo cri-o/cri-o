@@ -954,7 +954,10 @@ const templateStringCrioAPIStreamEnableTLS = `# Enable encrypted TLS transport o
 
 `
 
-const templateStringCrioAPIStreamIdleTimeout = `# Length of time until open streams terminate due to lack of activity
+const templateStringCrioAPIStreamIdleTimeout = `# Length of time until open streams terminate due to lack of activity. It applies
+# to the CRI-O streaming server and to the exec, attach and port forward sessions
+# served by conmon-rs. It defaults to 4h if not set, "0" disables it and negative
+# values fail the validation.
 {{ $.Comment }}stream_idle_timeout = "{{.StreamIdleTimeout}}"
 
 `
@@ -1466,7 +1469,9 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   This option is only valid for the 'oci' runtime type. Setting this option to true can cause data loss, e.g.
 #   when a machine crash happens.
 # - default_annotations (optional, map): Default annotations if not overridden by the pod spec.
-# - stream_websockets (optional, bool): Enable the WebSocket protocol for container exec, attach and port forward.
+# - stream_websockets (optional, bool): Let conmon-rs serve container exec, attach and port forward over SPDY
+#   and WebSocket instead of the CRI-O streaming server. Only valid for the 'pod' runtime type, needs
+#   conmon-rs v1.2.0 or later and gets disabled for older versions.
 # - seccomp_profile (optional, string): The absolute path of the seccomp.json profile which is used as the default
 #   seccomp profile for the runtime.
 #   If not specified or set to "", the runtime seccomp_profile will be used.
