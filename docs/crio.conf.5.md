@@ -92,7 +92,7 @@ The port on which the stream server will listen. If the port is set to "0", then
 Enable encrypted TLS transport of the stream server.
 
 **stream_idle_timeout**=""
-Length of time until open streams terminate due to lack of activity.
+Length of time until open streams terminate due to lack of activity. It applies to the CRI-O streaming server and to the exec, attach and port forward sessions served by conmon-rs (`stream_websockets`). It defaults to 4h if not set, "0" disables it and negative values fail the validation.
 
 **stream_tls_cert**=""
 Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
@@ -401,8 +401,8 @@ runtime type. Setting this option to true can cause data loss, e.g. when a machi
 A mapping of keys to values of annotations set on containers run by this runtime handler, if not overridden by the pod spec.
 
 **stream_websockets**=false
-Enable the WebSocket protocol for container exec, attach and port forward.
-conmon-rs (`runtime_type = "pod"`) supports this configuration for exec and attach. Forwarding ports will be supported in future releases.
+Let conmon-rs serve container exec, attach and port forward over SPDY and WebSocket instead of the CRI-O streaming server, with the idle timeout of `stream_idle_timeout`.
+Only valid for `runtime_type = "pod"`. It needs conmon-rs v1.2.0 or later and gets disabled for older versions.
 
 **seccomp_profile**=""
 Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the `crio.runtime` seccomp profile will be used.

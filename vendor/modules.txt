@@ -236,7 +236,7 @@ github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v1.1.1
+# github.com/containers/conmon-rs v1.2.1
 ## explicit; go 1.27.1
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client

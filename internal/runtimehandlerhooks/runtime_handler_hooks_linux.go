@@ -52,7 +52,9 @@ func (hr *HooksRetriever) Get(
 
 	if strings.Contains(runtimeName, HighPerformance) ||
 		highPerformanceAnnotationsSpecified(sandboxAnnotations) {
-		runtimeConfig, ok := hr.config.Runtimes[runtimeName]
+		runtimes, _ := hr.config.RuntimeHandlers()
+
+		runtimeConfig, ok := runtimes[runtimeName]
 		if !ok {
 			// This shouldn't happen because runtime is already validated
 			log.Errorf(ctx, "Config of runtime %s is not found", runtimeName)
@@ -116,7 +118,8 @@ func highPerformanceAnnotationsSpecified(annotations map[string]string) bool {
 
 func cpuLoadBalancingAllowed(config *libconfig.Config) bool {
 	cpuLoadBalancingAllowedAnywhereOnce.Do(func() {
-		for _, runtime := range config.Runtimes {
+		runtimes, _ := config.RuntimeHandlers()
+		for _, runtime := range runtimes {
 			for _, ann := range runtime.AllowedAnnotations {
 				if ann == crioann.CPULoadBalancing {
 					cpuLoadBalancingAllowedAnywhere = true

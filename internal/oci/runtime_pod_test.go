@@ -1,6 +1,9 @@
 package oci_test
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -29,6 +32,58 @@ func setEnv(key, value string, set bool) {
 			Expect(os.Unsetenv(key)).To(Succeed())
 		}
 	})
+}
+
+// fakeConmonServer records how a conmon-rs server got stopped.
+type fakeConmonServer struct {
+	shutdownErr, killErr error
+	killed, closed       bool
+	// The errors of the contexts of the calls.
+	shutdownCtxErr, killCtxErr error
+	// The time left until the deadline of the context of the kill.
+	killTimeLeft time.Duration
+}
+
+func (f *fakeConmonServer) PID() uint32 {
+	return 1
+}
+
+func (f *fakeConmonServer) ShutdownContext(ctx context.Context) error {
+	if f.closed {
+		return conmonClient.ErrClientClosed
+	}
+
+	f.shutdownCtxErr = ctx.Err()
+
+	return f.shutdownErr
+}
+
+func (f *fakeConmonServer) KillContext(ctx context.Context) error {
+	if f.closed {
+		return conmonClient.ErrClientClosed
+	}
+
+	f.killed = true
+	f.killCtxErr = ctx.Err()
+
+	if deadline, ok := ctx.Deadline(); ok {
+		f.killTimeLeft = time.Until(deadline)
+	}
+
+	return f.killErr
+}
+
+func (f *fakeConmonServer) Close() error {
+	f.closed = true
+
+	return errors.New("close")
+}
+
+// fakeConmonFeatures reports the features of a conmon-rs server.
+type fakeConmonFeatures map[string]bool
+
+func (f fakeConmonFeatures) SupportsFeature(feature string) bool {
+	return f[feature]
 }
 
 func newPodTestContainer(terminal, stdin, stdinOnce bool) *oci.Container {
@@ -153,6 +208,241 @@ var _ = t.Describe("RuntimePod", func() {
 			Expect(cfg.Env).NotTo(ContainElement(HavePrefix("CRIO_TEST_SENTINEL=")))
 			Expect(cfg.LogDriver).To(Equal(conmonClient.LogDriverNone))
 			Expect(cfg.Heaptrack.Enabled).To(BeFalse())
+		})
+	})
+
+	Context("RequireStreamingProtocols", func() {
+		It("should succeed if the server speaks the streaming protocols", func() {
+			// Given
+			client := fakeConmonFeatures{conmonClient.FeatureStreamingProtocols: true}
+
+			// When
+			err := oci.RequireStreamingProtocols(client)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should fail with ErrUnsupported if the server is older", func() {
+			// Given
+			client := fakeConmonFeatures{conmonClient.FeatureSdNotify: true}
+
+			// When
+			err := oci.RequireStreamingProtocols(client)
+
+			// Then
+			Expect(err).To(MatchError(conmonClient.ErrUnsupported))
+			Expect(err).To(MatchError(errors.ErrUnsupported))
+		})
+	})
+
+	Context("ExecSyncResponse", func() {
+		It("should pass the exit code and output of a finished command", func() {
+			// Given
+			res := &conmonClient.ExecContainerResult{
+				ExitCode: 137,
+				Stdout:   []byte("out"),
+				Stderr:   []byte("err"),
+			}
+
+			// When
+			resp, err := oci.ExecSyncResponse(res)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resp.GetExitCode()).To(BeEquivalentTo(137))
+			Expect(resp.GetStdout()).To(Equal([]byte("out")))
+			Expect(resp.GetStderr()).To(Equal([]byte("err")))
+		})
+
+		It("should report a timeout as a failed command like conmon", func() {
+			// Given
+			res := &conmonClient.ExecContainerResult{
+				ExitCode: conmonClient.ExecExitCodeTimedOut,
+				TimedOut: true,
+			}
+
+			// When
+			resp, err := oci.ExecSyncResponse(res)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resp.GetExitCode()).To(BeEquivalentTo(-1))
+			Expect(string(resp.GetStderr())).To(ContainSubstring("timed out"))
+		})
+
+		DescribeTable(
+			"should fail without an exit status",
+			func(exitCode int32, message string) {
+				// Given
+				res := &conmonClient.ExecContainerResult{
+					ExitCode: exitCode,
+					Stderr:   []byte("runtime failed"),
+				}
+
+				// When
+				resp, err := oci.ExecSyncResponse(res)
+
+				// Then
+				Expect(resp).To(BeNil())
+
+				syncErr, ok := errors.AsType[*oci.ExecSyncError](err)
+				Expect(ok).To(BeTrue())
+				Expect(syncErr.ExitCode).To(BeEquivalentTo(-1))
+				Expect(syncErr.Err).To(MatchError(message))
+				Expect(syncErr.Stderr.String()).To(Equal("runtime failed"))
+			},
+			Entry("not started", conmonClient.ExecExitCodeNotStarted, "exec did not start"),
+			Entry(
+				"timed out without a timeout",
+				conmonClient.ExecExitCodeTimedOut,
+				"exit status of exec unknown",
+			),
+			Entry("unknown", int32(-1), "exit status of exec unknown"),
+		)
+	})
+
+	Context("UnsupportedError", func() {
+		It("should add the error of the standard library", func() {
+			// Given
+			rpcErr := fmt.Errorf(
+				"call ServePortForwardContainer RPC: %w",
+				conmonClient.ErrUnsupported,
+			)
+
+			// When
+			err := oci.UnsupportedError(rpcErr)
+
+			// Then
+			Expect(err).To(MatchError(conmonClient.ErrUnsupported))
+			Expect(err).To(MatchError(errors.ErrUnsupported))
+		})
+
+		It("should keep other errors", func() {
+			// Given
+			rpcErr := fmt.Errorf(
+				"call ServePortForwardContainer RPC: %w",
+				conmonClient.ErrTooManyRequests,
+			)
+
+			// When
+			err := oci.UnsupportedError(rpcErr)
+
+			// Then
+			Expect(err).To(BeIdenticalTo(rpcErr))
+			Expect(err).NotTo(MatchError(errors.ErrUnsupported))
+		})
+	})
+
+	Context("ShutdownConmonServer", func() {
+		It("should not kill a server which shut down", func() {
+			// Given
+			server := &fakeConmonServer{}
+
+			// When
+			err := oci.ShutdownConmonServer(context.Background(), server)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(server.killed).To(BeFalse())
+			Expect(server.closed).To(BeTrue())
+		})
+
+		It("should kill a server which did not exit in time", func() {
+			// Given
+			server := &fakeConmonServer{
+				shutdownErr: fmt.Errorf("stop: %w", conmonClient.ErrShutdownTimeout),
+			}
+
+			// When
+			err := oci.ShutdownConmonServer(context.Background(), server)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(server.killed).To(BeTrue())
+			Expect(server.killTimeLeft).To(BeNumerically(">", 0))
+			Expect(server.killTimeLeft).To(BeNumerically("<=", 3*time.Second))
+			Expect(server.closed).To(BeTrue())
+		})
+
+		It("should stop the server of a canceled request", func() {
+			// Given
+			server := &fakeConmonServer{shutdownErr: conmonClient.ErrShutdownTimeout}
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			// When
+			err := oci.ShutdownConmonServer(ctx, server)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(server.shutdownCtxErr).ToNot(HaveOccurred())
+			Expect(server.killed).To(BeTrue())
+			Expect(server.killCtxErr).ToNot(HaveOccurred())
+		})
+
+		It("should fail if killing the server fails", func() {
+			// Given
+			killErr := errors.New("kill")
+			server := &fakeConmonServer{
+				shutdownErr: conmonClient.ErrShutdownTimeout,
+				killErr:     killErr,
+			}
+
+			// When
+			err := oci.ShutdownConmonServer(context.Background(), server)
+
+			// Then
+			Expect(err).To(MatchError(killErr))
+			Expect(server.killed).To(BeTrue())
+			Expect(server.closed).To(BeFalse())
+		})
+
+		It("should close the client of a server with an unknown PID", func() {
+			// Given
+			server := &fakeConmonServer{
+				shutdownErr: fmt.Errorf("stop: %w", conmonClient.ErrServerPIDUnknown),
+			}
+
+			// When
+			err := oci.ShutdownConmonServer(context.Background(), server)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(server.killed).To(BeFalse())
+			Expect(server.closed).To(BeTrue())
+		})
+
+		It("should not kill the server on other failures", func() {
+			// Given
+			shutdownErr := errors.New("shutdown")
+			server := &fakeConmonServer{shutdownErr: shutdownErr}
+
+			// When
+			err := oci.ShutdownConmonServer(context.Background(), server)
+
+			// Then
+			Expect(err).To(MatchError(shutdownErr))
+			Expect(server.killed).To(BeFalse())
+			Expect(server.closed).To(BeFalse())
+		})
+
+		It("should keep the client usable for a retry after a failure", func() {
+			// Given
+			server := &fakeConmonServer{
+				shutdownErr: conmonClient.ErrShutdownTimeout,
+				killErr:     errors.New("kill"),
+			}
+			Expect(oci.ShutdownConmonServer(context.Background(), server)).NotTo(Succeed())
+			server.killErr = nil
+
+			// When
+			err := oci.ShutdownConmonServer(context.Background(), server)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(server.killed).To(BeTrue())
+			Expect(server.closed).To(BeTrue())
 		})
 	})
 
