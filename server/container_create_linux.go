@@ -545,7 +545,11 @@ func (s *Server) mountArtifact(
 			RecursiveReadOnly: m.GetRecursiveReadOnly(),
 			Propagation:       m.GetPropagation(),
 			SelinuxRelabel:    m.GetSelinuxRelabel(),
-			Image:             &types.ImageSpec{Image: artifact.Digest().Encoded()},
+			// ImageRef mirrors the canonical digest reference to reflect the mounted content for the user.
+			Image: &types.ImageSpec{
+				Image:    artifact.Digest().Encoded(),
+				ImageRef: artifact.CanonicalName(),
+			},
 		})
 
 		specgen.AddMount(rspec.Mount{
@@ -610,6 +614,20 @@ func FilterMountPathsBySubPath(
 	}
 
 	return filteredPaths, nil
+}
+
+// imageVolumeImageRef picks the value to report as ImageSpec.ImageRef for a
+// non-artifact image-volume mount. It prefers the resolved repo digest so the
+// kubelet can observe and pin the exact content that was mounted (KEP-5365),
+// falling back to the image ID if no repo digest is available, e.g. for locally
+// built images. This mirrors how the main container image's ImageRef is
+// derived, see someRepoDigest in resolveAndVerifyContainerImage.
+func imageVolumeImageRef(imageID string, repoDigests []string) string {
+	if len(repoDigests) > 0 {
+		return repoDigests[0]
+	}
+
+	return imageID
 }
 
 // mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.
@@ -704,6 +722,8 @@ func (s *Server) mountImage(
 	})
 	log.Debugf(ctx, "Added overlay mount from %s to %s", mountPoint, imageVolumesPath)
 
+	imageRef := imageVolumeImageRef(imageID, status.RepoDigests)
+
 	return &oci.ContainerVolume{
 		ContainerPath:     m.GetContainerPath(),
 		HostPath:          mountPoint,
@@ -711,7 +731,7 @@ func (s *Server) mountImage(
 		RecursiveReadOnly: m.GetRecursiveReadOnly(),
 		Propagation:       m.GetPropagation(),
 		SelinuxRelabel:    m.GetSelinuxRelabel(),
-		Image:             &types.ImageSpec{Image: imageID},
+		Image:             &types.ImageSpec{Image: imageID, ImageRef: imageRef},
 	}, safeMount, nil
 }
 
