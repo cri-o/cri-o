@@ -44,7 +44,8 @@ func (s *Server) Status(
 		},
 	}
 
-	for name, runtime := range s.config.Runtimes {
+	runtimes, defaultRuntime := s.config.RuntimeHandlers()
+	for name, runtime := range runtimes {
 		makeRuntimeHandler := func(name string, rro, userns bool) *types.RuntimeHandler {
 			return &types.RuntimeHandler{
 				Name: name,
@@ -61,7 +62,7 @@ func (s *Server) Status(
 		resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 
 		// if it is the default runtime, also add it with an empty name
-		if name == s.config.DefaultRuntime {
+		if name == defaultRuntime {
 			h := makeRuntimeHandler("", rro, userns)
 			resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 		}

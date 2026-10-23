@@ -42,3 +42,9 @@ func (c *Config) SetCheckpointRestore(cr bool) {
 func (c *RuntimeConfig) SetCgroupManager(mgr cgmgr.CgroupManager) {
 	c.cgroupManager = mgr
 }
+
+// SetConmonrsFeatures sets the features the conmon-rs binary of the handler
+// reports.
+func (r *RuntimeHandler) SetConmonrsFeatures(features []string) {
+	r.conmonrsFeatures = features
+}

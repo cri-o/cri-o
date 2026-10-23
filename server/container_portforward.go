@@ -2,13 +2,13 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
 	"go.podman.io/storage/pkg/pools"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 )
 
@@ -17,12 +17,61 @@ func (s *Server) PortForward(
 	ctx context.Context,
 	req *types.PortForwardRequest,
 ) (*types.PortForwardResponse, error) {
+	sb, err := s.getPodSandboxFromRequest(ctx, req.GetPodSandboxId())
+	if err != nil {
+		return nil, fmt.Errorf("could not find pod sandbox %q: %w", req.GetPodSandboxId(), err)
+	}
+
+	url, err := monitorStreamingURL(
+		ctx,
+		s.Runtime().RuntimeStreamPortForward,
+		sb.RuntimeHandler(),
+		"port forward",
+		fmt.Sprintf("pod sandbox %q", req.GetPodSandboxId()),
+		func() (string, error) { return s.servePortForward(ctx, sb) },
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if url != "" {
+		return &types.PortForwardResponse{Url: url}, nil
+	}
+
 	resp, err := s.getPortForward(req)
 	if err != nil {
-		return nil, errors.New("unable to prepare portforward endpoint")
+		return nil, fmt.Errorf("unable to prepare port forward endpoint: %w", err)
 	}
 
 	return resp, nil
+}
+
+// servePortForward returns the port forward URL of the container monitor of
+// the sandbox.
+func (s *Server) servePortForward(ctx context.Context, sb *sandbox.Sandbox) (string, error) {
+	netNsPath, err := portForwardNetNsPath(sb)
+	if err != nil {
+		return "", err
+	}
+
+	return s.Runtime().ServePortForwardContainer(ctx, sb.InfraContainer(), netNsPath)
+}
+
+// portForwardNetNsPath returns the network namespace path to forward the
+// ports of the sandbox in, which has to be running.
+func portForwardNetNsPath(sb *sandbox.Sandbox) (string, error) {
+	if !sb.Ready() {
+		return "", fmt.Errorf("sandbox %s is not running", sb.ID())
+	}
+
+	netNsPath := sb.NetNsPath()
+	if netNsPath == "" {
+		return "", fmt.Errorf(
+			"network namespace path of sandbox %s is empty", sb.ID(),
+		)
+	}
+
+	return netNsPath, nil
 }
 
 func (s *StreamService) PortForward(
@@ -59,15 +108,9 @@ func (s *StreamService) PortForward(
 		return fmt.Errorf("could not find sandbox %s", podSandboxID)
 	}
 
-	if !sb.Ready() {
-		return fmt.Errorf("sandbox %s is not running", podSandboxID)
-	}
-
-	netNsPath := sb.NetNsPath()
-	if netNsPath == "" {
-		return fmt.Errorf(
-			"network namespace path of sandbox %s is empty", sb.ID(),
-		)
+	netNsPath, err := portForwardNetNsPath(sb)
+	if err != nil {
+		return err
 	}
 
 	return s.runtimeServer.ContainerServer.Runtime().
