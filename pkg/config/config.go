@@ -397,6 +397,29 @@ func (l ContainerCheckpointRestoreLevel) Validate() error {
 	}
 }
 
+// LayerDedupBehavior controls when CRI-O performs image layer deduplication.
+type LayerDedupBehavior string
+
+const (
+	// LayerDedupDisabled disables automatic layer deduplication. This is the default.
+	LayerDedupDisabled LayerDedupBehavior = "disabled"
+	// LayerDedupAfterPull deduplicates image layers after every successful image pull.
+	LayerDedupAfterPull LayerDedupBehavior = "after_pull"
+)
+
+// Validate returns an error if the LayerDedupBehavior is not a recognized value.
+func (b LayerDedupBehavior) Validate() error {
+	switch b {
+	case LayerDedupDisabled, LayerDedupAfterPull:
+		return nil
+	default:
+		return fmt.Errorf(
+			"invalid layer_dedup %q: must be one of %q or %q",
+			b, LayerDedupDisabled, LayerDedupAfterPull,
+		)
+	}
+}
+
 // CheckpointRestoreConfig represents the "crio.checkpoint_restore" TOML config
 // table.
 type CheckpointRestoreConfig struct {
@@ -646,6 +669,17 @@ type RuntimeConfig struct {
 
 	// SeparatePullCgroup specifies whether an image pull must be performed in a separate cgroup
 	SeparatePullCgroup string `toml:"separate_pull_cgroup"`
+
+	// LayerDedup controls when CRI-O deduplicates image layers using
+	// filesystem-level reflinks (copy-on-write clones via FIDEDUPERANGE ioctl).
+	// Identical files across container image layers are deduplicated, reducing
+	// disk usage without modifying layer data.
+	// Requires a filesystem with reflink support (e.g., XFS with reflink=1 or
+	// Btrfs). On unsupported filesystems, dedup logs a warning but does not
+	// fail the pull. Valid values:
+	//   "disabled"   - no deduplication (default)
+	//   "after_pull" - deduplicate after every successful image pull
+	LayerDedup LayerDedupBehavior `toml:"layer_dedup"`
 
 	// InfraCtrCPUSet is the CPUs set that will be used to run infra containers
 	InfraCtrCPUSet string `toml:"infra_ctr_cpuset"`
@@ -1253,6 +1287,7 @@ func DefaultRuntimeConfig(cgroupManager cgmgr.CgroupManager) *RuntimeConfig {
 		HostNetworkDisableSELinux:   true,
 		DisableHostPortMapping:      false,
 		EnableCriuSupport:           true,
+		LayerDedup:                  LayerDedupDisabled,
 	}
 }
 
@@ -1490,6 +1525,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err != nil {
 			return fmt.Errorf("invalid timezone: %s", c.Timezone)
 		}
+	}
+
+	if err := c.LayerDedup.Validate(); err != nil {
+		return err
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {

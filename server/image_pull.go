@@ -24,6 +24,7 @@ import (
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 )
@@ -277,6 +278,18 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
+
+			if s.config.LayerDedup == libconfig.LayerDedupAfterPull {
+				// Signal the background dedup worker rather than running
+				// synchronously. The worker serializes passes; if a pass is
+				// already queued the send is dropped (channel size = 1).
+				select {
+				case s.dedupTrigger <- struct{}{}:
+				default:
+					// Pass already queued; worker will deduplicate after the
+					// current pass finishes, which covers this pull too.
+				}
+			}
 
 			return s.resolveImageRefToID(ctx, imageRef, pullArgs.imageServer)
 		}
