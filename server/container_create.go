@@ -446,6 +446,10 @@ func (s *Server) CreateContainer(
 		return nil, errors.New("sandbox config metadata is nil")
 	}
 
+	if err := validateCgroupMountMode(req.GetConfig()); err != nil {
+		return nil, err
+	}
+
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
@@ -966,6 +970,14 @@ func (s *Server) createSandboxContainer(
 
 	usernsEnabled := containerIDMappings != nil
 	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
+
+	if hostNet && usernsEnabled &&
+		securityContext.GetCgroupMountMode() == types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE {
+		return nil, errors.New(
+			"writable cgroups are not supported for host-network containers in a user namespace",
+		)
+	}
+
 	addSysfsMounts(ctr, containerConfig, hostNet, usernsEnabled)
 
 	if err := s.setupCgroupNamespace(ctr, specgen); err != nil {
@@ -983,6 +995,8 @@ func (s *Server) createSandboxContainer(
 	); err != nil {
 		return nil, err
 	}
+
+	applyCgroupMountMode(specgen, containerConfig)
 
 	// Set hostname and add env for hostname
 	specgen.SetHostname(sb.Hostname())
