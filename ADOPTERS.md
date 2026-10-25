@@ -48,3 +48,5 @@ Below is a non-exhaustive list of CRI-O adopters in production environments:
 - [PITS Global Data Recovery Services](https://www.pitsdatarecovery.net/)
   CRI-O is used on K8s and was chosen for its clean and
   easy-to-manage interface.
+- [Wordfully](https://wordfully.ai) uses CRI-O as the container runtime for Kubernetes
+  workloads supporting its writing-assistance service.
