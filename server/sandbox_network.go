@@ -462,7 +462,7 @@ func (s *Server) waitForCNIPlugin(ctx context.Context, sboxName string) error {
 				return fmt.Errorf("server shutdown before CNI plugin was ready: %w", err)
 			}
 		case <-ctx.Done():
-			return fmt.Errorf("server shutdown before CNI plugin was ready: %w", err)
+			return fmt.Errorf("waiting for CNI plugin to become ready: %w", ctx.Err())
 		}
 
 		log.Infof(ctx, "CNI plugin is now ready. Continuing to create %s", sboxName)

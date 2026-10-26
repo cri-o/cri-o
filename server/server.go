@@ -368,16 +368,9 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	return imagesOfDeletedContainers
 }
 
-// ShutdownCNIManager shuts down the CNI manager, unblocking any RPCs waiting
-// for the CNI plugin to become ready. Call this before stopping the gRPC server
-// so that GracefulStop can complete.
-func (s *Server) ShutdownCNIManager(ctx context.Context) {
-	log.Infof(ctx, "Shutting down CNI manager before gRPC server stop")
-	s.config.CNIManagerShutdown()
-}
-
 // Shutdown attempts to shut down the server's storage cleanly.
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.config.CNIManagerShutdown()
 	s.resourceStore.Close()
 
 	if err := s.ContainerServer.Shutdown(); err != nil {
