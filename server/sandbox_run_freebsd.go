@@ -37,7 +37,11 @@ func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbo
 	return nil, nil
 }
 
-func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (resp *types.RunPodSandboxResponse, retErr error) {
+func (s *Server) runPodSandbox(
+	ctx context.Context,
+	req *types.RunPodSandboxRequest,
+	restoreSandboxID string,
+) (resp *types.RunPodSandboxResponse, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	sbox := libsandbox.NewBuilder()
@@ -56,6 +60,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := sbox.GenerateNameAndID(); err != nil {
 		return nil, fmt.Errorf("setting pod sandbox name and id: %w", err)
 	}
+
+	if restoreSandboxID != "" {
+		sbox.SetID(restoreSandboxID)
+	}
+
 	sboxId := sbox.ID()
 	sboxName := sbox.Name()
 	resourceCleaner := resourcestore.NewResourceCleaner()

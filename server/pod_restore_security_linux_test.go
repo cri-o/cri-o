@@ -204,7 +204,21 @@ func stagePodRestoreSecurityArchive(
 ) error {
 	t.Helper()
 
-	return copyCheckpointArchive(source, destination, spec)
+	input, err := openCheckpointFile(source)
+	require.NoError(t, err)
+
+	defer input.Close()
+
+	digest, err := fileSHA256(source)
+	require.NoError(t, err)
+
+	return copyCheckpointArchive(
+		input,
+		destination,
+		&podCheckpointManifestContainer{ID: "source", SHA256: digest},
+		"runc",
+		spec,
+	)
 }
 
 func TestPodRestoreResolvedResourceLimits(t *testing.T) {

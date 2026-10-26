@@ -138,6 +138,8 @@ type ContainerState struct {
 	CheckpointedAt time.Time `json:"checkpointedTime"`
 	Restore        bool      `json:"restore,omitempty"`
 	RestoreArchive string    `json:"restoreArchive,omitempty"`
+	RestoreImage   string    `json:"restoreImage,omitempty"`
+	PodRestoreKey  string    `json:"podRestoreKey,omitempty"`
 	// Restored is set once StartContainer has restored the process.
 	Restored bool `json:"restored,omitempty"`
 	// ContainerMonitorProcess is used to check the liveness of the container monitor.
@@ -894,41 +896,97 @@ func (c *Container) nodeLevelPIDNamespace() bool {
 // Restore returns if the container is marked as being
 // restored from a checkpoint.
 func (c *Container) Restore() bool {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
 	return c.state.Restore
 }
 
 // SetRestore marks the container as being restored from a checkpoint.
 func (c *Container) SetRestore(restore bool) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
 	c.state.Restore = restore
 }
 
 // Restored returns if the container process has been restored from a
 // checkpoint.
 func (c *Container) Restored() bool {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
 	return c.state.Restored
 }
 
 // SetRestored marks the container process as restored from a checkpoint.
 func (c *Container) SetRestored(restored bool) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
 	c.state.Restored = restored
 }
 
 // If Restore(), and the container is being restored from a local path, RestoreArchivePath returns that path.
 func (c *Container) RestoreArchivePath() string {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
 	return c.state.RestoreArchive
 }
 
 func (c *Container) SetRestoreArchivePath(restoreArchivePath string) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
 	c.state.RestoreArchive = restoreArchivePath
+}
+
+// PodRestoreKey identifies the durable Pod restore transaction. It is set
+// before publishing the created container and remains after process restore.
+func (c *Container) PodRestoreKey() string {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	return c.state.PodRestoreKey
+}
+
+// PreparePodRestore records a container whose OCI task will be restored at start.
+func (c *Container) PreparePodRestore(key string) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	c.state.PodRestoreKey = key
+	c.state.Restore = true
+	c.state.Status = ContainerStateCreated
 }
 
 // If Restore(), and the container is being restored from a container image, restoreStorageImageID returns the ID of that image.
 func (c *Container) RestoreStorageImageID() *storage.StorageImageID {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	if c.restoreStorageImageID == nil && c.state.RestoreImage != "" {
+		// The state saved before a daemon restart carries only the ID string.
+		id, err := storage.ParseStorageImageIDFromOutOfProcessData(c.state.RestoreImage)
+		if err == nil {
+			return &id
+		}
+	}
+
 	return c.restoreStorageImageID
 }
 
 func (c *Container) SetRestoreStorageImageID(restoreStorageImageID *storage.StorageImageID) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
 	c.restoreStorageImageID = restoreStorageImageID
+	c.state.RestoreImage = ""
+
+	if restoreStorageImageID != nil {
+		c.state.RestoreImage = restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly()
+	}
 }
 
 // SetResources loads the OCI Spec.Linux.Resources in the container struct.

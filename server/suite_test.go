@@ -147,6 +147,7 @@ var beforeEach = func() {
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
 	serverConfig.LogDir = path.Join(testPath, "log")
 	serverConfig.CleanShutdownFile = path.Join(testPath, "clean.shutdown")
+	serverConfig.IrqBalanceConfigRestoreFile = path.Join(testPath, "orig_irq_banned_cpus")
 	serverConfig.EnablePodEvents = true
 	serverConfig.Seccomp().SetNotifierPath(t.MustTempDir("seccomp-notifier"))
 	serverConfig.NRI.SocketPath = t.MustTempDir("nri")
@@ -233,10 +234,16 @@ var setupSUT = func() {
 	sut.SetStorageRuntimeServer(runtimeServerMock)
 }
 
-func mockNewServer() {
+func mockNewServer(recoverRestores ...bool) {
 	GinkgoHelper()
 
 	graphroot := t.MustTempDir("graphroot")
+	// Invalid streaming configuration stops startup before restore recovery.
+	recoveryCalls := 2
+	if len(recoverRestores) > 0 && !recoverRestores[0] {
+		recoveryCalls = 1
+	}
+
 	gomock.InOrder(
 		cniPluginMock.EXPECT().StatusWithContext(gomock.Any()).Return(nil),
 		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
@@ -247,6 +254,7 @@ func mockNewServer() {
 			Return([]cstorage.Container{}, nil),
 		cniPluginMock.EXPECT().GC(gomock.Any(), gomock.Any()).
 			Return(nil).AnyTimes(),
+		storeMock.EXPECT().GraphRoot().Return(graphroot).Times(recoveryCalls),
 	)
 	Expect(serverConfig.SetCNIPlugin(cniPluginMock)).To(Succeed())
 }

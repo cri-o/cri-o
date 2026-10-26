@@ -430,6 +430,14 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 func (s *Server) CreateContainer(
 	ctx context.Context,
 	req *types.CreateContainerRequest,
+) (*types.CreateContainerResponse, error) {
+	return s.createContainer(ctx, req, "")
+}
+
+func (s *Server) createContainer(
+	ctx context.Context,
+	req *types.CreateContainerRequest,
+	podRestoreKey string,
 ) (res *types.CreateContainerResponse, retErr error) {
 	if req.GetConfig() == nil {
 		return nil, errors.New("config is nil")
@@ -534,6 +542,10 @@ func (s *Server) CreateContainer(
 		return nil, fmt.Errorf("setting container name and ID: %w", err)
 	}
 
+	// Pod restore prepares the container for CRIU, which needs missing bind
+	// mount sources to fail instead of being created as directories.
+	ctr.SetRestore(podRestoreKey != "")
+
 	resourceCleaner := resourcestore.NewResourceCleaner()
 	// in some cases, it is still necessary to reserve container resources when an error occurs (such as just a request context timeout error)
 	storeResource := false
@@ -607,6 +619,18 @@ func (s *Server) CreateContainer(
 		},
 	)
 
+	if podRestoreKey != "" {
+		newContainer.PreparePodRestore(podRestoreKey)
+		// Save ownership before publishing the container to other CRI requests.
+		if err := writeCheckpointJSON(
+			newContainer.Dir(),
+			filepath.Base(newContainer.StatePath()),
+			newContainer.State(),
+		); err != nil {
+			return nil, fmt.Errorf("persist Pod restore ownership: %w", err)
+		}
+	}
+
 	s.addContainer(ctx, newContainer)
 	resourceCleaner.Add(ctx, "createCtr: removing container "+newContainer.ID(), func() error {
 		s.removeContainer(ctx, newContainer)
@@ -661,7 +685,17 @@ func (s *Server) CreateContainer(
 	)
 
 	if err := s.ContainerStateToDiskWithUpdate(ctx, newContainer); err != nil {
+		if podRestoreKey != "" {
+			return nil, fmt.Errorf("persist new Pod restore container: %w", err)
+		}
+
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", newContainer.ID(), err)
+	}
+
+	if podRestoreKey != "" {
+		if err := syncCheckpointDirectory(filepath.Dir(newContainer.StatePath())); err != nil {
+			return nil, err
+		}
 	}
 
 	if s.config.CheckpointRestore() {

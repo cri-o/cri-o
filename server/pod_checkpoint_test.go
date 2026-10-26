@@ -126,8 +126,13 @@ func TestPodCheckpointHelpers(t *testing.T) {
 		}
 
 		restore.Command = []string{"/different"}
+		if err := validateRestoreContainerConfig(checkpoint, restore); err != nil {
+			t.Fatalf("destination command should not replace the saved process: %v", err)
+		}
+
+		restore.WorkingDir = "/different"
 		if err := validateRestoreContainerConfig(checkpoint, restore); err == nil {
-			t.Fatal("expected command mismatch to fail")
+			t.Fatal("expected working directory mismatch to fail")
 		}
 	})
 }

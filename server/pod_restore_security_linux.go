@@ -19,22 +19,12 @@ limitations under the License.
 package server
 
 import (
-	"archive/tar"
 	"cmp"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
-	"os"
-	"path"
 	"reflect"
 	"slices"
 
-	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"go.podman.io/storage/pkg/archive"
-
-	"github.com/cri-o/cri-o/internal/lib"
 )
 
 // Profile references can remain unchanged while the policy resolved by CRI-O
@@ -112,91 +102,6 @@ func checkpointSecuritySetsEqual[T ~uint32 | ~string](captured, destination []T)
 	slices.Sort(destination)
 
 	return slices.Equal(captured, destination)
-}
-
-func validateCheckpointArchiveSecurity(file *os.File, destination *rspec.Spec) error {
-	info, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	stream, err := archive.DecompressStream(io.NewSectionReader(file, 0, info.Size()))
-	if err != nil {
-		return err
-	}
-	defer stream.Close()
-
-	reader := tar.NewReader(stream)
-
-	var (
-		captured                    *rspec.Spec
-		mounts                      []lib.ExternalBindMount
-		mountsFound, deletionsFound bool
-	)
-
-	for {
-		header, err := reader.Next()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-
-		if err != nil {
-			return fmt.Errorf("read checkpoint archive: %w", err)
-		}
-
-		name := path.Clean(header.Name)
-		if name != metadata.SpecDumpFile && name != "bind.mounts" &&
-			name != metadata.DeletedFilesFile {
-			continue
-		}
-
-		if header.Typeflag != tar.TypeReg || header.Size > checkpointMetadataLimit {
-			return errors.New("checkpoint archive has invalid control metadata")
-		}
-
-		data, err := io.ReadAll(io.LimitReader(reader, checkpointMetadataLimit+1))
-		if err != nil {
-			return err
-		}
-
-		switch name {
-		case metadata.SpecDumpFile:
-			if captured != nil {
-				return errors.New("checkpoint archive has duplicate OCI spec metadata")
-			}
-
-			captured = new(rspec.Spec)
-			if err := json.Unmarshal(data, captured); err != nil {
-				return fmt.Errorf("decode checkpoint OCI spec: %w", err)
-			}
-		case "bind.mounts":
-			if mountsFound {
-				return errors.New("checkpoint archive has duplicate bind mount metadata")
-			}
-
-			mountsFound = true
-
-			if err := json.Unmarshal(data, &mounts); err != nil {
-				return fmt.Errorf("decode checkpoint bind mounts: %w", err)
-			}
-		case metadata.DeletedFilesFile:
-			if deletionsFound {
-				return errors.New("checkpoint archive has duplicate deletion metadata")
-			}
-
-			deletionsFound = true
-
-			if _, err := lib.ValidateCheckpointDeletedFiles(data); err != nil {
-				return err
-			}
-		}
-	}
-
-	if err := validateCheckpointSecurity(captured, destination); err != nil {
-		return err
-	}
-
-	return lib.ValidateCheckpointBindMounts(mounts, destination)
 }
 
 func checkpointResourceLimitsEqual(captured, destination []rspec.POSIXRlimit) bool {
