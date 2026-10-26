@@ -33,29 +33,45 @@ and is not interchangeable with containerd checkpoint data.
 
 CRI-O records an operation marker before freezing the pod. If the daemon
 restarts during checkpointing, startup recovery thaws the pod and resumes any
-selected containers before CRI starts serving requests.
+selected containers before CRI starts serving requests. Recovery removes
+unfinished checkpoint files from the original output directory, while preserving
+a published manifest and its archives. A retry also recovers a retained marker
+before starting another checkpoint.
 
 ## Restore behavior
 
 `RestorePod` validates the checkpoint, restore-time sandbox configuration,
-container names, process configuration, runtime handler, and archive
-checksums. It then:
+container names, security settings, runtime handler, archive checksums, and
+immutable base image IDs. It then:
 
-1. Ensures the base container images are locally available.
+1. Requires the base container images to be locally available and match the
+   captured image IDs. A tag and a digest referring to the same image are accepted.
 2. Creates a normal pod sandbox.
 3. Creates every requested container in the `CREATED` state.
 4. Copies the corresponding archive into CRI-O-owned storage and records a
    durable pending restore.
-5. Returns the sandbox and container IDs to kubelet.
+5. Durably commits the whole Pod and returns its sandbox and container IDs to
+   kubelet.
 
 The restored processes do not execute until kubelet calls `StartContainer`.
+`StartContainer` rejects containers until the whole Pod restore has committed.
 Pending restore state survives a CRI-O restart between `RestorePod` and
-`StartContainer`. Any failure before `RestorePod` returns rolls back all
-containers and the sandbox. Startup also removes resources belonging to an
-interrupted restore transaction.
+`StartContainer`. Failures before commit roll back the containers and sandbox;
+startup also removes resources belonging to an interrupted transaction.
 
-The CRI restore request has no registry credentials. Images from private
-registries must therefore already be present in CRI-O's image store.
+CRI-O retains the committed container mapping until the sandbox is removed.
+Retrying an identical request returns the same IDs, including after a daemon
+restart or container start. A different checkpoint or request for the same
+sandbox identity and attempt is rejected.
+
+Destination hostname, command, arguments, and environment may differ from the
+saved CRI configuration, including values supplied through the Downward API.
+The restored processes retain their captured arguments and environment. Working
+directory, terminal settings, security contexts, sysctls, and port mappings must
+remain compatible.
+
+The CRI restore request has no registry credentials. Pull every required image
+before calling `RestorePod`; CRI-O does not pull images during restore.
 
 ## Storage and security
 
@@ -63,7 +79,9 @@ Checkpoint archives contain process memory, environment variables, filesystem
 changes, and potentially credentials. Restrict the checkpoint directory to
 the node administrator and the CRI-O process. CRI-O writes checkpoint files
 with mode `0600`, rejects symlink output directories and unsafe manifest
-paths, and does not modify the caller-owned checkpoint during restore.
+paths, opens metadata and archives without following symlinks, bounds metadata
+to 4 MiB and Pod requests to 1024 containers, and verifies archives again while
+copying them into owned storage. Restore does not modify the supplied checkpoint.
 
 ## Limitations
 
