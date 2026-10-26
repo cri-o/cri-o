@@ -22,6 +22,8 @@ import (
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/api/resource"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
@@ -471,6 +473,7 @@ func (s *Server) getSandboxIDMappings(
 func (s *Server) runPodSandbox(
 	ctx context.Context,
 	req *types.RunPodSandboxRequest,
+	restoreSandboxID string,
 ) (resp *types.RunPodSandboxResponse, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -509,6 +512,10 @@ func (s *Server) runPodSandbox(
 		return nil, fmt.Errorf("setting pod sandbox name and id: %w", err)
 	}
 
+	if restoreSandboxID != "" {
+		sbox.SetID(restoreSandboxID)
+	}
+
 	sboxID := sbox.ID()
 	sboxName := sbox.Name()
 
@@ -534,6 +541,13 @@ func (s *Server) runPodSandbox(
 	); err != nil {
 		return nil, err
 	} else if shouldReturn {
+		if restoreSandboxID != "" && reservedID != restoreSandboxID {
+			return nil, status.Error(
+				codes.AlreadyExists,
+				"a different sandbox already exists for the restore target",
+			)
+		}
+
 		return &types.RunPodSandboxResponse{PodSandboxId: reservedID}, nil
 	}
 

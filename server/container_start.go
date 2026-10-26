@@ -40,6 +40,10 @@ func (s *Server) StartContainer(
 		return nil, fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
 	}
 
+	if err := s.requirePodRestoreCommitted(c); err != nil {
+		return nil, err
+	}
+
 	sandbox := s.getSandbox(ctx, c.Sandbox())
 
 	hooks := s.hooksRetriever.Get(ctx, sandbox.RuntimeHandler(), sandbox.Annotations())

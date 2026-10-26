@@ -13,7 +13,6 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/distribution/reference"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -22,6 +21,7 @@ import (
 
 const (
 	podCheckpointFormatVersion = 1
+	podCheckpointMaxContainers = 1024
 	podCheckpointManifestFile  = "checkpoint-manifest.json"
 	podCheckpointConfigFile    = "pod-config.json"
 	podCheckpointContainerDir  = "containers"
@@ -42,6 +42,7 @@ type podCheckpointManifestContainer struct {
 	Archive string                 `json:"archive"`
 	SHA256  string                 `json:"sha256"`
 	Config  *types.ContainerConfig `json:"config"`
+	ImageID string                 `json:"imageId,omitempty"`
 }
 
 // CheckpointPod checkpoints a consistent set of containers in a pod sandbox.
@@ -203,14 +204,23 @@ func checkpointArchiveName(containerID string) string {
 }
 
 func fileSHA256(path string) (string, error) {
-	file, err := os.Open(path)
+	file, err := openCheckpointFile(path)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
 
+	return checkpointFileSHA256(file)
+}
+
+func checkpointFileSHA256(file *os.File) (string, error) {
+	info, err := file.Stat()
+	if err != nil {
+		return "", err
+	}
+
 	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
+	if _, err := io.Copy(hash, io.NewSectionReader(file, 0, info.Size())); err != nil {
 		return "", err
 	}
 
@@ -218,13 +228,7 @@ func fileSHA256(path string) (string, error) {
 }
 
 func validateRestoreSandboxConfig(checkpoint, restore *types.PodSandboxConfig) error {
-	if checkpoint.GetHostname() != restore.GetHostname() {
-		return fmt.Errorf(
-			"restore sandbox hostname %q does not match checkpoint hostname %q",
-			restore.GetHostname(),
-			checkpoint.GetHostname(),
-		)
-	}
+	// The destination Pod can have a different name and default hostname.
 
 	checkpointSecurity := checkpoint.GetLinux().GetSecurityContext()
 	if checkpointSecurity == nil {
@@ -258,32 +262,12 @@ func validateRestoreSandboxConfig(checkpoint, restore *types.PodSandboxConfig) e
 }
 
 func validateRestoreContainerConfig(checkpoint, restore *types.ContainerConfig) error {
-	if normalizeCheckpointImage(
-		checkpointImageName(checkpoint),
-	) != normalizeCheckpointImage(
-		checkpointImageName(restore),
-	) {
-		return fmt.Errorf(
-			"restore image %q does not match checkpoint image %q",
-			checkpointImageName(restore),
-			checkpointImageName(checkpoint),
-		)
-	}
-
-	if !slices.Equal(checkpoint.GetCommand(), restore.GetCommand()) {
-		return errors.New("restore command does not match checkpoint")
-	}
-
-	if !slices.Equal(checkpoint.GetArgs(), restore.GetArgs()) {
-		return errors.New("restore arguments do not match checkpoint")
-	}
+	// Image identity is checked against the resolved image ID. Destination
+	// argv and Downward API values describe the new Pod; CRIU resumes the
+	// saved process with its original arguments and environment.
 
 	if checkpoint.GetWorkingDir() != restore.GetWorkingDir() {
 		return errors.New("restore working directory does not match checkpoint")
-	}
-
-	if !maps.Equal(containerEnvironment(checkpoint), containerEnvironment(restore)) {
-		return errors.New("restore environment does not match checkpoint")
 	}
 
 	if checkpoint.GetTty() != restore.GetTty() {
@@ -305,34 +289,4 @@ func validateRestoreContainerConfig(checkpoint, restore *types.ContainerConfig) 
 	}
 
 	return nil
-}
-
-func checkpointImageName(config *types.ContainerConfig) string {
-	if config.GetImage().GetUserSpecifiedImage() != "" {
-		return config.GetImage().GetUserSpecifiedImage()
-	}
-
-	return config.GetImage().GetImage()
-}
-
-func normalizeCheckpointImage(image string) string {
-	parsed, err := reference.ParseAnyReference(image)
-	if err != nil {
-		return image
-	}
-
-	if named, ok := parsed.(reference.Named); ok {
-		return reference.TagNameOnly(named).String()
-	}
-
-	return parsed.String()
-}
-
-func containerEnvironment(config *types.ContainerConfig) map[string]string {
-	environment := make(map[string]string, len(config.GetEnvs()))
-	for _, variable := range config.GetEnvs() {
-		environment[variable.GetKey()] = string(variable.GetValue())
-	}
-
-	return environment
 }

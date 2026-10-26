@@ -8,6 +8,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
 func (s *Server) checkpointPod(
@@ -31,3 +34,7 @@ func (s *Server) recoverPodCheckpoints(context.Context) error {
 func (s *Server) recoverPodRestores(context.Context) error {
 	return nil
 }
+
+func (s *Server) requirePodRestoreCommitted(*oci.Container) error { return nil }
+
+func (s *Server) removeCompletedPodRestore(*sandbox.Sandbox) error { return nil }

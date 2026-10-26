@@ -121,6 +121,7 @@ var _ = t.Describe("Server", func() {
 					Return([]byte{}, nil),
 				cniPluginMock.EXPECT().GC(gomock.Any(), gomock.Len(0)).
 					Return(nil),
+				storeMock.EXPECT().GraphRoot().Return(graphroot).Times(2),
 			)
 			Expect(serverConfig.SetCNIPlugin(cniPluginMock)).To(Succeed())
 
@@ -197,7 +198,7 @@ var _ = t.Describe("Server", func() {
 
 		It("should fail with invalid stream address and port", func() {
 			// Given
-			mockNewServer()
+			mockNewServer(false)
 
 			serverConfig.StreamAddress = invalid
 			serverConfig.StreamPort = invalid
@@ -212,7 +213,7 @@ var _ = t.Describe("Server", func() {
 
 		It("should fail with invalid TLS certificates", func() {
 			// Given
-			mockNewServer()
+			mockNewServer(false)
 
 			serverConfig.StreamEnableTLS = true
 			serverConfig.StreamTLSCert = invalid

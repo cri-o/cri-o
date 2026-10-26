@@ -570,10 +570,8 @@ func New(
 	}
 
 	deletedImages := s.restore(ctx)
-	if s.config.CheckpointRestore() {
-		if err := s.recoverPodCheckpoints(ctx); err != nil {
-			return nil, fmt.Errorf("recover interrupted Pod checkpoints: %w", err)
-		}
+	if err := s.recoverPodCheckpoints(ctx); err != nil {
+		return nil, fmt.Errorf("recover interrupted Pod checkpoints: %w", err)
 	}
 
 	s.wipeIfAppropriate(ctx, deletedImages)
@@ -692,10 +690,8 @@ func New(
 		return nil, err
 	}
 
-	if s.config.CheckpointRestore() {
-		if err := s.recoverPodRestores(ctx); err != nil {
-			return nil, fmt.Errorf("recover interrupted Pod restores: %w", err)
-		}
+	if err := s.recoverPodRestores(ctx); err != nil {
+		return nil, fmt.Errorf("recover interrupted Pod restores: %w", err)
 	}
 
 	if err := watchdog.New(s.checkCRIHealth).Start(ctx); err != nil {

@@ -50,8 +50,12 @@ func (s *Server) checkpointPod(
 		return nil, status.Error(codes.InvalidArgument, "pod sandbox ID is required")
 	}
 
-	if len(request.GetContainerIds()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "at least one container ID is required")
+	if len(request.GetContainerIds()) == 0 ||
+		len(request.GetContainerIds()) > podCheckpointMaxContainers {
+		return nil, status.Error(
+			codes.InvalidArgument,
+			"between 1 and 1024 container IDs are required",
+		)
 	}
 
 	sb, err := s.getPodSandboxFromRequest(ctx, request.GetPodSandboxId())
@@ -141,6 +145,14 @@ func (s *Server) checkpointPod(
 				"container %q is %s, expected running",
 				requestedID,
 				container.State().Status,
+			)
+		}
+
+		if container.ImageID() == nil {
+			return nil, status.Errorf(
+				codes.FailedPrecondition,
+				"container %q has no base image ID",
+				requestedID,
 			)
 		}
 
@@ -419,6 +431,7 @@ func (s *Server) checkpointPod(
 			Archive: archiveName,
 			SHA256:  digest,
 			Config:  containerConfigs[name],
+			ImageID: container.ImageID().IDStringForOutOfProcessConsumptionOnly(),
 		})
 	}
 

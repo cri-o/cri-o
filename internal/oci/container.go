@@ -135,6 +135,7 @@ type ContainerState struct {
 	CheckpointedAt time.Time `json:"checkpointedTime"`
 	Restore        bool      `json:"restore,omitempty"`
 	RestoreArchive string    `json:"restoreArchive,omitempty"`
+	PodRestoreKey  string    `json:"podRestoreKey,omitempty"`
 	// ContainerMonitorProcess is used to check the liveness of the container monitor.
 	// This is supposed to be immutable once set.
 	ContainerMonitorProcess *ContainerMonitorProcess `json:"containerMonitorProcess,omitempty"`
@@ -855,6 +856,25 @@ func (c *Container) RestoreArchivePath() string {
 
 func (c *Container) SetRestoreArchivePath(restoreArchivePath string) {
 	c.state.RestoreArchive = restoreArchivePath
+}
+
+// PodRestoreKey identifies the durable Pod restore transaction. It is set
+// before publishing the created container and remains after process restore.
+func (c *Container) PodRestoreKey() string {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	return c.state.PodRestoreKey
+}
+
+// PreparePodRestore records a container whose OCI task will be restored at start.
+func (c *Container) PreparePodRestore(key string) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	c.state.PodRestoreKey = key
+	c.state.Restore = true
+	c.state.Status = ContainerStateCreated
 }
 
 // If Restore(), and the container is being restored from a container image, restoreStorageImageID returns the ID of that image.

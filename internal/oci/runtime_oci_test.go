@@ -278,6 +278,39 @@ var _ = t.Describe("Oci", func() {
 })
 
 var _ = t.Describe("UpdateContainerStatus", func() {
+	DescribeTable("pending Pod restore state", func(command, expectedStatus string) {
+		sut := getTestContainer()
+		sut.PreparePodRestore("namespace/pod/uid/0")
+
+		runner := runnerMock.NewMockCommandRunner(mockCtrl)
+		cmdrunner.SetMocked(runner)
+
+		defer cmdrunner.ResetPrependedCmd()
+
+		runner.EXPECT().Command(gomock.Any(), gomock.Any()).Return(
+			exec.Command("/bin/sh", "-c", command),
+		)
+
+		cfg, err := libconfig.DefaultConfig()
+		Expect(err).NotTo(HaveOccurred())
+
+		cfg.ContainerAttachSocketDir = t.MustTempDir("attach-socket")
+		r, err := oci.New(cfg)
+		Expect(err).NotTo(HaveOccurred())
+
+		runtime := oci.NewRuntimeOCI(r, &libconfig.RuntimeHandler{})
+
+		Expect(runtime.UpdateContainerStatus(context.Background(), sut)).To(Succeed())
+		Expect(string(sut.State().Status)).To(Equal(expectedStatus))
+		Expect(sut.PodRestoreKey()).To(Equal("namespace/pod/uid/0"))
+		Expect(sut.State().ExitCode).To(BeNil())
+	},
+		Entry("keeps CREATED without an OCI task",
+			"echo 'container does not exist' >&2; exit 1", oci.ContainerStateCreated),
+		Entry("detects a task restored before daemon interruption",
+			`echo '{"status":"running","pid":1}'`, oci.ContainerStateRunning),
+	)
+
 	It("should wait for exit file when runtime state fails for fast-exiting container", func() {
 		// Set up a container with a temp directory for exit file.
 		containerDir := t.MustTempDir("container-dir")

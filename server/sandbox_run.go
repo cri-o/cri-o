@@ -73,12 +73,20 @@ func (s *Server) RunPodSandbox(
 	ctx context.Context,
 	req *types.RunPodSandboxRequest,
 ) (*types.RunPodSandboxResponse, error) {
+	return s.runPodSandboxRequest(ctx, req, "")
+}
+
+func (s *Server) runPodSandboxRequest(
+	ctx context.Context,
+	req *types.RunPodSandboxRequest,
+	sandboxID string,
+) (*types.RunPodSandboxResponse, error) {
 	var checkpointConfig *types.PodSandboxConfig
 	if s.config.CheckpointRestore() && req != nil && req.GetConfig() != nil {
 		checkpointConfig = proto.CloneOf(req.GetConfig())
 	}
 	// platform dependent call
-	response, err := s.runPodSandbox(ctx, req)
+	response, err := s.runPodSandbox(ctx, req, sandboxID)
 	if err != nil || !s.config.CheckpointRestore() {
 		return response, err
 	}
