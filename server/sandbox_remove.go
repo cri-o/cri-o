@@ -9,6 +9,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/podoperation"
 )
 
 // RemovePodSandbox deletes the sandbox. If there are any running containers in the
@@ -26,6 +27,24 @@ func (s *Server) RemovePodSandbox(
 	if err != nil {
 		if errors.Is(err, sandbox.ErrIDEmpty) {
 			return nil, err
+		}
+
+		operationID, lookupErr := s.podRestoreOperationForSandbox(req.GetPodSandboxId())
+		if lookupErr != nil {
+			return nil, fmt.Errorf("resolve removed sandbox restore operation: %w", lookupErr)
+		}
+
+		if operationID != "" &&
+			!podoperation.IsCleanupFor(
+				ctx,
+				int32(types.PodOperationType_POD_RESTORE),
+				operationID,
+			) {
+			if err := s.settlePodRestoreBeforeRemoval(ctx, operationID); err != nil {
+				return nil, err
+			}
+
+			return &types.RemovePodSandboxResponse{}, nil
 		}
 
 		if errors.Is(err, errSandboxNotCreated) {
@@ -53,6 +72,20 @@ func (s *Server) RemovePodSandbox(
 }
 
 func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+	operationID, err := s.podRestoreOperationForSandbox(sb.ID())
+	if err != nil {
+		return fmt.Errorf("resolve sandbox restore operation before removal: %w", err)
+	}
+
+	if operationID != "" &&
+		!podoperation.IsCleanupFor(ctx, int32(types.PodOperationType_POD_RESTORE), operationID) {
+		return s.settlePodRestoreBeforeRemoval(ctx, operationID)
+	}
+
+	return s.removePodSandboxWithoutRestore(ctx, sb)
+}
+
+func (s *Server) removePodSandboxWithoutRestore(ctx context.Context, sb *sandbox.Sandbox) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 

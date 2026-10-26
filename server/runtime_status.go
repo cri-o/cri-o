@@ -41,6 +41,7 @@ func (s *Server) Status(
 		},
 		Features: &types.RuntimeFeatures{
 			PodCheckpointRestoreCancellation: podOperationCancellationSupported(),
+			PodCheckpointStorageIsolation:    podOperationCancellationSupported(),
 			SupplementalGroupsPolicy:         true,
 			UserNamespacesHostNetwork:        true,
 			MountOptions:                     goruntime.GOOS == "linux",

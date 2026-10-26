@@ -26,6 +26,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/podoperation"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
@@ -44,6 +45,7 @@ type podRestoreTransaction struct {
 	Fingerprint    string                    `json:"fingerprint,omitempty"`
 	RuntimeHandler string                    `json:"runtimeHandler,omitempty"`
 	Response       *types.RestorePodResponse `json:"response,omitempty"`
+	OperationID    string                    `json:"operationID,omitempty"`
 }
 
 func (s *Server) restorePod(
@@ -263,7 +265,7 @@ func (s *Server) restorePod(
 	restoreKey := podRestoreKey(request.GetConfig().GetMetadata())
 	if _, loaded := s.podRestoresInProgress.LoadOrStore(restoreKey, struct{}{}); loaded {
 		return nil, status.Errorf(
-			codes.Aborted,
+			codes.AlreadyExists,
 			"restore for Pod %q is already in progress",
 			restoreKey,
 		)
@@ -271,6 +273,7 @@ func (s *Server) restorePod(
 	defer s.podRestoresInProgress.Delete(restoreKey)
 
 	transaction := podRestoreTransaction{
+		OperationID:    podoperation.ID(ctx),
 		Version:        podRestoreTransactionVersion,
 		Key:            restoreKey,
 		SandboxName:    makeSandboxContainerName(request.GetConfig()),
@@ -284,13 +287,8 @@ func (s *Server) restorePod(
 
 	transaction.Fingerprint = fingerprint
 
-	completed, err := s.completedPodRestore(&transaction, request.GetContainerConfigs())
-	if err != nil {
+	if err := s.requirePodRestoreTarget(&transaction); err != nil {
 		return nil, err
-	}
-
-	if completed != nil {
-		return completed, nil
 	}
 
 	if err := s.verifyPodRestoreImages(
@@ -302,6 +300,14 @@ func (s *Server) restorePod(
 	}
 
 	transaction.SandboxID = stringid.GenerateNonCryptoID()
+	if err := podoperation.SetTransaction(ctx, transaction.Key); err != nil {
+		return nil, err
+	}
+
+	if err := podoperation.SetResource(ctx, transaction.SandboxID); err != nil {
+		return nil, err
+	}
+
 	if err := s.beginPodRestoreTransaction(ctx, &transaction); err != nil {
 		return nil, fmt.Errorf("write Pod restore transaction: %w", err)
 	}
@@ -329,10 +335,18 @@ func (s *Server) restorePod(
 		}
 	}()
 
-	sandboxResponse, err := s.runPodSandboxRequest(ctx, &types.RunPodSandboxRequest{
-		Config:         request.GetConfig(),
-		RuntimeHandler: request.GetRuntimeHandler(),
-	}, transaction.SandboxID)
+	var sandboxResponse *types.RunPodSandboxResponse
+
+	err = podoperation.Join(ctx, func(joined context.Context) error {
+		var err error
+
+		sandboxResponse, err = s.runPodSandboxRequest(joined, &types.RunPodSandboxRequest{
+			Config:         request.GetConfig(),
+			RuntimeHandler: request.GetRuntimeHandler(),
+		}, transaction.SandboxID)
+
+		return err
+	})
 	if err != nil {
 		return nil, fmt.Errorf("create restore sandbox: %w", err)
 	}
@@ -348,11 +362,23 @@ func (s *Server) restorePod(
 	for _, config := range request.GetContainerConfigs() {
 		name := config.GetMetadata().GetName()
 
-		createResponse, err := s.createContainer(ctx, &types.CreateContainerRequest{
-			PodSandboxId:  sandboxID,
-			Config:        config,
-			SandboxConfig: request.GetConfig(),
-		}, restoreKey)
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
+		var createResponse *types.CreateContainerResponse
+
+		err := podoperation.Join(ctx, func(joined context.Context) error {
+			var err error
+
+			createResponse, err = s.createContainer(joined, &types.CreateContainerRequest{
+				PodSandboxId:  sandboxID,
+				Config:        config,
+				SandboxConfig: request.GetConfig(),
+			}, restoreKey)
+
+			return err
+		})
 		if err != nil {
 			return nil, fmt.Errorf("create restored container %q: %w", name, err)
 		}
@@ -476,51 +502,26 @@ func restoreContainerConfigsByName(
 	return configsByName, nil
 }
 
-// completedPodRestore returns the response of a completed restore with the
-// same request fingerprint. It returns nil when restorePod must create the Pod.
-func (s *Server) completedPodRestore(
-	transaction *podRestoreTransaction,
-	configs []*types.ContainerConfig,
-) (*types.RestorePodResponse, error) {
-	previous, err := s.readPodRestoreTransaction(transaction.Key)
+// requirePodRestoreTarget prevents reentering native restore for any admitted
+// metadata identity. Its receipt belongs to the first operation until cleanup.
+func (s *Server) requirePodRestoreTarget(transaction *podRestoreTransaction) error {
+	_, err := s.readPodRestoreTransaction(transaction.Key)
 	if errors.Is(err, os.ErrNotExist) {
 		if _, lookupErr := s.PodIDForName(transaction.SandboxName); lookupErr == nil {
-			return nil, status.Error(
+			return status.Error(
 				codes.AlreadyExists,
-				"an unrelated sandbox already exists for the restore target",
+				"a sandbox already owns the restore target",
 			)
 		}
 
-		return nil, nil
+		return nil
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("read Pod restore transaction: %w", err)
+		return fmt.Errorf("read Pod restore transaction: %w", err)
 	}
 
-	if previous.Fingerprint != "" && previous.Fingerprint != transaction.Fingerprint {
-		return nil, status.Error(
-			codes.AlreadyExists,
-			"restore target belongs to a different checkpoint or request",
-		)
-	}
-
-	if previous.Response == nil {
-		return nil, nil
-	}
-
-	if previous.RuntimeHandler != transaction.RuntimeHandler {
-		return nil, status.Error(
-			codes.AlreadyExists,
-			"restore target uses a different runtime handler",
-		)
-	}
-
-	if err := syncCheckpointDirectory(s.podRestoreTransactionDirectory()); err != nil {
-		return nil, err
-	}
-
-	return s.existingPodRestoreResponse(previous, configs)
+	return status.Error(codes.AlreadyExists, "restore target was already admitted")
 }
 
 func (s *Server) verifyPodRestoreImages(
@@ -717,8 +718,8 @@ func (s *Server) requirePodRestoreCommitted(container *oci.Container) error {
 	return status.Error(codes.FailedPrecondition, "Pod restore preparation has not committed")
 }
 
-// Keep completed receipts until sandbox removal so lost responses can be
-// retried after daemon restart or after individual containers have started.
+// Keep completed receipts until sandbox removal so later container starts
+// retain the preparation owner across daemon restarts.
 func (s *Server) removeCompletedPodRestore(sb *sandbox.Sandbox) error {
 	key := podRestoreKey(sb.Metadata())
 
@@ -856,6 +857,13 @@ func (s *Server) beginPodRestoreTransaction(
 			return errors.New("previous Pod restore transaction does not match the restore target")
 		}
 
+		if previous.OperationID != transaction.OperationID {
+			return status.Error(
+				codes.AlreadyExists,
+				"restore target belongs to a different operation",
+			)
+		}
+
 		if previous.Response != nil {
 			return status.Error(
 				codes.AlreadyExists,
@@ -943,6 +951,12 @@ func (s *Server) recoverPodRestores(ctx context.Context) error {
 			continue
 		}
 
+		// Keep the daemon available for cancellation to acquire the durable
+		// owner before recovering caller-identified resources.
+		if transaction.OperationID != "" {
+			continue
+		}
+
 		cleanupCtx, cancel := context.WithTimeout(
 			context.WithoutCancel(ctx),
 			podCheckpointCleanupTimeout,
@@ -964,6 +978,14 @@ func (s *Server) recoverPodRestores(ctx context.Context) error {
 }
 
 func (s *Server) rollbackPodRestore(ctx context.Context, transaction *podRestoreTransaction) error {
+	if err := s.podOperationRecoveryAllowed(
+		ctx,
+		types.PodOperationType_POD_RESTORE,
+		transaction.OperationID,
+	); err != nil {
+		return err
+	}
+
 	sandboxID := transaction.SandboxID
 	if sandboxID == "" {
 		// Older markers can predate recording the returned ID. A name alone
@@ -981,7 +1003,8 @@ func (s *Server) rollbackPodRestore(ctx context.Context, transaction *podRestore
 		return nil
 	}
 
-	if s.GetSandbox(sandboxID) == nil {
+	sandboxLoaded := s.GetSandbox(sandboxID) != nil
+	if !sandboxLoaded && transaction.OperationID == "" {
 		if _, err := s.Store().Container(sandboxID); errors.Is(err, cstorage.ErrContainerUnknown) {
 			return nil
 		} else if err != nil {
@@ -1012,21 +1035,46 @@ func (s *Server) rollbackPodRestore(ctx context.Context, transaction *podRestore
 			return err
 		}
 
-		if metadata.PodID == sandboxID && s.GetContainer(ctx, container.ID) == nil {
+		if metadata.PodID == sandboxID &&
+			(!sandboxLoaded || s.GetContainer(ctx, container.ID) == nil) {
 			return fmt.Errorf("restore container %q has not been loaded", container.ID)
 		}
 	}
 
-	if _, err := s.StopPodSandbox(
-		ctx,
-		&types.StopPodSandboxRequest{PodSandboxId: sandboxID},
+	if !sandboxLoaded {
+		if _, err := s.Store().Container(sandboxID); errors.Is(err, cstorage.ErrContainerUnknown) {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		return fmt.Errorf("restore sandbox %q has not been loaded", sandboxID)
+	}
+
+	if err := podoperation.Join(
+		podoperation.WithCleanup(ctx, ctx),
+		func(joined context.Context) error {
+			_, err := s.StopPodSandbox(
+				joined,
+				&types.StopPodSandboxRequest{PodSandboxId: sandboxID},
+			)
+
+			return err
+		},
 	); err != nil {
 		return fmt.Errorf("stop interrupted restore sandbox %q: %w", sandboxID, err)
 	}
 
-	if _, err := s.RemovePodSandbox(
-		ctx,
-		&types.RemovePodSandboxRequest{PodSandboxId: sandboxID},
+	if err := podoperation.Join(
+		podoperation.WithCleanup(ctx, ctx),
+		func(joined context.Context) error {
+			_, err := s.RemovePodSandbox(
+				joined,
+				&types.RemovePodSandboxRequest{PodSandboxId: sandboxID},
+			)
+
+			return err
+		},
 	); err != nil {
 		return fmt.Errorf("remove interrupted restore sandbox %q: %w", sandboxID, err)
 	}

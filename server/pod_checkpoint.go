@@ -17,6 +17,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/podoperation"
 )
 
 const (
@@ -69,10 +71,39 @@ func (s *Server) CheckpointPod(
 	if request.GetOperationId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "CheckpointPod requires an operation ID")
 	}
+
 	if !podOperationCancellationSupported() {
-		return nil, status.Error(codes.Unimplemented, "checkpoint backend cannot confirm operation cancellation")
+		return nil, status.Error(
+			codes.Unimplemented,
+			"checkpoint backend cannot confirm operation cancellation",
+		)
 	}
-	return s.checkpointPod(ctx, request)
+
+	response, err := s.runPodOperation(
+		ctx,
+		types.PodOperationType_POD_CHECKPOINT,
+		request.GetOperationId(),
+		request,
+		func(ctx context.Context) (proto.Message, error) {
+			if request.GetPodSandboxId() != "" {
+				if err := podoperation.SetResource(ctx, request.GetPodSandboxId()); err != nil {
+					return nil, err
+				}
+			}
+
+			return s.checkpointPod(ctx, request)
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	result := new(types.CheckpointPodResponse)
+	if err := proto.Unmarshal(response, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // RestorePod creates a sandbox and containers prepared to restore from a Pod checkpoint.
@@ -99,10 +130,38 @@ func (s *Server) RestorePod(
 	if request.GetOperationId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "RestorePod requires an operation ID")
 	}
+
 	if !podOperationCancellationSupported() {
-		return nil, status.Error(codes.Unimplemented, "restore backend cannot confirm operation cancellation")
+		return nil, status.Error(
+			codes.Unimplemented,
+			"restore backend cannot confirm operation cancellation",
+		)
 	}
-	return s.restorePod(ctx, request)
+
+	response, err := s.runPodOperation(
+		ctx,
+		types.PodOperationType_POD_RESTORE,
+		request.GetOperationId(),
+		request,
+		func(ctx context.Context) (proto.Message, error) {
+			response, err := s.restorePod(ctx, request)
+			if err == nil {
+				err = podoperation.SetResource(ctx, response.GetPodSandboxId())
+			}
+
+			return response, err
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	result := new(types.RestorePodResponse)
+	if err := proto.Unmarshal(response, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (s *Server) reservePodCheckpoint(

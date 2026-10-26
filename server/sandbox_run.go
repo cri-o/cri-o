@@ -13,6 +13,7 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/podoperation"
 )
 
 const (
@@ -100,7 +101,9 @@ func (s *Server) runPodSandboxRequest(
 	}
 
 	if err := persistPodSandboxConfig(sb.InfraContainer().Dir(), checkpointConfig); err != nil {
-		cleanupCtx := context.WithoutCancel(ctx)
+		// A Pod restore owns this sandbox. Remove it as that owner instead of
+		// cancelling the restore operation that is still running this call.
+		cleanupCtx := podoperation.WithCleanup(context.WithoutCancel(ctx), ctx)
 		if cleanupErr := s.removePodSandbox(cleanupCtx, sb); cleanupErr != nil {
 			return nil, errors.Join(
 				fmt.Errorf("persist sandbox checkpoint metadata: %w", err),

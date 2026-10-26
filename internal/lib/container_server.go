@@ -932,6 +932,11 @@ func (c *ContainerServer) ReleasePodName(name string) {
 	c.podNameIndex.Release(name)
 }
 
+// ReleasePodNameForID cannot release a name reassigned to another sandbox.
+func (c *ContainerServer) ReleasePodNameForID(id string) {
+	c.podNameIndex.Delete(id)
+}
+
 // PodIDForName gets the pod ID given the pod name from the ID Index.
 func (c *ContainerServer) PodIDForName(name string) (string, error) {
 	return c.podNameIndex.Get(name)

@@ -11,10 +11,13 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/opencontainers/cgroups"
+	cstorage "go.podman.io/storage"
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -22,11 +25,13 @@ import (
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/podoperation"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 const (
 	podCheckpointRecoveryDir     = "pod-checkpoint-recovery"
+	podCheckpointScratchDir      = ".checkpoint-work"
 	podCheckpointRecoveryVersion = 1
 	podCheckpointCleanupTimeout  = 30 * time.Second
 )
@@ -36,13 +41,47 @@ type podCheckpointRecoveryMarker struct {
 	SandboxID    string   `json:"sandboxId"`
 	CgroupParent string   `json:"cgroupParent"`
 	ContainerIDs []string `json:"containerIds"`
+	OutputPath   string   `json:"outputPath,omitempty"`
+	OutputDevice uint64   `json:"outputDevice,omitempty"`
+	OutputInode  uint64   `json:"outputInode,omitempty"`
+	TasksResumed bool     `json:"tasksResumed,omitempty"`
+	OperationID  string   `json:"operationID,omitempty"`
+}
+
+// setOutputDirectory saves the resolved output directory with its device and
+// inode, so recovery can refuse to clean a directory that has been replaced.
+func (m *podCheckpointRecoveryMarker) setOutputDirectory(outputPath string) error {
+	resolved, err := filepath.EvalSymlinks(outputPath)
+	if err != nil {
+		return err
+	}
+
+	output, err := openCheckpointDirectory(resolved)
+	if err != nil {
+		return err
+	}
+
+	var outputStat unix.Stat_t
+
+	statErr := unix.Fstat(int(output.Fd()), &outputStat)
+	output.Close()
+
+	if statErr != nil {
+		return statErr
+	}
+
+	m.OutputPath = resolved
+	m.OutputDevice = outputStat.Dev
+	m.OutputInode = outputStat.Ino
+
+	return nil
 }
 
 func (s *Server) checkpointPod(
 	ctx context.Context,
 	request *types.CheckpointPodRequest,
 ) (_ *types.CheckpointPodResponse, retErr error) {
-	if err := validateEmptyCheckpointOutput(request.GetOutputPath()); err != nil {
+	if err := validateCheckpointInput(request.GetOutputPath()); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid checkpoint output: %v", err)
 	}
 
@@ -89,6 +128,10 @@ func (s *Server) checkpointPod(
 		)
 	}
 
+	if err := s.recoverPodCheckpointForSandbox(ctx, sb.ID()); err != nil {
+		return nil, fmt.Errorf("recover previous Pod checkpoint: %w", err)
+	}
+
 	containers, containerConfigs, err := s.podCheckpointContainers(
 		ctx,
 		sb.ID(),
@@ -108,28 +151,18 @@ func (s *Server) checkpointPod(
 	}
 	defer release()
 
+	// Check the output only while it is reserved, so a concurrent checkpoint
+	// cannot fill it between this check and the first write.
+	if err := validateEmptyCheckpointOutput(request.GetOutputPath()); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid checkpoint output: %v", err)
+	}
+
 	sb.StopMutex().RLock()
 	defer sb.StopMutex().RUnlock()
 
 	if sb.Stopped() {
 		return nil, status.Errorf(codes.FailedPrecondition, "pod sandbox %q is stopped", sb.ID())
 	}
-
-	containerDir := filepath.Join(request.GetOutputPath(), podCheckpointContainerDir)
-	if err := os.Mkdir(containerDir, 0o700); err != nil {
-		return nil, fmt.Errorf("create checkpoint container directory: %w", err)
-	}
-
-	completed := false
-	defer func() {
-		if completed {
-			return
-		}
-
-		if err := cleanupPartialPodCheckpoint(request.GetOutputPath()); err != nil {
-			log.Errorf(ctx, "Unable to clean partial Pod checkpoint: %v", err)
-		}
-	}()
 
 	sandboxConfig, err := loadPodSandboxConfig(sb.InfraContainer().Dir())
 	if err != nil {
@@ -140,19 +173,16 @@ func (s *Server) checkpointPod(
 		)
 	}
 
-	if err := writeCheckpointJSON(
-		request.GetOutputPath(),
-		podCheckpointConfigFile,
-		sandboxConfig,
-	); err != nil {
-		return nil, fmt.Errorf("write Pod checkpoint config: %w", err)
-	}
-
 	marker := podCheckpointRecoveryMarker{
+		OperationID:  podoperation.ID(ctx),
 		Version:      podCheckpointRecoveryVersion,
 		SandboxID:    sb.ID(),
 		CgroupParent: sb.CgroupParent(),
 		ContainerIDs: append([]string(nil), request.GetContainerIds()...),
+	}
+
+	if err := marker.setOutputDirectory(request.GetOutputPath()); err != nil {
+		return nil, err
 	}
 
 	cgroupManager, err := s.config.CgroupManager().SandboxCgroupManager(sb.CgroupParent(), sb.ID())
@@ -173,7 +203,7 @@ func (s *Server) checkpointPod(
 		)
 	}
 
-	if err := s.writePodCheckpointRecoveryMarker(marker); err != nil {
+	if err := s.writePodCheckpointRecoveryMarker(&marker); err != nil {
 		return nil, fmt.Errorf("write Pod checkpoint recovery marker: %w", err)
 	}
 
@@ -189,20 +219,40 @@ func (s *Server) checkpointPod(
 		)
 		defer cancel()
 
-		if err := s.resumeCheckpointContainers(cleanupCtx, cgroupManager, containers); err != nil {
-			log.Errorf(ctx, "Unable to recover Pod after checkpoint: %v", err)
-
-			return
+		cleanupCtx = podoperation.WithCleanup(cleanupCtx, ctx)
+		if err := s.recoverPodCheckpointMarker(cleanupCtx, &marker); err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("recover Pod after checkpoint: %w", err))
 		}
-
-		if err := s.removePodCheckpointRecoveryMarker(sb.ID()); err != nil {
-			log.Errorf(ctx, "Unable to remove Pod checkpoint recovery marker: %v", err)
-
-			return
-		}
-
-		markerActive = false
 	}()
+
+	containerDir := filepath.Join(request.GetOutputPath(), podCheckpointContainerDir)
+	if err := os.Mkdir(containerDir, 0o700); err != nil {
+		return nil, fmt.Errorf("create checkpoint container directory: %w", err)
+	}
+
+	if err := writeCheckpointJSON(
+		request.GetOutputPath(),
+		podCheckpointConfigFile,
+		sandboxConfig,
+	); err != nil {
+		return nil, fmt.Errorf("write Pod checkpoint config: %w", err)
+	}
+
+	scratch := filepath.Join(request.GetOutputPath(), podCheckpointScratchDir)
+	if err := os.Mkdir(scratch, 0700); err != nil {
+		return nil, fmt.Errorf("create bounded checkpoint scratch: %w", err)
+	}
+	for _, container := range containers {
+		path := filepath.Join(scratch, fmt.Sprintf("container-%x", sha256.Sum256([]byte(container.ID()))))
+		if err := os.Mkdir(path, 0700); err != nil {
+			return nil, err
+		}
+		release, err := container.UseCheckpointWorkPath(path)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+	}
 
 	if err := cgroupManager.Freeze(cgroups.Frozen); err != nil {
 		return nil, fmt.Errorf("freeze Pod cgroup: %w", err)
@@ -213,7 +263,10 @@ func (s *Server) checkpointPod(
 			return nil, err
 		}
 
-		if err := s.Runtime().PauseContainer(ctx, container); err != nil {
+		if err := podoperation.JoinSynchronous(
+			ctx,
+			func(joined context.Context) error { return s.Runtime().PauseContainer(joined, container) },
+		); err != nil {
 			return nil, fmt.Errorf("pause container %q: %w", container.ID(), err)
 		}
 
@@ -244,6 +297,16 @@ func (s *Server) checkpointPod(
 	checkpointConfigs := make([]*metadata.ContainerConfig, 0, len(containers))
 
 	defer func() {
+		if err := s.podOperationRecoveryAllowed(
+			ctx,
+			types.PodOperationType_POD_CHECKPOINT,
+			marker.OperationID,
+		); err != nil {
+			retErr = errors.Join(retErr, err)
+
+			return
+		}
+
 		cleanupCtx, cancel := context.WithTimeout(
 			context.WithoutCancel(ctx),
 			podCheckpointCleanupTimeout,
@@ -270,14 +333,18 @@ func (s *Server) checkpointPod(
 		config := &metadata.ContainerConfig{ID: container.ID()}
 		checkpointConfigs = append(checkpointConfigs, config)
 
-		_, err := s.ContainerCheckpoint(ctx, config, &lib.ContainerCheckpointOptions{
-			KeepRunning: true,
-			TargetFile: filepath.Join(
-				request.GetOutputPath(),
-				checkpointArchiveName(container.ID()),
-			) + ".partial",
-			ContainerIsPaused: true,
-			DeferArchive:      true,
+		err := podoperation.JoinSynchronous(ctx, func(joined context.Context) error {
+			_, err := s.ContainerCheckpoint(joined, config, &lib.ContainerCheckpointOptions{
+				KeepRunning: true,
+				TargetFile: filepath.Join(
+					request.GetOutputPath(),
+					checkpointArchiveName(container.ID()),
+				) + ".partial",
+				ContainerIsPaused: true,
+				DeferArchive:      true,
+			})
+
+			return err
 		})
 		if err != nil {
 			return nil, fmt.Errorf("checkpoint container %q: %w", container.ID(), err)
@@ -288,6 +355,8 @@ func (s *Server) checkpointPod(
 		context.WithoutCancel(ctx),
 		podCheckpointCleanupTimeout,
 	)
+
+	cleanupCtx = podoperation.WithCleanup(cleanupCtx, ctx)
 	if err := s.resumeCheckpointContainers(cleanupCtx, cgroupManager, containers); err != nil {
 		cancel()
 
@@ -296,11 +365,10 @@ func (s *Server) checkpointPod(
 
 	cancel()
 
-	if err := s.removePodCheckpointRecoveryMarker(sb.ID()); err != nil {
-		return nil, fmt.Errorf("remove Pod checkpoint recovery marker: %w", err)
+	marker.TasksResumed = true
+	if err := s.persistPodCheckpointRecoveryMarker(&marker); err != nil {
+		return nil, fmt.Errorf("record resumed Pod checkpoint: %w", err)
 	}
-
-	markerActive = false
 
 	// The CRIU images and rootfs diff are immutable now, so creating and
 	// hashing the outer archives does not require the Pod to remain paused.
@@ -313,11 +381,10 @@ func (s *Server) checkpointPod(
 		archivePath := filepath.Join(request.GetOutputPath(), archiveName)
 
 		temporaryPath := archivePath + ".partial"
-		if err := s.ExportContainerCheckpoint(
-			ctx,
-			checkpointConfigs[i],
-			temporaryPath,
-		); err != nil {
+
+		if err := podoperation.JoinSynchronous(ctx, func(joined context.Context) error {
+			return s.ExportContainerCheckpoint(joined, checkpointConfigs[i], temporaryPath)
+		}); err != nil {
 			return nil, fmt.Errorf("export checkpoint for container %q: %w", container.ID(), err)
 		}
 
@@ -325,18 +392,18 @@ func (s *Server) checkpointPod(
 			return nil, err
 		}
 
-		if err := os.Rename(temporaryPath, archivePath); err != nil {
+		digest, err := checkpointArchiveDigest(temporaryPath)
+		if err != nil {
 			return nil, fmt.Errorf(
-				"publish checkpoint archive for container %q: %w",
+				"verify checkpoint archive for container %q: %w",
 				container.ID(),
 				err,
 			)
 		}
 
-		digest, err := fileSHA256(archivePath)
-		if err != nil {
+		if err := os.Rename(temporaryPath, archivePath); err != nil {
 			return nil, fmt.Errorf(
-				"hash checkpoint archive for container %q: %w",
+				"publish checkpoint archive for container %q: %w",
 				container.ID(),
 				err,
 			)
@@ -369,7 +436,14 @@ func (s *Server) checkpointPod(
 		return nil, fmt.Errorf("write Pod checkpoint manifest: %w", err)
 	}
 
-	completed = true
+	if err := cleanupInterruptedPodCheckpoint(&marker); err != nil {
+		return nil, fmt.Errorf("clean completed Pod checkpoint scratch: %w", err)
+	}
+	if err := s.removePodCheckpointRecoveryMarker(sb.ID()); err != nil {
+		return nil, fmt.Errorf("remove Pod checkpoint recovery marker: %w", err)
+	}
+
+	markerActive = false
 
 	return &types.CheckpointPodResponse{}, nil
 }
@@ -517,7 +591,10 @@ func (s *Server) resumeCheckpointContainers(
 		}
 
 		if container.State().Status == oci.ContainerStatePaused {
-			if err := s.Runtime().UnpauseContainer(ctx, container); err != nil {
+			if err := podoperation.JoinSynchronous(
+				ctx,
+				func(joined context.Context) error { return s.Runtime().UnpauseContainer(joined, container) },
+			); err != nil {
 				recoveryErrors = append(
 					recoveryErrors,
 					fmt.Errorf("resume container %q: %w", container.ID(), err),
@@ -536,18 +613,6 @@ func (s *Server) resumeCheckpointContainers(
 	}
 
 	return errors.Join(recoveryErrors...)
-}
-
-func cleanupPartialPodCheckpoint(outputPath string) error {
-	var cleanupErrors []error
-
-	for _, name := range []string{podCheckpointManifestFile, podCheckpointConfigFile, podCheckpointContainerDir} {
-		if err := os.RemoveAll(filepath.Join(outputPath, name)); err != nil {
-			cleanupErrors = append(cleanupErrors, err)
-		}
-	}
-
-	return errors.Join(cleanupErrors...)
 }
 
 func syncCheckpointFile(path string) error {
@@ -574,7 +639,7 @@ func (s *Server) podCheckpointRecoveryMarkerPath(sandboxID string) string {
 	return filepath.Join(s.podCheckpointRecoveryDirectory(), hex.EncodeToString(digest[:])+".json")
 }
 
-func (s *Server) writePodCheckpointRecoveryMarker(marker podCheckpointRecoveryMarker) error {
+func (s *Server) writePodCheckpointRecoveryMarker(marker *podCheckpointRecoveryMarker) error {
 	dir := s.podCheckpointRecoveryDirectory()
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
@@ -585,20 +650,24 @@ func (s *Server) writePodCheckpointRecoveryMarker(marker podCheckpointRecoveryMa
 			"pod checkpoint recovery marker for sandbox %q already exists",
 			marker.SandboxID,
 		)
-	} else if !os.IsNotExist(err) {
+	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 
+	return s.persistPodCheckpointRecoveryMarker(marker)
+}
+
+func (s *Server) persistPodCheckpointRecoveryMarker(marker *podCheckpointRecoveryMarker) error {
 	return writeCheckpointJSON(
-		dir,
+		s.podCheckpointRecoveryDirectory(),
 		filepath.Base(s.podCheckpointRecoveryMarkerPath(marker.SandboxID)),
-		&marker,
+		marker,
 	)
 }
 
 func (s *Server) removePodCheckpointRecoveryMarker(sandboxID string) error {
 	path := s.podCheckpointRecoveryMarkerPath(sandboxID)
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 
@@ -609,7 +678,7 @@ func (s *Server) recoverPodCheckpoints(ctx context.Context) error {
 	dir := s.podCheckpointRecoveryDirectory()
 
 	entries, err := os.ReadDir(dir)
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 
@@ -648,44 +717,236 @@ func (s *Server) recoverPodCheckpoints(ctx context.Context) error {
 			return fmt.Errorf("pod checkpoint recovery marker %s has an invalid filename", path)
 		}
 
-		sb := s.GetSandbox(marker.SandboxID)
-		if sb == nil {
-			if err := os.Remove(path); err != nil {
-				return err
-			}
-
+		// Caller-identified work is recovered by CancelPodOperation, whose
+		// owner records any new child uncertainty before startup cleanup runs.
+		if marker.OperationID != "" {
 			continue
 		}
 
-		if marker.CgroupParent != sb.CgroupParent() {
-			return fmt.Errorf(
-				"pod checkpoint recovery marker %s has an unexpected cgroup parent",
-				path,
-			)
-		}
-
-		manager, err := s.config.CgroupManager().
-			SandboxCgroupManager(marker.CgroupParent, marker.SandboxID)
-		if err != nil {
-			return err
-		}
-
-		containers := make([]*oci.Container, 0, len(marker.ContainerIDs))
-		for _, id := range marker.ContainerIDs {
-			container := s.GetContainer(ctx, id)
-			if container != nil {
-				containers = append(containers, container)
-			}
-		}
-
-		if err := s.resumeCheckpointContainers(ctx, manager, containers); err != nil {
-			return err
-		}
-
-		if err := os.Remove(path); err != nil {
+		if err := s.recoverPodCheckpointMarker(ctx, marker); err != nil {
 			return err
 		}
 	}
 
 	return syncCheckpointDirectory(dir)
+}
+
+// Retry a retained marker before accepting another checkpoint of this sandbox.
+// Startup recovery runs before requests and does not need these reservations.
+func (s *Server) recoverPodCheckpointForSandbox(ctx context.Context, sandboxID string) error {
+	path := s.podCheckpointRecoveryMarkerPath(sandboxID)
+	if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if _, loaded := s.podCheckpointsInProgress.LoadOrStore(sandboxID, struct{}{}); loaded {
+		return status.Error(codes.Aborted, "a checkpoint of this sandbox is already active")
+	}
+	defer s.podCheckpointsInProgress.Delete(sandboxID)
+
+	var marker podCheckpointRecoveryMarker
+	if err := readCheckpointJSON(path, &marker); errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if marker.SandboxID != sandboxID || marker.Version != podCheckpointRecoveryVersion ||
+		len(marker.ContainerIDs) == 0 {
+		return errors.New("invalid Pod checkpoint recovery marker")
+	}
+
+	if marker.OutputPath != "" {
+		if _, loaded := s.podCheckpointOutputs.LoadOrStore(marker.OutputPath, struct{}{}); loaded {
+			return status.Error(codes.Aborted, "checkpoint output is in use")
+		}
+		defer s.podCheckpointOutputs.Delete(marker.OutputPath)
+	}
+
+	releaseContainers, err := s.reserveContainerCheckpoints(marker.ContainerIDs)
+	if err != nil {
+		return status.Errorf(codes.Aborted, "reserve checkpoint recovery: %v", err)
+	}
+	defer releaseContainers()
+
+	if sb := s.GetSandbox(sandboxID); sb != nil {
+		sb.StopMutex().RLock()
+		defer sb.StopMutex().RUnlock()
+	}
+
+	return s.recoverPodCheckpointMarker(ctx, &marker)
+}
+
+func (s *Server) recoverPodCheckpointMarker(
+	ctx context.Context,
+	marker *podCheckpointRecoveryMarker,
+) error {
+	if err := s.podOperationRecoveryAllowed(
+		ctx,
+		types.PodOperationType_POD_CHECKPOINT,
+		marker.OperationID,
+	); err != nil {
+		return err
+	}
+
+	if !marker.TasksResumed {
+		sb := s.GetSandbox(marker.SandboxID)
+		if sb == nil {
+			for _, id := range append([]string{marker.SandboxID}, marker.ContainerIDs...) {
+				if _, err := s.Store().Container(id); err == nil {
+					return fmt.Errorf("checkpoint resource %q has not been loaded", id)
+				} else if !errors.Is(err, cstorage.ErrContainerUnknown) {
+					return err
+				}
+			}
+		} else {
+			if marker.CgroupParent != sb.CgroupParent() {
+				return errors.New("checkpoint marker cgroup does not match the sandbox")
+			}
+
+			manager, err := s.config.CgroupManager().
+				SandboxCgroupManager(marker.CgroupParent, marker.SandboxID)
+			if err != nil {
+				return err
+			}
+
+			containers := make([]*oci.Container, 0, len(marker.ContainerIDs))
+			for _, id := range marker.ContainerIDs {
+				container := s.GetContainer(ctx, id)
+				if container == nil {
+					if _, err := s.Store().Container(id); err == nil {
+						return fmt.Errorf("checkpoint container %q has not been loaded", id)
+					} else if !errors.Is(err, cstorage.ErrContainerUnknown) {
+						return err
+					}
+
+					continue
+				}
+
+				if container.Sandbox() != marker.SandboxID {
+					return errors.New("checkpoint marker names a container from another sandbox")
+				}
+
+				containers = append(containers, container)
+			}
+
+			if err := s.resumeCheckpointContainers(ctx, manager, containers); err != nil {
+				return err
+			}
+		}
+
+		marker.TasksResumed = true
+		if err := s.persistPodCheckpointRecoveryMarker(marker); err != nil {
+			return errors.Join(err, cleanupInterruptedPodCheckpoint(marker))
+		}
+	}
+
+	// The marker cannot find output moved elsewhere, and retaining it would
+	// block every later checkpoint of this sandbox.
+	if err := cleanupInterruptedPodCheckpoint(
+		marker,
+	); errors.Is(
+		err,
+		errPodCheckpointOutputNotOwned,
+	) {
+		log.Warnf(ctx, "Leaving checkpoint output %q unchanged: %v", marker.OutputPath, err)
+	} else if err != nil {
+		return err
+	}
+
+	return s.removePodCheckpointRecoveryMarker(marker.SandboxID)
+}
+
+// errPodCheckpointOutputNotOwned reports that the recorded output path no
+// longer holds this checkpoint's output, so recovery must leave it unchanged.
+var errPodCheckpointOutputNotOwned = errors.New(
+	"checkpoint output no longer belongs to the interrupted checkpoint",
+)
+
+func cleanupInterruptedPodCheckpoint(marker *podCheckpointRecoveryMarker) error {
+	if marker.OutputPath == "" {
+		return nil // Older markers did not record an output directory.
+	}
+
+	directory, err := openCheckpointDirectory(marker.OutputPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+
+	if errors.Is(err, unix.ENOTDIR) || errors.Is(err, unix.ELOOP) {
+		return fmt.Errorf(
+			"%w: output path is no longer a directory",
+			errPodCheckpointOutputNotOwned,
+		)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	defer directory.Close()
+
+	var stat unix.Stat_t
+	if err := unix.Fstat(int(directory.Fd()), &stat); err != nil {
+		return err
+	}
+
+	if stat.Dev != marker.OutputDevice || stat.Ino != marker.OutputInode {
+		return fmt.Errorf("%w: directory was replaced", errPodCheckpointOutputNotOwned)
+	}
+
+	complete := false
+	var manifest podCheckpointManifest
+	if err := readCheckpointJSONAt(directory, podCheckpointManifestFile, &manifest); err == nil {
+		if manifest.Version != podCheckpointFormatVersion || manifest.Runtime != "cri-o" ||
+			manifest.SandboxID != marker.SandboxID {
+			return fmt.Errorf(
+				"%w: published checkpoint does not match the recovery marker",
+				errPodCheckpointOutputNotOwned,
+			)
+		}
+
+		complete = true
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	root, err := os.OpenRoot(fmt.Sprintf("/proc/self/fd/%d", directory.Fd()))
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	if err := root.RemoveAll(podCheckpointScratchDir); err != nil {
+		return err
+	}
+	if err := directory.Sync(); err != nil {
+		return err
+	}
+
+	if complete {
+		return nil
+	}
+	for _, name := range []string{podCheckpointConfigFile, podCheckpointContainerDir} {
+		if err := root.RemoveAll(name); err != nil {
+			return err
+		}
+	}
+
+	entries, err := directory.ReadDir(-1)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), "."+podCheckpointConfigFile+"-") ||
+			strings.HasPrefix(entry.Name(), "."+podCheckpointManifestFile+"-") {
+			if err := root.Remove(entry.Name()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return directory.Sync()
 }

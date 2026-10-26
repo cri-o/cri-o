@@ -98,6 +98,8 @@ type Server struct {
 	podCheckpointOutputs            sync.Map
 	containerCheckpointsInProgress  sync.Map
 	podRestoresInProgress           sync.Map
+	podOperations                   sync.Map
+	podOperationRoot                string
 
 	// NRI runtime interface
 	nri *nriAPI
@@ -523,8 +525,9 @@ func New(
 		return nil, err
 	}
 
+	graphRoot := containerServer.Store().GraphRoot()
 	artifactStore, err := ociartifact.NewStore(
-		containerServer.Store().GraphRoot(),
+		graphRoot,
 		config.AdditionalArtifactStores,
 		config.SystemContext,
 		defaultImageServer.PinnedImageRegexps(),
@@ -535,6 +538,7 @@ func New(
 
 	s := &Server{
 		ContainerServer:          containerServer,
+		podOperationRoot:         graphRoot,
 		hostportManager:          hostportManager,
 		config:                   *config,
 		stream:                   &StreamService{},

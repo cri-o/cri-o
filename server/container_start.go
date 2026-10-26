@@ -13,10 +13,19 @@ import (
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/podoperation"
 )
 
-// StartContainer starts the container.
+// StartContainer starts a container under any existing Pod restore owner.
 func (s *Server) StartContainer(
+	ctx context.Context,
+	request *types.StartContainerRequest,
+) (*types.StartContainerResponse, error) {
+	return s.startContainerWithPodOperation(ctx, request)
+}
+
+// StartContainer starts the container.
+func (s *Server) startContainer(
 	ctx context.Context,
 	req *types.StartContainerRequest,
 ) (res *types.StartContainerResponse, retErr error) {
@@ -58,10 +67,12 @@ func (s *Server) StartContainer(
 
 	defer func() {
 		// if the call to StartContainer fails below we still want to fill
-		// some fields of a container status. In particular, we're going to
+		// some fields of a container status. Identified restores defer cleanup
+		// to their settlement owner so storage cannot disappear under late work.
+		// In particular, we're going to
 		// adjust container started/finished time and set an error to be
 		// returned in the Reason field for container status call.
-		if retErr != nil {
+		if retErr != nil && podoperation.ID(ctx) == "" {
 			c.SetStartFailed(retErr)
 
 			if hooks != nil {
@@ -107,11 +118,16 @@ func (s *Server) StartContainer(
 		c.SetRestoreStorageImageID(nil)
 		c.SetRestored(true)
 
-		if err := s.ContainerStateToDiskWithUpdate(ctx, c); err != nil {
-			return nil, fmt.Errorf("persist completed restore for container %s: %w", c.ID(), err)
+		// The process is running now, so a state write failure must not fail
+		// the start. Keep the staged archive until the completed state is saved.
+		stateErr := s.ContainerStateToDiskWithUpdate(ctx, c)
+		if stateErr != nil {
+			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), stateErr)
 		}
 
-		if restoreArchive != "" {
+		// A single-container restore reads the caller's archive in place. Only
+		// a Pod restore owns its staged copy.
+		if stateErr == nil && c.PodRestoreKey() != "" && restoreArchive != "" {
 			if err := os.Remove(restoreArchive); err != nil && !os.IsNotExist(err) {
 				log.Warnf(
 					ctx,
