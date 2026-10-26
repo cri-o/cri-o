@@ -402,3 +402,91 @@ func TestPodRestoreFingerprint(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, original, fingerprint)
 }
+
+func TestPodCheckpointInterruptedOutput(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		complete bool
+		replaced bool
+		reserved bool
+	}{
+		{name: "partial"},
+		{name: "concurrent checkpoint", reserved: true},
+		{name: "published", complete: true},
+		{name: "replaced directory", replaced: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s := podRestoreTestServer(t)
+			output := filepath.Join(t.TempDir(), "output")
+			require.NoError(t, os.Mkdir(output, 0o700))
+
+			var stat unix.Stat_t
+			require.NoError(t, unix.Stat(output, &stat))
+			marker := podCheckpointRecoveryMarker{
+				Version: podCheckpointRecoveryVersion, SandboxID: "source",
+				TasksResumed: true, OutputPath: output,
+				OutputDevice: stat.Dev, OutputInode: stat.Ino,
+				ContainerIDs: []string{"app"},
+			}
+			require.NoError(t, s.writePodCheckpointRecoveryMarker(marker))
+
+			if test.replaced {
+				require.NoError(t, os.Rename(output, output+"-original"))
+				require.NoError(t, os.Mkdir(output, 0o700))
+			}
+
+			require.NoError(t, os.Mkdir(filepath.Join(output, podCheckpointContainerDir), 0o700))
+			require.NoError(
+				t,
+				os.WriteFile(
+					filepath.Join(output, podCheckpointContainerDir, "partial.tar"),
+					[]byte("partial"),
+					0o600,
+				),
+			)
+			require.NoError(
+				t,
+				os.WriteFile(filepath.Join(output, podCheckpointConfigFile), []byte("{}"), 0o600),
+			)
+
+			if test.complete {
+				require.NoError(
+					t,
+					writeCheckpointJSON(output, podCheckpointManifestFile, &podCheckpointManifest{
+						Version:   podCheckpointFormatVersion,
+						Runtime:   "cri-o",
+						SandboxID: marker.SandboxID,
+					}),
+				)
+			}
+
+			if test.reserved {
+				release, err := s.reserveContainerCheckpoints(marker.ContainerIDs)
+				require.NoError(t, err)
+				err = s.recoverPodCheckpointForSandbox(context.Background(), marker.SandboxID)
+				require.Equal(t, codes.Aborted, status.Code(err))
+				release()
+			}
+
+			err := s.recoverPodCheckpointForSandbox(context.Background(), marker.SandboxID)
+			if test.replaced {
+				require.ErrorContains(t, err, "replaced")
+				_, err = os.Stat(s.podCheckpointRecoveryMarkerPath(marker.SandboxID))
+				require.NoError(t, err)
+			} else {
+				require.NoError(t, err)
+				_, err = os.Stat(s.podCheckpointRecoveryMarkerPath(marker.SandboxID))
+				require.ErrorIs(t, err, os.ErrNotExist)
+			}
+
+			entries, err := os.ReadDir(output)
+			require.NoError(t, err)
+
+			if test.complete || test.replaced {
+				assert.NotEmpty(t, entries)
+			} else {
+				assert.Empty(t, entries)
+			}
+		})
+	}
+}
