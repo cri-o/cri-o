@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 27 Oct 2026 10:29:47 UTC for commit [b3e2419][0]._
+_Generated on Tue, 27 Oct 2026 14:58:20 UTC for commit [8bb0a61][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b3e2419f3e3a6a96764d310ec748af939f5803a0
+[0]: https://github.com/cri-o/cri-o/commit/8bb0a613fb8da5badbe4da4efe11946135a0c79d
 
 ## Outdated Dependencies
 
@@ -63,7 +63,7 @@ _Generated on Tue, 27 Oct 2026 10:29:47 UTC for commit [b3e2419][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                       |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.2                              | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                             | v0.21.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.430                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.431                           | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                             |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                               | v1.15.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                               | v1.17.0                            | false  | true             |
@@ -450,7 +450,7 @@ _Generated on Tue, 27 Oct 2026 10:29:47 UTC for commit [b3e2419][0]._
 | github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus           | v1.1.0                               | v1.1.1                             | false  | true             |
 | github.com/grpc-ecosystem/go-grpc-middleware/v2                             | v2.3.3                               | v2.3.4                             | false  | true             |
 | github.com/grpc-ecosystem/go-grpc-prometheus                                | v1.2.1-0.20210315223345-82c243799c99 |                                    | false  | true             |
-| github.com/grpc-ecosystem/grpc-gateway/v2                                   | v2.30.0                              | v2.32.0                            | false  | true             |
+| github.com/grpc-ecosystem/grpc-gateway/v2                                   | v2.30.0                              | v2.33.0                            | false  | true             |
 | github.com/hashicorp/errwrap                                                | v1.1.0                               |                                    | false  | true             |
 | github.com/hashicorp/go-cleanhttp                                           | v0.5.2                               |                                    | false  | true             |
 | github.com/hashicorp/go-multierror                                          | v1.1.1                               |                                    | false  | true             |
