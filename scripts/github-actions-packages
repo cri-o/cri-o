@@ -45,8 +45,10 @@ if [[ "${1:-}" != runtime ]]; then
     . /etc/os-release
     CRIU_REPO="https://download.opensuse.org/repositories/devel:/tools:/criu/xUbuntu_$VERSION_ID"
 
-    curl -fSsL "$CRIU_REPO/Release.key" | sudo apt-key add -
-    echo "deb $CRIU_REPO/ /" | sudo tee /etc/apt/sources.list.d/criu.list
+    sudo install -d -m 0755 /etc/apt/keyrings
+    curl -fSsL "$CRIU_REPO/Release.key" | sudo tee /etc/apt/keyrings/criu.asc >/dev/null
+    sudo chmod 0644 /etc/apt/keyrings/criu.asc
+    echo "deb [signed-by=/etc/apt/keyrings/criu.asc] $CRIU_REPO/ /" | sudo tee /etc/apt/sources.list.d/criu.list
 fi
 
 sudo apt update
