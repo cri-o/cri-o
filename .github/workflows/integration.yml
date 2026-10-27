@@ -177,7 +177,22 @@ jobs:
         env:
           RUN_CRITEST: ${{ matrix.run.critest }}
       - name: Run the test suite
-        run: sudo -E test/test_runner.sh
+        # sudo-rs ignores -E, so pass the test environment explicitly.
+        run: |
+          sudo env \
+            "PATH=$PATH" \
+            "CONMON_BINARY=$CONMON_BINARY" \
+            "GOCOVERDIR=$GOCOVERDIR" \
+            "JOBS=$JOBS" \
+            "RUN_CRITEST=$RUN_CRITEST" \
+            "TEST_SHARD=$TEST_SHARD" \
+            "RUNTIME_TYPE=$RUNTIME_TYPE" \
+            "TEST_USERNS=$TEST_USERNS" \
+            "CONTAINER_DEFAULT_RUNTIME=$CONTAINER_DEFAULT_RUNTIME" \
+            "TEST_REPORT_DIR=$TEST_REPORT_DIR" \
+            "TEST_RETRIES=$TEST_RETRIES" \
+            "BATS_TEST_TIMEOUT=$BATS_TEST_TIMEOUT" \
+            test/test_runner.sh
         # Below the job timeout, so that the results still get reported.
         timeout-minutes: 12
         env:

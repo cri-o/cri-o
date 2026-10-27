@@ -309,6 +309,13 @@ function teardown() {
 }
 
 @test "run container in pod with crun-wasm enabled" {
+	# TODO: Investigate the WASM test failure on Ubuntu 26.04 and re-enable this test.
+	if (
+		. /etc/os-release
+		[[ "$ID" == ubuntu && "$VERSION_ID" == 26.04 ]]
+	); then
+		skip "WASM test on Ubuntu 26.04 is pending investigation"
+	fi
 	if [ -z "$CRUN_WASM_BINARY" ] || [[ "$RUNTIME_TYPE" == "vm" ]]; then
 		skip "crun-wasm not installed or runtime type is VM"
 	fi

@@ -40,7 +40,7 @@ function stop_cleanup_has_finished() {
 	# call the crictl() helper, so run the binary with the helper's flags.
 	for _ in 1 2; do
 		# 137 means the server held the stop open; `run !` would accept a dial failure.
-		run timeout -s KILL 2s "$CRICTL_BINARY" -t "$CRICTL_TIMEOUT" --config "$CRICTL_CONFIG_FILE" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" stop --timeout 30 "$blocked_ctr"
+		run timeout --preserve-status -s KILL 2s "$CRICTL_BINARY" -t "$CRICTL_TIMEOUT" --config "$CRICTL_CONFIG_FILE" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" stop --timeout 30 "$blocked_ctr"
 		[ "$status" -eq 137 ]
 	done
 	[[ $(crictl inspect "$blocked_ctr" | jq -r .status.state) == "CONTAINER_RUNNING" ]]
