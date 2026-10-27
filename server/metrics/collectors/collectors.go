@@ -69,6 +69,15 @@ const (
 
 	// DefaultRuntime is the key for the default container runtime configured in CRI-O.
 	DefaultRuntime Collector = crioPrefix + "default_runtime"
+
+	// SecurityProfilesStored is the key for the number of security profile OCI artifacts in the artifact store.
+	SecurityProfilesStored Collector = crioPrefix + "security_profiles_stored"
+
+	// SecurityProfilesStoredBytes is the key for the size of the security profile OCI artifacts in the artifact store.
+	SecurityProfilesStoredBytes Collector = crioPrefix + "security_profiles_stored_bytes"
+
+	// SecurityProfileMergesConstrainedTotal is the key for the merges that constrained an OCI security profile.
+	SecurityProfileMergesConstrainedTotal Collector = crioPrefix + "security_profile_merges_constrained_total"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -111,6 +120,9 @@ func All() Collectors {
 		ResourcesStalledAtStage.Stripped(),
 		ContainersStoppedMonitorCount.Stripped(),
 		DefaultRuntime.Stripped(),
+		SecurityProfilesStored.Stripped(),
+		SecurityProfilesStoredBytes.Stripped(),
+		SecurityProfileMergesConstrainedTotal.Stripped(),
 	}
 }
 
