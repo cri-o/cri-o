@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 28 Oct 2026 13:01:22 UTC for commit [ac74ea8][0]._
+_Generated on Wed, 28 Oct 2026 16:02:31 UTC for commit [01ec012][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ac74ea8fb5c0d82ea68345c20a0858c9462c0320
+[0]: https://github.com/cri-o/cri-o/commit/01ec012abac0223b506b3027fddbdebb6d11f9ff
 
 ## Outdated Dependencies
 
@@ -39,18 +39,18 @@ _Generated on Wed, 28 Oct 2026 13:01:22 UTC for commit [ac74ea8][0]._
 | go.podman.io/common                                                         | v0.68.1                            | v0.70.0                            | true   | true             |
 | go.podman.io/image/v5                                                       | v5.40.0                            | v5.42.0                            | true   | true             |
 | go.podman.io/storage                                                        | v1.63.0                            | v1.65.0                            | true   | true             |
-| golang.org/x/net                                                            | v0.58.0                            | v0.62.0                            | true   | true             |
+| golang.org/x/net                                                            | v0.60.0                            | v0.62.0                            | true   | true             |
 | golang.org/x/sync                                                           | v0.23.0                            | v0.24.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.48.0                            | v0.49.0                            | true   | true             |
 | google.golang.org/grpc                                                      | v1.83.2                            | v1.85.0                            | true   | true             |
-| k8s.io/api                                                                  | v0.37.0                            | v0.37.1                            | true   | true             |
-| k8s.io/apimachinery                                                         | v0.37.0                            | v0.37.1                            | true   | true             |
-| k8s.io/client-go                                                            | v0.37.0                            | v0.37.1                            | true   | true             |
-| k8s.io/component-base                                                       | v0.37.0                            | v0.37.1                            | true   | true             |
-| k8s.io/cri-api                                                              | v0.37.0                            | v0.37.1                            | true   | true             |
-| k8s.io/cri-client                                                           | v0.37.0                            | v0.37.1                            | true   | true             |
-| k8s.io/cri-streaming                                                        | v0.37.0                            | v0.37.1                            | true   | true             |
-| k8s.io/kubelet                                                              | v0.37.0                            | v0.37.1                            | true   | true             |
+| k8s.io/api                                                                  | v0.37.0                            | v0.37.2                            | true   | true             |
+| k8s.io/apimachinery                                                         | v0.37.0                            | v0.37.2                            | true   | true             |
+| k8s.io/client-go                                                            | v0.37.0                            | v0.37.2                            | true   | true             |
+| k8s.io/component-base                                                       | v0.37.0                            | v0.37.2                            | true   | true             |
+| k8s.io/cri-api                                                              | v0.37.0                            | v0.37.2                            | true   | true             |
+| k8s.io/cri-client                                                           | v0.37.0                            | v0.37.2                            | true   | true             |
+| k8s.io/cri-streaming                                                        | v0.37.0                            | v0.37.2                            | true   | true             |
+| k8s.io/kubelet                                                              | v0.37.0                            | v0.37.2                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20260626114624-be93311217bd | v0.0.0-20261023123148-ca04ba58ecab | true   | true             |
 | sigs.k8s.io/knftables                                                       | v0.0.21                            | v0.0.22                            | true   | true             |
 | sigs.k8s.io/release-sdk                                                     | v0.12.7                            | v0.13.0                            | true   | true             |
@@ -63,7 +63,7 @@ _Generated on Wed, 28 Oct 2026 13:01:22 UTC for commit [ac74ea8][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                       |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.2                              | v0.25.3                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                             | v0.21.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.432                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                              | v0.1.433                           | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                             |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                               | v1.15.0                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                               | v1.17.0                            | false  | true             |
@@ -367,7 +367,7 @@ _Generated on Wed, 28 Oct 2026 13:01:22 UTC for commit [ac74ea8][0]._
 | github.com/fatih/color                                                      | v1.18.0                              | v1.19.0                            | false  | true             |
 | github.com/felixge/httpsnoop                                                | v1.1.0                               |                                    | false  | true             |
 | github.com/fsnotify/fsnotify                                                | v1.10.1                              |                                    | true   | true             |
-| github.com/fxamacker/cbor/v2                                                | v2.9.1                               | v2.9.6                             | false  | true             |
+| github.com/fxamacker/cbor/v2                                                | v2.9.1                               | v2.10.0                            | false  | true             |
 | github.com/gkampitakis/ciinfo                                               | v0.3.2                               | v0.3.4                             | false  | true             |
 | github.com/gkampitakis/go-diff                                              | v1.3.2                               |                                    | false  | true             |
 | github.com/gkampitakis/go-snaps                                             | v0.5.15                              | v0.5.25                            | false  | true             |
@@ -734,16 +734,16 @@ _Generated on Wed, 28 Oct 2026 13:01:22 UTC for commit [ac74ea8][0]._
 | go.yaml.in/yaml/v2                                                          | v2.4.4                               |                                    | false  | true             |
 | go.yaml.in/yaml/v3                                                          | v3.0.5                               |                                    | false  | true             |
 | goa.design/goa/v3                                                           | v3.26.0                              | v3.35.0                            | false  | true             |
-| golang.org/x/crypto                                                         | v0.55.0                              | v0.58.0                            | false  | true             |
+| golang.org/x/crypto                                                         | v0.57.0                              | v0.58.0                            | false  | true             |
 | golang.org/x/exp                                                            | v0.0.0-20260410095643-746e56fc9e2f   | v0.0.0-20261014143641-f0251eb4aa3e | false  | true             |
-| golang.org/x/mod                                                            | v0.39.0                              | v0.42.0                            | false  | true             |
-| golang.org/x/net                                                            | v0.58.0                              | v0.62.0                            | true   | true             |
+| golang.org/x/mod                                                            | v0.41.0                              | v0.42.0                            | false  | true             |
+| golang.org/x/net                                                            | v0.60.0                              | v0.62.0                            | true   | true             |
 | golang.org/x/oauth2                                                         | v0.36.0                              | v0.37.0                            | false  | true             |
 | golang.org/x/sync                                                           | v0.23.0                              | v0.24.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.48.0                              | v0.49.0                            | true   | true             |
 | golang.org/x/telemetry                                                      | v0.0.0-20260811182544-a038080d80e5   | v0.0.0-20261021172232-6cd571d43fbb | false  | true             |
-| golang.org/x/term                                                           | v0.45.0                              | v0.47.0                            | false  | true             |
-| golang.org/x/text                                                           | v0.41.0                              | v0.43.0                            | false  | true             |
+| golang.org/x/term                                                           | v0.46.0                              | v0.47.0                            | false  | true             |
+| golang.org/x/text                                                           | v0.42.0                              | v0.43.0                            | false  | true             |
 | golang.org/x/time                                                           | v0.15.0                              | v0.16.0                            | false  | true             |
 | golang.org/x/tools                                                          | v0.49.0                              | v0.52.0                            | false  | true             |
 | golang.org/x/tools/go/expect                                                | v0.1.0-deprecated                    | v0.1.1-deprecated                  | false  | true             |
@@ -765,19 +765,19 @@ _Generated on Wed, 28 Oct 2026 13:01:22 UTC for commit [ac74ea8][0]._
 | gopkg.in/yaml.v2                                                            | v2.4.0                               |                                    | false  | true             |
 | gopkg.in/yaml.v3                                                            | v3.0.1                               |                                    | false  | true             |
 | gotest.tools/v3                                                             | v3.5.2                               |                                    | false  | true             |
-| k8s.io/api                                                                  | v0.37.0                              | v0.37.1                            | true   | true             |
-| k8s.io/apimachinery                                                         | v0.37.0                              | v0.37.1                            | true   | true             |
-| k8s.io/apiserver                                                            | v0.26.2                              | v0.37.1                            | false  | true             |
-| k8s.io/client-go                                                            | v0.37.0                              | v0.37.1                            | true   | true             |
-| k8s.io/component-base                                                       | v0.37.0                              | v0.37.1                            | true   | true             |
-| k8s.io/cri-api                                                              | v0.37.0                              | v0.37.1                            | true   | true             |
-| k8s.io/cri-client                                                           | v0.37.0                              | v0.37.1                            | true   | true             |
-| k8s.io/cri-streaming                                                        | v0.37.0                              | v0.37.1                            | true   | true             |
+| k8s.io/api                                                                  | v0.37.0                              | v0.37.2                            | true   | true             |
+| k8s.io/apimachinery                                                         | v0.37.0                              | v0.37.2                            | true   | true             |
+| k8s.io/apiserver                                                            | v0.26.2                              | v0.37.2                            | false  | true             |
+| k8s.io/client-go                                                            | v0.37.0                              | v0.37.2                            | true   | true             |
+| k8s.io/component-base                                                       | v0.37.0                              | v0.37.2                            | true   | true             |
+| k8s.io/cri-api                                                              | v0.37.0                              | v0.37.2                            | true   | true             |
+| k8s.io/cri-client                                                           | v0.37.0                              | v0.37.2                            | true   | true             |
+| k8s.io/cri-streaming                                                        | v0.37.0                              | v0.37.2                            | true   | true             |
 | k8s.io/gengo/v2                                                             | v2.0.0-20250922181213-ec3ebc5fd46b   | v2.0.0-20260408192533-25e2208e0dc3 | false  | true             |
 | k8s.io/klog/v2                                                              | v2.140.0                             |                                    | true   | true             |
 | k8s.io/kube-openapi                                                         | v0.0.0-20260721132016-d427ff9ee9ad   | v0.0.0-20261014044854-ca3452a79603 | false  | true             |
-| k8s.io/kubelet                                                              | v0.37.0                              | v0.37.1                            | true   | true             |
-| k8s.io/streaming                                                            | v0.37.0                              | v0.37.1                            | false  | true             |
+| k8s.io/kubelet                                                              | v0.37.0                              | v0.37.2                            | true   | true             |
+| k8s.io/streaming                                                            | v0.37.0                              | v0.37.2                            | false  | true             |
 | k8s.io/utils                                                                | v0.0.0-20260626114624-be93311217bd   | v0.0.0-20261023123148-ca04ba58ecab | true   | true             |
 | pgregory.net/rapid                                                          | v1.2.0                               | v1.3.0                             | false  | true             |
 | sigs.k8s.io/json                                                            | v0.0.0-20250730193827-2d320260d730   | v0.0.0-20260909141634-11ed52e25bc5 | false  | true             |
