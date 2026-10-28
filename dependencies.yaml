@@ -100,8 +100,6 @@ dependencies:
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
-      - path: .github/workflows/nixpkgs.yml
-        match: NIX_VERSION
       - path: Makefile
         match: NIX_IMAGE
 

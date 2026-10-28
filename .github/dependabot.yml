@@ -30,3 +30,13 @@ updates:
           - "major"
           - "minor"
           - "patch"
+  # Moves the nixpkgs of flake.lock to the newest revision older than a week.
+  - package-ecosystem: nix
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    labels:
+      - "kind/ci"
+      - "release-note-none"
