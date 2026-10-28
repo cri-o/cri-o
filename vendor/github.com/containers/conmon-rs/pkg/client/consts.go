@@ -2,20 +2,24 @@ package client
 
 import "github.com/containers/conmon-rs/internal/proto"
 
-// LogLevel is the enum for all available server log levels.
+// LogLevel is the enum for all available server log levels. Each level
+// includes the messages of the levels after it, trace logs everything.
 type LogLevel string
 
 const (
-	// LogLevelTrace is the log level printing only "trace" messages.
+	// LogLevelTrace is the log level printing all messages, including the
+	// "trace" ones.
 	LogLevelTrace LogLevel = "trace"
 
-	// LogLevelDebug is the log level printing only "debug" messages.
+	// LogLevelDebug is the log level printing "debug", "info", "warn" and
+	// "error" messages.
 	LogLevelDebug LogLevel = "debug"
 
-	// LogLevelInfo is the log level printing only "info" messages.
+	// LogLevelInfo is the log level printing "info", "warn" and "error"
+	// messages.
 	LogLevelInfo LogLevel = "info"
 
-	// LogLevelWarn is the log level printing only "warn" messages.
+	// LogLevelWarn is the log level printing "warn" and "error" messages.
 	LogLevelWarn LogLevel = "warn"
 
 	// LogLevelError is the log level printing only "error" messages.
@@ -39,12 +43,13 @@ const (
 	LogDriverSystemd LogDriver = "systemd"
 )
 
-// CgroupManager is the enum for all available cgroup managers.
+// CgroupManager is the enum for all available cgroup managers. The zero value
+// is CgroupManagerSystemd.
 type CgroupManager proto.Conmon_CgroupManager
 
 const (
 	// CgroupManagerSystemd specifies to use systemd to create and manage
-	// cgroups.
+	// cgroups. It is the zero value, which an unset field selects.
 	CgroupManagerSystemd CgroupManager = CgroupManager(proto.Conmon_CgroupManager_systemd)
 
 	// CgroupManagerCgroupfs specifies to use the cgroup filesystem to create
