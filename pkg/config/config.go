@@ -438,6 +438,12 @@ func (c *CheckpointRestoreConfig) Validate(onExecution bool) error {
 		logrus.Infof("Checkpoint/restore support disabled: CRIU binary not found in $PATH")
 	} else {
 		logrus.Infof("Checkpoint/restore support enabled (level: %q)", c.ContainerLevelEnabled)
+
+		if c.RestoreContainerEnabled() {
+			logrus.Warn(
+				"Using checkpoint_restore can bypass Pod security settings and execute code as root on the host. Use at your own risk.",
+			)
+		}
 	}
 
 	return nil
