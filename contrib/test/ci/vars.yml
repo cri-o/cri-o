@@ -42,14 +42,17 @@ ssh_user: "{{ lookup('env','USER') }}"
 ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
 
 # variables for testing with the kata-containers runtime
-kata_version: "3.31.0"
-# sha256 sourced from the GitHub release attestation — decode the
-# base64 payload and look up kata-static-<version>-amd64.tar.zst:
-# https://github.com/kata-containers/kata-containers/attestations/28048664/download
-kata_amd64_checksum: "sha256:68c2786a0b97023f62f3eca02dc868b78a794e5469d4ddd6cc9e0bd4a7212b0b"
+kata_version: "4.2.0"
+kata_runtime_variant: "{{ KATA_RUNTIME_VARIANT | default('kata-static') }}"
+# sha256 sourced from the GitHub release assets:
+# https://github.com/kata-containers/kata-containers/releases/expanded_assets/<kata_version>
+kata_amd64_checksums:
+  kata-static: "sha256:b828904fa3f1e49ddd7dc799c72cb1503cd1e772d354c3987c8d4189b2a623a8"
+  kata-go-static: "sha256:7dda31ca54b397cbf8165f620d6041872d3c45b7a77383ce0e86f76a06e103d0"
+kata_amd64_checksum: "{{ kata_amd64_checksums[kata_runtime_variant] }}"
 int_test_timeout: "{{ 120 * 60 }}"
-podvm_image: "quay.io/confidential-containers/podvm-generic-ubuntu-amd64:v0.18.0"
-caa_image: "quay.io/confidential-containers/cloud-api-adaptor:v0.18.0-dev"
+podvm_image: "quay.io/confidential-containers/podvm-generic-ubuntu-amd64:v0.22.0"
+caa_image: "quay.io/confidential-containers/cloud-api-adaptor:v0.23.0"
 
 kata_skip_files:
   - "apparmor.bats"
