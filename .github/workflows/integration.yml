@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         run:
-          - runner: ubuntu-latest
+          - runner: ubuntu-24.04
             arch: amd64
           - runner: ubuntu-24.04-arm
             arch: arm64
@@ -66,7 +66,7 @@ jobs:
           # See: https://github.com/opencontainers/runc/issues/4968
           # - name: critest / conmon / runc / amd64
           #   arch: amd64
-          #   runner: ubuntu-latest
+          #   runner: ubuntu-24.04
           #   defaultRuntime: runc
           #   runtimeType: oci
           #   critest: 1
@@ -76,7 +76,7 @@ jobs:
 
           - name: critest / conmon / crun / amd64
             arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             defaultRuntime: crun
             runtimeType: oci
             critest: 1
@@ -86,7 +86,7 @@ jobs:
 
           # - name: critest / conmon-rs / runc / amd64
           #   arch: amd64
-          #   runner: ubuntu-latest
+          #   runner: ubuntu-24.04
           #   defaultRuntime: runc
           #   runtimeType: pod
           #   critest: 1
@@ -96,7 +96,7 @@ jobs:
 
           - name: critest / conmon-rs / crun / amd64
             arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             defaultRuntime: crun
             runtimeType: pod
             critest: 1
@@ -146,7 +146,7 @@ jobs:
 
           # - name: integration / conmon / runc / amd64
           #   arch: amd64
-          #   runner: ubuntu-latest
+          #   runner: ubuntu-24.04
           #   defaultRuntime: runc
           #   runtimeType: oci
           #   critest: 0
@@ -156,7 +156,7 @@ jobs:
 
           - name: integration / conmon / crun / amd64
             arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             defaultRuntime: crun
             runtimeType: oci
             critest: 0
@@ -176,7 +176,7 @@ jobs:
 
           - name: integration / conmon-rs / crun / amd64
             arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             defaultRuntime: crun
             runtimeType: pod
             critest: 0
@@ -186,7 +186,7 @@ jobs:
 
           - name: integration / userns / crun / amd64
             arch: amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
             defaultRuntime: crun
             runtimeType: oci
             critest: 0

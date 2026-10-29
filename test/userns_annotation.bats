@@ -66,7 +66,7 @@ function teardown() {
 # hostUsers: false are sent userns_options mode NODE (2). The CRI-O userns-mode
 # annotation should still take effect in that case.
 @test "userns annotation should take precedence over userns_options mode=NODE" {
-	jq '      .annotations."userns-mode.crio.io" = "private:uidmapping=0:100000:65536;gidmapping=0:200000:65536"
+	jq '      .annotations."io.kubernetes.cri-o.userns-mode" = "private:uidmapping=0:100000:65536;gidmapping=0:200000:65536"
 	 |	.linux.security_context.run_as_user.value = 0
 	 |	.linux.security_context.namespace_options.userns_options = {"mode": 2}' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
