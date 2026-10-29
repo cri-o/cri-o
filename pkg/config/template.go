@@ -1609,6 +1609,10 @@ const templateStringCrioCheckpointRestoreContainerLevelEnabled = `# container_le
 # "none": checkpoint and restore support is disabled.
 # "checkpoint_only": only checkpointing containers is enabled.
 # "checkpoint_restore": both checkpointing and restoring containers is enabled.
+# WARNING: Using checkpoint_restore can bypass Pod security settings and execute
+# code as root on the host.
+# Do not use it on nodes where untrusted images can run.
+# See https://github.com/cri-o/cri-o/security/advisories/GHSA-pgj4-7h26-2r47
 {{ $.Comment }}container_level_enabled = "{{ .CheckpointRestoreConfig.ContainerLevelEnabled }}"
 
 `
