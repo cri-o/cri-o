@@ -452,7 +452,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--stream-enable-tls**: Enable encrypted TLS transport of the stream server.
 
-**--stream-idle-timeout**="": Length of time until open streams terminate due to lack of activity.
+**--stream-idle-timeout**="": Length of time until open streams of the CRI-O streaming server and conmon-rs terminate due to lack of activity. Defaults to 4h if not set, 0 disables it and negative values are invalid.
 
 **--stream-port**="": Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: "0")
 

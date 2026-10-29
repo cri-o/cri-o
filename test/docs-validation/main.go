@@ -287,7 +287,9 @@ func recursiveEntries(
 
 			if !stringInSlice(tag, excludedTagsValue) {
 				switch {
-				case field.Type.Implements(reflect.TypeFor[stringer]()):
+				// Unexported fields, like parsed values, have no tag and
+				// cannot be called.
+				case vv.CanInterface() && field.Type.Implements(reflect.TypeFor[stringer]()):
 					// We need a checked type assertion to make golangci-lint happy...
 					if str, ok := reflect.TypeAssert[func() string](vv.MethodByName("String")); ok {
 						// if the field is a pointer and nil, skip validation

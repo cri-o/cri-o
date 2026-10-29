@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"errors"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -38,6 +39,24 @@ func validConmonPath() string {
 	Expect(err).ToNot(HaveOccurred())
 
 	return conmonPath
+}
+
+// conmonrsFakeBinary returns the path of a fake conmon-rs binary which runs
+// the shell command.
+func conmonrsFakeBinary(command string) (name string) {
+	file, err := os.CreateTemp("", "conmonrs-fake-*")
+	Expect(err).NotTo(HaveOccurred())
+
+	err = file.Chmod(0o755)
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = file.WriteString("#!/bin/sh\n" + command)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = file.Close()
+	Expect(err).NotTo(HaveOccurred())
+
+	return file.Name()
 }
 
 var _ = BeforeSuite(func() {

@@ -1450,7 +1450,7 @@ func (r *runtimeVM) ServeExecContainer(
 	bool,
 	bool,
 ) (string, error) {
-	return "", nil
+	return "", fmt.Errorf("serve exec: %w", errors.ErrUnsupported)
 }
 
 func (r *runtimeVM) ServeAttachContainer(
@@ -1460,5 +1460,13 @@ func (r *runtimeVM) ServeAttachContainer(
 	bool,
 	bool,
 ) (string, error) {
-	return "", nil
+	return "", fmt.Errorf("serve attach: %w", errors.ErrUnsupported)
+}
+
+func (r *runtimeVM) ServePortForwardContainer(
+	context.Context,
+	*Container,
+	string,
+) (string, error) {
+	return "", fmt.Errorf("serve port forward: %w", errors.ErrUnsupported)
 }
