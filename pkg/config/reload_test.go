@@ -2,10 +2,12 @@ package config_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	conmonrsClient "github.com/containers/conmon-rs/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.podman.io/common/pkg/apparmor"
@@ -367,6 +369,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail for invalid default_runtime", func() {
 			// Given
+			defaultRuntime := sut.Runtimes[config.DefaultRuntime]
 			newConfig := &config.Config{}
 			newConfig.DefaultRuntime = "invalid"
 
@@ -375,6 +378,26 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+			Expect(sut.DefaultRuntime).To(Equal(config.DefaultRuntime))
+			Expect(sut.Runtimes).To(HaveLen(1))
+			Expect(sut.Runtimes[config.DefaultRuntime]).To(BeIdenticalTo(defaultRuntime))
+		})
+
+		It("should keep the runtimes if a new one fails the validation", func() {
+			// Given
+			defaultRuntime := sut.Runtimes[config.DefaultRuntime]
+			newConfig := &config.Config{}
+			newConfig.Runtimes = config.Runtimes{
+				config.DefaultRuntime: {RuntimePath: invalidPath},
+			}
+
+			// When
+			err := sut.ReloadRuntimes(newConfig)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(sut.Runtimes).To(HaveLen(1))
+			Expect(sut.Runtimes[config.DefaultRuntime]).To(BeIdenticalTo(defaultRuntime))
 		})
 
 		It("should add a new runtime", func() {
@@ -392,7 +415,8 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			Expect(sut.Runtimes).To(HaveKeyWithValue("new", newRuntimeHandler))
+			Expect(sut.Runtimes).To(HaveKey("new"))
+			Expect(sut.Runtimes["new"].PrivilegedWithoutHostDevices).To(BeTrue())
 		})
 
 		It("should change the default runtime", func() {
@@ -410,6 +434,48 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.DefaultRuntime).To(Equal("existing"))
+		})
+
+		It("should replace the default runtime together with the runtimes", func() {
+			// Given
+			newConfig := &config.Config{}
+			newConfig.Runtimes = config.Runtimes{
+				"renamed": {RuntimePath: existingRuntimePath},
+			}
+			newConfig.DefaultRuntime = "renamed"
+
+			done := make(chan struct{})
+			readerDone := make(chan struct{})
+
+			// A concurrent CRI call which resolves the default handler.
+			go func() {
+				defer GinkgoRecover()
+				defer close(readerDone)
+
+				for {
+					select {
+					case <-done:
+						return
+					default:
+						runtimes, defaultRuntime := sut.RuntimeHandlers()
+						Expect(runtimes).To(HaveKey(defaultRuntime))
+					}
+				}
+			}()
+
+			// When
+			err := sut.ReloadRuntimes(newConfig)
+
+			close(done)
+			<-readerDone
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			runtimes, defaultRuntime := sut.RuntimeHandlers()
+			Expect(defaultRuntime).To(Equal("renamed"))
+			Expect(runtimes).To(HaveLen(1))
+			Expect(runtimes).To(HaveKey("renamed"))
 		})
 
 		It("should overwrite existing runtime", func() {
@@ -432,7 +498,7 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			Expect(sut.Runtimes).To(HaveKeyWithValue("existing", newRuntime))
+			Expect(sut.Runtimes).To(HaveKey("existing"))
 			Expect(sut.Runtimes["existing"].PrivilegedWithoutHostDevices).To(BeTrue())
 		})
 
@@ -456,8 +522,111 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			Expect(sut.Runtimes).To(HaveKeyWithValue("new", newRuntime))
+			Expect(sut.Runtimes).To(HaveKey("new"))
 			Expect(sut.Runtimes["new"].RuntimePath).To(Equal(existingRuntimePath))
+		})
+
+		Context("with conmon-rs", func() {
+			var conmonrs string
+
+			// podRuntime returns a handler which lets conmon-rs serve the
+			// streams.
+			podRuntime := func() *config.RuntimeHandler {
+				return &config.RuntimeHandler{
+					RuntimePath:      existingRuntimePath,
+					RuntimeType:      config.RuntimeTypePod,
+					MonitorPath:      conmonrs,
+					StreamWebsockets: true,
+				}
+			}
+
+			// reportVersion lets the fake conmon-rs report the features of
+			// the version.
+			reportVersion := func(version string, features ...string) {
+				Expect(os.WriteFile(conmonrs, []byte(fmt.Sprintf(
+					"#!/bin/sh\necho '{ \"version\": %q, \"features\": [%s] }'\n",
+					version,
+					`"`+strings.Join(features, `", "`)+`"`,
+				)), 0o755)).To(Succeed())
+			}
+
+			BeforeEach(func() {
+				conmonrs = conmonrsFakeBinary("")
+				DeferCleanup(os.RemoveAll, conmonrs)
+
+				reportVersion(
+					"1.2.0",
+					conmonrsClient.FeatureStreamingProtocols,
+					conmonrsClient.FeaturePortForward,
+				)
+
+				sut.Runtimes["pod"] = podRuntime()
+				Expect(sut.Runtimes["pod"].Validate("pod")).To(Succeed())
+				Expect(sut.Runtimes["pod"].RuntimeStreamPortForward()).To(BeTrue())
+			})
+
+			It("should publish validated runtimes", func() {
+				// Given
+				reportVersion("1.1.1", "sdnotify")
+
+				newConfig := &config.Config{}
+				newConfig.Runtimes = config.Runtimes{
+					config.DefaultRuntime: sut.Runtimes[config.DefaultRuntime],
+					"pod":                 podRuntime(),
+				}
+
+				// When
+				err := sut.ReloadRuntimes(newConfig)
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sut.Runtimes["pod"].RuntimeStreamWebsockets()).To(BeFalse())
+				Expect(sut.Runtimes["pod"].RuntimeStreamPortForward()).To(BeFalse())
+			})
+
+			It("should not modify the published runtimes while validating", func() {
+				// Given
+				reportVersion("1.1.1", "sdnotify")
+
+				// The handler a running CRI call holds.
+				published := sut.Runtimes["pod"]
+
+				newConfig := &config.Config{}
+				newConfig.Runtimes = sut.Runtimes
+				newConfig.DefaultRuntime = "pod"
+
+				done := make(chan struct{})
+				readerDone := make(chan struct{})
+
+				go func() {
+					defer GinkgoRecover()
+					defer close(readerDone)
+
+					for {
+						select {
+						case <-done:
+							return
+						default:
+							Expect(published.RuntimeStreamWebsockets()).To(BeTrue())
+							Expect(published.RuntimeStreamPortForward()).To(BeTrue())
+						}
+					}
+				}()
+
+				// When
+				err := sut.ReloadRuntimes(newConfig)
+
+				close(done)
+				<-readerDone
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sut.DefaultRuntime).To(Equal("pod"))
+				Expect(sut.Runtimes["pod"]).NotTo(BeIdenticalTo(published))
+				Expect(sut.Runtimes["pod"].RuntimeStreamWebsockets()).To(BeFalse())
+				Expect(published.RuntimeStreamWebsockets()).To(BeTrue())
+				Expect(published.RuntimeStreamPortForward()).To(BeTrue())
+			})
 		})
 	})
 

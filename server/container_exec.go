@@ -20,24 +20,23 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 		return nil, fmt.Errorf("could not find container %q: %w", req.GetContainerId(), err)
 	}
 
-	runtimeHandler := s.getSandbox(ctx, c.Sandbox()).RuntimeHandler()
-	if streamWebsocket, err := s.Runtime().
-		RuntimeStreamWebsockets(runtimeHandler); err == nil &&
-		streamWebsocket {
-		log.Debugf(ctx, "Runtime handler %q is configured to use websockets", runtimeHandler)
-
-		url, err := s.Runtime().
-			ServeExecContainer(ctx, c, req.GetCmd(), req.GetTty(), req.GetStdin(), req.GetStdout(), req.GetStderr())
-		if err != nil {
-			return nil, fmt.Errorf(
-				"could not serve exec for container %q: %w",
-				req.GetContainerId(),
-				err,
+	url, err := monitorStreamingURL(
+		ctx,
+		s.Runtime().RuntimeStreamWebsockets,
+		s.getSandbox(ctx, c.Sandbox()).RuntimeHandler(),
+		"exec",
+		fmt.Sprintf("container %q", req.GetContainerId()),
+		func() (string, error) {
+			return s.Runtime().ServeExecContainer(
+				ctx, c, req.GetCmd(), req.GetTty(), req.GetStdin(), req.GetStdout(), req.GetStderr(),
 			)
-		}
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
 
-		log.Infof(ctx, "Using exec URL from container monitor")
-
+	if url != "" {
 		return &types.ExecResponse{Url: url}, nil
 	}
 

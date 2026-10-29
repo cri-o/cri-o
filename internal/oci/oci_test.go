@@ -2,6 +2,7 @@ package oci_test
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	criu "github.com/checkpoint-restore/go-criu/v8/utils"
@@ -131,6 +132,34 @@ var _ = t.Describe("Oci", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(runtimeType).To(Equal(libconfig.RuntimeTypeVM))
 		})
+		It("should not create a runtime implementation for streaming requests", func() {
+			// Given
+			c := newPodTestContainer(false, false, false)
+
+			// When
+			_, execErr := sut.ServeExecContainer(
+				context.Background(),
+				c,
+				[]string{"sh"},
+				false,
+				false,
+				true,
+				false,
+			)
+			_, attachErr := sut.ServeAttachContainer(context.Background(), c, false, true, false)
+			_, portForwardErr := sut.ServePortForwardContainer(
+				context.Background(),
+				c,
+				"/proc/self/ns/net",
+			)
+
+			// Then
+			Expect(execErr).To(MatchError(errors.ErrUnsupported))
+			Expect(attachErr).To(MatchError(errors.ErrUnsupported))
+			Expect(portForwardErr).To(MatchError(errors.ErrUnsupported))
+			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
+		})
+
 		It("Seccomp should return the runtime seccomp config", func() {
 			// Given
 			// When

@@ -275,6 +275,21 @@ func (mr *MockRuntimeImplMockRecorder) ServeExecContainer(arg0, arg1, arg2, arg3
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServeExecContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ServeExecContainer), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 }
 
+// ServePortForwardContainer mocks base method.
+func (m *MockRuntimeImpl) ServePortForwardContainer(arg0 context.Context, arg1 *oci.Container, arg2 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ServePortForwardContainer", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ServePortForwardContainer indicates an expected call of ServePortForwardContainer.
+func (mr *MockRuntimeImplMockRecorder) ServePortForwardContainer(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServePortForwardContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ServePortForwardContainer), arg0, arg1, arg2)
+}
+
 // StartContainer mocks base method.
 func (m *MockRuntimeImpl) StartContainer(arg0 context.Context, arg1 *oci.Container) error {
 	m.ctrl.T.Helper()

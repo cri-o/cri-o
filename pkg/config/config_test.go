@@ -210,6 +210,47 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		DescribeTable("should parse the stream idle timeout",
+			func(value string, expected time.Duration) {
+				// Given
+				sut.StreamIdleTimeout = value
+
+				// When
+				err := sut.APIConfig.Validate(false)
+
+				// Then
+				Expect(err).NotTo(HaveOccurred())
+				Expect(sut.GetStreamIdleTimeout()).To(Equal(expected))
+			},
+			Entry("unset uses the streaming server default", "", 4*time.Hour),
+			Entry("configured", "30m", 30*time.Minute),
+			Entry("disabled", "0", time.Duration(0)),
+		)
+
+		DescribeTable("should fail on invalid stream idle timeout",
+			func(value string) {
+				// Given
+				sut.StreamIdleTimeout = value
+
+				// When
+				err := sut.APIConfig.Validate(false)
+
+				// Then
+				Expect(err).To(HaveOccurred())
+			},
+			Entry("not a duration", invalid),
+			Entry("negative", "-1s"),
+		)
+
+		It("should use the stream idle timeout default without validation", func() {
+			// Given
+			// When
+			timeout := sut.GetStreamIdleTimeout()
+
+			// Then
+			Expect(timeout).To(Equal(4 * time.Hour))
+		})
+
 		It("should fail if stream server TLS enabled and cert is empty", func() {
 			// Given
 			sut = runtimeValidConfig()
@@ -999,24 +1040,34 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		conmonrsFakeBinary := func(command string) (name string) {
-			file, err := os.CreateTemp("", "conmonrs-fake-*")
-			Expect(err).NotTo(HaveOccurred())
+		It(
+			"should support streaming websockets if conmon-rs speaks the streaming protocols",
+			func() {
+				fileName := conmonrsFakeBinary(
+					`echo '{ "version": "1.2.0", "features": ["portforward", "idletimeout", "streamingprotocols"] }'`,
+				)
+				defer os.RemoveAll(fileName)
 
-			err = file.Chmod(0o755)
-			Expect(err).NotTo(HaveOccurred())
+				sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+					RuntimePath:      validFilePath,
+					RuntimeType:      config.RuntimeTypePod,
+					StreamWebsockets: true,
+					MonitorPath:      fileName,
+				}
 
-			_, err = file.WriteString("#!/bin/sh\n" + command)
-			Expect(err).NotTo(HaveOccurred())
+				err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(
+					config.DefaultRuntime,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
+				Expect(sut.Runtimes[config.DefaultRuntime].RuntimeStreamPortForward()).To(BeTrue())
+			},
+		)
 
-			err = file.Close()
-			Expect(err).NotTo(HaveOccurred())
-
-			return file.Name()
-		}
-
-		It("should support streaming websockets if conmon-rs is >= v0.7.0", func() {
-			fileName := conmonrsFakeBinary("echo '{ \"version\": \"0.7.0\" }'")
+		It("should disable streaming websockets if conmon-rs only speaks v5 WebSocket", func() {
+			fileName := conmonrsFakeBinary(
+				`echo '{ "version": "1.1.1", "features": ["sdnotify"] }'`,
+			)
 			defer os.RemoveAll(fileName)
 
 			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
@@ -1030,11 +1081,55 @@ var _ = t.Describe("Config", func() {
 				config.DefaultRuntime,
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
+			Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeFalse())
+			Expect(sut.Runtimes[config.DefaultRuntime].RuntimeStreamPortForward()).To(BeFalse())
 		})
 
+		It("should not serve port forwards from conmon-rs without streaming websockets", func() {
+			fileName := conmonrsFakeBinary(
+				`echo '{ "version": "1.2.0", "features": ["portforward", "idletimeout", "streamingprotocols"] }'`,
+			)
+			defer os.RemoveAll(fileName)
+
+			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+				RuntimeType: config.RuntimeTypePod,
+				MonitorPath: fileName,
+			}
+
+			err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(
+				config.DefaultRuntime,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sut.Runtimes[config.DefaultRuntime].RuntimeStreamPortForward()).To(BeFalse())
+		})
+
+		It(
+			"should not serve port forwards from conmon-rs without the port forward feature",
+			func() {
+				fileName := conmonrsFakeBinary(
+					`echo '{ "version": "1.2.0", "features": ["streamingprotocols"] }'`,
+				)
+				defer os.RemoveAll(fileName)
+
+				sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
+					RuntimePath:      validFilePath,
+					RuntimeType:      config.RuntimeTypePod,
+					StreamWebsockets: true,
+					MonitorPath:      fileName,
+				}
+
+				err := sut.Runtimes[config.DefaultRuntime].ValidateWebsocketStreaming(
+					config.DefaultRuntime,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(sut.Runtimes[config.DefaultRuntime].StreamWebsockets).To(BeTrue())
+				Expect(sut.Runtimes[config.DefaultRuntime].RuntimeStreamPortForward()).To(BeFalse())
+			},
+		)
+
 		It("should disable streaming websockets if conmon-rs is < v0.7.0", func() {
-			fileName := conmonrsFakeBinary("echo 'error: unexpected argument' && exit 1")
+			fileName := conmonrsFakeBinary("echo 'error: unexpected argument' >&2 && exit 1")
 			defer os.RemoveAll(fileName)
 
 			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
