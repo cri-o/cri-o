@@ -13,9 +13,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/utils/cpuset"
@@ -836,8 +838,10 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManagers(
 	states []*desiredManagerCPUSetState,
 	add bool,
 ) error {
-	// Adding, we go top to bottom, when removing, bottom to top.
+	// Adding, we go top to bottom, when removing, bottom to top. Reverse a copy,
+	// since the caller reverts the changes with the same states on failure.
 	if !add {
+		states = slices.Clone(states)
 		slices.Reverse(states)
 	}
 
@@ -898,8 +902,8 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManager(
 	currentCpusStr, err := cgroups.ReadFile(mgr.Path(""), file)
 	if err != nil {
 		// If we're removing, we are racing against systemd cleaning up the cgroup.
-		// Ignore ENOENT so we can free the cpus for sibling cgroups
-		if !add && errors.Is(err, os.ErrNotExist) {
+		// Ignore it so we can free the cpus for sibling cgroups
+		if !add && isCgroupRemoved(err) {
 			return nil
 		}
 
@@ -931,13 +935,32 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManager(
 			toWrite = "\n"
 		}
 
-		return cgroups.WriteFile(mgr.Path(""), file, toWrite)
+		err = cgroups.WriteFile(mgr.Path(""), file, toWrite)
+	} else {
+		// otherwise, we should use the mgr directly, as it will go through systemd if necessary
+		err = mgr.Set(&cgroups.Resources{
+			SkipDevices: true,
+			CpusetCpus:  targetCpus.String(),
+		})
 	}
-	// otherwise, we should use the mgr directly, as it will go through systemd if necessary
-	return mgr.Set(&cgroups.Resources{
-		SkipDevices: true,
-		CpusetCpus:  targetCpus.String(),
-	})
+
+	// The cgroup can also be removed after reading it.
+	if !add && isCgroupRemoved(err) {
+		return nil
+	}
+
+	return err
+}
+
+// isCgroupRemoved returns true if err indicates that the cgroup got removed.
+// Writing to a cgroup which is in removal results in ENODEV, and systemd does
+// not know the unit of a removed scope anymore.
+func isCgroupRemoved(err error) bool {
+	var dbusErr dbus.Error
+
+	return errors.Is(err, os.ErrNotExist) ||
+		errors.Is(err, unix.ENODEV) ||
+		(errors.As(err, &dbusErr) && dbusErr.Name == "org.freedesktop.systemd1.NoSuchUnit")
 }
 
 var (
