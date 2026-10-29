@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
@@ -47,7 +47,7 @@ jobs:
           path: crio.conf
 
   build-freebsd:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
@@ -58,7 +58,7 @@ jobs:
 
   validate-docs:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -72,7 +72,7 @@ jobs:
 
   validate-completions:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -86,7 +86,7 @@ jobs:
 
   validate-nri-tests:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
@@ -113,7 +113,7 @@ jobs:
           - go-arch: s390x
             os-arch: S/390
     name: build static / ${{ matrix.run.go-arch }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: cachix/install-nix-action@3715ab1a11cac9e991980d7b4a28d80c7ebdd8f9 # v27
@@ -135,7 +135,7 @@ jobs:
 
   static-build-upload:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - build-static
     steps:
@@ -165,7 +165,7 @@ jobs:
 
   upload-artifacts:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - static-build-upload
     steps:
@@ -178,7 +178,7 @@ jobs:
     if: contains(github.ref, 'refs/tags')
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - release-notes
     steps:
@@ -199,10 +199,10 @@ jobs:
       fail-fast: false
       matrix:
         run:
-          - runner: ubuntu-latest
+          - runner: ubuntu-24.04
             arch: amd64
             type: root
-          - runner: ubuntu-latest
+          - runner: ubuntu-24.04
             arch: amd64
             type: rootless
           - runner: ubuntu-24.04-arm
@@ -245,7 +245,7 @@ jobs:
     permissions:
       contents: write
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -272,7 +272,7 @@ jobs:
       contents: write
     if: github.ref == 'refs/heads/main'
     needs: release-notes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -289,7 +289,7 @@ jobs:
           path: build/dependencies
 
   codeql-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       security-events: write
       actions: read
@@ -303,7 +303,7 @@ jobs:
       - uses: github/codeql-action/analyze@8f596b4ae3cb3c588a5c46780b86dd53fef16c52 # v3.25.2
 
   security-checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
