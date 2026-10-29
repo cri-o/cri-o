@@ -27,11 +27,14 @@ function teardown() {
 		start_crio
 	fi
 
+	# TODO: Remove the metrics test skip after https://github.com/cri-o/cri-o/pull/10420.
 	critest \
 		--runtime-endpoint "unix://${CRIO_SOCKET}" \
 		--image-endpoint "unix://${CRIO_SOCKET}" \
+		--nri-socket "$NRI_SOCKET" \
 		--parallel="$(nproc)" \
 		--ginkgo.randomize-all \
+		--ginkgo.skip 'runtime should support (returning metrics descriptors|listing pod sandbox metrics)' \
 		--ginkgo.timeout 5m \
 		--ginkgo.trace \
 		--ginkgo.flake-attempts 3 \
