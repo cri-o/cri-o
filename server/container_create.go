@@ -720,26 +720,8 @@ func (s *Server) createSandboxContainer(
 	// eventually, we'd like to access all of these variables through the interface themselves, and do most
 	// of the translation between CRI config -> oci/storage container in the container package
 
-	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
-	// and SpecAddAnnotations is already being passed too many arguments
 	// Filter early so any use of the annotations don't use the wrong values
-	if err := s.FilterDisallowedAnnotations(
-		sb.Annotations(),
-		ctr.Config().GetAnnotations(),
-		sb.RuntimeHandler(),
-	); err != nil {
-		return nil, err
-	}
-
-	// Labels are added as OCI annotations downstream, so filter them through
-	// the full annotation pipeline (internal + allowlist) to prevent injection.
-	// Must run before SpecAddAnnotations, which sets internal annotations that
-	// unfiltered labels could overwrite (maps are shared by reference).
-	if err := s.FilterDisallowedAnnotations(
-		sb.Annotations(),
-		ctr.Config().GetLabels(),
-		sb.RuntimeHandler(),
-	); err != nil {
+	if err := s.filterContainerAnnotations(ctr, sb); err != nil {
 		return nil, err
 	}
 
@@ -1225,6 +1207,30 @@ func (s *Server) createSandboxContainer(
 	}
 
 	return ociContainer, nil
+}
+
+// filterContainerAnnotations removes the disallowed annotations and labels
+// from the container config.
+func (s *Server) filterContainerAnnotations(ctr container.Container, sb *sandbox.Sandbox) error {
+	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
+	// and SpecAddAnnotations is already being passed too many arguments
+	if err := s.FilterDisallowedAnnotations(
+		sb.Annotations(),
+		ctr.Config().GetAnnotations(),
+		sb.RuntimeHandler(),
+	); err != nil {
+		return err
+	}
+
+	// Labels are added as OCI annotations downstream, so filter them through
+	// the full annotation pipeline (internal + allowlist) to prevent injection.
+	// Must run before SpecAddAnnotations, which sets internal annotations that
+	// unfiltered labels could overwrite (maps are shared by reference).
+	return s.FilterDisallowedAnnotations(
+		sb.Annotations(),
+		ctr.Config().GetLabels(),
+		sb.RuntimeHandler(),
+	)
 }
 
 func (s *Server) applyOCIHooks(
