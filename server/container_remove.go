@@ -72,6 +72,10 @@ func (s *Server) removeContainerInPod(
 		if err := s.stopContainer(ctx, c, stopTimeoutFromContext(ctx)); err != nil {
 			return fmt.Errorf("failed to stop container for removal %w", err)
 		}
+	} else {
+		// The sandbox may be stopped while the post-stop cleanup of this
+		// container still runs, e.g. after its infra container exited.
+		c.AwaitPostStopCleanup()
 	}
 
 	if err := s.nri.removeContainer(ctx, sb, c); err != nil {

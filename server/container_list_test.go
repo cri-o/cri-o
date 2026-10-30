@@ -35,6 +35,7 @@ var _ = t.Describe("ContainerList", func() {
 			}
 
 			testContainer.SetState(givenState)
+			testContainer.SetPostStopDone()
 
 			// When
 			response, err := sut.ListContainers(context.Background(),

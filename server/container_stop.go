@@ -83,7 +83,23 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	return nil
 }
 
+// postStopCleanup runs the post-stop cleanup once per container. Both
+// StopContainer and the exit monitor trigger it.
 func (s *Server) postStopCleanup(
+	ctx context.Context,
+	ctr *oci.Container,
+	sb *sandbox.Sandbox,
+	hooks runtimehandlerhooks.RuntimeHandlerHooks,
+) {
+	// The cleanup runs only once, so a canceled request must not cut it short.
+	ctx = context.WithoutCancel(ctx)
+
+	ctr.RunPostStopCleanup(func() {
+		s.runPostStopCleanup(ctx, ctr, sb, hooks)
+	})
+}
+
+func (s *Server) runPostStopCleanup(
 	ctx context.Context,
 	ctr *oci.Container,
 	sb *sandbox.Sandbox,
@@ -103,12 +119,26 @@ func (s *Server) postStopCleanup(
 		}
 	}
 
-	if err := s.nri.stopContainer(ctx, sb, ctr, true); err != nil {
+	if err := s.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
+		log.Warnf(ctx, "Error updating the container status %q: %v", ctr.ID(), err)
+	}
+
+	if err := s.ContainerServer.Runtime().DeleteRuntimeContainer(ctx, ctr); err != nil {
+		log.Warnf(
+			ctx,
+			"Failed to delete runtime container %s in pod sandbox %s: %v",
+			ctr.Name(),
+			sb.ID(),
+			err,
+		)
+	}
+
+	if err := s.nri.stopContainer(ctx, sb, ctr); err != nil {
 		log.Warnf(ctx, "NRI stop container request of %s failed: %v", ctr.ID(), err)
 	}
 
-	// persist container state at the end, so there's no window where CRI-O reports the container
-	// as stopped, but hasn't run post stop hooks.
+	// persist container state at the end, so a restart does not load the container
+	// as stopped before post stop hooks have run.
 	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
