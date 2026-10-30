@@ -55,7 +55,7 @@ const (
 )
 
 type apiRecord struct {
-	Result   interface{}
+	Result   any
 	LastPage int
 }
 
@@ -394,7 +394,7 @@ func (c *githubNotesRecordClient) CheckRateLimit(
 // recordAPICall records a single GitHub API call into a JSON file by ensuring
 // naming conventions.
 func (c *githubNotesRecordClient) recordAPICall(
-	api gitHubAPI, result interface{}, response *github.Response,
+	api gitHubAPI, result any, response *github.Response,
 ) error {
 	if result == nil {
 		return errors.New("no result to record")
