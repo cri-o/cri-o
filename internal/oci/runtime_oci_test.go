@@ -134,6 +134,37 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			waitOnContainerTimeout(sut, shortTimeout, mediumTimeout, sleepProcess)
 		})
+		It("should not wait for the stop timeout if the container was never started", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateCreated
+			state.Pid = sleepProcess.Process.Pid
+			Expect(state.SetInitPid(sleepProcess.Process.Pid)).To(Succeed())
+			sut.SetState(state)
+
+			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
+
+			// When
+			stoppedChan := make(chan struct{})
+
+			go func() {
+				defer GinkgoRecover()
+
+				Expect(
+					runtime.StopContainer(context.Background(), sut, longTimeout*10),
+				).To(Succeed())
+				close(stoppedChan)
+			}()
+
+			// Then
+			select {
+			case <-stoppedChan:
+			case <-time.After(inSeconds(mediumTimeout)):
+				Fail("did not kill the created container quickly enough")
+			}
+
+			verifyContainerStopped(sut, sleepProcess)
+		})
 		It("should interrupt longer stop timeout", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
