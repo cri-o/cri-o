@@ -1562,7 +1562,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    "checkpoint-restore-level",
-			Usage:   "The level of container checkpoint/restore support to enable. Must be one of \"none\", \"checkpoint_only\" or \"checkpoint_restore\". Enabling checkpoint or restore requires that the criu binary is available in $PATH.",
+			Usage:   "The level of container checkpoint/restore support to enable. Must be one of \"none\", \"checkpoint_only\" or \"checkpoint_restore\". Enabling checkpoint or restore requires that the criu binary is available in $PATH. Using checkpoint_restore can bypass Pod security settings and execute code as root on the host. Use at your own risk. See https://github.com/cri-o/cri-o/security/advisories/GHSA-pgj4-7h26-2r47",
 			EnvVars: []string{"CONTAINER_CHECKPOINT_RESTORE_LEVEL"},
 			Value:   string(defConf.ContainerLevelEnabled),
 		},
