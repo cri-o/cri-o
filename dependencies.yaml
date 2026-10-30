@@ -12,6 +12,8 @@ dependencies:
         match: go
       - path: hack/Containerfile.dev
         match: GOVERSION
+      - path: .packit.yaml
+        match: "BuildRequires: golang"
 
   # For minor releases, follow release.md to update the supported and
   # development versions in the correct order.
