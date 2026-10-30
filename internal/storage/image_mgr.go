@@ -41,9 +41,7 @@ func (i *ImageServiceManager) GetImageService(sb SandboxInfo) (ImageServer, erro
 		return i.imageService, nil
 	}
 
-	runtimes, _ := i.serverConfig.RuntimeHandlers()
-
-	r, ok := runtimes[sb.RuntimeHandler()]
+	r, ok := i.serverConfig.RuntimeSnapshot().Runtimes[sb.RuntimeHandler()]
 	if !ok || !r.RuntimePullImage {
 		return i.imageService, nil
 	}
