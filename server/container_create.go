@@ -446,6 +446,10 @@ func (s *Server) CreateContainer(
 		return nil, errors.New("sandbox config metadata is nil")
 	}
 
+	if err := validateCgroupMountMode(req.GetConfig()); err != nil {
+		return nil, err
+	}
+
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
@@ -720,26 +724,8 @@ func (s *Server) createSandboxContainer(
 	// eventually, we'd like to access all of these variables through the interface themselves, and do most
 	// of the translation between CRI config -> oci/storage container in the container package
 
-	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
-	// and SpecAddAnnotations is already being passed too many arguments
 	// Filter early so any use of the annotations don't use the wrong values
-	if err := s.FilterDisallowedAnnotations(
-		sb.Annotations(),
-		ctr.Config().GetAnnotations(),
-		sb.RuntimeHandler(),
-	); err != nil {
-		return nil, err
-	}
-
-	// Labels are added as OCI annotations downstream, so filter them through
-	// the full annotation pipeline (internal + allowlist) to prevent injection.
-	// Must run before SpecAddAnnotations, which sets internal annotations that
-	// unfiltered labels could overwrite (maps are shared by reference).
-	if err := s.FilterDisallowedAnnotations(
-		sb.Annotations(),
-		ctr.Config().GetLabels(),
-		sb.RuntimeHandler(),
-	); err != nil {
+	if err := s.filterContainerAnnotations(ctr, sb); err != nil {
 		return nil, err
 	}
 
@@ -966,6 +952,13 @@ func (s *Server) createSandboxContainer(
 
 	usernsEnabled := containerIDMappings != nil
 	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
+
+	if err := validateCgroupMountModeNamespaces(
+		containerConfig, hostNet, usernsEnabled,
+	); err != nil {
+		return nil, err
+	}
+
 	addSysfsMounts(ctr, containerConfig, hostNet, usernsEnabled)
 
 	if err := s.setupCgroupNamespace(ctr, specgen); err != nil {
@@ -983,6 +976,8 @@ func (s *Server) createSandboxContainer(
 	); err != nil {
 		return nil, err
 	}
+
+	applyCgroupMountMode(specgen, containerConfig)
 
 	// Set hostname and add env for hostname
 	specgen.SetHostname(sb.Hostname())
@@ -1227,6 +1222,30 @@ func (s *Server) createSandboxContainer(
 	return ociContainer, nil
 }
 
+// filterContainerAnnotations removes the disallowed annotations and labels
+// from the container config.
+func (s *Server) filterContainerAnnotations(ctr container.Container, sb *sandbox.Sandbox) error {
+	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
+	// and SpecAddAnnotations is already being passed too many arguments
+	if err := s.FilterDisallowedAnnotations(
+		sb.Annotations(),
+		ctr.Config().GetAnnotations(),
+		sb.RuntimeHandler(),
+	); err != nil {
+		return err
+	}
+
+	// Labels are added as OCI annotations downstream, so filter them through
+	// the full annotation pipeline (internal + allowlist) to prevent injection.
+	// Must run before SpecAddAnnotations, which sets internal annotations that
+	// unfiltered labels could overwrite (maps are shared by reference).
+	return s.FilterDisallowedAnnotations(
+		sb.Annotations(),
+		ctr.Config().GetLabels(),
+		sb.RuntimeHandler(),
+	)
+}
+
 func (s *Server) applyOCIHooks(
 	specgen *generate.Generator,
 	containerConfig *types.ContainerConfig,
@@ -1252,7 +1271,8 @@ func (s *Server) applyOCIHooks(
 }
 
 // setupContainerMounts configures the container's OCI, volume, and secret mounts. It handles
-// ID mappings for user namespaces and sets up FIPS mode if disabled via annotation.
+// ID mappings for user namespaces and sets up FIPS mode if disabled via annotation. It
+// returns an error if a mount covers /sys/fs/cgroup under an explicit cgroup mount mode.
 func (s *Server) setupContainerMounts(
 	ctr container.Container,
 	sb *sandbox.Sandbox,
@@ -1261,6 +1281,10 @@ func (s *Server) setupContainerMounts(
 	mountPoint, mountLabel string,
 	ociMounts, volumeMounts []rspec.Mount,
 ) error {
+	if err := validateCgroupMountNotCovered(ctr.Config(), volumeMounts); err != nil {
+		return err
+	}
+
 	rootUID, rootGID := 0, 0
 
 	if containerIDMappings != nil {
