@@ -66,16 +66,16 @@
 
     - name: Download kata tarball from upstream release
       get_url:
-        url: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-amd64.tar.zst"
-        dest: "/tmp/kata-static-{{ kata_version }}-amd64.tar.zst"
+        url: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/{{ kata_runtime_variant }}-{{ kata_version }}-amd64.tar.zst"
+        dest: "/tmp/{{ kata_runtime_variant }}-{{ kata_version }}-amd64.tar.zst"
         checksum: "{{ kata_amd64_checksum }}"
 
     - name: Extract kata tarball
-      command: tar -I zstd -xf /tmp/kata-static-{{ kata_version }}-amd64.tar.zst -C /
+      command: tar -I zstd -xf /tmp/{{ kata_runtime_variant }}-{{ kata_version }}-amd64.tar.zst -C /
 
     - name: Remove kata tarball
       file:
-        path: "/tmp/kata-static-{{ kata_version }}-amd64.tar.zst"
+        path: "/tmp/{{ kata_runtime_variant }}-{{ kata_version }}-amd64.tar.zst"
         state: absent
 
 - name: Set debugging logs
