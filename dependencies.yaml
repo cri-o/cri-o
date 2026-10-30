@@ -2,10 +2,14 @@ dependencies:
   - name: go
     version: 1.26.3
     refPaths:
-      - path: nix/derivation.nix
-        match: buildGo126Module
       - path: go.mod
         match: go
+
+  - name: go (static builds)
+    version: 1.26.10
+    refPaths:
+      - path: nix/derivation.nix
+        match: buildGo126Module
 
   # For a new minor (1.x.0) release, move the "development version"
   # below to the "supported versions" section (by omitting the patch version).
