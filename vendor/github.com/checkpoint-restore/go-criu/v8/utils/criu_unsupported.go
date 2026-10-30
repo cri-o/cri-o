@@ -14,5 +14,5 @@ func IsMemTrack() bool {
 }
 
 func GetCriuVersion() (int, error) {
-	return 0, fmt.Errorf("CRIU not supported in this platform")
+	return 0, fmt.Errorf("CRIU not supported on this platform")
 }

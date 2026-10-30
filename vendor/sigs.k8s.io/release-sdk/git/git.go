@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -826,12 +827,10 @@ func (r *Repo) HasRemoteBranch(branch string) (branchExists bool, err error) {
 		return false, fmt.Errorf("get remote branches: %w", err)
 	}
 
-	for _, remoteBranch := range branches {
-		if remoteBranch == branch {
-			logrus.Infof("Found branch %s", branch)
+	if slices.Contains(branches, branch) {
+		logrus.Infof("Found branch %s", branch)
 
-			return true, nil
-		}
+		return true, nil
 	}
 
 	logrus.Infof("Branch %s not found", branch)
@@ -1402,10 +1401,8 @@ func (r *Repo) HasRemote(name, expectedURL string) bool {
 
 	for _, remote := range remotes {
 		if remote.Name() == name {
-			for _, url := range remote.URLs() {
-				if url == expectedURL {
-					return true
-				}
+			if slices.Contains(remote.URLs(), expectedURL) {
+				return true
 			}
 		}
 	}
@@ -1523,8 +1520,8 @@ func (r *Repo) RemoteTags() (tags []string, err error) {
 	scanner.Split(bufio.ScanWords)
 
 	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), gitTagPreRef) {
-			tags = append(tags, strings.TrimPrefix(scanner.Text(), gitTagPreRef))
+		if after, ok := strings.CutPrefix(scanner.Text(), gitTagPreRef); ok {
+			tags = append(tags, after)
 		}
 	}
 
@@ -1540,12 +1537,10 @@ func (r *Repo) HasRemoteTag(tag string) (hasTag bool, err error) {
 		return hasTag, fmt.Errorf("getting tags to check if tag exists: %w", err)
 	}
 
-	for _, remoteTag := range remoteTags {
-		if tag == remoteTag {
-			logrus.Infof("Tag %s found in default remote", tag)
+	if slices.Contains(remoteTags, tag) {
+		logrus.Infof("Tag %s found in default remote", tag)
 
-			return true, nil
-		}
+		return true, nil
 	}
 
 	return false, nil
@@ -1719,8 +1714,8 @@ func (r *Repo) LatestReleaseBranch() (string, error) {
 	var latest semver.Version
 
 	for _, branch := range branches {
-		if strings.HasPrefix(branch, releaseBranchPrefix) {
-			version := strings.TrimPrefix(branch, releaseBranchPrefix) + ".0"
+		if after, ok := strings.CutPrefix(branch, releaseBranchPrefix); ok {
+			version := after + ".0"
 
 			parsed, err := semver.Parse(version)
 			if err != nil {
