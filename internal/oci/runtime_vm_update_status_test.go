@@ -174,7 +174,7 @@ var _ = t.Describe("RuntimeVM DeleteContainer after restore", func() {
 var _ = t.Describe("RuntimeVM kill", func() {
 	It("should return nil when shim has already exited (ttrpc.ErrClosed) for stop signals", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(r.Kill(context.Background(), "ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
 	})
 
 	It("should propagate ttrpc.ErrClosed for signal 0 so IsContainerAlive returns false", func() {
@@ -183,19 +183,30 @@ var _ = t.Describe("RuntimeVM kill", func() {
 		c.SetState(&oci.ContainerState{})
 
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
-		Expect(r.IsContainerAlive(c)).To(BeFalse())
+		Expect(r.IsContainerAlive(context.Background(), c)).To(BeFalse())
+	})
+
+	It("should report not alive instead of panicking when the shim is not connected", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{})
+
+		// No shim address in the bundle, so nothing has connected to the shim yet.
+		r := oci.NewRuntimeVM()
+		Expect(r.HasTask()).To(BeFalse())
+		Expect(r.IsContainerAlive(context.Background(), c)).To(BeFalse())
 	})
 
 	It("should propagate errors that are not ttrpc.ErrClosed", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
 		rErr := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: context.DeadlineExceeded})
 
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
-		Expect(rErr.Kill("ctr-id", "", syscall.SIGTERM)).To(HaveOccurred())
+		Expect(r.Kill(context.Background(), "ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(rErr.Kill(context.Background(), "ctr-id", "", syscall.SIGTERM)).To(HaveOccurred())
 	})
 
 	It("should return nil when kill succeeds", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: nil})
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(r.Kill(context.Background(), "ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
 	})
 })

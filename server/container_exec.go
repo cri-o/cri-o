@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -12,6 +13,10 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 )
+
+// execLivenessTimeout bounds the liveness check made before an exec, so a
+// container runtime which does not answer cannot hold the request open.
+const execLivenessTimeout = 10 * time.Second
 
 // Exec prepares a streaming endpoint to execute a command in the container.
 func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecResponse, error) {
@@ -66,8 +71,20 @@ func (s *StreamService) Exec(
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	if err := c.Living(); err != nil {
+	// Ask the runtime instead of looking at the init pid CRI-O cached when the
+	// container was created. A VM runtime uses the VM's pid as the container
+	// pid, and that pid changes when the VM is restored from a checkpoint, so
+	// the cached one refuses execs for containers which are running fine.
+	aliveCtx, cancel := context.WithTimeout(ctx, execLivenessTimeout)
+	defer cancel()
+
+	alive, err := s.runtimeServer.ContainerServer.Runtime().IsContainerAlive(aliveCtx, c)
+	if err != nil {
 		return status.Errorf(codes.NotFound, "container is not created or running: %v", err)
+	}
+
+	if !alive {
+		return status.Errorf(codes.NotFound, "container is not created or running")
 	}
 
 	return s.runtimeServer.ContainerServer.Runtime().

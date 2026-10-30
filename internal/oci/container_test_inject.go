@@ -88,6 +88,6 @@ func NewRuntimeVMWithTask(t task.TaskService) RuntimeVM {
 	}
 }
 
-func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal) error {
-	return r.kill(ctrID, execID, signal)
+func (r RuntimeVM) Kill(ctx context.Context, ctrID, execID string, signal syscall.Signal) error {
+	return r.kill(ctx, ctrID, execID, signal)
 }
