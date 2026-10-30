@@ -370,6 +370,22 @@ Override the runtime path, runtime config path, runtime root and runtime type fr
 **runtime_config_path**=""
 Path to the runtime configuration file, should only be used with VM runtime types
 
+**drop_infra_ctr**
+Override the global `crio.runtime.drop_infra_ctr` policy for this runtime
+handler. An explicit `true` or `false` takes precedence over the global value.
+When omitted, existing global behavior is preserved, including retaining an
+infra container for VM runtimes. Changing this setting affects new pods; existing
+pods retain their sandbox mode across CRI-O restarts.
+
+For a `"vm"` handler, explicitly setting this to `true` requires a shim
+implementing containerd's Sandbox API. Sandbox creation, startup, status,
+stop and shutdown then run independently of an infra task; workloads use the
+task API. Pods needing an infra task for PID namespace sharing still retain it.
+
+For host-pulled images with Kata and overlay storage, set
+`storage_option = ["overlay.skip_mount_home=true"]` in `[crio]` so workload
+rootfs mounts propagate into the sandbox shim's mount namespace.
+
 **privileged_without_host_devices**=false
 Whether this runtime handler prevents host devices from being passed to privileged containers.
 

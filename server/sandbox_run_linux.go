@@ -22,6 +22,7 @@ import (
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
+	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/api/resource"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
@@ -969,6 +970,23 @@ func (s *Server) runPodSandbox(
 		return nil, err
 	}
 
+	if container.Spoofed() && container.BundlePath() != "" {
+		data, err := proto.Marshal(req.GetConfig())
+		if err != nil {
+			return nil, fmt.Errorf("marshal CRI sandbox configuration: %w", err)
+		}
+
+		for _, directory := range []string{podContainer.Dir, podContainer.RunDir} {
+			if err := os.WriteFile(
+				filepath.Join(directory, oci.SandboxConfigFile),
+				data,
+				0o600,
+			); err != nil {
+				return nil, fmt.Errorf("persist CRI sandbox configuration: %w", err)
+			}
+		}
+	}
+
 	if err := s.createAndStartInfraContainer(
 		ctx,
 		sb,
@@ -1667,8 +1685,22 @@ func (s *Server) setupInfraContainer(
 		(runtimeHandler == "" && strings.Contains(strings.ToLower(defaultRuntime), "kata"))
 
 	var container *oci.Container
-	// In the case of kernel separated containers, we need the infra container to create the VM for the pod
-	if sb.NeedsInfra(s.config.DropInfraCtr) || podIsKernelSeparated {
+
+	handlerName := runtimeHandler
+	if handlerName == "" {
+		handlerName = s.config.DefaultRuntime
+	}
+
+	handler := s.config.Runtimes[handlerName]
+	dropInfra := s.config.DropInfraCtr
+	sandboxAPI := false
+
+	if handler != nil && handler.DropInfraCtr != nil {
+		dropInfra = *handler.DropInfraCtr
+		sandboxAPI = runtimeType == libconfig.RuntimeTypeVM && dropInfra
+	}
+	// VM shims retain their existing infra task unless explicitly overridden.
+	if sb.NeedsInfra(dropInfra) || (podIsKernelSeparated && !sandboxAPI) {
 		log.Debugf(ctx, "Keeping infra container for pod %s", sboxID)
 		// pauseImage, as the userRequestedImage parameter, only shows up in CRI values we return.
 		container, err = oci.NewContainer(
@@ -1716,6 +1748,16 @@ func (s *Server) setupInfraContainer(
 			created,
 			podContainer.RunDir,
 		)
+
+		if sandboxAPI {
+			processLabel, err = selinux.SetProcessKind(processLabel, selinux.ProcessKindKVM)
+			if err != nil {
+				return nil, "", err
+			}
+
+			g.SetProcessSelinuxLabel(processLabel)
+			container.ConfigureSandboxRuntime(handlerName, podContainer.RunDir)
+		}
 
 		g.AddAnnotation(v2.Spoofed, "true")
 

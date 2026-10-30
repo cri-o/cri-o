@@ -1318,7 +1318,8 @@ const templateStringCrioRuntimeCtrStopTimeout = `# The minimal amount of time in
 
 const templateStringCrioRuntimeDropInfraCtr = `# drop_infra_ctr determines whether CRI-O drops the infra container
 # when a pod does not have a private PID namespace, and does not use
-# a kernel separating runtime (like kata).
+# a kernel separating runtime (like kata), unless that runtime explicitly
+# enables drop_infra_ctr in its handler configuration and supports Sandbox API.
 # It requires manage_ns_lifecycle to be true.
 {{ $.Comment }}drop_infra_ctr = {{ .DropInfraCtr }}
 
@@ -1516,6 +1517,8 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 {{ $.Comment }}runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 {{ $.Comment }}inherit_default_runtime = {{ $runtime_handler.InheritDefaultRuntime }}
 {{ $.Comment }}runtime_config_path = "{{ $runtime_handler.RuntimeConfigPath }}"
+{{ if ne $runtime_handler.DropInfraCtr nil }}{{ $.Comment }}drop_infra_ctr = {{ $runtime_handler.DropInfraCtr }}
+{{ end -}}
 {{ $.Comment }}container_min_memory = "{{ $runtime_handler.ContainerMinMemory }}"
 {{ $.Comment }}monitor_path = "{{ $runtime_handler.MonitorPath }}"
 {{ $.Comment }}monitor_cgroup = "{{ $runtime_handler.MonitorCgroup }}"
