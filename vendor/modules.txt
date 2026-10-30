@@ -164,6 +164,7 @@ github.com/containerd/containerd/sys/reaper
 github.com/containerd/containerd/version
 # github.com/containerd/containerd/api v1.10.0
 ## explicit; go 1.23.0
+github.com/containerd/containerd/api/runtime/sandbox/v1
 github.com/containerd/containerd/api/runtime/task/v2
 github.com/containerd/containerd/api/services/ttrpc/events/v1
 github.com/containerd/containerd/api/types
