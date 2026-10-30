@@ -36,12 +36,23 @@ type runtimePod struct {
 	serverDir string
 }
 
+// conmonClientTimeout bounds the creation of the conmon-rs client of a pod,
+// which the lookups of the containers of the pod wait for, see
+// Runtime.createRuntimeImpl. It leaves room for the checks of the client,
+// which take up to 10 seconds each to find a running server and to wait for
+// a started one. The client does not bound the launch of the server itself.
+const conmonClientTimeout = time.Minute
+
 // newRuntimePod creates a new runtimePod instance.
 func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (RuntimeImpl, error) {
 	// If the container is not an infra container, use the client of the infra container.
 	if !c.IsInfra() {
 		// Search for the runtimePod instance belonging to the sandbox.
-		impl, ok := r.runtimeImplMap[c.Sandbox()]
+		impl, ok, err := r.lookupRuntimeImpl(c.Sandbox())
+		if err != nil {
+			return nil, err
+		}
+
 		if !ok {
 			// This is a programming error.
 			// This code block assumes every container has a conmon client created already.
@@ -56,7 +67,10 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		runRoot = handler.RuntimeRoot
 	}
 
-	client, err := conmonClient.New(newConmonServerConfig(r, handler, c, runRoot))
+	ctx, cancel := context.WithTimeout(context.Background(), conmonClientTimeout)
+	defer cancel()
+
+	client, err := conmonClient.NewContext(ctx, newConmonServerConfig(r, handler, c, runRoot))
 	if err != nil {
 		return nil, err
 	}

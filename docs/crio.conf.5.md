@@ -403,6 +403,7 @@ A mapping of keys to values of annotations set on containers run by this runtime
 **stream_websockets**=false
 Let conmon-rs serve container exec, attach and port forward over SPDY and WebSocket instead of the CRI-O streaming server, with the idle timeout of `stream_idle_timeout`.
 Only valid for `runtime_type = "pod"`. It needs conmon-rs v1.2.0 or later and gets disabled for older versions.
+If the conmon-rs server of the pod is unreachable or does not know the container, the CRI-O streaming server serves exec and port forward, while attach fails.
 
 **seccomp_profile**=""
 Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the `crio.runtime` seccomp profile will be used.

@@ -84,6 +84,36 @@ var _ = t.Describe("ContainerAttach", func() {
 			Expect(response.GetUrl()).NotTo(Equal(monitorURL))
 		})
 
+		It("should fail with Unavailable if the monitor is unreachable", func() {
+			// Given
+			streamWebsockets()
+			ociRuntimeMock.EXPECT().
+				ServeAttachContainer(gomock.Any(), testContainer, false, true, false).
+				Return("", fmt.Errorf("call ServeAttachContainer RPC: %w", conmonClient.ErrServerDisconnected))
+
+			// When
+			response, err := sut.Attach(context.Background(), request())
+
+			// Then
+			Expect(status.Code(err)).To(Equal(codes.Unavailable))
+			Expect(response).To(BeNil())
+		})
+
+		It("should fail with NotFound if the monitor does not know the container", func() {
+			// Given
+			streamWebsockets()
+			ociRuntimeMock.EXPECT().
+				ServeAttachContainer(gomock.Any(), testContainer, false, true, false).
+				Return("", fmt.Errorf("call ServeAttachContainer RPC: %w", conmonClient.ErrContainerNotFound))
+
+			// When
+			response, err := sut.Attach(context.Background(), request())
+
+			// Then
+			Expect(status.Code(err)).To(Equal(codes.NotFound))
+			Expect(response).To(BeNil())
+		})
+
 		It("should fail with ResourceExhausted if too many URLs wait", func() {
 			// Given
 			streamWebsockets()

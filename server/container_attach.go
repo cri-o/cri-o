@@ -31,6 +31,7 @@ func (s *Server) Attach(
 		s.getSandbox(ctx, c.Sandbox()).RuntimeHandler(),
 		"attach",
 		fmt.Sprintf("container %q", req.GetContainerId()),
+		true,
 		func() (string, error) {
 			return s.Runtime().
 				ServeAttachContainer(ctx, c, req.GetStdin(), req.GetStdout(), req.GetStderr())

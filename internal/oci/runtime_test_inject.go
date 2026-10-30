@@ -15,7 +15,8 @@ import (
 // without requiring a config or filesystem setup.
 func NewTestRuntime() *Runtime {
 	return &Runtime{
-		runtimeImplMap: make(map[string]RuntimeImpl),
+		runtimeImplMap:       make(map[string]RuntimeImpl),
+		runtimeImplCreations: make(map[string]*runtimeImplCreation),
 	}
 }
 

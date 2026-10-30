@@ -18,7 +18,8 @@ func MonitorStreamingURL(
 	ctx context.Context,
 	enabled func(runtimeHandler string) (bool, error),
 	runtimeHandler, request, target string,
+	needsMonitor bool,
 	serve func() (string, error),
 ) (string, error) {
-	return monitorStreamingURL(ctx, enabled, runtimeHandler, request, target, serve)
+	return monitorStreamingURL(ctx, enabled, runtimeHandler, request, target, needsMonitor, serve)
 }

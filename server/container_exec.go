@@ -26,6 +26,7 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 		s.getSandbox(ctx, c.Sandbox()).RuntimeHandler(),
 		"exec",
 		fmt.Sprintf("container %q", req.GetContainerId()),
+		false,
 		func() (string, error) {
 			return s.Runtime().ServeExecContainer(
 				ctx, c, req.GetCmd(), req.GetTty(), req.GetStdin(), req.GetStdout(), req.GetStderr(),

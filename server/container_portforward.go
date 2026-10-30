@@ -30,6 +30,7 @@ func (s *Server) PortForward(
 		sb.RuntimeHandler(),
 		"port forward",
 		fmt.Sprintf("pod sandbox %q", req.GetPodSandboxId()),
+		false,
 		func() (string, error) { return s.servePortForward(ctx, sb, req.GetPort()) },
 	)
 	if err != nil {

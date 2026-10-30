@@ -3,12 +3,18 @@ package oci_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
+	"runtime/pprof"
+	"strings"
+	"time"
 
 	criu "github.com/checkpoint-restore/go-criu/v8/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
@@ -418,6 +424,225 @@ var _ = t.Describe("Oci", func() {
 			Expect(
 				err.Error(),
 			).To(Equal("a complete checkpoint for this container cannot be found, cannot restore: stat checkpoint/inventory.img: no such file or directory"))
+		})
+	})
+
+	t.Describe("RuntimeImpl", func() {
+		const (
+			podRuntime = "pod"
+			ociRuntime = "runc"
+
+			// timeout bounds the start and the exit of the fake conmon-rs
+			// server and the lookups.
+			timeout = 10 * time.Second
+		)
+
+		var (
+			sut *oci.Runtime
+			// dir holds the files of the fake conmon-rs server.
+			dir string
+		)
+
+		// release lets the fake conmon-rs server exit.
+		release := func() {
+			Expect(os.WriteFile(filepath.Join(dir, "release"), nil, 0o600)).To(Succeed())
+		}
+
+		// starts returns how often the fake conmon-rs server got started.
+		starts := func() int {
+			out, err := os.ReadFile(filepath.Join(dir, "started"))
+			if errors.Is(err, os.ErrNotExist) {
+				return 0
+			}
+
+			Expect(err).ToNot(HaveOccurred())
+
+			return strings.Count(string(out), "\n")
+		}
+
+		// waiting returns how many goroutines wait for a creation of a
+		// runtime implementation in progress, so that a test releases the
+		// fake conmon-rs server only once the lookups wait for it.
+		waiting := func() int {
+			var stacks strings.Builder
+			Expect(pprof.Lookup("goroutine").WriteTo(&stacks, 2)).To(Succeed())
+
+			const method = "github.com/cri-o/cri-o/internal/oci.(*Runtime)."
+
+			count := 0
+
+			for goroutine := range strings.SplitSeq(stacks.String(), "\n\n") {
+				lines := strings.Split(goroutine, "\n")
+				if !strings.Contains(lines[0], "[chan receive") {
+					continue
+				}
+
+				// Check the innermost function outside of the Go runtime,
+				// skipping the indented file lines.
+				for _, line := range lines[1:] {
+					if strings.HasPrefix(line, "\t") || strings.HasPrefix(line, "runtime.") {
+						continue
+					}
+
+					if strings.HasPrefix(line, method+"createRuntimeImpl(") ||
+						strings.HasPrefix(line, method+"lookupRuntimeImpl(") {
+						count++
+					}
+
+					break
+				}
+			}
+
+			return count
+		}
+
+		// failedStart matches the result of a lookup which failed to start
+		// the fake conmon-rs server.
+		failedStart := func() OmegaMatcher {
+			return Receive(MatchError(ContainSubstring("start server")))
+		}
+
+		newContainer := func(id, sandboxID, runtimeHandler string) *oci.Container {
+			c, err := oci.NewContainer(id, id, "bundlePath", "logPath",
+				map[string]string{}, map[string]string{}, map[string]string{},
+				"image", nil, nil, "", &types.ContainerMetadata{}, sandboxID,
+				false, false, false, runtimeHandler, t.MustTempDir("server"), time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+
+			return c
+		}
+
+		// runtimeImpl looks the runtime implementation of the container up
+		// in the background.
+		runtimeImpl := func(c *oci.Container) <-chan error {
+			result := make(chan error, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				_, err := sut.RuntimeImpl(c)
+				result <- err
+			}()
+
+			return result
+		}
+
+		BeforeEach(func() {
+			dir = t.MustTempDir("conmonrs")
+
+			// The fake conmon-rs server records its start and exits with
+			// an error once released, so that the creation of the client
+			// takes until then and fails.
+			monitor := filepath.Join(dir, "conmonrs")
+			Expect(os.WriteFile(monitor, fmt.Appendf(nil,
+				"#!/bin/sh\necho >> %[1]s/started\n"+
+					"while [ -d %[1]s ] && [ ! -e %[1]s/release ]; do sleep 0.01; done\n"+
+					"exit 1\n",
+				dir,
+			), 0o700)).To(Succeed())
+
+			var err error
+
+			config, err = libconfig.DefaultConfig()
+			Expect(err).ToNot(HaveOccurred())
+
+			config.DefaultRuntime = ociRuntime
+			config.Runtimes = libconfig.Runtimes{
+				ociRuntime: &libconfig.RuntimeHandler{
+					RuntimePath: "/bin/sh",
+					RuntimeRoot: "/run/runc",
+				},
+				podRuntime: &libconfig.RuntimeHandler{
+					RuntimePath: "/bin/sh",
+					RuntimeType: libconfig.RuntimeTypePod,
+					RuntimeRoot: "/run/runc",
+					MonitorPath: monitor,
+				},
+			}
+			config.ContainerAttachSocketDir = t.MustTempDir("crio")
+
+			sut, err = oci.New(config)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Lets the lookups which wait for the fake server end if the
+			// test fails.
+			DeferCleanup(release)
+		})
+
+		It("should not block other pods while creating the one of a pod", func() {
+			// Given
+			created := newContainer("created", "created", ociRuntime)
+			_, err := sut.RuntimeImpl(created)
+			Expect(err).ToNot(HaveOccurred())
+
+			slow := runtimeImpl(newContainer("slow", "slow", podRuntime))
+
+			Eventually(starts, timeout).Should(Equal(1))
+
+			// When
+			createdResult := runtimeImpl(created)
+			newResult := runtimeImpl(newContainer("new", "new", ociRuntime))
+
+			// Then
+			Eventually(createdResult, timeout).Should(Receive(BeNil()))
+			Eventually(newResult, timeout).Should(Receive(BeNil()))
+			Expect(sut.HasRuntimeImpl("new")).To(BeTrue())
+			Expect(slow).NotTo(Receive())
+		})
+
+		It("should create the one of a pod once and not keep a failure", func() {
+			// Given
+			infra := newContainer("pod", "pod", podRuntime)
+			first := runtimeImpl(infra)
+
+			Eventually(starts, timeout).Should(Equal(1))
+
+			// When
+			second := runtimeImpl(infra)
+			container := runtimeImpl(newContainer("container", "pod", podRuntime))
+
+			Eventually(waiting, timeout).Should(Equal(2))
+			Expect(first).NotTo(Receive())
+			release()
+
+			// Then
+			Eventually(first, timeout).Should(failedStart())
+			Eventually(second, timeout).Should(failedStart())
+			Eventually(container, timeout).Should(failedStart())
+			Expect(starts()).To(Equal(1))
+			Expect(sut.HasRuntimeImpl("pod")).To(BeFalse())
+			Expect(sut.HasRuntimeImpl("container")).To(BeFalse())
+
+			_, err := sut.RuntimeImpl(infra)
+			Expect(err).To(MatchError(ContainSubstring("start server")))
+			Expect(starts()).To(Equal(2))
+		})
+
+		It("should not create the one of a pod again while creating the container", func() {
+			// Given
+			infra := newContainer("pod", "pod", podRuntime)
+			lookup := runtimeImpl(infra)
+
+			Eventually(starts, timeout).Should(Equal(1))
+
+			// When
+			created := make(chan error, 1)
+
+			go func() {
+				defer GinkgoRecover()
+
+				created <- sut.CreateContainer(context.Background(), infra, "", false)
+			}()
+
+			Eventually(waiting, timeout).Should(Equal(1))
+			Expect(lookup).NotTo(Receive())
+			release()
+
+			// Then
+			Eventually(lookup, timeout).Should(failedStart())
+			Eventually(created, timeout).Should(failedStart())
+			Expect(starts()).To(Equal(1))
+			Expect(sut.HasRuntimeImpl("pod")).To(BeFalse())
 		})
 	})
 })

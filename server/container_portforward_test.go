@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"syscall"
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
@@ -166,6 +167,22 @@ var _ = t.Describe("ContainerPortforward", func() {
 			ociRuntimeMock.EXPECT().
 				ServePortForwardContainer(gomock.Any(), testContainer, gomock.Any()).
 				Return("", fmt.Errorf("call ServePortForwardContainer RPC: %w", errors.ErrUnsupported))
+
+			// When
+			response, err := sut.PortForward(context.Background(), request())
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.GetUrl()).NotTo(BeEmpty())
+			Expect(response.GetUrl()).NotTo(Equal(monitorURL))
+		})
+
+		It("should use the streaming server if the monitor is unreachable", func() {
+			// Given
+			streamPortForward(conmonClient.FeaturePortForward)
+			ociRuntimeMock.EXPECT().
+				ServePortForwardContainer(gomock.Any(), testContainer, gomock.Any()).
+				Return("", fmt.Errorf("call ServePortForwardContainer RPC: %w", syscall.ENOENT))
 
 			// When
 			response, err := sut.PortForward(context.Background(), request())

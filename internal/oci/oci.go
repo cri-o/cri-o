@@ -45,9 +45,26 @@ const (
 // Runtime is the generic structure holding both global and specific
 // information about the runtime.
 type Runtime struct {
-	config              *config.Config
-	runtimeImplMap      map[string]RuntimeImpl
+	config         *config.Config
+	runtimeImplMap map[string]RuntimeImpl
+	// runtimeImplCreations are the creations of runtime implementations
+	// by createRuntimeImpl which are in progress, by container ID.
+	runtimeImplCreations map[string]*runtimeImplCreation
+	// runtimeImplMapMutex guards runtimeImplMap and runtimeImplCreations.
+	// It is not held while a runtime implementation gets created, which
+	// may start a conmon-rs server and take seconds.
 	runtimeImplMapMutex sync.RWMutex
+}
+
+// runtimeImplCreation is the creation of the runtime implementation of a
+// container by createRuntimeImpl. Concurrent lookups of the container wait
+// for it instead of creating another one, which would start a second
+// conmon-rs server for a pod.
+type runtimeImplCreation struct {
+	// done gets closed once impl and err are set.
+	done chan struct{}
+	impl RuntimeImpl
+	err  error
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -102,8 +119,9 @@ func New(c *config.Config) (*Runtime, error) {
 	}
 
 	return &Runtime{
-		config:         c,
-		runtimeImplMap: make(map[string]RuntimeImpl),
+		config:               c,
+		runtimeImplMap:       make(map[string]RuntimeImpl),
+		runtimeImplCreations: make(map[string]*runtimeImplCreation),
 	}, nil
 }
 
@@ -312,7 +330,8 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	return newRuntimeOCI(r, rh), nil
 }
 
-// RuntimeImpl returns the runtime implementation for a given container.
+// RuntimeImpl returns the runtime implementation for a given container. It
+// creates one if the container has none yet, see createRuntimeImpl.
 func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
@@ -322,17 +341,86 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 		return impl, nil
 	}
 
-	r.runtimeImplMapMutex.Lock()
-	defer r.runtimeImplMapMutex.Unlock()
+	return r.createRuntimeImpl(c, false)
+}
 
-	impl, err := r.newRuntimeImpl(c)
-	if err != nil {
-		return nil, err
+// createRuntimeImpl creates the runtime implementation of the container and
+// keeps it, unless the container has one already and replace is not set. It
+// does not hold the lock of the runtime implementations meanwhile, so that
+// the lookups of other containers do not wait for it. Concurrent calls for
+// the container wait for that creation instead of creating another one,
+// which would start a second conmon-rs server for a pod. A failed creation
+// is not kept, the next call tries again.
+func (r *Runtime) createRuntimeImpl(c *Container, replace bool) (RuntimeImpl, error) {
+	r.runtimeImplMapMutex.Lock()
+
+	// Another call may have created it since RuntimeImpl checked for it,
+	// CreateContainer replaces it.
+	if impl, ok := r.runtimeImplMap[c.ID()]; ok && !replace {
+		r.runtimeImplMapMutex.Unlock()
+
+		return impl, nil
 	}
 
-	r.runtimeImplMap[c.ID()] = impl
+	if creation, ok := r.runtimeImplCreations[c.ID()]; ok {
+		r.runtimeImplMapMutex.Unlock()
+		<-creation.done
 
-	return impl, nil
+		return creation.impl, creation.err
+	}
+
+	creation := &runtimeImplCreation{
+		done: make(chan struct{}),
+		// Kept if newRuntimeImpl panics, so that the waiting calls fail.
+		err: errors.New("creation did not finish"),
+	}
+	r.runtimeImplCreations[c.ID()] = creation
+	r.runtimeImplMapMutex.Unlock()
+
+	defer func() {
+		r.runtimeImplMapMutex.Lock()
+		delete(r.runtimeImplCreations, c.ID())
+
+		if creation.err == nil {
+			r.runtimeImplMap[c.ID()] = creation.impl
+		}
+
+		r.runtimeImplMapMutex.Unlock()
+		close(creation.done)
+	}()
+
+	creation.impl, creation.err = r.newRuntimeImpl(c)
+
+	return creation.impl, creation.err
+}
+
+// lookupRuntimeImpl returns the runtime implementation of the container
+// with the ID without creating one. If createRuntimeImpl is creating it, it
+// waits for that and fails like the creation. It reports false if there is
+// none.
+func (r *Runtime) lookupRuntimeImpl(id string) (RuntimeImpl, bool, error) {
+	r.runtimeImplMapMutex.RLock()
+	impl, ok := r.runtimeImplMap[id]
+	creation := r.runtimeImplCreations[id]
+	r.runtimeImplMapMutex.RUnlock()
+
+	if ok {
+		return impl, true, nil
+	}
+
+	if creation == nil {
+		return nil, false, nil
+	}
+
+	<-creation.done
+
+	if creation.err != nil {
+		return nil, false, fmt.Errorf(
+			"create runtime implementation of container %s: %w", id, creation.err,
+		)
+	}
+
+	return creation.impl, true, nil
 }
 
 // streamingRuntimeImpl returns the runtime implementation of the container
@@ -366,16 +454,12 @@ func (r *Runtime) CreateContainer(
 ) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	// Instantiate a new runtime implementation for this new container
-	impl, err := r.newRuntimeImpl(c)
+	// Instantiate a new runtime implementation for this new container and
+	// assign it to the container.
+	impl, err := r.createRuntimeImpl(c, true)
 	if err != nil {
 		return err
 	}
-
-	// Assign this runtime implementation to the current container
-	r.runtimeImplMapMutex.Lock()
-	r.runtimeImplMap[c.ID()] = impl
-	r.runtimeImplMapMutex.Unlock()
 
 	return impl.CreateContainer(ctx, c, cgroupParent, restore)
 }
@@ -467,9 +551,17 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	r.runtimeImplMapMutex.RLock()
-	impl, ok := r.runtimeImplMap[c.ID()]
-	r.runtimeImplMapMutex.RUnlock()
+	// Wait for a creation of the runtime implementation in progress, which
+	// may start the conmon-rs server of the pod, instead of creating another
+	// one at the same time.
+	impl, ok, lookupErr := r.lookupRuntimeImpl(c.ID())
+	if lookupErr != nil {
+		log.Debugf(
+			ctx,
+			"Creating another runtime implementation to delete the container: %v",
+			lookupErr,
+		)
+	}
 
 	if !ok {
 		if impl, err = r.newRuntimeImpl(c); err != nil {

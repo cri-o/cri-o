@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"syscall"
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
@@ -90,6 +91,38 @@ var _ = t.Describe("ContainerExec", func() {
 			ociRuntimeMock.EXPECT().
 				ServeExecContainer(gomock.Any(), testContainer, gomock.Any(), false, false, true, false).
 				Return("", fmt.Errorf("conmon-rs server: %w", errors.ErrUnsupported))
+
+			// When
+			response, err := sut.Exec(context.Background(), request())
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.GetUrl()).NotTo(BeEmpty())
+			Expect(response.GetUrl()).NotTo(Equal(monitorURL))
+		})
+
+		It("should use the streaming server if the monitor is unreachable", func() {
+			// Given
+			streamWebsockets()
+			ociRuntimeMock.EXPECT().
+				ServeExecContainer(gomock.Any(), testContainer, gomock.Any(), false, false, true, false).
+				Return("", fmt.Errorf("call ServeExecContainer RPC: %w", syscall.ECONNREFUSED))
+
+			// When
+			response, err := sut.Exec(context.Background(), request())
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.GetUrl()).NotTo(BeEmpty())
+			Expect(response.GetUrl()).NotTo(Equal(monitorURL))
+		})
+
+		It("should use the streaming server if the monitor does not know the container", func() {
+			// Given
+			streamWebsockets()
+			ociRuntimeMock.EXPECT().
+				ServeExecContainer(gomock.Any(), testContainer, gomock.Any(), false, false, true, false).
+				Return("", fmt.Errorf("call ServeExecContainer RPC: %w", conmonClient.ErrContainerNotFound))
 
 			// When
 			response, err := sut.Exec(context.Background(), request())
