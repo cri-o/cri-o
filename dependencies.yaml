@@ -4,14 +4,18 @@ dependencies:
   - name: go
     version: 1.27.1
     refPaths:
-      - path: nix/derivation.nix
-        match: buildGo127Module
       - path: go.mod
         match: go
       - path: hack/build-rpms.sh
         match: go
       - path: hack/Containerfile.dev
         match: GOVERSION
+
+  - name: go (static builds)
+    version: 1.27.3
+    refPaths:
+      - path: nix/derivation.nix
+        match: buildGo127Module
 
   # For a new minor (1.x.0) release, move the "development version"
   # below to the "supported versions" section (by omitting the patch version).
