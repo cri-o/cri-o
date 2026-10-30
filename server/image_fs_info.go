@@ -2,32 +2,31 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"path"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"time"
 
 	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/directory"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-
-	crioStorage "github.com/cri-o/cri-o/utils"
 )
 
+// getStorageFsInfo reports the disk usage of the image and container
+// filesystems by measuring the storage layer content under the graph driver's
+// data directory (<root>/<driver>). When a dedicated image store is configured,
+// the image filesystem is measured at <imageStore>/<driver> and the container
+// filesystem at <root>/<driver>; otherwise both report the graph root usage.
 func getStorageFsInfo(store storage.Store) (*types.ImageFsInfoResponse, error) {
 	rootPath := store.GraphRoot()
 	imagePath := store.ImageStore()
 	storageDriver := store.GraphDriverName()
 
-	var graphRootPath string
-
-	if imagePath == "" {
-		graphRootPath = path.Join(rootPath, storageDriver+"-images")
-	} else {
-		graphRootPath = path.Join(rootPath, storageDriver+"-containers")
-	}
-
-	graphUsage, err := getUsage(graphRootPath)
+	graphUsage, err := getUsage(filepath.Join(rootPath, storageDriver), storageDriver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get usage for %s: %w", graphRootPath, err)
+		return nil, err
 	}
 
 	if imagePath == "" {
@@ -37,20 +36,59 @@ func getStorageFsInfo(store storage.Store) (*types.ImageFsInfoResponse, error) {
 		}, nil
 	}
 
-	resp := &types.ImageFsInfoResponse{
-		ContainerFilesystems: []*types.FilesystemUsage{graphUsage},
-	}
-
-	imageRoot := path.Join(imagePath, storageDriver+"-images")
-
-	imageUsage, err := getUsage(imageRoot)
+	imageUsage, err := getUsage(filepath.Join(imagePath, storageDriver), storageDriver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get usage for %s: %w", imageRoot, err)
+		return nil, err
 	}
 
-	resp.ImageFilesystems = []*types.FilesystemUsage{imageUsage}
+	return &types.ImageFsInfoResponse{
+		ImageFilesystems:     []*types.FilesystemUsage{imageUsage},
+		ContainerFilesystems: []*types.FilesystemUsage{graphUsage},
+	}, nil
+}
 
-	return resp, nil
+// getUsage sums the disk usage of every layer's content under driverHome. The
+// overlay driver stores content in each layer's "diff" subdirectory, so walking
+// only "diff" measures the stored content without descending into a layer's
+// "merged" mount view; other drivers store content directly in the layer
+// directory. Hard links are counted once.
+func getUsage(driverHome, driverName string) (*types.FilesystemUsage, error) {
+	entries, err := os.ReadDir(driverHome)
+	if err != nil {
+		return nil, fmt.Errorf("read storage driver directory %s: %w", driverHome, err)
+	}
+
+	var totalBytes, totalInodes int64
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		layerPath := filepath.Join(driverHome, entry.Name())
+		if driverName == "overlay" {
+			layerPath = filepath.Join(layerPath, "diff")
+		}
+
+		usage, err := directory.Usage(layerPath)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			}
+
+			return nil, fmt.Errorf("get disk usage for path %s: %w", layerPath, err)
+		}
+
+		totalBytes += usage.Size
+		totalInodes += usage.InodeCount
+	}
+
+	return &types.FilesystemUsage{
+		Timestamp:  time.Now().UnixNano(),
+		FsId:       &types.FilesystemIdentifier{Mountpoint: driverHome},
+		UsedBytes:  &types.UInt64Value{Value: uint64(totalBytes)},
+		InodesUsed: &types.UInt64Value{Value: uint64(totalInodes)},
+	}, nil
 }
 
 // ImageFsInfo returns information of the filesystem that is used to store images.
@@ -69,22 +107,8 @@ func (s *Server) ImageFsInfo(
 
 	fsUsage, err := getStorageFsInfo(store)
 	if err != nil {
-		return nil, fmt.Errorf("get image fs info %w", err)
+		return nil, fmt.Errorf("get image fs info: %w", err)
 	}
 
 	return fsUsage, nil
-}
-
-func getUsage(containerPath string) (*types.FilesystemUsage, error) {
-	bytes, inodes, err := crioStorage.GetDiskUsageStats(containerPath)
-	if err != nil {
-		return nil, fmt.Errorf("get disk usage for path %s: %w", containerPath, err)
-	}
-
-	return &types.FilesystemUsage{
-		Timestamp:  time.Now().UnixNano(),
-		FsId:       &types.FilesystemIdentifier{Mountpoint: containerPath},
-		UsedBytes:  &types.UInt64Value{Value: bytes},
-		InodesUsed: &types.UInt64Value{Value: inodes},
-	}, nil
 }
