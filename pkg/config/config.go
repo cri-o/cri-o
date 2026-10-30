@@ -304,6 +304,10 @@ type RuntimeHandler struct {
 	// require crio to do it.
 	RuntimePullImage bool `toml:"runtime_pull_image,omitempty"`
 
+	// DropInfraCtr overrides the global infra-container policy for this handler.
+	// Explicitly enabling it for a VM handler requires the shim Sandbox API.
+	DropInfraCtr *bool `toml:"drop_infra_ctr,omitempty"`
+
 	// ContainerMinMemory is the minimum memory that must be set for a container.
 	ContainerMinMemory string `toml:"container_min_memory,omitempty"`
 

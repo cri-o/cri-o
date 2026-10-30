@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	sandbox "github.com/containerd/containerd/api/runtime/sandbox/v1"
 	"github.com/containerd/containerd/api/runtime/task/v2"
 	containerdTypes "github.com/containerd/containerd/api/types"
 	tasktypes "github.com/containerd/containerd/api/types/task"
@@ -34,6 +35,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	"google.golang.org/protobuf/proto"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
@@ -52,15 +54,18 @@ import (
 type runtimeVM struct {
 	sync.Mutex
 
-	path       string
-	fifoDir    string
-	configPath string
-	exitsPath  string
-	pullImage  bool
-	ctx        context.Context
-	client     *ttrpc.Client
-	task       task.TaskService
-	handler    *config.RuntimeHandler
+	path         string
+	fifoDir      string
+	configPath   string
+	exitsPath    string
+	pullImage    bool
+	ctx          context.Context
+	client       *ttrpc.Client
+	task         task.TaskService
+	handler      *config.RuntimeHandler
+	sandboxAPI   bool
+	sandbox      sandbox.TTRPCSandboxService
+	sandboxWatch bool
 
 	ctrs map[string]containerInfo
 }
@@ -79,7 +84,7 @@ const (
 )
 
 // newRuntimeVM creates a new runtimeVM instance.
-func newRuntimeVM(handler *config.RuntimeHandler, exitsPath string) RuntimeImpl {
+func newRuntimeVM(handler *config.RuntimeHandler, exitsPath string) *runtimeVM {
 	logrus.Debug("oci.newRuntimeVM() start")
 	defer logrus.Debug("oci.newRuntimeVM() end")
 
@@ -173,11 +178,11 @@ func (r *runtimeVM) CreateContainer(
 	log.Debugf(ctx, "RuntimeVM.CreateContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.CreateContainer() end")
 
-	// This runtime will not drop the infra container, so we don't expect
-	// to run into this. But if the default runtimeHandler is kata, we might end
-	// here for a spoofed container, which is always set with the default handler.
-	// This test guards against it.
 	if c.Spoofed() {
+		if usesSandboxAPI(c) {
+			return r.createSandbox(ctx, c, cgroupParent)
+		}
+
 		return nil
 	}
 
@@ -382,6 +387,22 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 
 	cmd.Stderr = &stderr
 
+	if usesSandboxAPI(c) {
+		runtimeOptions := &runtimeoptions.Options{ConfigPath: r.handler.RuntimeConfigPath}
+
+		envelope, err := typeurl.MarshalAny(runtimeOptions)
+		if err != nil {
+			return err
+		}
+
+		data, err := proto.Marshal(protobuf.FromAny(envelope))
+		if err != nil {
+			return err
+		}
+
+		cmd.Stdin = bytes.NewReader(data)
+	}
+
 	out, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("%s: %w", stderr.String(), err)
@@ -414,6 +435,13 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 	defer log.Debugf(ctx, "RuntimeVM.StartContainer() end")
 
 	if c.Spoofed() {
+		if usesSandboxAPI(c) {
+			c.opLock.Lock()
+			defer c.opLock.Unlock()
+
+			return r.startSandbox(ctx, c)
+		}
+
 		return nil
 	}
 
@@ -775,6 +803,13 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	defer log.Debugf(ctx, "RuntimeVM.StopContainer() end")
 
 	if c.Spoofed() {
+		if usesSandboxAPI(c) {
+			c.opLock.Lock()
+			defer c.opLock.Unlock()
+
+			return r.stopSandbox(ctx, c, timeout)
+		}
+
 		c.state.Status = ContainerStateStopped
 		c.state.Finished = time.Now()
 
@@ -897,6 +932,10 @@ func (r *runtimeVM) DeleteContainer(ctx context.Context, c *Container) error {
 	defer c.opLock.Unlock()
 
 	if c.Spoofed() {
+		if usesSandboxAPI(c) {
+			return r.deleteSandbox(ctx, c)
+		}
+
 		return nil
 	}
 
@@ -934,7 +973,12 @@ func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
 		return err
 	}
 
-	_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
+	// A workload must not shut down the sandbox shim. The sandbox owns it.
+	var err error
+	if !r.sandboxAPI || c.ID() == c.Sandbox() {
+		_, err = r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
+	}
+
 	if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
 		return err
 	}
@@ -954,6 +998,10 @@ func (r *runtimeVM) UpdateContainerStatus(ctx context.Context, c *Container) err
 	// Lock the container
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
+	if usesSandboxAPI(c) {
+		return r.sandboxStatus(ctx, c)
+	}
 
 	return r.updateContainerStatus(ctx, c)
 }
@@ -1442,6 +1490,22 @@ func EncodeKataVirtualVolumeToBase64(
 }
 
 func (r *runtimeVM) IsContainerAlive(c *Container) bool {
+	if usesSandboxAPI(c) {
+		c.opLock.Lock()
+		defer c.opLock.Unlock()
+
+		if err := r.connectSandbox(c); err != nil {
+			return false
+		}
+
+		ctx, cancel := context.WithTimeout(r.ctx, 5*time.Second)
+		defer cancel()
+
+		_, err := r.sandbox.PingSandbox(ctx, &sandbox.PingRequest{SandboxID: c.ID()})
+
+		return err == nil
+	}
+
 	return r.kill(c.ID(), "", 0) == nil
 }
 

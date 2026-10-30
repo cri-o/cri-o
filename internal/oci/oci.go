@@ -300,7 +300,15 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	}
 
 	if rh.RuntimeType == config.RuntimeTypeVM {
-		return newRuntimeVM(rh, r.config.ContainerExitsDir), nil
+		vm := newRuntimeVM(rh, r.config.ContainerExitsDir)
+
+		// Sandbox runtimes are registered before their workloads, including on restore.
+		vm.sandboxAPI = usesSandboxAPI(c)
+		if pod, ok := r.runtimeImplMap[c.Sandbox()].(*runtimeVM); ok && !c.Spoofed() {
+			vm.sandboxAPI = pod.sandboxAPI
+		}
+
+		return vm, nil
 	}
 
 	if rh.RuntimeType == config.RuntimeTypePod {

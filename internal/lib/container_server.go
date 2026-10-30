@@ -538,6 +538,9 @@ func (c *ContainerServer) LoadSandbox(
 		}
 	} else {
 		scontainer = oci.NewSpoofedContainer(cID, cname, labels, id, created, sandboxPath)
+		if _, err := os.Stat(filepath.Join(sandboxDir, oci.SandboxConfigFile)); err == nil {
+			scontainer.ConfigureSandboxRuntime(sb.RuntimeHandler(), sandboxPath)
+		}
 	}
 
 	scontainer.SetSpec(&m)
