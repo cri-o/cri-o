@@ -705,14 +705,14 @@ func (r *runtimeVM) execContainerCommon(
 	select {
 	case err = <-execCh:
 		if err != nil {
-			if killErr := r.kill(c.ID(), execID, syscall.SIGKILL); killErr != nil {
+			if killErr := r.kill(ctx, c.ID(), execID, syscall.SIGKILL); killErr != nil {
 				return execError, killErr
 			}
 
 			return execError, err
 		}
 	case <-timeoutCh:
-		if killErr := r.kill(c.ID(), execID, syscall.SIGKILL); killErr != nil {
+		if killErr := r.kill(ctx, c.ID(), execID, syscall.SIGKILL); killErr != nil {
 			return execError, killErr
 		}
 
@@ -815,7 +815,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	if timeout > 0 {
 		sig = c.StopSignal()
 		// Send a stopping signal to the container
-		if err := r.kill(c.ID(), "", sig); err != nil {
+		if err := r.kill(ctx, c.ID(), "", sig); err != nil {
 			return err
 		}
 
@@ -834,7 +834,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 	sig = syscall.SIGKILL
 	// Send a SIGKILL signal to the container
-	if err := r.kill(c.ID(), "", sig); err != nil {
+	if err := r.kill(ctx, c.ID(), "", sig); err != nil {
 		return err
 	}
 
@@ -1350,13 +1350,23 @@ func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
 	return int32(resp.GetExitStatus()), nil
 }
 
-func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
-	if _, err := r.task.Kill(r.ctx, &task.KillRequest{
+func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal syscall.Signal) error {
+	if _, err := r.task.Kill(ctx, &task.KillRequest{
 		ID:     ctrID,
 		ExecID: execID,
 		Signal: uint32(signal),
 		All:    false,
-	}); err != nil && (signal == 0 || !errors.Is(err, ttrpc.ErrClosed)) {
+	}); err != nil {
+		// A dead shim is not an error for a stop signal: the container is gone.
+		// The liveness check gets the error and reports the container as stopped.
+		if errors.Is(err, ttrpc.ErrClosed) {
+			if signal != 0 {
+				return nil
+			}
+
+			return err
+		}
+
 		return errdefs.FromGRPC(err)
 	}
 
@@ -1441,8 +1451,25 @@ func EncodeKataVirtualVolumeToBase64(
 	return option, nil
 }
 
-func (r *runtimeVM) IsContainerAlive(c *Container) bool {
-	return r.kill(c.ID(), "", 0) == nil
+func (r *runtimeVM) IsContainerAlive(ctx context.Context, c *Container) (bool, error) {
+	// The shim connection is established when the container status is refreshed,
+	// which can be the first thing that happens after a CRI-O restart. Without it
+	// there is nothing to ask, and kill would panic.
+	if r.task == nil {
+		return false, fmt.Errorf("shim for container %s is not connected", c.ID())
+	}
+
+	err := r.kill(ctx, c.ID(), "", 0)
+	if err == nil {
+		return true, nil
+	}
+
+	// The shim answered, and the container is not running.
+	if errors.Is(err, errdefs.ErrNotFound) || errors.Is(err, ttrpc.ErrClosed) {
+		return false, nil
+	}
+
+	return false, fmt.Errorf("check whether container %s is alive: %w", c.ID(), err)
 }
 
 func (r *runtimeVM) ProbeMonitor(ctx context.Context, c *Container) error {

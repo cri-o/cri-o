@@ -104,6 +104,46 @@ function teardown() {
 	crictl rmp "$pod_id"
 }
 
+@test "exec into a vm runtime container after a crio restart" {
+	if [[ $RUNTIME_TYPE != vm ]]; then
+		skip "only applicable to vm runtime type"
+	fi
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	crictl exec "$ctr_id" echo before
+	crictl exec --sync "$ctr_id" echo before
+
+	stop_crio_no_clean ""
+
+	# The pid CRI-O cached when the container was created is the pid of the VM,
+	# and that pid does not survive the VM being restored. Point the cached pid
+	# at a process that is gone to get the same situation.
+	jq '.initPid = 4194305' \
+		"$TESTDIR/crio/overlay-containers/$ctr_id/userdata/state.json" > "$TESTDIR/state.json"
+	cp "$TESTDIR/state.json" "$TESTDIR/crio/overlay-containers/$ctr_id/userdata/state.json"
+
+	start_crio_no_setup
+
+	# This also reconnects CRI-O to the shim, which kubelet does by polling the
+	# container status after a restart.
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_RUNNING"* ]]
+
+	# The cached pid must not decide this: the runtime does.
+	crictl exec "$ctr_id" echo after
+	crictl exec --sync "$ctr_id" echo after
+
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+}
+
 @test "crio restore with vm runtime and dead shim already stopped" {
 	if [[ $RUNTIME_TYPE != vm ]]; then
 		skip "only applicable to vm runtime type"
