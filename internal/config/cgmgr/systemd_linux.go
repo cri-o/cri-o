@@ -171,6 +171,19 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 		systemdDbus.PropAfter("crio.service"),
 	}
 
+	// Ensure a scope that fails to attach any PIDs (e.g. because its conmon was
+	// reaped by a crio.service restart before it could be moved here) is garbage
+	// collected by systemd instead of persisting in `systemctl --failed` forever.
+	// CollectMode was added in systemd v236; older systemd (e.g. unpatched RHEL 7)
+	// rejects unknown properties outright, which would fail the whole transient
+	// unit creation, so only set it when supported.
+	if node.SystemdHasCollectMode() {
+		props = append(props, systemdDbus.Property{
+			Name:  "CollectMode",
+			Value: dbus.MakeVariant("inactive-or-failed"),
+		})
+	}
+
 	if resources != nil && resources.CPU != nil {
 		if resources.CPU.Cpus != "" {
 			if !node.SystemdHasAllowedCPUs() {
