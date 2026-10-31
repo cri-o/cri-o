@@ -35,6 +35,16 @@ func New(conmonPath string) (*ConmonManager, error) {
 	}
 
 	fields := strings.Fields(string(out))
+
+	// conmonrs prints "version: x.y.z" as its first line. It is not a drop-in
+	// replacement for conmon and has to be configured with the pod runtime type.
+	if len(fields) > 0 && fields[0] == "version:" {
+		return nil, fmt.Errorf(
+			"monitor path %q points to conmonrs, which requires runtime_type = %q instead of %q",
+			conmonPath, "pod", "oci",
+		)
+	}
+
 	if len(fields) < 3 {
 		return nil, fmt.Errorf(
 			"conmon version output too short: expected three fields, got %d in %s",

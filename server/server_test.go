@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -224,19 +225,12 @@ var _ = t.Describe("Server", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
-		It("should fail with invalid timeout duration", func() {
-			mockNewServer()
-
-			serverConfig.StreamIdleTimeout = "invalid duration"
-
-			server, err := server.New(context.Background(), libMock)
-			Expect(err).To(HaveOccurred())
-			Expect(server).To(BeNil())
-		})
 		It("should succeed to set a valid timeout duration", func() {
 			mockNewServer()
 
 			serverConfig.StreamIdleTimeout = "200ms"
+			Expect(serverConfig.APIConfig.Validate(false)).To(Succeed())
+			Expect(serverConfig.GetStreamIdleTimeout()).To(Equal(200 * time.Millisecond))
 
 			server, err := server.New(context.Background(), libMock)
 			Expect(err).ToNot(HaveOccurred())

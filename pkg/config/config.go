@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -29,6 +30,7 @@ import (
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/cri-streaming/pkg/streaming"
 	"k8s.io/utils/cpuset"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
@@ -321,12 +323,16 @@ type RuntimeHandler struct {
 	// the pod spec.
 	DefaultAnnotations map[string]string `toml:"default_annotations,omitempty"`
 
-	// StreamWebsockets can be used to enable the WebSocket protocol for
-	// container exec, attach and port forward.
-	//
-	// conmon-rs (runtime_type = "pod") supports this configuration for exec
-	// and attach. Forwarding ports will be supported in future releases.
+	// StreamWebsockets lets conmon-rs (runtime_type = "pod") serve container
+	// exec, attach and port forward over SPDY and WebSocket instead of the
+	// streaming server of CRI-O. It needs conmon-rs v1.2.0 or later and gets
+	// disabled for older versions.
 	StreamWebsockets bool `toml:"stream_websockets,omitempty"`
+
+	// conmonrsFeatures are the optional features the conmon-rs binary of
+	// this handler reports.
+	// This is populated dynamically and not read from config.
+	conmonrsFeatures []string
 
 	// ExecCPUAffinity specifies which CPU is used when exec-ing the container.
 	// The valid values are:
@@ -843,7 +849,9 @@ type APIConfig struct {
 	// communication with the tls encrypted stream
 	StreamTLSCA string `toml:"stream_tls_ca"`
 
-	// StreamIdleTimeout is how long to leave idle connections open for
+	// StreamIdleTimeout is how long to leave idle connections of the CRI-O
+	// streaming server and the sessions of conmon-rs open for: 4h if not
+	// set, 0 disables it.
 	StreamIdleTimeout string `toml:"stream_idle_timeout"`
 
 	// TLSMinVersion is the minimum TLS version for CRI-O's TLS servers (streaming and metrics).
@@ -859,6 +867,9 @@ type APIConfig struct {
 	// Parsed TLS values (populated during Validate)
 	tlsMinVersionParsed   uint16
 	tlsCipherSuitesParsed []uint16
+
+	// Parsed StreamIdleTimeout (populated during Validate)
+	streamIdleTimeoutParsed time.Duration
 }
 
 // MetricsConfig specifies all necessary configuration for Prometheus based
@@ -1178,6 +1189,8 @@ func DefaultConfig() (*Config, error) {
 			GRPCMaxSendMsgSize: defaultGRPCMaxMsgSize,
 			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
 			TLSMinVersion:      DefaultTLSMinVersion,
+			// Keep the default for configs which never get validated.
+			streamIdleTimeoutParsed: streaming.DefaultConfig.StreamIdleTimeout,
 		},
 		RuntimeConfig: *DefaultRuntimeConfig(cgroupManager),
 		CheckpointRestoreConfig: CheckpointRestoreConfig{
@@ -1363,6 +1376,23 @@ func (c *APIConfig) Validate(onExecution bool) error {
 	// Reset parsed TLS state to avoid stale values after reloads
 	c.tlsMinVersionParsed = 0
 	c.tlsCipherSuitesParsed = nil
+
+	c.streamIdleTimeoutParsed = streaming.DefaultConfig.StreamIdleTimeout
+	if c.StreamIdleTimeout != "" {
+		idleTimeout, err := time.ParseDuration(c.StreamIdleTimeout)
+		if err != nil {
+			return fmt.Errorf("validating stream_idle_timeout: %w", err)
+		}
+
+		if idleTimeout < 0 {
+			return fmt.Errorf(
+				"validating stream_idle_timeout: %q must not be negative",
+				c.StreamIdleTimeout,
+			)
+		}
+
+		c.streamIdleTimeoutParsed = idleTimeout
+	}
 
 	// Parse and validate TLS version using Kubernetes component-base
 	tlsVersion, err := cliflag.TLSVersion(c.TLSMinVersion)
@@ -1634,6 +1664,30 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 	}
 
 	return nil
+}
+
+// runtimesMu guards the Runtimes and DefaultRuntime of a RuntimeConfig, which
+// a config reload replaces while CRI calls read them. It is not part of the
+// struct because the config gets copied by value.
+var runtimesMu sync.RWMutex
+
+// RuntimeHandlers returns the runtime handlers and the name of the default
+// one, both of the same config reload. Callers must not change them.
+func (c *RuntimeConfig) RuntimeHandlers() (runtimes Runtimes, defaultRuntime string) {
+	runtimesMu.RLock()
+	defer runtimesMu.RUnlock()
+
+	return c.Runtimes, c.DefaultRuntime
+}
+
+// setRuntimeHandlers replaces the runtime handlers and the name of the
+// default one together.
+func (c *RuntimeConfig) setRuntimeHandlers(runtimes Runtimes, defaultRuntime string) {
+	runtimesMu.Lock()
+	defer runtimesMu.Unlock()
+
+	c.Runtimes = runtimes
+	c.DefaultRuntime = defaultRuntime
 }
 
 // ValidateDefaultRuntime ensures that the default runtime is set and valid.
@@ -2316,15 +2370,16 @@ func (r *RuntimeHandler) ValidateWebsocketStreaming(name string) error {
 		return nil
 	}
 
-	// Requires at least conmon-rs v0.7.0
+	r.conmonrsFeatures = nil
+
+	// The version JSON got introduced in conmon-rs v0.7.0
 	v, err := conmonrsClient.Version(r.MonitorPath)
 	if err != nil {
 		if errors.Is(err, conmonrsClient.ErrUnsupported) {
 			logrus.Debugf("Unable to verify pod runtime version: %v", err)
 
-			// Streaming server support got introduced in v0.7.0
 			if r.StreamWebsockets {
-				logrus.Warnf("Disabling streaming over websockets, it requires conmon-rs >= v0.7.0")
+				logrus.Warnf("Disabling streaming over websockets, it requires conmon-rs >= v1.2.0")
 
 				r.StreamWebsockets = false
 			}
@@ -2340,7 +2395,7 @@ func (r *RuntimeHandler) ValidateWebsocketStreaming(name string) error {
 	}
 
 	logrus.Infof(
-		"Runtime handler %q is using conmon-rs version: %s, tag: %s, commit: %s, build: %s, target: %s, %s, %s",
+		"Runtime handler %q is using conmon-rs version: %s, tag: %s, commit: %s, build: %s, target: %s, %s, %s, features: %s",
 		name,
 		v.Version,
 		v.Tag,
@@ -2349,9 +2404,29 @@ func (r *RuntimeHandler) ValidateWebsocketStreaming(name string) error {
 		v.Target,
 		v.RustVersion,
 		v.CargoVersion,
+		strings.Join(v.Features, ", "),
 	)
 
+	r.conmonrsFeatures = v.Features
+
+	// Before, the streaming server of conmon-rs only spoke the v5 WebSocket
+	// protocol for exec and attach, while the kubelet talks SPDY to it.
+	if r.StreamWebsockets && !r.conmonrsSupports(conmonrsClient.FeatureStreamingProtocols) {
+		logrus.Warnf(
+			"Disabling streaming over websockets for runtime handler %q, it requires conmon-rs >= v1.2.0",
+			name,
+		)
+
+		r.StreamWebsockets = false
+	}
+
 	return nil
+}
+
+// conmonrsSupports returns whether the conmon-rs binary of this handler
+// reports the feature.
+func (r *RuntimeHandler) conmonrsSupports(feature string) bool {
+	return slices.Contains(r.conmonrsFeatures, feature)
 }
 
 // LoadRuntimeFeatures loads features for a given runtime handler using the "features"
@@ -2410,6 +2485,13 @@ func (r *RuntimeHandler) RuntimeDefaultAnnotations() map[string]string {
 // RuntimeStreamWebsockets returns the configured websocket streaming option for this handler.
 func (r *RuntimeHandler) RuntimeStreamWebsockets() bool {
 	return r.StreamWebsockets
+}
+
+// RuntimeStreamPortForward returns whether conmon-rs serves port forwarding
+// for this handler, which needs stream_websockets and a conmon-rs which
+// reports the port forward feature.
+func (r *RuntimeHandler) RuntimeStreamPortForward() bool {
+	return r.StreamWebsockets && r.conmonrsSupports(conmonrsClient.FeaturePortForward)
 }
 
 // RuntimeSeccomp returns the configuration of the loaded seccomp profile for this handler.
@@ -2547,6 +2629,13 @@ func (c *APIConfig) GetTLSMinVersion() uint16 {
 // The value is parsed and validated during Validate().
 func (c *APIConfig) GetTLSCipherSuites() []uint16 {
 	return c.tlsCipherSuitesParsed
+}
+
+// GetStreamIdleTimeout returns the parsed StreamIdleTimeout, the default of
+// the streaming server if it is not set.
+// The value is parsed and validated during Validate().
+func (c *APIConfig) GetStreamIdleTimeout() time.Duration {
+	return c.streamIdleTimeoutParsed
 }
 
 var storePathRegexp = regexp.MustCompile(`^/[a-zA-Z0-9/._-]+$`)

@@ -25,30 +25,28 @@ func (s *Server) Attach(
 		return nil, fmt.Errorf("could not find container %q: %w", req.GetContainerId(), err)
 	}
 
-	runtimeHandler := s.getSandbox(ctx, c.Sandbox()).RuntimeHandler()
-	if streamWebsocket, err := s.Runtime().
-		RuntimeStreamWebsockets(runtimeHandler); err == nil &&
-		streamWebsocket {
-		log.Debugf(ctx, "Runtime handler %q is configured to use websockets", runtimeHandler)
+	url, err := monitorStreamingURL(
+		ctx,
+		s.Runtime().RuntimeStreamWebsockets,
+		s.getSandbox(ctx, c.Sandbox()).RuntimeHandler(),
+		"attach",
+		fmt.Sprintf("container %q", req.GetContainerId()),
+		func() (string, error) {
+			return s.Runtime().
+				ServeAttachContainer(ctx, c, req.GetStdin(), req.GetStdout(), req.GetStderr())
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
 
-		url, err := s.Runtime().
-			ServeAttachContainer(ctx, c, req.GetStdin(), req.GetStdout(), req.GetStderr())
-		if err != nil {
-			return nil, fmt.Errorf(
-				"could not serve attach for container %q: %w",
-				req.GetContainerId(),
-				err,
-			)
-		}
-
-		log.Infof(ctx, "Using attach URL from container monitor")
-
+	if url != "" {
 		return &types.AttachResponse{Url: url}, nil
 	}
 
 	resp, err := s.getAttach(req)
 	if err != nil {
-		return nil, errors.New("unable to prepare attach endpoint")
+		return nil, fmt.Errorf("unable to prepare attach endpoint: %w", err)
 	}
 
 	return resp, nil

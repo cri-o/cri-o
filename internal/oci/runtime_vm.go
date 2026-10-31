@@ -716,7 +716,16 @@ func (r *runtimeVM) execContainerCommon(
 			return execError, killErr
 		}
 
-		<-execCh
+		if execErr := <-execCh; execErr != nil {
+			log.Debugf(
+				ctx,
+				"Unable to wait for exec process %s in container %s after timeout: %v",
+				execID,
+				c.ID(),
+				execErr,
+			)
+		}
+
 		// do not make an error for timeout: report it with a specific error code
 		return execTimeout, nil
 	}
@@ -1450,7 +1459,7 @@ func (r *runtimeVM) ServeExecContainer(
 	bool,
 	bool,
 ) (string, error) {
-	return "", nil
+	return "", fmt.Errorf("serve exec: %w", errors.ErrUnsupported)
 }
 
 func (r *runtimeVM) ServeAttachContainer(
@@ -1460,5 +1469,13 @@ func (r *runtimeVM) ServeAttachContainer(
 	bool,
 	bool,
 ) (string, error) {
-	return "", nil
+	return "", fmt.Errorf("serve attach: %w", errors.ErrUnsupported)
+}
+
+func (r *runtimeVM) ServePortForwardContainer(
+	context.Context,
+	*Container,
+	string,
+) (string, error) {
+	return "", fmt.Errorf("serve port forward: %w", errors.ErrUnsupported)
 }

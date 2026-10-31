@@ -34,7 +34,7 @@ COVERAGE_PATH := ${BUILD_PATH}/coverage
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ./test/mocks
 
-MANPAGES_MD := $(wildcard docs/*.md)
+MANPAGES_MD := $(wildcard docs/*.5.md docs/*.8.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
@@ -50,11 +50,11 @@ GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
-GOLANGCI_LINT_VERSION := v2.13.2
+GOLANGCI_LINT_VERSION := v2.15.0
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
 GOSEC := ${BUILD_BIN_PATH}/gosec
-GOSEC_VERSION := 2.29.0
+GOSEC_VERSION := 2.30.0
 MDTOC := ${BUILD_BIN_PATH}/mdtoc
 MDTOC_VERSION := v1.4.0
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes

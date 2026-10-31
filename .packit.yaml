@@ -25,6 +25,8 @@ packages:
         - sed -i "s/^%global commit0.*/%global commit0 $(git rev-parse HEAD)/" .packit_rpm/cri-o.spec
         # Remove downstream patches (if any)
         - sed -ri "/^Patch[0-9].*/d" .packit_rpm/cri-o.spec
+        # Require at least the Go version from go.mod on every build target.
+        - "sed -i '/^BuildRequires: golang >= /d; /^Name:/i BuildRequires: golang >= 1.27.2' .packit_rpm/cri-o.spec"
   fedora-40:
     # Propose minor and patch releases downstream
     version_update_mask: '\d+\.\d+\.'
@@ -47,12 +49,21 @@ jobs:
     trigger: pull_request
     branch: main
     targets:
-      - centos-stream-9-aarch64
-      - centos-stream-9-x86_64
-      - fedora-development-aarch64
-      - fedora-development-x86_64
-      - fedora-latest-stable-aarch64
-      - fedora-latest-stable-x86_64
+      centos-stream-9-aarch64: {}
+      centos-stream-9-x86_64: {}
+      # Fedora's Go package can lag behind go.mod, so use the Go SIG Copr.
+      fedora-development-aarch64:
+        additional_repos:
+          - copr://@go-sig/golang-rawhide
+      fedora-development-x86_64:
+        additional_repos:
+          - copr://@go-sig/golang-rawhide
+      fedora-latest-stable-aarch64:
+        additional_repos:
+          - copr://@go-sig/golang-rawhide
+      fedora-latest-stable-x86_64:
+        additional_repos:
+          - copr://@go-sig/golang-rawhide
     packages:
       - fedora-rawhide
 

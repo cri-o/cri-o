@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
+	"time"
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
@@ -54,54 +56,7 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		runRoot = handler.RuntimeRoot
 	}
 
-	cgroupManager := conmonClient.CgroupManagerSystemd
-	if !r.config.CgroupManager().IsSystemd() {
-		cgroupManager = conmonClient.CgroupManagerCgroupfs
-	}
-
-	heaptrack := &conmonClient.Heaptrack{}
-	logDriver := conmonClient.LogDriverNone
-
-	for _, env := range handler.MonitorEnv {
-		keyVal := strings.SplitN(env, "=", 2)
-		if len(keyVal) != 2 {
-			logrus.Warnf("Skipping monitor env %q because it is not in key=value format", env)
-
-			continue
-		}
-
-		switch keyVal[0] {
-		case "LOG_DRIVER":
-			logDriver = conmonClient.LogDriver(keyVal[1])
-
-		case "HEAPTRACK_OUTPUT_PATH":
-			heaptrack.Enabled = true
-			heaptrack.OutputPath = filepath.Join(keyVal[1], "cri-o.conmon-rs."+c.ID())
-
-		case "HEAPTRACK_BINARY_PATH":
-			heaptrack.Enabled = true
-			heaptrack.BinaryPath = keyVal[1]
-
-		default:
-			logrus.Warnf("Unknown monitor env option %q", env)
-		}
-	}
-
-	client, err := conmonClient.New(&conmonClient.ConmonServerConfig{
-		ConmonServerPath: handler.MonitorPath,
-		LogLevel:         conmonClient.FromLogrusLevel(logrus.GetLevel()),
-		LogDriver:        logDriver,
-		Runtime:          handler.RuntimePath,
-		ServerRunDir:     c.dir,
-		RuntimeRoot:      runRoot,
-		CgroupManager:    cgroupManager,
-		Tracing: &conmonClient.Tracing{
-			Tracer:   opentelemetry.Tracer(),
-			Enabled:  r.config.EnableTracing,
-			Endpoint: "http://" + r.config.TracingEndpoint,
-		},
-		Heaptrack: heaptrack,
-	})
+	client, err := conmonClient.New(newConmonServerConfig(r, handler, c, runRoot))
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +73,99 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		client:    client,
 		serverDir: c.dir,
 	}, nil
+}
+
+// newConmonServerConfig returns the configuration of the conmon-rs server of
+// the pod of the infra container c.
+func newConmonServerConfig(
+	r *Runtime,
+	handler *config.RuntimeHandler,
+	c *Container,
+	runRoot string,
+) *conmonClient.ConmonServerConfig {
+	cgroupManager := conmonClient.CgroupManagerSystemd
+	if !r.config.CgroupManager().IsSystemd() {
+		cgroupManager = conmonClient.CgroupManagerCgroupfs
+	}
+
+	heaptrack := &conmonClient.Heaptrack{}
+	logDriver := conmonClient.LogDriverNone
+
+	for _, env := range handler.MonitorEnv {
+		keyVal := strings.SplitN(env, "=", 2)
+		if len(keyVal) != 2 {
+			logrus.Warnf("Skipping monitor env %q because it is not in key=value format", env)
+
+			continue
+		}
+
+		// Every other entry is only part of the server environment below.
+		switch keyVal[0] {
+		case monitorEnvLogDriver:
+			logDriver = conmonClient.LogDriver(keyVal[1])
+
+		case monitorEnvHeaptrackOutputPath:
+			heaptrack.Enabled = true
+			heaptrack.OutputPath = filepath.Join(keyVal[1], "cri-o.conmon-rs."+c.ID())
+
+		case monitorEnvHeaptrackBinaryPath:
+			heaptrack.Enabled = true
+			heaptrack.BinaryPath = keyVal[1]
+		}
+	}
+
+	return &conmonClient.ConmonServerConfig{
+		ConmonServerPath: handler.MonitorPath,
+		LogLevel:         conmonClient.FromLogrusLevel(logrus.GetLevel()),
+		LogDriver:        logDriver,
+		Runtime:          handler.RuntimePath,
+		ServerRunDir:     c.dir,
+		RuntimeRoot:      runRoot,
+		CgroupManager:    cgroupManager,
+		Tracing: &conmonClient.Tracing{
+			Tracer:   opentelemetry.Tracer(),
+			Enabled:  r.config.EnableTracing,
+			Endpoint: "http://" + r.config.TracingEndpoint,
+		},
+		Heaptrack: heaptrack,
+		// The server passes its environment on to the OCI runtime and the
+		// processes it starts, like conmon does, so it gets the same one
+		// instead of the whole environment of CRI-O. The options consumed
+		// above only configure the server and are left out.
+		Env: slices.DeleteFunc(monitorEnv(handler), isConmonServerOption),
+	}
+}
+
+// The monitor_env entries which configure the conmon-rs server.
+const (
+	monitorEnvLogDriver           = "LOG_DRIVER"
+	monitorEnvHeaptrackOutputPath = "HEAPTRACK_OUTPUT_PATH"
+	monitorEnvHeaptrackBinaryPath = "HEAPTRACK_BINARY_PATH"
+)
+
+// isConmonServerOption returns whether the monitor_env entry env configures
+// the conmon-rs server rather than being part of its environment.
+func isConmonServerOption(env string) bool {
+	key, _, found := strings.Cut(env, "=")
+	if !found {
+		return false
+	}
+
+	switch key {
+	case monitorEnvLogDriver, monitorEnvHeaptrackOutputPath, monitorEnvHeaptrackBinaryPath:
+		return true
+	}
+
+	return false
+}
+
+// stopAfterStdinEOF returns whether the server closes the container stdin
+// once an attach client closed its stdin. It matches conmon, which runs a
+// stdin once container without a terminal without --leave-stdin-open. The
+// server applies the latest value to every attach of the container, so it
+// comes from the container config rather than from the attach request.
+func stopAfterStdinEOF(c *Container) bool {
+	return c.stdin && c.StdinOnce() && !c.terminal
 }
 
 func (r *runtimePod) CreateContainer(
@@ -163,6 +211,22 @@ func (r *runtimePod) CreateContainer(
 		maxSize = uint64(r.oci.config.LogSizeMax)
 	}
 
+	logDrivers := []conmonClient.ContainerLogDriver{
+		{
+			Type:    conmonClient.LogDriverTypeContainerRuntimeInterface,
+			Path:    c.logPath,
+			MaxSize: maxSize,
+		},
+	}
+	// Like the journald log path of conmon, with the container name as
+	// CONTAINER_NAME, which servers without FeatureJournaldFields ignore.
+	if r.oci.config.LogToJournald {
+		logDrivers = append(logDrivers, conmonClient.ContainerLogDriver{
+			Type:          conmonClient.LogDriverTypeJournald,
+			ContainerName: c.name,
+		})
+	}
+
 	createConfig := &conmonClient.CreateContainerConfig{
 		ID:         c.ID(),
 		BundlePath: c.bundlePath,
@@ -175,13 +239,7 @@ func (r *runtimePod) CreateContainer(
 		OOMExitPaths: []string{
 			filepath.Join(c.bundlePath, "oom"),
 		}, // Keep in sync with location in oci.UpdateContainerStatus()
-		LogDrivers: []conmonClient.ContainerLogDriver{
-			{
-				Type:    conmonClient.LogDriverTypeContainerRuntimeInterface,
-				Path:    c.logPath,
-				MaxSize: maxSize,
-			},
-		},
+		LogDrivers: logDrivers,
 	}
 	resp, err := r.client.CreateContainer(ctx, createConfig)
 	// TODO FIXME do we need to cleanup the container?
@@ -275,11 +333,36 @@ func (r *runtimePod) ExecSyncContainer(
 		return nil, err
 	}
 
+	return execSyncResponse(res)
+}
+
+// execSyncResponse turns the result of an exec sync into the response of the
+// kubelet like for conmon: a timeout is a failed command, which the probes
+// treat as unhealthy, while a command which did not start or whose exit the
+// server could not tell is an error.
+func execSyncResponse(res *conmonClient.ExecContainerResult) (*types.ExecSyncResponse, error) {
 	if res.TimedOut {
 		return &types.ExecSyncResponse{
 			Stderr:   []byte(conmonconfig.TimedOutMessage),
 			ExitCode: -1,
 		}, nil
+	}
+
+	var execErr error
+
+	switch res.ExitCode {
+	case conmonClient.ExecExitCodeNotStarted:
+		execErr = errors.New("exec did not start")
+	case conmonClient.ExecExitCodeTimedOut, -1:
+		execErr = errors.New("exit status of exec unknown")
+	}
+
+	if execErr != nil {
+		syncErr := &ExecSyncError{ExitCode: -1, Err: execErr}
+		syncErr.Stdout.Write(res.Stdout)
+		syncErr.Stderr.Write(res.Stderr)
+
+		return nil, syncErr
 	}
 
 	return &types.ExecSyncResponse{
@@ -307,9 +390,81 @@ func (r *runtimePod) DeleteContainer(ctx context.Context, c *Container) error {
 	}
 	// Shutdown the runtime if the infra container is being deleted
 	if c.IsInfra() {
-		if err := r.client.Shutdown(); err != nil {
-			return fmt.Errorf("failed to shutdown client: %w", err)
-		}
+		return shutdownConmonServer(ctx, r.client)
+	}
+
+	return nil
+}
+
+// conmonServerStopper stops the conmon-rs server of a pod.
+type conmonServerStopper interface {
+	PID() uint32
+	ShutdownContext(ctx context.Context) error
+	KillContext(ctx context.Context) error
+	Close() error
+}
+
+// conmonServerKillTimeout bounds the wait for a killed conmon-rs server to
+// exit. SIGKILL cannot be caught, so a server which is still around after it
+// is stuck in the kernel and waiting longer does not help.
+const conmonServerKillTimeout = 3 * time.Second
+
+// shutdownConmonServer stops the conmon-rs server of the pod and closes the
+// client once the server is gone. A server which does not exit in time gets
+// killed, otherwise it would linger. If stopping the server fails, the client
+// stays open and keeps its pidfd of the server: the runtime implementation
+// of the pod stays in place as well, so that the retry of the pod removal can
+// stop the server again.
+func shutdownConmonServer(ctx context.Context, client conmonServerStopper) error {
+	// Stopping the server has to finish even if the request which deletes
+	// the container got canceled, otherwise the shutdown fails with the
+	// error of the context instead of timing out and the server keeps
+	// running.
+	ctx = context.WithoutCancel(ctx)
+
+	if err := stopConmonServer(ctx, client); err != nil {
+		return err
+	}
+
+	if err := client.Close(); err != nil {
+		log.Warnf(ctx, "Unable to close conmon-rs client: %v", err)
+	}
+
+	return nil
+}
+
+// stopConmonServer stops the conmon-rs server of the pod and kills it if it
+// does not exit in time.
+func stopConmonServer(ctx context.Context, client conmonServerStopper) error {
+	err := client.ShutdownContext(ctx)
+	if err == nil {
+		return nil
+	}
+
+	// Without its PID the server cannot be signaled, and a retry of the
+	// removal would fail the same way.
+	if errors.Is(err, conmonClient.ErrServerPIDUnknown) {
+		log.Warnf(ctx, "Unable to stop conmon-rs server: %v", err)
+
+		return nil
+	}
+
+	if !errors.Is(err, conmonClient.ErrShutdownTimeout) {
+		return fmt.Errorf("failed to shutdown client: %w", err)
+	}
+
+	log.Warnf(
+		ctx,
+		"Killing conmon-rs server with PID %d after shutdown failed: %v",
+		client.PID(),
+		err,
+	)
+
+	killCtx, cancel := context.WithTimeout(ctx, conmonServerKillTimeout)
+	defer cancel()
+
+	if err := client.KillContext(killCtx); err != nil {
+		return fmt.Errorf("failed to kill conmon-rs server: %w", err)
 	}
 
 	return nil
@@ -354,13 +509,16 @@ func (r *runtimePod) AttachContainer(
 	attachSocketPath := filepath.Join(r.serverDir, c.ID(), "attach")
 	libpodResize := make(chan resize.TerminalSize, 1)
 
+	// The client stops reading the resize events once the attach returned,
+	// so that a later event must not block the goroutine of HandleResizing.
+	done := make(chan struct{})
+	defer close(done)
+
 	utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
-		var libpodEvent resize.TerminalSize
-
-		libpodEvent.Height = size.Height
-
-		libpodEvent.Width = size.Width
-		libpodResize <- libpodEvent
+		select {
+		case libpodResize <- resize.TerminalSize{Width: size.Width, Height: size.Height}:
+		case <-done:
+		}
 	})
 
 	var (
@@ -384,7 +542,7 @@ func (r *runtimePod) AttachContainer(
 		ID:                c.ID(),
 		SocketPath:        attachSocketPath,
 		Tty:               tty,
-		StopAfterStdinEOF: c.stdin && c.StdinOnce() && !tty,
+		StopAfterStdinEOF: stopAfterStdinEOF(c),
 		ContainerStdin:    c.stdin,
 		Resize:            libpodResize,
 		Streams: conmonClient.AttachStreams{
@@ -425,6 +583,10 @@ func (r *runtimePod) ServeExecContainer(
 	cmd []string,
 	tty, stdin, stdout, stderr bool,
 ) (string, error) {
+	if err := requireStreamingProtocols(r.client); err != nil {
+		return "", err
+	}
+
 	res, err := r.client.ServeExecContainer(ctx, &conmonClient.ServeExecContainerConfig{
 		ID:      c.ID(),
 		Command: cmd,
@@ -432,12 +594,47 @@ func (r *runtimePod) ServeExecContainer(
 		Stdin:   stdin,
 		Stdout:  stdout,
 		Stderr:  stderr,
+		// Older servers ignore it.
+		IdleTimeout: r.oci.config.GetStreamIdleTimeout(),
 	})
 	if err != nil {
-		return "", fmt.Errorf("call ServeExecContainer RPC: %w", err)
+		return "", unsupportedError(fmt.Errorf("call ServeExecContainer RPC: %w", err))
 	}
 
 	return res.URL, nil
+}
+
+// conmonFeatureChecker reports the features of the conmon-rs server of a pod.
+type conmonFeatureChecker interface {
+	SupportsFeature(feature string) bool
+}
+
+// requireStreamingProtocols fails with errors.ErrUnsupported if the running
+// conmon-rs server of the pod does not speak the streaming protocols of the
+// kubelet. The server keeps running across upgrades of conmon-rs, so it can
+// be older than the binary on disk: before v1.2.0, it only spoke the v5
+// WebSocket protocol for exec and attach.
+func requireStreamingProtocols(client conmonFeatureChecker) error {
+	if !client.SupportsFeature(conmonClient.FeatureStreamingProtocols) {
+		return unsupportedError(fmt.Errorf(
+			"conmon-rs server does not report the %s feature: %w",
+			conmonClient.FeatureStreamingProtocols,
+			conmonClient.ErrUnsupported,
+		))
+	}
+
+	return nil
+}
+
+// unsupportedError adds errors.ErrUnsupported to an error of the conmon-rs
+// client which tells that the server does not support a feature, so that the
+// callers detect it like for the other runtime types.
+func unsupportedError(err error) error {
+	if errors.Is(err, conmonClient.ErrUnsupported) {
+		return fmt.Errorf("%w: %w", err, errors.ErrUnsupported)
+	}
+
+	return err
 }
 
 func (r *runtimePod) ServeAttachContainer(
@@ -445,14 +642,40 @@ func (r *runtimePod) ServeAttachContainer(
 	c *Container,
 	stdin, stdout, stderr bool,
 ) (string, error) {
+	if err := requireStreamingProtocols(r.client); err != nil {
+		return "", err
+	}
+
 	res, err := r.client.ServeAttachContainer(ctx, &conmonClient.ServeAttachContainerConfig{
-		ID:     c.ID(),
-		Stdin:  stdin,
-		Stdout: stdout,
-		Stderr: stderr,
+		ID:                c.ID(),
+		Stdin:             stdin,
+		Stdout:            stdout,
+		Stderr:            stderr,
+		StopAfterStdinEOF: stopAfterStdinEOF(c),
+		// Older servers ignore it.
+		IdleTimeout: r.oci.config.GetStreamIdleTimeout(),
 	})
 	if err != nil {
-		return "", fmt.Errorf("call ServeAttachContainer RPC: %w", err)
+		return "", unsupportedError(fmt.Errorf("call ServeAttachContainer RPC: %w", err))
+	}
+
+	return res.URL, nil
+}
+
+func (r *runtimePod) ServePortForwardContainer(
+	ctx context.Context,
+	c *Container,
+	netNsPath string,
+) (string, error) {
+	res, err := r.client.ServePortForwardContainer(
+		ctx,
+		&conmonClient.ServePortForwardContainerConfig{
+			NetNsPath:   netNsPath,
+			IdleTimeout: r.oci.config.GetStreamIdleTimeout(),
+		},
+	)
+	if err != nil {
+		return "", unsupportedError(fmt.Errorf("call ServePortForwardContainer RPC: %w", err))
 	}
 
 	return res.URL, nil

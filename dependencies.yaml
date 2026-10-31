@@ -2,7 +2,7 @@
 # It verifies that the versions specified here match across all referenced files.
 dependencies:
   - name: go
-    version: 1.27.1
+    version: 1.27.2
     refPaths:
       - path: nix/derivation.nix
         match: buildGo127Module
@@ -12,6 +12,8 @@ dependencies:
         match: go
       - path: hack/Containerfile.dev
         match: GOVERSION
+      - path: .packit.yaml
+        match: "BuildRequires: golang"
 
   # For minor releases, follow release.md to update the supported and
   # development versions in the correct order.
@@ -24,13 +26,13 @@ dependencies:
         match: Version
 
   - name: supported versions
-    version: '{"1.37", "1.36", "1.35", "1.34"}'
+    version: '{"1.37", "1.36", "1.35"}'
     refPaths:
       - path: internal/version/version.go
         match: ReleaseMinorVersions
 
   - name: golangci-lint
-    version: v2.13.2
+    version: v2.15.0
     refPaths:
       - path: .github/workflows/verify.yml
         match: GOLANGCI_LINT_VERSION
@@ -58,18 +60,12 @@ dependencies:
         match: conmon
 
   - name: cri-tools
-    version: v1.36.0
+    version: v1.37.0
     refPaths:
       - path: contrib/test/ci/vars.yml
         match: cri_tools_git_version
       - path: scripts/versions
         match: cri-tools
-
-  - name: buildah
-    version: v1.45.0
-    refPaths:
-      - path: scripts/versions
-        match: buildah
 
   - name: crun
     version: 1.29.1
@@ -106,8 +102,6 @@ dependencies:
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
-      - path: .github/workflows/nixpkgs.yml
-        match: NIX_VERSION
       - path: Makefile
         match: NIX_IMAGE
 
@@ -136,7 +130,7 @@ dependencies:
         match: GOVULNCHECK_VERSION
 
   - name: gosec
-    version: 2.29.0
+    version: 2.30.0
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION

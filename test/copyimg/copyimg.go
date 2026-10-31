@@ -8,7 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"go.podman.io/image/v5/copy"
+	imagecopy "go.podman.io/image/v5/copy"
 	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/storage"
 	"go.podman.io/image/v5/transports/alltransports"
@@ -39,7 +39,7 @@ func copyImageWithRetry(
 	ctx context.Context,
 	policyContext *signature.PolicyContext,
 	dest, src types.ImageReference,
-	options *copy.Options,
+	options *imagecopy.Options,
 	retryAttempts int,
 ) error {
 	backoff := wait.Backoff{
@@ -51,7 +51,7 @@ func copyImageWithRetry(
 	var lastErr error
 
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		_, err := copy.Image(ctx, policyContext, dest, src, options)
+		_, err := imagecopy.Image(ctx, policyContext, dest, src, options)
 		if err != nil {
 			lastErr = err
 			logrus.Warnf("Image copy attempt failed (retrying): %v", err)
@@ -221,7 +221,7 @@ func main() {
 			}
 		}()
 
-		options := &copy.Options{}
+		options := &imagecopy.Options{}
 
 		if importFrom != "" {
 			importRef, err = alltransports.ParseImageName(importFrom)
@@ -254,7 +254,7 @@ func main() {
 						retryAttempts,
 					)
 				} else {
-					_, err = copy.Image(ctx, policyContext, ref, importRef, options)
+					_, err = imagecopy.Image(ctx, policyContext, ref, importRef, options)
 				}
 
 				if err != nil {
@@ -275,7 +275,7 @@ func main() {
 			}
 
 			if exportTo != "" {
-				_, err = copy.Image(ctx, policyContext, exportRef, ref, options)
+				_, err = imagecopy.Image(ctx, policyContext, exportRef, ref, options)
 				if err != nil {
 					log.Fatalf(ctx, "Error exporting %s: %v", exportTo, err)
 				}
@@ -293,7 +293,7 @@ func main() {
 					retryAttempts,
 				)
 			} else {
-				_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
+				_, err = imagecopy.Image(ctx, policyContext, exportRef, importRef, options)
 			}
 
 			if err != nil {
