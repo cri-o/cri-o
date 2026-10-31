@@ -1509,7 +1509,7 @@ func (s *Server) setupBaseContainerMounts(
 		setupSystemdMounts(ctr.Spec())
 	}
 
-	return nil
+	return preserveHostCgroupMountOptions(ctr.Spec().Config, node.CgroupMountOptions)
 }
 
 // configureSELinuxLabels determines the appropriate SELinux labels for a container based on its
