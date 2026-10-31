@@ -29,8 +29,20 @@ func (s *Server) ExecSync(
 		)
 	}
 
-	if err := c.Living(); err != nil {
+	// Ask the runtime instead of looking at the init pid CRI-O cached when the
+	// container was created. A VM runtime uses the VM's pid as the container
+	// pid, and that pid changes when the VM is restored from a checkpoint, so
+	// the cached one refuses execs for containers which are running fine.
+	aliveCtx, cancel := context.WithTimeout(ctx, execLivenessTimeout)
+	defer cancel()
+
+	alive, err := s.ContainerServer.Runtime().IsContainerAlive(aliveCtx, c)
+	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "container is not created or running: %v", err)
+	}
+
+	if !alive {
+		return nil, status.Errorf(codes.NotFound, "container is not created or running")
 	}
 
 	cmd := req.GetCmd()

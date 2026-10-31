@@ -23,7 +23,7 @@ func (s *Server) ReopenContainerLog(
 		return nil, fmt.Errorf("could not find container %s: %w", req.GetContainerId(), err)
 	}
 
-	isRunning, err := s.ContainerServer.Runtime().IsContainerAlive(c)
+	isRunning, err := s.ContainerServer.Runtime().IsContainerAlive(ctx, c)
 	if err != nil {
 		return nil, err
 	}
