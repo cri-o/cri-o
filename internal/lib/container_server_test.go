@@ -748,6 +748,18 @@ var _ = t.Describe("ContainerServer", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 		})
+		It("should return an error when publishing state fails", func() {
+			directory := GinkgoT().TempDir()
+			container, err := oci.NewContainer(containerID, "", "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "", nil, nil, "",
+				&types.ContainerMetadata{}, sandboxID, false,
+				false, false, "", directory, time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(os.Mkdir(container.StatePath(), 0o700)).To(Succeed())
+
+			Expect(sut.ContainerStateToDisk(context.Background(), container)).To(HaveOccurred())
+		})
 	})
 
 	t.Describe("ReserveContainerName", func() {

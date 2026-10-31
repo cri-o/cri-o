@@ -91,6 +91,10 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		return fmt.Errorf("unable to remove managed namespaces: %w", err)
 	}
 
+	if err := s.removeCompletedPodRestore(sb); err != nil {
+		return fmt.Errorf("remove completed Pod restore transaction: %w", err)
+	}
+
 	s.ReleasePodName(sb.Name())
 
 	if err := s.removeSandbox(ctx, sb.ID()); err != nil {

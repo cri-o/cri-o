@@ -8,13 +8,22 @@ package lib
 import (
 	cstorage "go.podman.io/storage"
 
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/memorystore"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 )
 
 // NewContainerServerForTest creates a minimal ContainerServer for unit tests.
 func NewContainerServerForTest(store cstorage.Store) *ContainerServer {
 	return &ContainerServer{
-		store:                     store,
+		store: store,
+		state: &containerServerState{
+			containers:      memorystore.New[*oci.Container](),
+			infraContainers: memorystore.New[*oci.Container](),
+			sandboxes:       memorystore.New[*sandbox.Sandbox](),
+			processLevels:   make(map[string]int),
+		},
 		mountOperationsInProgress: make(map[string]*mountOperation),
 	}
 }

@@ -27,6 +27,7 @@ import (
 	"go.podman.io/storage/pkg/stringid"
 	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
+	"google.golang.org/protobuf/proto"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
@@ -429,6 +430,14 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 func (s *Server) CreateContainer(
 	ctx context.Context,
 	req *types.CreateContainerRequest,
+) (*types.CreateContainerResponse, error) {
+	return s.createContainer(ctx, req, "")
+}
+
+func (s *Server) createContainer(
+	ctx context.Context,
+	req *types.CreateContainerRequest,
+	podRestoreKey string,
 ) (res *types.CreateContainerResponse, retErr error) {
 	if req.GetConfig() == nil {
 		return nil, errors.New("config is nil")
@@ -444,6 +453,11 @@ func (s *Server) CreateContainer(
 
 	if req.GetSandboxConfig().GetMetadata() == nil {
 		return nil, errors.New("sandbox config metadata is nil")
+	}
+
+	var checkpointConfig *types.ContainerConfig
+	if s.config.CheckpointRestore() {
+		checkpointConfig = proto.CloneOf(req.GetConfig())
 	}
 
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
@@ -601,6 +615,18 @@ func (s *Server) CreateContainer(
 		},
 	)
 
+	if podRestoreKey != "" {
+		newContainer.PreparePodRestore(podRestoreKey)
+		// Save ownership before publishing the container to other CRI requests.
+		if err := writeCheckpointJSON(
+			newContainer.Dir(),
+			filepath.Base(newContainer.StatePath()),
+			newContainer.State(),
+		); err != nil {
+			return nil, fmt.Errorf("persist Pod restore ownership: %w", err)
+		}
+	}
+
 	s.addContainer(ctx, newContainer)
 	resourceCleaner.Add(ctx, "createCtr: removing container "+newContainer.ID(), func() error {
 		s.removeContainer(ctx, newContainer)
@@ -655,7 +681,23 @@ func (s *Server) CreateContainer(
 	)
 
 	if err := s.ContainerStateToDisk(ctx, newContainer); err != nil {
+		if podRestoreKey != "" {
+			return nil, fmt.Errorf("persist new Pod restore container: %w", err)
+		}
+
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", newContainer.ID(), err)
+	}
+
+	if podRestoreKey != "" {
+		if err := syncCheckpointDirectory(filepath.Dir(newContainer.StatePath())); err != nil {
+			return nil, err
+		}
+	}
+
+	if s.config.CheckpointRestore() {
+		if err := persistContainerConfig(newContainer.Dir(), checkpointConfig); err != nil {
+			return nil, fmt.Errorf("persist container checkpoint metadata: %w", err)
+		}
 	}
 
 	if isContextError(ctx.Err()) {

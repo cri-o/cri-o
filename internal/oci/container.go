@@ -80,8 +80,6 @@ type Container struct {
 	stopWatchers          []chan struct{}
 	stopKillLoopBegun     bool
 	pidns                 nsmgr.Namespace
-	restore               bool
-	restoreArchivePath    string
 	restoreStorageImageID *storage.StorageImageID
 	resources             *types.ContainerResources
 	runtimePath           string // runtime path for a given platform
@@ -135,6 +133,9 @@ type ContainerState struct {
 	InitStartTime string `json:"initStartTime,omitempty"`
 	// Checkpoint/Restore related states
 	CheckpointedAt time.Time `json:"checkpointedTime"`
+	Restore        bool      `json:"restore,omitempty"`
+	RestoreArchive string    `json:"restoreArchive,omitempty"`
+	PodRestoreKey  string    `json:"podRestoreKey,omitempty"`
 	// ContainerMonitorProcess is used to check the liveness of the container monitor.
 	// This is supposed to be immutable once set.
 	ContainerMonitorProcess *ContainerMonitorProcess `json:"containerMonitorProcess,omitempty"`
@@ -840,21 +841,40 @@ func (c *Container) nodeLevelPIDNamespace() bool {
 // Restore returns if the container is marked as being
 // restored from a checkpoint.
 func (c *Container) Restore() bool {
-	return c.restore
+	return c.state.Restore
 }
 
 // SetRestore marks the container as being restored from a checkpoint.
 func (c *Container) SetRestore(restore bool) {
-	c.restore = restore
+	c.state.Restore = restore
 }
 
 // If Restore(), and the container is being restored from a local path, RestoreArchivePath returns that path.
 func (c *Container) RestoreArchivePath() string {
-	return c.restoreArchivePath
+	return c.state.RestoreArchive
 }
 
 func (c *Container) SetRestoreArchivePath(restoreArchivePath string) {
-	c.restoreArchivePath = restoreArchivePath
+	c.state.RestoreArchive = restoreArchivePath
+}
+
+// PodRestoreKey identifies the durable Pod restore transaction. It is set
+// before publishing the created container and remains after process restore.
+func (c *Container) PodRestoreKey() string {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	return c.state.PodRestoreKey
+}
+
+// PreparePodRestore records a container whose OCI task will be restored at start.
+func (c *Container) PreparePodRestore(key string) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	c.state.PodRestoreKey = key
+	c.state.Restore = true
+	c.state.Status = ContainerStateCreated
 }
 
 // If Restore(), and the container is being restored from a container image, restoreStorageImageID returns the ID of that image.
