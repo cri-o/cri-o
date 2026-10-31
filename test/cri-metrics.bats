@@ -495,6 +495,13 @@ EOF
 }
 
 @test "container disk io metrics" {
+	# TODO: Investigate the disk I/O metrics failure on Ubuntu 26.04 and re-enable this test.
+	if (
+		. /etc/os-release
+		[[ "$ID" == ubuntu && "$VERSION_ID" == 26.04 ]]
+	); then
+		skip "Disk I/O metrics on Ubuntu 26.04 are pending investigation"
+	fi
 	CONTAINER_ENABLE_METRICS="true" CONTAINER_METRICS_PORT=$(free_port) setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]

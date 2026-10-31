@@ -846,7 +846,7 @@ func (r *runtimeOCI) ExecSyncContainer(
 
 	if waitErr != nil {
 		// if we aren't a ExitError, some I/O problems probably occurred
-		if _, ok := errors.AsType[*exec.ExitError]( //nolint:errcheck // type assertion check
+		if _, ok := errors.AsType[*exec.ExitError](
 			waitErr,
 		); !ok {
 			return nil, &ExecSyncError{
@@ -1588,7 +1588,7 @@ func (r *runtimeOCI) AttachContainer(
 			return nil
 		}
 
-		if _, ok := errors.AsType[utils.DetachError]( //nolint:errcheck // type assertion check
+		if _, ok := errors.AsType[utils.DetachError](
 			err,
 		); ok {
 			return nil
@@ -2026,7 +2026,7 @@ func (r *runtimeOCI) ServeExecContainer(
 	bool,
 	bool,
 ) (string, error) {
-	return "", nil
+	return "", fmt.Errorf("serve exec: %w", errors.ErrUnsupported)
 }
 
 func (r *runtimeOCI) ServeAttachContainer(
@@ -2036,5 +2036,13 @@ func (r *runtimeOCI) ServeAttachContainer(
 	bool,
 	bool,
 ) (string, error) {
-	return "", nil
+	return "", fmt.Errorf("serve attach: %w", errors.ErrUnsupported)
+}
+
+func (r *runtimeOCI) ServePortForwardContainer(
+	context.Context,
+	*Container,
+	string,
+) (string, error) {
+	return "", fmt.Errorf("serve port forward: %w", errors.ErrUnsupported)
 }

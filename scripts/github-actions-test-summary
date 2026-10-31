@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Summarize the bats reports written by test/test_runner.sh as Markdown.
+
+Usage: github-actions-test-summary <TEST_REPORT_DIR>
+
+Lists failed tests, tests which only passed after a retry, tests which left
+processes behind and the slowest tests. The output is meant to be appended to
+$GITHUB_STEP_SUMMARY.
+"""
+
+import glob
+import os
+import re
+import sys
+import xml.etree.ElementTree as ET
+
+SLOWEST = 10
+
+
+def output_name(test):
+    """Return the output file name of a test, see run_bats in test/test_runner.sh."""
+    return re.sub(r'[":<>|*?]', "_", test.replace("/", "%2F"))
+
+
+def read_tests(path):
+    if not os.path.exists(path):
+        return set()
+    with open(path) as f:
+        return set(f.read().splitlines())
+
+
+def main():
+    report_dir = sys.argv[1]
+
+    failed, durations, names = [], [], {}
+    for report in sorted(glob.glob(f"{report_dir}/*/report.xml")):
+        for case in ET.parse(report).getroot().iter("testcase"):
+            name = f"{case.get('classname')}: {case.get('name')}"
+            names[output_name(case.get("name"))] = name
+            durations.append((float(case.get("time", 0)), name))
+            if case.find("failure") is not None:
+                failed.append(name)
+
+    # Failed attempts of retried tests keep their output.
+    retried = set()
+    for output in glob.glob(f"{report_dir}/*/outputs/*-try*-*.log"):
+        match = re.match(r"\d+-try\d+-(.*)\.log$", os.path.basename(output))
+        if match:
+            retried.add(names.get(match.group(1), match.group(1)))
+
+    # Written by cleanup_test in test/helpers.bash.
+    leaked = read_tests(f"{report_dir}/leaked")
+    flaky = sorted(retried - set(failed))
+
+    if not durations:
+        print("No test reports found.")
+        return
+
+    print(
+        f"{len(durations)} tests, {len(failed)} failed, "
+        f"{len(flaky)} passed on retry, {len(leaked)} leaked processes\n"
+    )
+    for title, tests in (
+        ("Failed", failed),
+        ("Passed on retry", flaky),
+        ("Leaked processes", sorted(leaked)),
+    ):
+        if tests:
+            print(f"### {title}\n")
+            print("\n".join(f"- {test}" for test in tests) + "\n")
+
+    print("### Slowest tests\n\n| Duration | Test |\n| --- | --- |")
+    for duration, name in sorted(durations, reverse=True)[:SLOWEST]:
+        print(f"| {duration:.1f}s | {name} |")
+
+
+if __name__ == "__main__":
+    main()

@@ -28,7 +28,9 @@ func (r *RuntimeServiceManager) GetRuntimeService(sb SandboxInfo) (RuntimeServer
 		return r.runtimeService, nil
 	}
 
-	rt, ok := r.serverConfig.Runtimes[sb.RuntimeHandler()]
+	runtimes, _ := r.serverConfig.RuntimeHandlers()
+
+	rt, ok := runtimes[sb.RuntimeHandler()]
 	if !ok || !rt.RuntimePullImage {
 		return r.runtimeService, nil
 	}

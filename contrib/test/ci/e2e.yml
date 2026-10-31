@@ -15,6 +15,9 @@
       - "for NodePort service"
       - "In-tree Volumes [Driver: local]"
       - "PersistentVolumes-local"
+      # These tests require external node IPs or an SSH bastion, which the local cluster lacks.
+      - "[sig-node] SSH [Provider:gce,aws,local,azure] should SSH to all nodes and run commands"
+      - "[sig-storage] Flexvolumes should be mountable when non-attachable"
       # Started failing after https://github.com/kubernetes/kubernetes/pull/116232.
       # It needs further investigation but temporarily disabling for v1.27 release.
       - "[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod"

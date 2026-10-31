@@ -2,26 +2,41 @@
 set -euo pipefail
 
 # Versions to be used
+VERSIONS_FILE="$(dirname "${BASH_SOURCE[0]}")"/versions
 # shellcheck source=versions
-source "$(dirname "${BASH_SOURCE[0]}")"/versions
+source "$VERSIONS_FILE"
 
 GOARCH=$(go env GOARCH)
 
+# Directory for the tools built from source, containing the binaries in bin
+# and the versions they got built with. CI builds them once per architecture
+# and shares them with the test jobs.
+TOOLS_DIR=${TOOLS_DIR:-$(git rev-parse --show-toplevel)/build/tools}
+
 main() {
     set -x
+    if [[ "${1:-}" == build ]]; then
+        build_tools
+        return
+    fi
+
+    if ! cmp -s "$VERSIONS_FILE" "$TOOLS_DIR/versions"; then
+        build_tools
+    fi
+
     prepare_system
 
     remove_runtimes
     install_bats
     install_conmon
     install_conmonrs
-    install_critools
-    install_crun
+    install_tools
     install_runc
-    install_ginkgo
+    if [[ ${RUN_CRITEST:-} == 1 ]]; then
+        install_ginkgo
+    fi
     install_cni_plugins
     install_files
-    install_buildah
 }
 
 curl_retry() {
@@ -91,13 +106,42 @@ install_conmonrs() {
         sudo -E PATH="$PATH" bash -s -- -a "$GOARCH" -o /usr/bin/conmonrs
 }
 
-install_critools() {
+# build_tools builds into a temporary directory first, so that a failed build
+# does not leave a partial TOOLS_DIR behind.
+build_tools() {
+    local dest=$TOOLS_DIR
+    TOOLS_DIR=$dest.tmp
+    rm -rf "$TOOLS_DIR"
+
     install_from_github_org_repo \
         kubernetes-sigs \
         cri-tools \
         "${VERSIONS["cri-tools"]}" \
-        sudo -E PATH="$PATH" GOTOOLCHAIN=auto make BINDIR=/usr/bin install
+        env GOTOOLCHAIN=auto make BINDIR="$TOOLS_DIR/bin" install
+    install_from_github_org_repo \
+        containers \
+        crun \
+        "${VERSIONS["crun"]}" \
+        build_crun
+    cp "$VERSIONS_FILE" "$TOOLS_DIR/versions"
 
+    rm -rf "$dest"
+    mv "$TOOLS_DIR" "$dest"
+    TOOLS_DIR=$dest
+}
+
+build_crun() {
+    ./autogen.sh
+    ./configure
+    make -j "$(nproc)"
+    install -D -m 755 crun "$TOOLS_DIR/bin/crun"
+}
+
+install_tools() {
+    check_not_installed crun
+    sudo install -m 755 "$TOOLS_DIR"/bin/* /usr/bin
+
+    crun --version
     sudo critest --version
     sudo crictl --version
 }
@@ -133,20 +177,6 @@ check_not_installed() {
     fi
 }
 
-install_crun() {
-    check_not_installed crun
-
-    git clone https://github.com/containers/crun
-    pushd crun
-    git checkout "${VERSIONS["crun"]}"
-    ./autogen.sh
-    ./configure
-    sudo make -j "$(nproc)" install prefix=/usr
-    popd
-    sudo rm -rf crun
-    crun --version
-}
-
 install_runc() {
     check_not_installed runc
 
@@ -157,12 +187,14 @@ install_runc() {
     runc --version
 }
 
+# critest runs its tests in parallel via ginkgo, which gets built from the
+# vendored version of CRI-O.
 install_ginkgo() {
     GOPATH="$(go env GOPATH)"
     for i in $GOPATH "$(go env GOCACHE)"; do
         sudo chown -R "$(id -u):$(id -g)" "$i"
     done
-    go install github.com/onsi/ginkgo/v2/ginkgo@latest
+    go install github.com/onsi/ginkgo/v2/ginkgo
     sudo -E cp "$GOPATH/bin/ginkgo" /usr/bin
     ginkgo version
 }
@@ -177,19 +209,6 @@ install_files() {
     sudo cp "$REPO_ROOT"/test/registries.conf /etc/containers/registries.conf
     sudo rm -rf /usr/share/containers/containers.conf
     sudo rm -rf /etc/containers/storage.conf
-}
-
-install_buildah() {
-    URL=https://github.com/containers/buildah.git
-
-    git clone $URL
-    pushd buildah
-    git checkout "${VERSIONS["buildah"]}"
-    make bin/buildah
-    sudo install -m 755 bin/buildah /usr/bin/buildah
-    popd
-    sudo rm -rf buildah
-    sudo buildah --version
 }
 
 main "$@"
