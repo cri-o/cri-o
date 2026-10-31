@@ -612,7 +612,7 @@ The number of seconds between collecting pod and container stats. If set to 0, t
 **collection_period**=0
 The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.
 
-**included_pod_metrics**=[]
+**included_pod_metrics**=["all"]
 A list of pod metrics to include. Specify the names of the metrics to include in this list.
 If empty, only always-on metrics are included.
 Available values are "cpu", "hugetlb", "memory", "memoryExtra", "network", "oom", "process", "spec", "disk", "diskIO", "pressure".
