@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
+	"sync/atomic"
 	"time"
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
@@ -84,6 +87,26 @@ type fakeConmonFeatures map[string]bool
 
 func (f fakeConmonFeatures) SupportsFeature(feature string) bool {
 	return f[feature]
+}
+
+// fakeRuntimeImpl counts the creates and deletes of the containers which use
+// it.
+type fakeRuntimeImpl struct {
+	oci.RuntimeImpl
+
+	created, deleted atomic.Int64
+}
+
+func (f *fakeRuntimeImpl) CreateContainer(context.Context, *oci.Container, string, bool) error {
+	f.created.Add(1)
+
+	return nil
+}
+
+func (f *fakeRuntimeImpl) DeleteContainer(context.Context, *oci.Container) error {
+	f.deleted.Add(1)
+
+	return nil
 }
 
 func newPodTestContainer(terminal, stdin, stdinOnce bool) *oci.Container {
@@ -443,6 +466,175 @@ var _ = t.Describe("RuntimePod", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(server.killed).To(BeTrue())
 			Expect(server.closed).To(BeTrue())
+		})
+	})
+
+	Context("sandbox runtime implementation", func() {
+		var (
+			sut *oci.Runtime
+			// The arguments of the calls of the runtime, one per line.
+			runtimeCalls string
+		)
+
+		BeforeEach(func() {
+			dir := t.MustTempDir("runtime")
+			runtimeCalls = filepath.Join(dir, "calls")
+
+			// A runtime which reports every container as running.
+			runtimePath := filepath.Join(dir, "runtime")
+			Expect(os.WriteFile(runtimePath, fmt.Appendf(nil, `#!/bin/sh
+echo "$@" >> %s
+for arg; do
+	if [ "$arg" = state ]; then
+		echo '{"status": "running"}'
+	fi
+done
+`, runtimeCalls), 0o700)).To(Succeed())
+
+			cfg, err := libconfig.DefaultConfig()
+			Expect(err).ToNot(HaveOccurred())
+
+			cfg.DefaultRuntime = "pod"
+			cfg.Runtimes = libconfig.Runtimes{
+				"pod": &libconfig.RuntimeHandler{
+					RuntimePath: runtimePath,
+					RuntimeType: libconfig.RuntimeTypePod,
+				},
+			}
+			cfg.ContainerAttachSocketDir = t.MustTempDir("crio")
+
+			sut, err = oci.New(cfg)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should create a container with the implementation of its pod", func() {
+			// Given
+			impl := &fakeRuntimeImpl{}
+			sut.SetRuntimeImpl("sandbox", impl)
+
+			c := newPodTestContainer(false, false, false)
+
+			// When
+			err := sut.CreateContainer(context.Background(), c, "", false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(impl.created.Load()).To(BeEquivalentTo(1))
+			Expect(sut.HasRuntimeImpl(c.ID())).To(BeTrue())
+		})
+
+		It("should fail to create a container whose pod is gone", func() {
+			// Given
+			c := newPodTestContainer(false, false, false)
+
+			// When
+			err := sut.CreateContainer(context.Background(), c, "", false)
+
+			// Then
+			Expect(err).To(MatchError(ContainSubstring("of container id is gone")))
+			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
+			Expect(runtimeCalls).ToNot(BeAnExistingFile())
+		})
+
+		It("should delete a container whose pod is gone", func() {
+			// Given
+			c := newPodTestContainer(false, false, false)
+
+			// When
+			err := sut.DeleteContainer(context.Background(), c)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(os.ReadFile(runtimeCalls)).To(ContainSubstring("delete --force id"))
+			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
+		})
+
+		It("should update the status of a container whose pod is gone", func() {
+			// Given
+			c := newPodTestContainer(false, false, false)
+
+			// When
+			err := sut.UpdateContainerStatus(context.Background(), c)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(c.State().Status).To(BeEquivalentTo(oci.ContainerStateRunning))
+			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
+		})
+
+		It("should fail the requests for the server of a pod which is gone", func() {
+			// Given
+			c := newPodTestContainer(false, false, false)
+
+			// When
+			_, execErr := sut.ExecSyncContainer(context.Background(), c, []string{"true"}, 0)
+			reopenErr := sut.ReopenContainerLog(context.Background(), c)
+
+			// Then
+			Expect(execErr).To(MatchError(ContainSubstring("of container id is gone")))
+			Expect(reopenErr).To(MatchError(ContainSubstring("of container id is gone")))
+			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
+			Expect(runtimeCalls).ToNot(BeAnExistingFile())
+		})
+
+		It("should look up the sandbox implementation while others get written", func() {
+			// Given
+			impl := &fakeRuntimeImpl{}
+			sut.SetRuntimeImpl("sandbox", impl)
+
+			c := newPodTestContainer(false, false, false)
+
+			const n = 1000
+
+			var writes atomic.Int64
+
+			done := make(chan struct{})
+			stopped := make(chan struct{})
+			written := make(chan struct{})
+
+			// Stop the writer however the spec ends.
+			DeferCleanup(func() {
+				close(done)
+				<-stopped
+			})
+
+			// Keep writing the map during all of the lookups, always to the
+			// same few keys.
+			go func() {
+				defer close(stopped)
+
+				for i := 0; ; i++ {
+					select {
+					case <-done:
+						return
+					default:
+					}
+
+					sut.SetRuntimeImpl(fmt.Sprintf("other%d", i%4), impl)
+
+					if writes.Add(1) == 1 {
+						close(written)
+					}
+
+					runtime.Gosched()
+				}
+			}()
+
+			<-written
+
+			before := writes.Load()
+
+			// When
+			for range n {
+				Expect(sut.DeleteContainer(context.Background(), c)).To(Succeed())
+				// Take turns with the writer with a single CPU as well.
+				runtime.Gosched()
+			}
+
+			// Then
+			Expect(impl.deleted.Load()).To(BeEquivalentTo(n))
+			// The map got written during the lookups.
+			Expect(writes.Load()).To(BeNumerically(">", before))
 		})
 	})
 

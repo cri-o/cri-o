@@ -1104,16 +1104,22 @@ func (s *Server) generateCRIEvent(
 		return
 	}
 
-	if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, container); err != nil {
-		log.Errorf(
-			ctx,
-			"GenerateCRIEvent: event type: %s, failed to update the container status %s: %v",
-			eventType,
-			container.ID(),
-			err,
-		)
+	// A deleted container keeps its last status, it got stopped before. Its
+	// runtime implementation is gone, the lookup for the update would create
+	// a new one which stays around, and start a conmon-rs server for an
+	// infra container of the pod runtime type which nothing stops.
+	if eventType != types.ContainerEventType_CONTAINER_DELETED_EVENT {
+		if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, container); err != nil {
+			log.Errorf(
+				ctx,
+				"GenerateCRIEvent: event type: %s, failed to update the container status %s: %v",
+				eventType,
+				container.ID(),
+				err,
+			)
 
-		return
+			return
+		}
 	}
 
 	if !s.HasSandbox(container.Sandbox()) {
