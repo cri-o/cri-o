@@ -25,6 +25,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
+	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -159,7 +160,7 @@ type ContainerMonitorProcess struct {
 // existed on a registry).
 func NewContainer(
 	id, name, bundlePath, logPath string,
-	labels, crioAnnotations, annotations map[string]string,
+	labels, crioAnnotations, kubeAnnotations map[string]string,
 	userRequestedImage string,
 	someNameOfTheImage *references.RegistryImageReference,
 	imageID *storage.StorageImageID,
@@ -191,7 +192,7 @@ func NewContainer(
 			CreatedAt:    created.UnixNano(),
 			Labels:       labels,
 			Metadata:     md,
-			Annotations:  annotations,
+			Annotations:  kubeAnnotations,
 			Image: &types.ImageSpec{
 				Image: userRequestedImage,
 			},
@@ -220,13 +221,22 @@ func NewContainer(
 	return c, nil
 }
 
+// NewSpoofedContainer creates a container which stands in for the dropped
+// infra container of a pod. The runtime handler selects the runtime
+// implementation of the pod, like the conmon-rs server for the "pod" runtime
+// type. The annotations of the pod select the workload resources of its
+// container monitor, like for an infra container.
 func NewSpoofedContainer(
 	id, name string,
-	labels map[string]string,
-	sandbox string,
+	labels, kubeAnnotations map[string]string,
+	sandbox, runtimeHandler string,
 	created time.Time,
 	dir string,
 ) *Container {
+	ctrAnnotations := make(map[string]string, len(kubeAnnotations)+1)
+	maps.Copy(ctrAnnotations, kubeAnnotations)
+	ctrAnnotations[v2.Spoofed] = "true"
+
 	state := &ContainerState{}
 	state.Created = created
 	state.Started = created
@@ -237,16 +247,15 @@ func NewSpoofedContainer(
 			Labels:       labels,
 			PodSandboxId: sandbox,
 			Metadata:     &types.ContainerMetadata{},
-			Annotations: map[string]string{
-				v2.Spoofed: "true",
-			},
-			Image: &types.ImageSpec{},
+			Annotations:  ctrAnnotations,
+			Image:        &types.ImageSpec{},
 		},
-		name:    name,
-		imageID: nil,
-		spoofed: true,
-		state:   state,
-		dir:     dir,
+		name:           name,
+		imageID:        nil,
+		spoofed:        true,
+		runtimeHandler: runtimeHandler,
+		state:          state,
+		dir:            dir,
 	}
 
 	return c
@@ -440,6 +449,12 @@ func (c *Container) Labels() map[string]string {
 // Annotations returns the annotations of the container.
 func (c *Container) Annotations() map[string]string {
 	return c.criContainer.GetAnnotations()
+}
+
+// RuntimeHandler returns the runtime handler of the container, empty for the
+// default one.
+func (c *Container) RuntimeHandler() string {
+	return c.runtimeHandler
 }
 
 // CrioAnnotations returns the crio annotations of the container.
@@ -863,6 +878,14 @@ func (c *Container) SetResources(s *specs.Spec) {
 		if s.Process != nil {
 			if s.Process.OOMScoreAdj != nil {
 				resourceStatus.Linux.OomScoreAdj = int64(*s.Process.OOMScoreAdj)
+			}
+		}
+
+		// Report the requested OOM score adjustment, which CRI-O may have
+		// raised in a user namespace.
+		if requested, ok := s.Annotations[annotations.RequestedOOMScoreAdj]; ok {
+			if adj, err := strconv.ParseInt(requested, 10, 64); err == nil {
+				resourceStatus.Linux.OomScoreAdj = adj
 			}
 		}
 

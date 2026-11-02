@@ -15,8 +15,10 @@ import (
 	"go.podman.io/storage/pkg/unshare"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 const (
@@ -318,6 +320,22 @@ var _ = t.Describe("Container", func() {
 				containerResources.GetLinux().GetHugepageLimits()[i].GetLimit(),
 			).To(Equal(hugepageLimits[i].Limit))
 		}
+	})
+
+	It("should report the requested OOM score adjustment", func() {
+		// Given
+		oomScoreAdj := 0
+		newSpec := specs.Spec{
+			Annotations: map[string]string{annotations.RequestedOOMScoreAdj: "-997"},
+			Linux:       &specs.Linux{Resources: &specs.LinuxResources{}},
+			Process:     &specs.Process{OOMScoreAdj: &oomScoreAdj},
+		}
+
+		// When
+		sut.SetSpec(&newSpec)
+
+		// Then
+		Expect(sut.GetResources().GetLinux().GetOomScoreAdj()).To(Equal(int64(-997)))
 	})
 
 	It("should succeed to set the fewer container resources", func() {
@@ -1081,7 +1099,9 @@ var _ = t.Describe("SpoofedContainer", func() {
 			"id",
 			"name",
 			map[string]string{"key": "label"},
+			map[string]string{"annotation": "value"},
 			"sbox",
+			"handler",
 			time.Now(),
 			"dir",
 		)
@@ -1089,6 +1109,11 @@ var _ = t.Describe("SpoofedContainer", func() {
 		// When
 		// Then
 		Expect(sut.ID()).To(Equal("id"))
+		Expect(sut.Annotations()).To(Equal(map[string]string{
+			"annotation": "value",
+			v2.Spoofed:   "true",
+		}))
+		Expect(sut.RuntimeHandler()).To(Equal("handler"))
 		Expect(sut.Name()).To(Equal("name"))
 		labels := sut.Labels()
 		Expect(labels["key"]).To(Equal("label"))

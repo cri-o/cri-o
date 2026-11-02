@@ -537,7 +537,18 @@ func (c *ContainerServer) LoadSandbox(
 			return sb, err
 		}
 	} else {
-		scontainer = oci.NewSpoofedContainer(cID, cname, labels, id, created, sandboxPath)
+		// Pods without the recorded runtime handler got created with the
+		// default one.
+		scontainer = oci.NewSpoofedContainer(
+			cID,
+			cname,
+			labels,
+			kubeAnnotations,
+			id,
+			m.Annotations[annotations.InfraRuntimeHandler],
+			created,
+			sandboxPath,
+		)
 	}
 
 	scontainer.SetSpec(&m)

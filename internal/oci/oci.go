@@ -13,6 +13,7 @@ import (
 
 	"github.com/docker/go-units"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 
@@ -301,7 +302,23 @@ func (r *Runtime) RuntimeStreamPortForward(runtimeHandler string) (bool, error) 
 func (r *Runtime) newRuntimeImpl(c *Container, sandboxImpl RuntimeImpl) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
 	if err != nil {
-		return nil, err
+		if !c.Spoofed() || c.runtimeHandler == "" {
+			return nil, err
+		}
+
+		// The runtime handler of a dropped infra container may have been
+		// removed from the configuration since the pod got created. Use the
+		// default one, which served all of these pods before CRI-O recorded
+		// their runtime handler, so that the pod can still get stopped and
+		// removed.
+		logrus.Warnf(
+			"Using the default runtime handler for the dropped infra container %s: %v",
+			c.ID(), err,
+		)
+
+		if rh, err = r.getRuntimeHandler(""); err != nil {
+			return nil, err
+		}
 	}
 
 	if rh.RuntimeType == config.RuntimeTypeVM {

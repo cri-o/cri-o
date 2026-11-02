@@ -86,3 +86,17 @@ func (r *Runtime) HasRuntimeImpl(containerID string) bool {
 
 	return ok
 }
+
+// RuntimeImplHandler returns the runtime handler of a runtime implementation.
+func RuntimeImplHandler(impl RuntimeImpl) *config.RuntimeHandler {
+	switch r := impl.(type) {
+	case *runtimeOCI:
+		return r.handler
+	case *runtimePod:
+		return r.oci.handler
+	case *runtimeVM:
+		return r.handler
+	}
+
+	return nil
+}
