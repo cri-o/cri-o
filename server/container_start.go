@@ -109,7 +109,7 @@ func (s *Server) StartContainer(
 				}
 			}
 
-			if err := s.nri.stopContainer(ctx, sandbox, c, false); err != nil {
+			if err := s.nri.stopContainer(ctx, sandbox, c); err != nil {
 				log.Warnf(ctx, "NRI stop failed for container %q: %v", c.ID(), err)
 			}
 
@@ -118,7 +118,7 @@ func (s *Server) StartContainer(
 			}
 		}
 
-		if err := s.ContainerStateToDisk(ctx, c); err != nil {
+		if err := s.ContainerStateToDiskWithUpdate(ctx, c); err != nil {
 			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 	}()
