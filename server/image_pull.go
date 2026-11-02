@@ -279,10 +279,19 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
 
+			imageID, err := s.resolveImageRefToID(ctx, imageRef, pullArgs.imageServer)
+			if err != nil {
+				return "", err
+			}
+
 			if s.config.LayerDedup == libconfig.LayerDedupAfterPull {
 				// Signal the background dedup worker rather than running
-				// synchronously. The worker serializes passes; if a pass is
-				// already queued the send is dropped (channel size = 1).
+				// synchronously, and only after the pull's own storage
+				// lookups are done: the worker's pass takes the layer
+				// store's write lock, which the ID resolution above would
+				// otherwise have to wait behind. The worker serializes
+				// passes; if a pass is already queued the send is dropped
+				// (channel size = 1).
 				select {
 				case s.dedupTrigger <- struct{}{}:
 				default:
@@ -291,7 +300,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 			}
 
-			return s.resolveImageRefToID(ctx, imageRef, pullArgs.imageServer)
+			return imageID, nil
 		}
 
 		lastErr = err

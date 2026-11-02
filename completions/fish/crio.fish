@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i check complete completion help h config man markdown md status config c containers container cs s info i goroutines g heap hp version wipe help h
+        if contains -- $i check complete completion help h config dedup d man markdown md status config c containers container cs s info i goroutines g heap hp version wipe help h
             return 1
         end
     end
@@ -100,7 +100,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l internal-repair -d 'If tru
 complete -c crio -n '__fish_crio_no_subcommand' -f -l internal-wipe -d 'Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run \'crio wipe\' to wipe the containers and images in these situations. This option is deprecated, and will be removed in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l irqbalance-config-file -r -d 'The irqbalance service config file which is used by CRI-O.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l irqbalance-config-restore-file -r -d 'Determines if CRI-O should attempt to restore the irqbalance config at startup with the mask in this file. Use the \'disable\' value to disable the restore flow entirely.'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l layer-dedup -r -d 'Layer deduplication behavior. Supported values: "disabled" (default), "after_pull".'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l layer-dedup -r -d 'Controls image layer deduplication using filesystem reflinks (copy-on-write clones via FIDEDUPERANGE). When set to "after_pull", identical file extents across container image layers are unified after each successful image pull, reducing disk usage without modifying layer data. When set to "manual", the deduplication worker starts but only runs when explicitly requested via \'crio dedup\' -- useful on nodes where an automatic scan after every pull would add unacceptable latency. Deduplication runs in a background worker and does not block or fail the pull that triggered it; however, a running pass holds the image store write lock, so other image pulls on the node will block until it completes (roughly 4-5 seconds per stored GB of layers). Requires the overlay storage driver on a filesystem with reflink support (XFS with reflink=1 or Btrfs); not supported with a separate imagestore or other storage drivers. Supported values: "disabled" (default), "after_pull", "manual".'
 complete -c crio -n '__fish_crio_no_subcommand' -l listen -r -d 'Path to the CRI-O socket.'
 complete -c crio -n '__fish_crio_no_subcommand' -l log -r -d 'Set the log file path where internal debug information is written.'
 complete -c crio -n '__fish_crio_no_subcommand' -l log-dir -r -d 'Default log directory where all logs will go unless directly specified by the kubelet.'
@@ -216,6 +216,9 @@ complete -r -c crio -n '__fish_crio_no_subcommand' -a 'config' -d 'Outputs a com
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
 complete -c crio -n '__fish_seen_subcommand_from config' -f -l default -d 'Output the default configuration (without taking into account any configuration options).'
+complete -c crio -n '__fish_seen_subcommand_from dedup d' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_crio_no_subcommand' -a 'dedup d' -d 'Trigger an on-demand, store-wide image layer deduplication pass and wait for it to complete. Requires layer_dedup to be set to "manual" or "after_pull" in crio.conf.d. This can take a long time on nodes with a large amount of layer content already on disk (roughly 4-5 seconds per GB of stored layers); there is no built-in timeout, so run it during a planned maintenance window. While the pass runs it holds the image store write lock, so image pulls on the node will block until it completes; running containers are unaffected.'
+complete -c crio -n '__fish_seen_subcommand_from dedup d' -l socket -s s -r -d 'absolute path to the unix socket'
 complete -c crio -n '__fish_seen_subcommand_from man' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'man' -d 'Generate the man page documentation.'
 complete -c crio -n '__fish_seen_subcommand_from markdown md' -f -l help -s h -d 'show help'
