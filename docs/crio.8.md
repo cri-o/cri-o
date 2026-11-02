@@ -71,6 +71,7 @@ crio
 [--internal-wipe]
 [--irqbalance-config-file]=[value]
 [--irqbalance-config-restore-file]=[value]
+[--layer-dedup]=[value]
 [--listen]=[value]
 [--log-dir]=[value]
 [--log-filter]=[value]
@@ -122,12 +123,9 @@ crio
 [--root|-r]=[value]
 [--runroot]=[value]
 [--runtimes]=[value]
-[--seccomp-baseline-profile]=[value]
 [--seccomp-profile]=[value]
-[--security-profile-max-size]=[value]
 [--selinux]
 [--separate-pull-cgroup]=[value]
-[--layer-dedup]=[value]
 [--shared-cpuset]=[value]
 [--short-name-mode]=[value]
 [--signature-policy-dir]=[value]
@@ -329,6 +327,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--irqbalance-config-restore-file**="": Determines if CRI-O should attempt to restore the irqbalance config at startup with the mask in this file. Use the 'disable' value to disable the restore flow entirely. (default: "/etc/sysconfig/orig_irq_banned_cpus")
 
+**--layer-dedup**="": Controls image layer deduplication using filesystem reflinks (copy-on-write clones via FIDEDUPERANGE). When set to "after_pull", identical file extents across container image layers are unified after each successful image pull, reducing disk usage without modifying layer data. When set to "manual", the deduplication worker starts but only runs when explicitly requested via 'crio dedup' -- useful on nodes where an automatic scan after every pull would add unacceptable latency. Deduplication runs in a background worker and does not block or fail the pull that triggered it; however, a running pass holds the image store write lock, so other image pulls on the node will block until it completes (roughly 4-5 seconds per stored GB of layers). Requires the overlay storage driver on a filesystem with reflink support (XFS with reflink=1 or Btrfs); not supported with a separate imagestore or other storage drivers. Supported values: "disabled" (default), "after_pull", "manual". (default: "disabled")
+
 **--listen**="": Path to the CRI-O socket. (default: "/var/run/crio/crio.sock")
 
 **--log**="": Set the log file path where internal debug information is written.
@@ -347,7 +347,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
-**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime", "security_profiles_stored", "security_profiles_stored_bytes", "security_profile_merges_constrained_total")
+**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime", "image_layer_dedup_duration_seconds", "image_layer_dedup_bytes_saved")
 
 **--metrics-host**="": Host for the metrics endpoint. (default: "127.0.0.1")
 
@@ -431,17 +431,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--runtimes**="": OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path:container_min_memory'.
 
-**--seccomp-baseline-profile**="": Path to the seccomp profile that seccomp profiles pulled as OCI artifacts are intersected with in place of the runtime default profile, unless the pod spec selects a Localhost base profile. If not specified, then the default seccomp profile of the runtime handler is used.
-
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used.
-
-**--security-profile-max-size**="": Maximum size in bytes of a security profile pulled as an OCI artifact, at most 64 MiB. (default: 1048576)
 
 **--selinux**: Enable selinux support. This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup.
-
-**--layer-dedup**="": Controls automatic image layer deduplication using filesystem reflinks (copy-on-write clones via the FIDEDUPERANGE ioctl). When set to "after_pull", identical file extents across container image layers are unified after each successful image pull, reducing disk usage without modifying layer data. Deduplication runs in a background worker and never blocks or fails the pull. Requires a filesystem with reflink support (XFS with reflink=1 or Btrfs); on unsupported filesystems the pass logs a warning and exits cleanly. Supported values: "disabled" (no deduplication, default), "after_pull" (deduplicate after every successful image pull). (default: "disabled")
 
 **--shared-cpuset**="": CPUs set that will be used for guaranteed containers that want access to shared cpus
 
@@ -461,7 +455,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--stream-enable-tls**: Enable encrypted TLS transport of the stream server.
 
-**--stream-idle-timeout**="": Length of time until open streams of the CRI-O streaming server and conmon-rs terminate due to lack of activity. Defaults to 4h if not set, 0 disables it and negative values are invalid.
+**--stream-idle-timeout**="": Length of time until open streams terminate due to lack of activity.
 
 **--stream-port**="": Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: "0")
 
@@ -535,6 +529,12 @@ by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.
 
 **--default**: Output the default configuration (without taking into account any configuration options).
+
+## dedup, d
+
+Trigger an on-demand, store-wide image layer deduplication pass and wait for it to complete. Requires layer_dedup to be set to "manual" or "after_pull" in crio.conf.d. This can take a long time on nodes with a large amount of layer content already on disk (roughly 4-5 seconds per GB of stored layers); there is no built-in timeout, so run it during a planned maintenance window. While the pass runs it holds the image store write lock, so image pulls on the node will block until it completes; running containers are unaffected.
+
+**--socket, -s**="": absolute path to the unix socket (default: "/var/run/crio/crio.sock")
 
 ## man
 
