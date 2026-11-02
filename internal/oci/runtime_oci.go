@@ -78,7 +78,7 @@ type runtimeOCI struct {
 }
 
 // newRuntimeOCI creates a new runtimeOCI instance.
-func newRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeImpl {
+func newRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) *runtimeOCI {
 	runRoot := config.DefaultRuntimeRoot
 	if handler.RuntimeRoot != "" {
 		runRoot = handler.RuntimeRoot

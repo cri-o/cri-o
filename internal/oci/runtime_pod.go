@@ -37,18 +37,21 @@ type runtimePod struct {
 }
 
 // newRuntimePod creates a new runtimePod instance.
-func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (RuntimeImpl, error) {
+func newRuntimePod(
+	r *Runtime,
+	handler *config.RuntimeHandler,
+	c *Container,
+	sandboxImpl RuntimeImpl,
+) (RuntimeImpl, error) {
 	// If the container is not an infra container, use the client of the infra container.
 	if !c.IsInfra() {
-		// Search for the runtimePod instance belonging to the sandbox.
-		impl, ok := r.runtimeImplMap[c.Sandbox()]
-		if !ok {
-			// This is a programming error.
-			// This code block assumes every container has a conmon client created already.
-			panic("Attempted to create a new runtime without creating a pod first")
+		// The pod may be gone already, like when the exit of a container
+		// gets handled after the removal of its pod, see runtimePodGone.
+		if sandboxImpl == nil {
+			return &runtimePodGone{runtimeOCI: newRuntimeOCI(r, handler)}, nil
 		}
 
-		return impl, nil
+		return sandboxImpl, nil
 	}
 
 	runRoot := config.DefaultRuntimeRoot
@@ -73,6 +76,47 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		client:    client,
 		serverDir: c.dir,
 	}, nil
+}
+
+// runtimePodGone is the runtime implementation of a container whose pod is
+// gone, so that the container can still be stopped, deleted and its status
+// read. Like runtimePod, it passes these requests on to runtimeOCI, while the
+// ones which need the conmon-rs server of the pod fail, as well as creating
+// the container, see Runtime.addRuntimeImpl. It does not get stored in
+// runtimeImplMap, which would keep an entry for every removed container that
+// gets looked up after its pod.
+type runtimePodGone struct {
+	*runtimeOCI
+}
+
+// errPodGone is the error of a request for container c which needs its pod,
+// which is gone.
+func errPodGone(c *Container) error {
+	return fmt.Errorf("pod sandbox %s of container %s is gone", c.Sandbox(), c.ID())
+}
+
+func (r *runtimePodGone) ExecSyncContainer(
+	_ context.Context,
+	c *Container,
+	_ []string,
+	_ int64,
+) (*types.ExecSyncResponse, error) {
+	return nil, errPodGone(c)
+}
+
+func (r *runtimePodGone) AttachContainer(
+	_ context.Context,
+	c *Container,
+	_ io.Reader,
+	_, _ io.WriteCloser,
+	_ bool,
+	_ <-chan remotecommand.TerminalSize,
+) error {
+	return errPodGone(c)
+}
+
+func (r *runtimePodGone) ReopenContainerLog(_ context.Context, c *Container) error {
+	return errPodGone(c)
 }
 
 // newConmonServerConfig returns the configuration of the conmon-rs server of

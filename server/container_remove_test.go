@@ -48,6 +48,28 @@ var _ = t.Describe("ContainerRemove", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("should not keep a runtime implementation for the removed container", func() {
+			// Given
+			addContainerAndSandbox()
+			testContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateStopped},
+			})
+			runtimeServerMock.EXPECT().DeleteContainer(gomock.Any(), gomock.Any()).
+				Return(nil)
+			testSandbox.SetStopped(context.Background(), false)
+
+			// When
+			_, err := sut.RemoveContainer(context.Background(),
+				&types.RemoveContainerRequest{
+					ContainerId: testContainer.ID(),
+				})
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			// The deleted event must not look it up again.
+			Expect(sut.Runtime().HasRuntimeImpl(testContainer.ID())).To(BeFalse())
+		})
+
 		It("should succeed if container is not found", func() {
 			// Given
 			// When
