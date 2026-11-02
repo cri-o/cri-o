@@ -293,7 +293,12 @@ func (r *Runtime) RuntimeStreamPortForward(runtimeHandler string) (bool, error) 
 	return rh.RuntimeStreamPortForward(), nil
 }
 
-func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
+// newRuntimeImpl creates the runtime implementation of the container. For the
+// pod runtime type, a container other than the infra container uses
+// sandboxImpl, the implementation of its sandbox. Callers read it with the
+// lock held, see sandboxRuntimeImpl. Without one, the container gets a
+// runtimePodGone, which must not be stored in runtimeImplMap.
+func (r *Runtime) newRuntimeImpl(c *Container, sandboxImpl RuntimeImpl) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
 	if err != nil {
 		return nil, err
@@ -304,7 +309,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	}
 
 	if rh.RuntimeType == config.RuntimeTypePod {
-		return newRuntimePod(r, rh, c)
+		return newRuntimePod(r, rh, c, sandboxImpl)
 	}
 
 	// If the runtime type is different from "vm", then let's fallback
@@ -325,14 +330,33 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	r.runtimeImplMapMutex.Lock()
 	defer r.runtimeImplMapMutex.Unlock()
 
-	impl, err := r.newRuntimeImpl(c)
+	// Another request may have created it meanwhile, a second one would
+	// leak its conmon-rs client.
+	if impl, ok := r.runtimeImplMap[c.ID()]; ok {
+		return impl, nil
+	}
+
+	impl, err := r.newRuntimeImpl(c, r.runtimeImplMap[c.Sandbox()])
 	if err != nil {
 		return nil, err
 	}
 
-	r.runtimeImplMap[c.ID()] = impl
+	if _, gone := impl.(*runtimePodGone); !gone {
+		r.runtimeImplMap[c.ID()] = impl
+	}
 
 	return impl, nil
+}
+
+// sandboxRuntimeImpl returns the runtime implementation of the sandbox of the
+// container, if it has one, for newRuntimeImpl. The map gets written
+// concurrently, so it must not be read without the lock. It must not be
+// called with runtimeImplMapMutex held.
+func (r *Runtime) sandboxRuntimeImpl(c *Container) RuntimeImpl {
+	r.runtimeImplMapMutex.RLock()
+	defer r.runtimeImplMapMutex.RUnlock()
+
+	return r.runtimeImplMap[c.Sandbox()]
 }
 
 // streamingRuntimeImpl returns the runtime implementation of the container
@@ -366,18 +390,65 @@ func (r *Runtime) CreateContainer(
 ) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
+	sandboxImpl := r.sandboxRuntimeImpl(c)
+
 	// Instantiate a new runtime implementation for this new container
-	impl, err := r.newRuntimeImpl(c)
+	impl, err := r.newRuntimeImpl(c, sandboxImpl)
 	if err != nil {
 		return err
 	}
 
 	// Assign this runtime implementation to the current container
-	r.runtimeImplMapMutex.Lock()
-	r.runtimeImplMap[c.ID()] = impl
-	r.runtimeImplMapMutex.Unlock()
+	impl, err = r.addRuntimeImpl(ctx, c, impl, sandboxImpl)
+	if err != nil {
+		return err
+	}
 
 	return impl.CreateContainer(ctx, c, cgroupParent, restore)
+}
+
+// addRuntimeImpl stores impl, which newRuntimeImpl created with sandboxImpl,
+// as the runtime implementation of the new container c and returns the one
+// to create the container with.
+func (r *Runtime) addRuntimeImpl(
+	ctx context.Context,
+	c *Container,
+	impl, sandboxImpl RuntimeImpl,
+) (RuntimeImpl, error) {
+	if _, gone := impl.(*runtimePodGone); gone {
+		return nil, errPodGone(c)
+	}
+
+	r.runtimeImplMapMutex.Lock()
+	defer r.runtimeImplMapMutex.Unlock()
+
+	// The container shares the implementation of its pod, which got removed
+	// after sandboxRuntimeImpl read it, so its client may be closed.
+	if sandboxImpl != nil && impl == sandboxImpl && r.runtimeImplMap[c.Sandbox()] != sandboxImpl {
+		return nil, errPodGone(c)
+	}
+
+	// A concurrent lookup may have created one meanwhile, which other
+	// requests may use already, so it stays. The new runtimePod of an infra
+	// container has a client of its own, which only gets closed: the
+	// conmon-rs server belongs to the pod. This assumes that both clients
+	// connected to the same server, two concurrent conmonClient.New calls
+	// for one pod may start two, but nothing looks up an infra container
+	// while CreateContainer creates it.
+	if existing, ok := r.runtimeImplMap[c.ID()]; ok {
+		if pod, ok := impl.(*runtimePod); ok && c.IsInfra() {
+			if err := pod.client.Close(); err != nil {
+				log.Warnf(ctx, "Unable to close conmon-rs client: %v", err)
+			}
+		}
+
+		return existing, nil
+	}
+
+	r.runtimeImplMap[c.ID()] = impl
+
+	return impl, nil
 }
 
 // StartContainer starts a container.
@@ -472,7 +543,7 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 	r.runtimeImplMapMutex.RUnlock()
 
 	if !ok {
-		if impl, err = r.newRuntimeImpl(c); err != nil {
+		if impl, err = r.newRuntimeImpl(c, r.sandboxRuntimeImpl(c)); err != nil {
 			return err
 		}
 	} else {
