@@ -1712,12 +1712,15 @@ func (s *Server) setupInfraContainer(
 			sboxID,
 			containerName,
 			labels,
+			kubeAnnotations,
 			sboxID,
+			runtimeHandler,
 			created,
 			podContainer.RunDir,
 		)
 
 		g.AddAnnotation(v2.Spoofed, "true")
+		g.AddAnnotation(annotations.InfraRuntimeHandler, runtimeHandler)
 
 		if err := s.config.CgroupManager().CreateSandboxCgroup(cgroupParent, sboxID); err != nil {
 			return nil, "", fmt.Errorf("create dropped infra %s cgroup: %w", sboxID, err)
@@ -1835,17 +1838,10 @@ func (s *Server) createAndStartInfraContainer(
 			)
 		}
 
-		log.Infof(ctx, "RunSandbox: writing container %s state to disk", container.ID())
-
-		if err := s.ContainerStateToDisk(ctx, container); err != nil {
-			return fmt.Errorf(
-				"failed to write container state %s in pod sandbox %s: %w",
-				container.Name(),
-				sb.ID(),
-				err,
-			)
-		}
-
+		// Like RemovePodSandbox, do not write the state of the deleted
+		// container, updating its status would create a new runtime
+		// implementation, which starts a conmon-rs server for the "pod"
+		// runtime type that nothing stops.
 		return nil
 	})
 
@@ -2156,8 +2152,9 @@ func (s *Server) setupSandboxStorage(
 
 func (s *Server) setupSandboxInfraContainerResources(ctx context.Context, g *generate.Generator) {
 	// Set OOM score adjust of the infra container to be very low
-	// so it doesn't get killed.
+	// so it doesn't get killed, or as low as allowed in a user namespace.
 	g.SetProcessOOMScoreAdj(PodInfraOOMAdj)
+	restrictOOMScoreAdjInUserNS(ctx, g)
 
 	g.SetLinuxResourcesCPUShares(PodInfraCPUshares)
 

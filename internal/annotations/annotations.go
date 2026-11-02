@@ -39,6 +39,9 @@ var internalAnnotations = map[string]struct{}{
 	HostNetwork:        {},
 	CNIResult:          {},
 	ContainerManager:   {},
+
+	InfraRuntimeHandler:  {},
+	RequestedOOMScoreAdj: {},
 }
 
 const (
@@ -132,6 +135,16 @@ const (
 
 	// RuntimeHandler is the annotation for runtime handler.
 	RuntimeHandler = "io.kubernetes.cri-o.RuntimeHandler"
+
+	// InfraRuntimeHandler is the runtime handler of a dropped infra
+	// container, which selects the runtime implementation of the pod. Pods
+	// without it got created before CRI-O recorded it and use the default
+	// runtime handler.
+	InfraRuntimeHandler = "io.kubernetes.cri-o.InfraRuntimeHandler"
+
+	// RequestedOOMScoreAdj is the OOM score adjustment requested for a
+	// container if CRI-O had to raise it, because it runs in a user namespace.
+	RequestedOOMScoreAdj = "io.kubernetes.cri-o.RequestedOOMScoreAdj"
 
 	// TTY is the terminal path annotation.
 	TTY = "io.kubernetes.cri-o.TTY"
