@@ -14,18 +14,20 @@ function teardown() {
 # kata_remote_conf writes the kata-remote runtime drop-in config and adjusts
 # the kata container timeout. Call after setup_crio but before start_crio_no_setup.
 function kata_remote_conf() {
+	local shim_path kata_conf_dir kata_remote_cfg
+	shim_path="$(command -v containerd-shim-kata-v2)"
+	kata_conf_dir="${RUNTIME_CONFIG_PATH%/*}"
+	kata_remote_cfg="$kata_conf_dir/configuration-remote.toml"
 	cat > "$CRIO_CONFIG_DIR/50-kata.conf" <<- EOF
 		[crio.runtime.runtimes.kata-remote]
-		  runtime_path = "/opt/kata/bin/containerd-shim-kata-v2"
+		  runtime_path = "$shim_path"
 		  runtime_root = "/run/vc"
 		  runtime_type = "vm"
 		  privileged_without_host_devices = true
-		  runtime_config_path = "/opt/kata/share/defaults/kata-containers/configuration-remote.toml"
+		  runtime_config_path = "$kata_remote_cfg"
 		  runtime_pull_image = true
 		  container_create_timeout = 600
 	EOF
-
-	local kata_remote_cfg="/opt/kata/share/defaults/kata-containers/configuration-remote.toml"
 	if [[ -f "$kata_remote_cfg" ]]; then
 		sudo sed -i 's/^create_container_timeout\s*=.*/create_container_timeout = 300/' "$kata_remote_cfg"
 	fi
