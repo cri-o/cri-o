@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	task "github.com/containerd/containerd/api/runtime/task/v2"
+	"github.com/containerd/ttrpc"
 
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -88,6 +89,49 @@ func NewRuntimeVMWithTask(t task.TaskService) RuntimeVM {
 	}
 }
 
+// NewRuntimeVMWithHandler creates a RuntimeVM for the given runtime handler.
+func NewRuntimeVMWithHandler(handler *config.RuntimeHandler) RuntimeVM {
+	return RuntimeVM{
+		runtimeVM: &runtimeVM{
+			ctx:     context.Background(),
+			handler: handler,
+			ctrs:    make(map[string]containerInfo),
+		},
+	}
+}
+
 func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal) error {
 	return r.kill(ctrID, execID, signal)
+}
+
+// ShimDeleteArgs returns the arguments of the shim binary's delete command.
+func ShimDeleteArgs(id, bundlePath string, debug bool) []string {
+	return shimDeleteArgs(id, bundlePath, debug)
+}
+
+// CleanupAfterDeadShim runs the shim's delete command synchronously.
+func (r RuntimeVM) CleanupAfterDeadShim(ctx context.Context, c *Container) error {
+	return r.cleanupAfterDeadShim(ctx, c)
+}
+
+// SetTask sets the task service of the runtime.
+func (r RuntimeVM) SetTask(t task.TaskService) {
+	r.task = t
+}
+
+// SetClient sets the ttrpc client of the runtime.
+func (r RuntimeVM) SetClient(cl *ttrpc.Client) {
+	r.client = cl
+}
+
+// AddContainer registers a container in the runtime without any container IO.
+func (r RuntimeVM) AddContainer(ctrID string) {
+	r.Lock()
+	r.ctrs[ctrID] = containerInfo{}
+	r.Unlock()
+}
+
+// IsDeleting reports whether the runtime is deleting the container.
+func (r RuntimeVM) IsDeleting(ctrID string) bool {
+	return r.isDeleting(ctrID)
 }
