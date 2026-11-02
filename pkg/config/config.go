@@ -405,17 +405,23 @@ const (
 	LayerDedupDisabled LayerDedupBehavior = "disabled"
 	// LayerDedupAfterPull deduplicates image layers after every successful image pull.
 	LayerDedupAfterPull LayerDedupBehavior = "after_pull"
+	// LayerDedupManual starts the deduplication worker but never triggers it
+	// automatically. A pass only runs when explicitly requested on demand,
+	// e.g. via `crio dedup`. Useful on nodes with a large
+	// amount of layer content already in the store, where an automatic
+	// after-pull scan would add unacceptable latency to every image pull.
+	LayerDedupManual LayerDedupBehavior = "manual"
 )
 
 // Validate returns an error if the LayerDedupBehavior is not a recognized value.
 func (b LayerDedupBehavior) Validate() error {
 	switch b {
-	case LayerDedupDisabled, LayerDedupAfterPull:
+	case LayerDedupDisabled, LayerDedupAfterPull, LayerDedupManual:
 		return nil
 	default:
 		return fmt.Errorf(
-			"invalid layer_dedup %q: must be one of %q or %q",
-			b, LayerDedupDisabled, LayerDedupAfterPull,
+			"invalid layer_dedup %q: must be one of %q, %q or %q",
+			b, LayerDedupDisabled, LayerDedupAfterPull, LayerDedupManual,
 		)
 	}
 }
@@ -679,6 +685,8 @@ type RuntimeConfig struct {
 	// fail the pull. Valid values:
 	//   "disabled"   - no deduplication (default)
 	//   "after_pull" - deduplicate after every successful image pull
+	//   "manual"     - worker is ready, but only runs on demand
+	//                  (see `crio dedup`)
 	LayerDedup LayerDedupBehavior `toml:"layer_dedup"`
 
 	// InfraCtrCPUSet is the CPUs set that will be used to run infra containers

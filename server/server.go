@@ -108,6 +108,22 @@ type Server struct {
 	// if a pass is already queued the send is dropped because the pending
 	// entry already covers it. The worker drains and serializes all passes.
 	dedupTrigger chan struct{}
+
+	// manualDedupRequest carries on-demand dedup requests (e.g. from
+	// `crio dedup`). Each request includes a response channel
+	// so the caller can block for the pass to finish and receive its result.
+	// Requests are served by the same worker goroutine as dedupTrigger, so a
+	// manual pass and an after-pull pass are never run concurrently against
+	// the same store.
+	manualDedupRequest chan chan dedupPassResult
+}
+
+// dedupPassResult carries the outcome of a single store-wide dedup pass back
+// to a manual caller.
+type dedupPassResult struct {
+	Duration time.Duration
+	SavedMB  float64
+	Err      error
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -676,10 +692,14 @@ func New(
 		log.Debugf(ctx, "Metrics are disabled")
 	}
 
-	if s.config.LayerDedup == libconfig.LayerDedupAfterPull {
+	if s.config.LayerDedup == libconfig.LayerDedupAfterPull ||
+		s.config.LayerDedup == libconfig.LayerDedupManual {
 		s.dedupTrigger = make(chan struct{}, 1)
+
+		s.manualDedupRequest = make(chan chan dedupPassResult)
 		go s.runDedupWorker(ctx)
-		log.Infof(ctx, "Layer dedup worker started (mode: after_pull)")
+
+		log.Infof(ctx, "Layer dedup worker started (mode: %s)", s.config.LayerDedup)
 	}
 
 	if s.config.Seccomp().IsDisabled() {
@@ -937,34 +957,78 @@ func (s *Server) getPodSandboxFromRequest(
 // runDedupWorker is the background goroutine that serializes store-wide layer
 // deduplication passes. Pulls signal dedupTrigger with a non-blocking send;
 // the size-1 buffer ensures at most one additional pass is queued while a pass
-// is already running. The goroutine exits when monitorsChan is closed.
+// is already running. Manual requests (e.g. from `crio dedup`)
+// arrive on manualDedupRequest and are served by this same goroutine, so a
+// manual pass and an after-pull pass are never run concurrently against the
+// same store. The goroutine exits when monitorsChan is closed.
 func (s *Server) runDedupWorker(ctx context.Context) {
 	for {
 		select {
 		case <-s.monitorsChan:
 			log.Infof(ctx, "Layer dedup worker shutting down")
+
 			return
 		case <-s.dedupTrigger:
 			s.runStoreDedupPass(ctx)
+		case respCh := <-s.manualDedupRequest:
+			respCh <- s.runStoreDedupPassResult(ctx)
 		}
 	}
 }
 
-// runStoreDedupPass performs a single store-wide layer deduplication pass.
-// It is called exclusively from runDedupWorker and never blocks a CRI RPC.
+// runStoreDedupPass performs a single store-wide layer deduplication pass
+// triggered by an image pull. Errors and results are only logged/recorded as
+// metrics; no caller is waiting on the outcome.
 func (s *Server) runStoreDedupPass(ctx context.Context) {
+	result := s.runStoreDedupPassResult(ctx)
+	if result.Err != nil {
+		log.Warnf(ctx, "Store-wide layer deduplication pass failed: %v", result.Err)
+
+		return
+	}
+
+	log.Debugf(
+		ctx,
+		"Layer deduplication pass complete: saved %.2f MB in %v",
+		result.SavedMB,
+		result.Duration,
+	)
+}
+
+// runStoreDedupPassResult performs a single store-wide layer deduplication
+// pass and returns its outcome. It is called exclusively from
+// runDedupWorker (either for an after-pull trigger or a manual request), so
+// it never runs concurrently with itself.
+//
+// Note: the pass holds the layer store's write lock for its full
+// duration (it reads and hashes every file of every image layer), so image
+// pulls and any other layer-store write will block until it completes.
+// Measured at roughly 4-5 seconds per GB of layer content (I/O-bound), i.e.
+// several minutes on a large store; run manual passes during a planned
+// maintenance window.
+func (s *Server) runStoreDedupPassResult(ctx context.Context) dedupPassResult {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	imageServer, err := s.ContainerServer.StorageImageServer(nil)
+	imageServer, err := s.StorageImageServer(nil)
 	if err != nil {
-		log.Warnf(ctx, "Layer dedup: failed to get image server: %v", err)
-		return
+		return dedupPassResult{Err: fmt.Errorf("get image server: %w", err)}
 	}
 
 	store := imageServer.GetStore()
 
 	log.Debugf(ctx, "Starting store-wide layer deduplication pass")
+
+	// The storage library silently swallows the "reflinks not supported"
+	// error and reports success, which would mislead operators running on
+	// filesystems without reflink support (e.g. ext4 or XFS without
+	// reflink=1). Probe the store's filesystem up front so an unsupported
+	// store is reported as an error instead of a successful no-op pass.
+	if err := dedupReflinkSupported(store.GraphRoot()); err != nil {
+		log.Warnf(ctx, "Layer deduplication not supported: %v", err)
+
+		return dedupPassResult{Err: err}
+	}
 
 	start := time.Now()
 
@@ -977,15 +1041,16 @@ func (s *Server) runStoreDedupPass(ctx context.Context) {
 	duration := time.Since(start)
 
 	if dedupErr != nil {
-		log.Warnf(ctx, "Store-wide layer deduplication pass failed: %v", dedupErr)
-		return
+		return dedupPassResult{Duration: duration, Err: dedupErr}
 	}
 
 	metrics.Instance().MetricImageLayerDedupDurationObserve(duration)
 	metrics.Instance().MetricImageLayerDedupBytesSavedObserve(int64(result.Deduped))
 
-	savedMB := float64(result.Deduped) / (1024 * 1024)
-	log.Debugf(ctx, "Layer deduplication pass complete: saved %.2f MB in %v", savedMB, duration)
+	return dedupPassResult{
+		Duration: duration,
+		SavedMB:  float64(result.Deduped) / (1024 * 1024),
+	}
 }
 
 // StopMonitors stops all the monitors.

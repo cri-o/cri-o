@@ -17,16 +17,25 @@ function teardown() {
 	cleanup_test
 }
 
-# skip_unless_reflink_supported skips the test if the container storage root
-# is on a filesystem that does not support reflinks (XFS with reflink=1 or Btrfs).
-function skip_unless_reflink_supported() {
+# reflink_supported returns success if the container storage root is on a
+# filesystem that supports reflinks (XFS with reflink=1 or Btrfs).
+function reflink_supported() {
 	local testfile
 	testfile=$(mktemp "$TESTDIR"/reflink-check.XXXXXX)
 	if ! cp --reflink=always "$testfile" "${testfile}.reflink" 2> /dev/null; then
 		rm -f "$testfile" "${testfile}.reflink"
-		skip "filesystem does not support reflinks (XFS with reflink=1 or Btrfs required)"
+		return 1
 	fi
 	rm -f "$testfile" "${testfile}.reflink"
+	return 0
+}
+
+# skip_unless_reflink_supported skips the test if the container storage root
+# is on a filesystem that does not support reflinks (XFS with reflink=1 or Btrfs).
+function skip_unless_reflink_supported() {
+	if ! reflink_supported; then
+		skip "filesystem does not support reflinks (XFS with reflink=1 or Btrfs required)"
+	fi
 }
 
 @test "layer_dedup defaults to disabled" {
@@ -47,6 +56,8 @@ function skip_unless_reflink_supported() {
 }
 
 @test "layer_dedup after_pull triggers a dedup pass after image pull" {
+	skip_unless_reflink_supported
+
 	OVERRIDE_OPTIONS="--layer-dedup after_pull" start_crio
 
 	# Remove the pre-loaded image so we exercise the pull path.
@@ -67,8 +78,15 @@ function skip_unless_reflink_supported() {
 	# The pull must succeed regardless of whether the filesystem supports reflinks.
 	crictl_pull "$DEDUP_IMAGE"
 
-	# Dedup either completed cleanly or logged a warning — either way the
-	# pull returned successfully (validated by crictl_pull exit code above).
+	# On a reflink-capable filesystem the pass must complete; otherwise the
+	# pre-flight probe must reject the pass with a clear warning (the pass
+	# itself never starts). Either way the pull succeeded above.
+	if reflink_supported; then
+		wait_for_log "Layer deduplication pass complete"
+	else
+		wait_for_log "Layer deduplication not supported"
+	fi
+
 	# Check that no hard error was propagated to the pull response.
 	run crictl inspecti "$DEDUP_IMAGE"
 	[ "$status" -eq 0 ]

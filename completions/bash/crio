@@ -6,6 +6,8 @@ _cli_bash_autocomplete() {
 complete
 completion
 config
+dedup
+d
 man
 markdown
 md
