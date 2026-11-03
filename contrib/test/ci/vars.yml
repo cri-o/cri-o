@@ -212,5 +212,27 @@ kata_skip_annotation_migration_tests:
   - 'test "v1 umask annotation should still work"'
   - 'test "v2 unified-cgroup annotation for specific container with slash separator should work"'
 
+# per-test skips that only apply to the Rust runtime (the kata-static
+# variant); the Go runtime (kata-go-static) passes these tests, so they stay
+# enabled for it
+kata_rust_skip_hooks_tests:
+  # runtime-rs only executes prestart hooks from the sandbox OCI spec, never
+  # from the container spec where CRI-O injects them
+  - 'test "pod test hooks"'
+kata_rust_skip_stats_tests:
+  # runtime-rs does not report kernel TCP memory in Stats, which nil-panics
+  # CRI-O's stats conversion and takes down the daemon mid-suite
+  - 'test "stats"'
+  - 'test "container stats"'
+  - 'test "pod stats"'
+kata_rust_skip_ctr_tests:
+  # calls crictl stats and hits the same missing kernel TCP memory gap as
+  # the stats tests
+  - 'test "memory limit decrease below usage should be blocked"'
+kata_rust_skip_logs_tests:
+  # runtime-rs acknowledges signal 0 on a stopped process, so CRI-O's
+  # liveness probe reports the stopped container as alive
+  - 'test "ReopenContainerLog should fail when the container is stopped"'
+
 runc_git_version: v1.5.1
 crun_git_version: 1.29.1
