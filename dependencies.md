@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 03 Nov 2026 11:47:10 UTC for commit [f26da43][0]._
+_Generated on Tue, 03 Nov 2026 14:33:09 UTC for commit [92ab7b0][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f26da43c9454a980ae55ae3fb769c2360b74594c
+[0]: https://github.com/cri-o/cri-o/commit/92ab7b0ea3444d11d7b752eded97d20051bfde98
 
 ## Outdated Dependencies
 
@@ -379,7 +379,7 @@ _Generated on Tue, 03 Nov 2026 11:47:10 UTC for commit [f26da43][0]._
 | github.com/go-git/go-git/v5                                                 | v5.19.2                              | v5.19.3                            | false  | true             |
 | github.com/go-ini/ini                                                       | v1.67.0                              | v1.67.3                            | false  | true             |
 | github.com/go-jose/go-jose/v3                                               | v3.0.5                               |                                    | false  | true             |
-| github.com/go-jose/go-jose/v4                                               | v4.1.5                               | v4.1.8                             | false  | true             |
+| github.com/go-jose/go-jose/v4                                               | v4.1.6                               | v4.1.8                             | false  | true             |
 | github.com/go-kit/kit                                                       | v0.8.0                               | v0.13.0                            | false  | true             |
 | github.com/go-logfmt/logfmt                                                 | v0.4.0                               | v0.6.1                             | false  | true             |
 | github.com/go-logr/logr                                                     | v1.4.4                               |                                    | true   | true             |
