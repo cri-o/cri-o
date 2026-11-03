@@ -1007,8 +1007,8 @@ func (g *GitHub) GetMilestone(owner, repo, title string) (
 	}
 
 	opts := &github.MilestoneListOptions{
-		State:       "all",
-		ListOptions: github.ListOptions{PerPage: 100},
+		State:   "all",
+		PerPage: 100,
 	}
 
 	for {
@@ -1053,7 +1053,7 @@ func (g *GitHub) ListBranches(
 	owner, repo string,
 ) ([]*github.Branch, error) {
 	options := &github.BranchListOptions{
-		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
+		PerPage: g.Options().GetItemsPerPage(),
 	}
 	branches := []*github.Branch{}
 
@@ -1365,9 +1365,9 @@ func (g *GitHub) ListComments(
 	since *time.Time,
 ) ([]*github.IssueComment, error) {
 	options := &github.IssueListCommentsOptions{
-		Sort:        new(string(sort)),
-		Direction:   new(string(direction)),
-		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
+		Sort:      new(string(sort)),
+		Direction: new(string(direction)),
+		PerPage:   g.Options().GetItemsPerPage(),
 	}
 
 	if since != nil {

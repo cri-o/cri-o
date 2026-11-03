@@ -12,13 +12,14 @@
 //
 // A client which is not needed anymore has to be closed or shut down,
 // otherwise its connection, goroutines and pidfd of the server leak. Close
-// only releases the client, the server and its containers keep running.
-// Shutdown stops the server, which kills its containers before it exits, and
-// releases the client once the server is gone. If the server does not exit in
-// time, Shutdown fails with ErrShutdownTimeout, and ShutdownContext fails as
-// well once its context ends first. Either way, the client keeps its pidfd of
-// the server open: KillContext ends the server with SIGKILL and releases the
-// client as well, or Close releases the client and leaves the server running.
+// releases them, the server and its containers keep running. Shutdown stops
+// the server, which kills its containers before it exits, and releases them
+// once the server is gone. If the server does not exit in time, Shutdown
+// fails with ErrShutdownTimeout, and ShutdownContext fails as well once its
+// context ends first. Either way, the client keeps its pidfd of the server
+// open: KillContext (or Kill) ends the server with SIGKILL and releases them
+// as well, or Close releases them and leaves the server running. Close is
+// safe to call at any time, see its documentation for what it covers.
 //
 // # Features
 //
@@ -36,7 +37,16 @@
 // the server does not know fails with an error matching
 // ErrContainerNotFound, use errors.Is to check for it. ExecSyncContainer
 // leaves the container to the runtime instead, the result of one which the
-// runtime does not know has ExecExitCodeNotStarted.
+// runtime does not know has ExecExitCodeNotStarted. A configuration with an
+// unknown value of a type like CgroupManager fails without asking the server
+// with an error matching ErrInvalidValue, too many file descriptors for one
+// request of RemoteFDs with ErrTooManyFileDescriptors. ErrUnsupported, see
+// Features, also matches errors.ErrUnsupported.
+//
+// A call fails with an error matching ErrServerUnreachable if no server
+// listens on the socket when the client connects, and with
+// ErrServerDisconnected if the connection ended during the call, for example
+// because the server exited. The next call connects again in both cases.
 //
 // # Streaming
 //

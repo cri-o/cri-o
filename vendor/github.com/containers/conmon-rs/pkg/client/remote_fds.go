@@ -14,16 +14,7 @@ import (
 	"github.com/containers/conmon-rs/internal/proto"
 )
 
-// ErrRemoteFDsBroken gets matched by the error of a request of RemoteFDs
-// which got no valid response, which got interrupted by its context after
-// it was sent, or which ran into Close. Every request afterwards fails with
-// it as well, a new RemoteFDs is needed then. A request which the server
-// rejected, or which could not be sent, does not match it and keeps the
-// connection usable.
-var ErrRemoteFDsBroken = errors.New("fd socket connection broken")
-
 var (
-	errTooManyFileDescriptors  = errors.New("too many file descriptors")
 	errResponseTooShort        = errors.New("response too short")
 	errResponseIDDoesNotMatch  = errors.New("response id does not match")
 	errNumberOfFDsDoesNotMatch = errors.New("number of fds does not match")
@@ -76,11 +67,11 @@ type RemoteFDs struct {
 	closed atomic.Bool
 }
 
-// NewRemoteFDs connects to the fd socket at `path`.
+// NewRemoteFDs connects to the fd socket at path.
 func NewRemoteFDs(path string) (*RemoteFDs, error) {
 	conn, err := dialLongSocket("unixpacket", path)
 	if err != nil {
-		return nil, fmt.Errorf("dial long socket: %w", err)
+		return nil, err
 	}
 
 	return &RemoteFDs{
@@ -105,7 +96,7 @@ func (r *RemoteFDs) SendContext(ctx context.Context, fds ...int) ([]RemoteFD, er
 	}
 
 	if len(fds) > maxFDs {
-		return nil, errTooManyFileDescriptors
+		return nil, ErrTooManyFileDescriptors
 	}
 
 	r.mu.Lock()
@@ -248,46 +239,26 @@ func (r *RemoteFDs) Close() error {
 	return nil
 }
 
-// RemoteFDs can be used to start and connect to the remote fd socket.
+// RemoteFDs can be used to start and connect to the remote fd socket. The
+// caller closes the returned RemoteFDs once the requests which use its slots
+// returned, Close of the client does not.
 func (c *ConmonClient) RemoteFDs(ctx context.Context) (_ *RemoteFDs, retErr error) {
 	ctx, span := c.startSpan(ctx, "RemoteFDs")
 	defer endSpan(span, &retErr)
 
-	rpcClient, err := c.client(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("create RPC client: %w", err)
-	}
-
-	future, free := rpcClient.StartFdSocket(
-		ctx,
-		func(p proto.Conmon_startFdSocket_Params) (err error) {
-			req, err := p.NewRequest()
+	path, err := call(ctx, c, proto.Conmon.StartFdSocket,
+		noRequest,
+		func(res proto.Conmon_StartFdSocketResponse) (string, error) {
+			path, err := res.Path()
 			if err != nil {
-				return fmt.Errorf("create request: %w", err)
+				return "", fmt.Errorf("get path: %w", err)
 			}
 
-			if err := c.setMetadata(ctx, req); err != nil {
-				return fmt.Errorf("set metadata: %w", err)
-			}
-
-			return nil
+			return path, nil
 		},
 	)
-	defer free()
-
-	result, err := rpcResult(future)
 	if err != nil {
 		return nil, err
-	}
-
-	res, err := result.Response()
-	if err != nil {
-		return nil, fmt.Errorf("get response: %w", err)
-	}
-
-	path, err := res.Path()
-	if err != nil {
-		return nil, fmt.Errorf("get path: %w", err)
 	}
 
 	r, err := NewRemoteFDs(path)
