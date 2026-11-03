@@ -279,6 +279,35 @@ var _ = t.Describe("Utils", func() {
 			Expect(groupPath).ToNot(BeEmpty())
 		})
 
+		It("should add the new passwd entry on its own line", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			passwdFile, err := utils.GeneratePasswd("", 300, 300, "", dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(passwdFile).ToNot(BeEmpty())
+
+			content, err := os.ReadFile(passwdFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(HaveSuffix(
+				"nobody:x:65534:65534:nobody:/:/sbin/nologin\n" +
+					"default:x:300:300:default user:/tmp:/sbin/nologin\n",
+			))
+		})
+
+		It("should add the new group entry on its own line", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			groupPath, err := utils.GenerateGroup(6000, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).ToNot(BeEmpty())
+
+			content, err := os.ReadFile(groupPath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(HaveSuffix("nobody:x:65534:\n6000:x:6000:\n"))
+		})
+
 		It("should fail with username that desn't exist in /etc/passwd", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
