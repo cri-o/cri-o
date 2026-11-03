@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 03 Nov 2026 14:33:09 UTC for commit [92ab7b0][0]._
+_Generated on Tue, 03 Nov 2026 17:22:34 UTC for commit [cd1e2de][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/92ab7b0ea3444d11d7b752eded97d20051bfde98
+[0]: https://github.com/cri-o/cri-o/commit/cd1e2de0e3483ac7777803fff44b0fe5ebc9593d
 
 ## Outdated Dependencies
 
@@ -11,7 +11,6 @@ _Generated on Tue, 03 Nov 2026 14:33:09 UTC for commit [92ab7b0][0]._
 | github.com/Microsoft/go-winio                                               | v0.6.2                             | v0.6.4                             | true   | true             |
 | github.com/checkpoint-restore/checkpointctl                                 | v1.6.0                             | v1.7.0                             | true   | true             |
 | github.com/checkpoint-restore/go-criu/v8                                    | v8.4.0                             | v8.5.0                             | true   | true             |
-| github.com/containerd/containerd                                            | v1.7.35                            | v1.7.36                            | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                            | v1.12.0                            | true   | true             |
 | github.com/containerd/nri                                                   | v0.12.2                            | v0.12.5                            | true   | true             |
 | github.com/containerd/ttrpc                                                 | v1.2.9                             | v1.2.10                            | true   | true             |
@@ -304,7 +303,7 @@ _Generated on Tue, 03 Nov 2026 14:33:09 UTC for commit [92ab7b0][0]._
 | github.com/containerd/cgroups                                               | v1.1.0                               |                                    | true   | true             |
 | github.com/containerd/cgroups/v3                                            | v3.0.3                               | v3.1.3                             | false  | true             |
 | github.com/containerd/console                                               | v1.0.5                               |                                    | false  | true             |
-| github.com/containerd/containerd                                            | v1.7.35                              | v1.7.36                            | true   | true             |
+| github.com/containerd/containerd                                            | v1.7.36                              |                                    | true   | true             |
 | github.com/containerd/containerd/api                                        | v1.10.0                              | v1.12.0                            | true   | true             |
 | github.com/containerd/continuity                                            | v0.4.4                               | v0.5.0                             | false  | true             |
 | github.com/containerd/cri-containerd                                        | v1.19.0                              |                                    | false  | true             |
