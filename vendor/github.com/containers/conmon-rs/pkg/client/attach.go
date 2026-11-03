@@ -27,8 +27,6 @@ const (
 	attachOutputStopTimeout = time.Second
 )
 
-var errTerminalSizeNil = errors.New("terminal size cannot be nil")
-
 // AttachStreams are the stdio streams for the AttachConfig. The attach
 // closes them once it is connected to the container and PreAttachFunc
 // succeeded. The caller closes them if AttachContainer fails before that,
@@ -43,7 +41,8 @@ type AttachStreams struct {
 	// ends, see AttachContainer.
 	Stdout *Out
 
-	// Standard error stream, can be nil. It gets closed like Stdout.
+	// Standard error stream, can be nil. It gets closed like Stdout, only
+	// once if it wraps the same writer as Stdout.
 	Stderr *Out
 }
 
@@ -59,12 +58,13 @@ type Out struct {
 	io.WriteCloser
 }
 
-// AttachConfig is the configuration for running the Attach method.
+// AttachConfig is the configuration for running the AttachContainer method.
 type AttachConfig struct {
 	// ID of the container.
 	ID string
 
-	// Path of the attach socket.
+	// Absolute path of the attach socket. Servers since v1.2.2 reject
+	// other ones.
 	SocketPath string
 
 	// ExecSession ID, if this is an attach for an Exec.
@@ -81,9 +81,9 @@ type AttachConfig struct {
 	// so the attach returns on stdin EOF.
 	//
 	// The server applies the value of the latest attach call to all
-	// connections it accepts afterwards on the same socket, so all attaches
-	// of a container should use the same value, for example derived from
-	// its config.
+	// connections it accepts afterwards on any attach socket of the
+	// container, so all attaches of a container should use the same value,
+	// for example derived from its config.
 	StopAfterStdinEOF bool
 
 	// Whether the container supports stdin or not.
@@ -186,23 +186,9 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) (
 		return ErrMissingConfig
 	}
 
-	rpcClient, err := c.client(ctx)
-	if err != nil {
-		return fmt.Errorf("create RPC client: %w", err)
-	}
-
-	future, free := rpcClient.AttachContainer(
-		ctx,
-		func(p proto.Conmon_attachContainer_Params) (err error) {
-			req, err := p.NewRequest()
-			if err != nil {
-				return fmt.Errorf("create request: %w", err)
-			}
-
-			if err := c.setMetadata(ctx, req); err != nil {
-				return err
-			}
-
+	// The answer gets released before the attach, the server can drop it.
+	_, err := call(ctx, c, proto.Conmon.AttachContainer,
+		func(req proto.Conmon_AttachRequest) error {
 			if err := req.SetId(cfg.ID); err != nil {
 				return fmt.Errorf("set ID: %w", err)
 			}
@@ -221,22 +207,10 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) (
 
 			return nil
 		},
+		noResponse,
 	)
-
-	result, err := rpcResult(future)
 	if err != nil {
-		free()
-
 		return err
-	}
-
-	_, err = result.Response()
-
-	// The answer is not needed during the attach, the server can drop it.
-	free()
-
-	if err != nil {
-		return fmt.Errorf("get response: %w", err)
 	}
 
 	if err := c.attach(ctx, cfg); err != nil {
@@ -269,11 +243,7 @@ func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error
 
 		conn, err = dialLongSocket("unixpacket", cfg.SocketPath)
 		if err != nil {
-			return fmt.Errorf(
-				"failed to connect to container's attach socket: %v: %w",
-				cfg.SocketPath,
-				err,
-			)
+			return fmt.Errorf("failed to connect to container's attach socket: %w", err)
 		}
 
 		defer func() {
@@ -380,7 +350,7 @@ func (c *ConmonClient) setupStdioChannels(
 			// A closed stdin does not end the attach, the output does.
 			// One which the client closed, for example on Shutdown, can
 			// return any error then, like os.ErrClosed for an *os.File.
-			if !session.stdinClosed.Load() && !errors.Is(err, io.ErrClosedPipe) {
+			if !session.stdinClosed.Load() && !stdinConnClosed(err) {
 				stdinDone <- err
 			}
 		}()
@@ -389,32 +359,50 @@ func (c *ConmonClient) setupStdioChannels(
 	return receiveStdoutError, stdinDone
 }
 
+// stdinConnClosed reports whether the copy of stdin failed because the
+// stream or the connection got closed. The server closes the attach
+// connection once the container exited, a write to it fails with EPIPE or
+// ECONNRESET then, while the output may still be in flight. Its result ends
+// the attach, not the stdin copy. Only writes count, the copy returns the
+// errors of reading the stdin of the caller as they are, which may be a
+// connection as well.
+func stdinConnClosed(err error) bool {
+	if errors.Is(err, io.ErrClosedPipe) {
+		return true
+	}
+
+	var opErr *net.OpError
+
+	return errors.As(err, &opErr) && opErr.Op == "write" &&
+		(errors.Is(opErr, net.ErrClosed) || errors.Is(opErr, syscall.EPIPE) ||
+			errors.Is(opErr, syscall.ECONNRESET))
+}
+
 func (c *ConmonClient) redirectResponseToOutputStreams(
 	ctx context.Context, cfg *AttachConfig, conn io.Reader,
 ) (err error) {
-	ctx, span := c.startSpan(ctx, "redirectResponseToOutputStreams")
+	_, span := c.startSpan(ctx, "redirectResponseToOutputStreams")
 	defer endSpan(span, &err)
 
-	buf := make([]byte, attachPacketBufSize+1) /* Sync with conmonrs ATTACH_PACKET_BUF_SIZE */
+	buf := make([]byte, attachPacketBufSize+1) /* Sync with conmonrs Attach::PACKET_BUF_SIZE */
 
-	defer func() {
-		if cfg.Streams.Stdout != nil {
-			cfg.Streams.Stdout.Close()
-		}
+	defer closeOutputStreams(cfg.Streams)
 
-		if cfg.Streams.Stderr != nil {
-			cfg.Streams.Stderr.Close()
-		}
-	}()
+	// Checked once, the logs run for every packet.
+	trace := c.traceEnabled()
 
 	for {
-		c.logger.Trace("Waiting to read from attach connection")
+		if trace {
+			c.logger.Trace("Waiting to read from attach connection")
+		}
 
 		nr, er := conn.Read(buf)
-		c.logger.WithError(er).Tracef("Got %d bytes from attach connection", nr)
+		if trace {
+			c.logger.WithError(er).Tracef("Got %d bytes from attach connection", nr)
+		}
 
 		if nr > 0 {
-			cont, ew := c.handlePacket(ctx, cfg, buf, nr)
+			cont, ew := c.handlePacket(cfg, buf, nr, trace)
 			if ew != nil {
 				return ew
 			}
@@ -429,7 +417,9 @@ func (c *ConmonClient) redirectResponseToOutputStreams(
 		}
 
 		if errors.Is(er, syscall.ECONNRESET) {
-			c.logger.WithError(er).Trace("Connection reset, retrying to read")
+			if trace {
+				c.logger.WithError(er).Trace("Connection reset, retrying to read")
+			}
 
 			continue
 		}
@@ -448,17 +438,39 @@ func (c *ConmonClient) redirectResponseToOutputStreams(
 	return nil
 }
 
-func (c *ConmonClient) handlePacket(
-	ctx context.Context, cfg *AttachConfig, buf []byte, nr int,
-) (cont bool, err error) {
-	_, span := c.startSpan(ctx, "handlePacket")
-	defer endSpan(span, &err)
+// closeOutputStreams closes stdout and stderr of the streams, a writer which
+// serves for both only once, also if each stream wraps it in an Out of its
+// own.
+func closeOutputStreams(streams AttachStreams) {
+	if streams.Stdout != nil {
+		streams.Stdout.Close()
+	}
 
+	if streams.Stderr == nil {
+		return
+	}
+
+	if streams.Stdout != nil && (streams.Stderr == streams.Stdout ||
+		sameWriter(streams.Stderr.WriteCloser, streams.Stdout.WriteCloser)) {
+		return
+	}
+
+	streams.Stderr.Close()
+}
+
+// handlePacket writes a packet of the attach connection to its stream. It
+// runs for every packet, the span of redirectResponseToOutputStreams covers
+// all of them, trace tells whether to log them.
+func (c *ConmonClient) handlePacket(
+	cfg *AttachConfig, buf []byte, nr int, trace bool,
+) (cont bool, err error) {
 	var dst io.Writer
 
 	switch buf[0] {
 	case attachPipeDone:
-		c.logger.Trace("Received done packet")
+		if trace {
+			c.logger.Trace("Received done packet")
+		}
 
 		return false, nil
 
@@ -471,7 +483,9 @@ func (c *ConmonClient) handlePacket(
 
 		dst = cfg.Streams.Stdout
 
-		c.logger.Trace("Received stdout packet")
+		if trace {
+			c.logger.Trace("Received stdout packet")
+		}
 
 	case attachPipeStderr:
 		if cfg.Streams.Stderr == nil {
@@ -482,7 +496,9 @@ func (c *ConmonClient) handlePacket(
 
 		dst = cfg.Streams.Stderr
 
-		c.logger.Trace("Received stderr packet")
+		if trace {
+			c.logger.Trace("Received stderr packet")
+		}
 
 	default:
 		c.logger.Infof("Received unexpected attach type %+d", buf[0])
@@ -491,7 +507,9 @@ func (c *ConmonClient) handlePacket(
 	}
 
 	nw, ew := dst.Write(buf[1:nr])
-	c.logger.WithError(ew).Tracef("Wrote %d bytes to destination", nw)
+	if trace {
+		c.logger.WithError(ew).Tracef("Wrote %d bytes to destination", nw)
+	}
 
 	if ew != nil {
 		return false, fmt.Errorf("failed to write packet %w", ew)
@@ -654,7 +672,9 @@ type SetWindowSizeContainerConfig struct {
 }
 
 // SetWindowSizeContainer can be used to change the window size of a running
-// container. It fails for a container without a terminal.
+// container. It fails for a container without a terminal, with
+// ErrMissingConfig for a nil config and with ErrTerminalSizeNil for a config
+// without a Size.
 func (c *ConmonClient) SetWindowSizeContainer(
 	ctx context.Context,
 	cfg *SetWindowSizeContainerConfig,
@@ -667,26 +687,11 @@ func (c *ConmonClient) SetWindowSizeContainer(
 	}
 
 	if cfg.Size == nil {
-		return errTerminalSizeNil
+		return ErrTerminalSizeNil
 	}
 
-	rpcClient, err := c.client(ctx)
-	if err != nil {
-		return fmt.Errorf("create RPC client: %w", err)
-	}
-
-	future, free := rpcClient.SetWindowSizeContainer(
-		ctx,
-		func(p proto.Conmon_setWindowSizeContainer_Params) (err error) {
-			req, err := p.NewRequest()
-			if err != nil {
-				return fmt.Errorf("create request: %w", err)
-			}
-
-			if err := c.setMetadata(ctx, req); err != nil {
-				return err
-			}
-
+	_, err := call(ctx, c, proto.Conmon.SetWindowSizeContainer,
+		func(req proto.Conmon_SetWindowSizeRequest) error {
 			if err := req.SetId(cfg.ID); err != nil {
 				return fmt.Errorf("set ID: %w", err)
 			}
@@ -696,17 +701,8 @@ func (c *ConmonClient) SetWindowSizeContainer(
 
 			return nil
 		},
+		noResponse,
 	)
-	defer free()
 
-	result, err := rpcResult(future)
-	if err != nil {
-		return err
-	}
-
-	if _, err := result.Response(); err != nil {
-		return fmt.Errorf("get response: %w", err)
-	}
-
-	return nil
+	return err
 }
