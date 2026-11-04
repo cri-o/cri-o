@@ -85,6 +85,13 @@ kata_skip_files:
   - "infra_ctr_cpuset.bats"
   - "imagefsinfo.bats" # image and container filesystems is not in kata at the moment
   - "inspect.bats"
+  # peer-pods: the host 4.3.x kata shim no longer sends the image metadata
+  # in driver_options for image_guest_pull volumes (kata f66d7fda4), which
+  # the published v0.23.0 podvm's 4.2.0 agent still requires; re-enable
+  # when CoCo 0.24 (kata 4.4, due Nov 2026) ships a podvm with a matching
+  # agent; CAA already bumped its agent pin in 9e0887d5, but no image has
+  # been published from it
+  - "kata-remote.bats"
   - "metrics.bats"
   - "network_ping.bats"
   - "nri.bats"
