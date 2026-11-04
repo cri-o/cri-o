@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 04 Nov 2026 09:17:18 UTC for commit [952f351][0]._
+_Generated on Wed, 04 Nov 2026 15:28:19 UTC for commit [a2740c1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/952f3519417640c2bc48ef90f901946346ee8997
+[0]: https://github.com/cri-o/cri-o/commit/a2740c1685044acff605f2e9f6a67ea48dce816c
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Wed, 04 Nov 2026 09:17:18 UTC for commit [952f351][0]._
 | github.com/checkpoint-restore/checkpointctl            | v1.6.0                             | v1.7.0                             | true   | true             |
 | github.com/containerd/containerd/api                   | v1.10.0                            | v1.12.0                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261103173729-888a3dc43081 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261104105357-effd513de60f | true   | true             |
 | go.podman.io/common                                    | v0.68.1                            | v0.70.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.40.0                            | v5.42.0                            | true   | true             |
 | go.podman.io/storage                                   | v1.63.0                            | v1.65.0                            | true   | true             |
@@ -25,7 +25,7 @@ _Generated on Wed, 04 Nov 2026 09:17:18 UTC for commit [952f351][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                        | false  | true             |
 | cel.dev/expr                                                                | v0.25.3                                |                                        | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                               | v0.21.0                                | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                                | v0.1.458                               | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                                | v0.1.459                               | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                               |                                        | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.15.1                                | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.17.1                                | false  | true             |
@@ -272,7 +272,7 @@ _Generated on Wed, 04 Nov 2026 09:17:18 UTC for commit [952f351][0]._
 | github.com/cyphar/filepath-securejoin                                       | v0.7.0                                 |                                        | true   | true             |
 | github.com/danieljoos/wincred                                               | v1.2.3                                 |                                        | false  | true             |
 | github.com/davecgh/go-spew                                                  | v1.1.2-0.20180830191138-d8f796af33cc   |                                        | false  | true             |
-| github.com/digitorus/pkcs7                                                  | v0.0.0-20260821105541-05f79448fa77     | v0.0.0-20260914070511-d678ea5ea03f     | false  | true             |
+| github.com/digitorus/pkcs7                                                  | v0.0.0-20260821105541-05f79448fa77     | v0.0.0-20261104125046-a476de3098e4     | false  | true             |
 | github.com/digitorus/timestamp                                              | v0.0.0-20231217203849-220c5c2851b7     | v0.0.0-20260914073129-b4b58b92aa51     | false  | true             |
 | github.com/disiqueira/gotree/v3                                             | v3.0.2                                 |                                        | false  | true             |
 | github.com/distribution/reference                                           | v0.6.0                                 |                                        | false  | true             |
@@ -401,7 +401,7 @@ _Generated on Wed, 04 Nov 2026 09:17:18 UTC for commit [952f351][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 | v1.1.0                                 | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                        | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                        | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20261103173729-888a3dc43081     | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20261104105357-effd513de60f     | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                                 |                                        | false  | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                                 | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                        | false  | true             |
