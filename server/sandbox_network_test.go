@@ -42,6 +42,7 @@ func TestWaitForCNIPluginReturnsOnContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	errCh := make(chan error, 1)
+
 	go func() {
 		errCh <- s.waitForCNIPlugin(ctx, "test-sandbox")
 	}()
@@ -70,6 +71,7 @@ func TestWaitForCNIPluginReturnsOnCNIManagerShutdown(t *testing.T) {
 	s := newServerWithNotReadyCNI(t)
 
 	errCh := make(chan error, 1)
+
 	go func() {
 		errCh <- s.waitForCNIPlugin(context.Background(), "test-sandbox")
 	}()
