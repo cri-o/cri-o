@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"os"
+	"time"
 
 	criu "github.com/checkpoint-restore/go-criu/v8/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
@@ -45,6 +47,7 @@ var _ = t.Describe("Oci", func() {
 			usernsRuntime      = "userns"
 			performanceRuntime = "high-performance"
 			vmRuntime          = "kata"
+			podRuntime         = "conmonrs"
 		)
 
 		runtimes := libconfig.Runtimes{
@@ -158,6 +161,87 @@ var _ = t.Describe("Oci", func() {
 			Expect(attachErr).To(MatchError(errors.ErrUnsupported))
 			Expect(portForwardErr).To(MatchError(errors.ErrUnsupported))
 			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
+		})
+
+		It("should use the pod's runtime handler for a spoofed infra container", func() {
+			// Given
+			c := oci.NewSpoofedContainer(
+				"id", "name", nil, nil, "id", performanceRuntime, time.Now(), t.MustTempDir("crio"),
+			)
+
+			// When
+			impl, err := sut.RuntimeImpl(c)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(oci.RuntimeImplHandler(impl)).To(BeIdenticalTo(runtimes[performanceRuntime]))
+		})
+		It("should use the default runtime for a spoofed infra container", func() {
+			// Given
+			c := oci.NewSpoofedContainer(
+				"id", "name", nil, nil, "id", "", time.Now(), t.MustTempDir("crio"),
+			)
+
+			// When
+			impl, err := sut.RuntimeImpl(c)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(oci.RuntimeImplHandler(impl)).To(BeIdenticalTo(runtimes[defaultRuntime]))
+		})
+		It("should not use a default pod runtime for a spoofed infra container", func() {
+			// Given
+			config.Runtimes = libconfig.Runtimes{
+				defaultRuntime: runtimes[defaultRuntime],
+				podRuntime: &libconfig.RuntimeHandler{
+					RuntimePath: "/bin/sh",
+					RuntimeType: libconfig.RuntimeTypePod,
+					RuntimeRoot: "/run/runc",
+					MonitorPath: "/does/not/exist/conmonrs",
+				},
+			}
+			config.DefaultRuntime = podRuntime
+			podSut, err := oci.New(config)
+			Expect(err).ToNot(HaveOccurred())
+
+			c := oci.NewSpoofedContainer(
+				"id", "name", nil, nil, "id", defaultRuntime, time.Now(), t.MustTempDir("crio"),
+			)
+
+			// When
+			impl, err := podSut.RuntimeImpl(c)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(oci.RuntimeImplHandler(impl)).To(BeIdenticalTo(runtimes[defaultRuntime]))
+		})
+
+		It("should use the default runtime for a spoofed container of a removed handler", func() {
+			// Given
+			c := oci.NewSpoofedContainer(
+				"id", "name", nil, nil, "id", "removed", time.Now(), t.MustTempDir("crio"),
+			)
+
+			// When
+			impl, err := sut.RuntimeImpl(c)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(oci.RuntimeImplHandler(impl)).To(BeIdenticalTo(runtimes[defaultRuntime]))
+		})
+		It("should fail for a container of a removed handler", func() {
+			// Given
+			c, err := oci.NewContainer("id", "name", "bundlePath", "logPath",
+				map[string]string{}, map[string]string{}, map[string]string{},
+				"image", nil, nil, "", &types.ContainerMetadata{}, "sandbox",
+				false, false, false, "removed", "dir", time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			_, err = sut.RuntimeImpl(c)
+
+			// Then
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("Seccomp should return the runtime seccomp config", func() {
