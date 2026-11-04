@@ -104,7 +104,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 	hostNetwork := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
 
-	if !hostNetwork {
+	networkIsolated := !hostNetwork && isNetworkIsolated(sbox.Config())
+	sbox.SetNetworkIsolated(networkIsolated)
+
+	if !hostNetwork && !networkIsolated {
 		if err := s.waitForCNIPlugin(ctx, sboxName); err != nil {
 			return nil, err
 		}
@@ -294,6 +297,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
 	g.AddAnnotation(annotations.KubeName, kubeName)
 	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
+	g.AddAnnotation(annotations.NetworkIsolated, fmt.Sprintf("%v", networkIsolated))
 	g.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
 	if podContainer.Config.Config.StopSignal != "" {
 		g.AddAnnotation(v2.StopSignal, podContainer.Config.Config.StopSignal)
@@ -337,6 +341,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	sbox.SetHostname(hostname)
 	sbox.SetPortMappings(portMappings)
 	sbox.SetHostNetwork(hostNetwork)
+	sbox.SetNetworkIsolated(networkIsolated)
 	sbox.SetPodLinuxResources(resources)
 	sbox.SetDNSConfig(sbox.Config().DnsConfig)
 
