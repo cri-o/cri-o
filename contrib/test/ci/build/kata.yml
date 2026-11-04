@@ -188,14 +188,41 @@
           [Install]
           WantedBy=local-fs.target
 
+    - name: Download oras CLI
+      get_url:
+        url: "https://github.com/oras-project/oras/releases/download/v{{ oras_version }}/oras_{{ oras_version }}_linux_amd64.tar.gz"
+        dest: "/tmp/oras-{{ oras_version }}.tar.gz"
+        checksum: "{{ oras_amd64_checksum }}"
+
+    - name: Install oras CLI
+      become: yes
+      command: tar -xzf /tmp/oras-{{ oras_version }}.tar.gz -C /usr/local/bin oras
+      args:
+        creates: /usr/local/bin/oras
+
     - name: Pull and extract podvm image
       become: yes
       shell: |
-        podman pull {{ podvm_image }}
-        podman create --name qcow_extractor {{ podvm_image }} /bin/true
-        QCOW=$(podman export qcow_extractor | tar t | grep '\.qcow2$')
-        podman cp "qcow_extractor:/$QCOW" /tmp/podvm.qcow2
-        podman rm qcow_extractor
+        set -euo pipefail
+
+        workdir=$(mktemp -d)
+        trap 'rm -rf "$workdir"' EXIT
+
+        # the podvm is published as an OCI artifact, not as a container image
+        /usr/local/bin/oras pull {{ podvm_image }} -o "$workdir"
+
+        if [ -f "$workdir/podvm.tar.xz" ]; then
+          tar -xJf "$workdir/podvm.tar.xz" -C "$workdir"
+        fi
+
+        QCOW=$(find "$workdir" -maxdepth 1 -name '*.qcow2' -print -quit)
+        if [ -z "$QCOW" ]; then
+          echo "no qcow2 found in {{ podvm_image }}" >&2
+          ls -l "$workdir" >&2
+          exit 1
+        fi
+        cp "$QCOW" /tmp/podvm.qcow2
+
         LIBGUESTFS_BACKEND=direct virt-customize -a /tmp/podvm.qcow2 \
           --run-command 'mkdir -p /media/cidata' \
           --copy-in /tmp/media-cidata.mount:/etc/systemd/system/ \
