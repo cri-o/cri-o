@@ -35,6 +35,10 @@ report=$(mktemp)
 trap 'rm "$report"' EXIT
 "$GOPATH_BIN"/govulncheck -format json -tags=test ./... >"$report"
 
+# Check the release scripts as well. They are a separate module and not part
+# of the VEX report above, since they do not end up in the CRI-O binary.
+(cd scripts && "$GOPATH_BIN"/govulncheck -format json ./...) >>"$report"
+
 # Parse vulnerabilities from the report.
 modvulns=$(jq -Sr '.vulnerability.modules[]? | select(.path != "stdlib") | [.path, "affected package(s): \(.packages[].path)", "found version: \(.found_version)", "fixed version: \(.fixed_version)"]' <"$report")
 libvulns=$(jq -Sr '.vulnerability.modules[]? | select(.path == "stdlib") | [.path, "affected package(s): \(.packages[].path)", "found version: \(.found_version)", "fixed version: \(.fixed_version)"]' <"$report")

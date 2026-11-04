@@ -5,23 +5,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestVersion runs the created specs.
-func TestVersion(t *testing.T) {
+// TestRelease runs the created specs.
+func TestRelease(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunFrameworkSpecs(t, "Version")
+	RunSpecs(t, "Release")
 }
-
-var t *TestFramework
-
-var _ = BeforeSuite(func() {
-	t = NewTestFramework(NilFunc, NilFunc)
-	t.Setup()
-})
-
-var _ = AfterSuite(func() {
-	t.Teardown()
-})
