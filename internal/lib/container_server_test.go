@@ -181,6 +181,52 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(sut.GetInfraContainer(context.Background(), sandboxID)).NotTo(BeNil())
 		})
 
+		It("should restore the runtime handler of a dropped infra container", func() {
+			// Given
+			createDummyState()
+			mockDirs(bytes.Replace(testManifest,
+				[]byte(`"io.kubernetes.cri-o.CNIResult": "{}"`),
+				[]byte(`"io.kubernetes.cri-o.CNIResult": "{}",
+					"io.kubernetes.cri-o.RuntimeHandler": "handler",
+					"io.kubernetes.cri-o.InfraRuntimeHandler": "handler",
+					"spoofed.crio.io": "true"`), 1,
+			))
+
+			// When
+			_, err := sut.LoadSandbox(context.Background(), "id")
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			infra := sut.GetInfraContainer(context.Background(), sandboxID)
+			Expect(infra.Spoofed()).To(BeTrue())
+			Expect(infra.RuntimeHandler()).To(Equal("handler"))
+		})
+
+		It(
+			"should restore a dropped infra container of an older CRI-O with the default handler",
+			func() {
+				// Given
+				createDummyState()
+				mockDirs(bytes.Replace(testManifest,
+					[]byte(`"io.kubernetes.cri-o.CNIResult": "{}"`),
+					[]byte(`"io.kubernetes.cri-o.CNIResult": "{}",
+					"io.kubernetes.cri-o.RuntimeHandler": "handler",
+					"spoofed.crio.io": "true"`), 1,
+				))
+
+				// When
+				_, err := sut.LoadSandbox(context.Background(), "id")
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+
+				infra := sut.GetInfraContainer(context.Background(), sandboxID)
+				Expect(infra.Spoofed()).To(BeTrue())
+				Expect(infra.RuntimeHandler()).To(BeEmpty())
+			},
+		)
+
 		It("should succeed with invalid network namespace", func() {
 			// Given
 			createDummyState()

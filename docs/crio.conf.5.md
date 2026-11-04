@@ -278,6 +278,7 @@ Path to directory in which container exit files are written to by conmon.
 
 **container_attach_socket_dir**="/var/run/crio"
 Path to directory for container attach sockets.
+Runtime handlers with `runtime_type = "pod"` ignore it, conmon-rs creates the attach sockets in the directory of the pod's infra container.
 
 **bind_mount_prefix**=""
 A prefix to use for the source of the bind mounts. This option would be useful when running CRI-O in a container and the / directory on the host is mounted as /host in the container. Then if CRI-O runs with the --bind-mount-prefix=/host option, CRI-O would add the /host directory to any bind mounts it hands over to CRI. If Kubernetes asked to have /var/lib/foobar bind mounted into the container, then CRI-O would bind mount /host/var/lib/foobar. Since CRI-O itself is running in a container with / or the host mounted on /host, the container would end up with /var/lib/foobar from the host mounted in the container rather than /var/lib/foobar from the CRI-O container.

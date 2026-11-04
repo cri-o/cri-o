@@ -39,6 +39,8 @@ var _ = t.Describe("IsInternal", func() {
 		Entry("Volumes", annotations.Volumes),
 		Entry("SandboxID", annotations.SandboxID),
 		Entry("ContainerManager", annotations.ContainerManager),
+		Entry("InfraRuntimeHandler", annotations.InfraRuntimeHandler),
+		Entry("RequestedOOMScoreAdj", annotations.RequestedOOMScoreAdj),
 		Entry("indexed IP.0", "io.kubernetes.cri-o.IP.0"),
 		Entry("indexed IP.1", "io.kubernetes.cri-o.IP.1"),
 	)

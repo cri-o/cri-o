@@ -1250,6 +1250,8 @@ const templateStringCrioRuntimeContainerExitsDir = `# Path to directory in which
 `
 
 const templateStringCrioRuntimeContainerAttachSocketDir = `# Path to directory for container attach sockets.
+# Runtime handlers with runtime_type "pod" ignore it, conmon-rs creates the
+# attach sockets in the directory of the pod's infra container.
 {{ $.Comment }}container_attach_socket_dir = "{{ .ContainerAttachSocketDir }}"
 
 `

@@ -1175,6 +1175,11 @@ func (s *Server) createSandboxContainer(
 		}
 	}()
 
+	// Like for the infra container, the OCI runtime may not be allowed to set
+	// the OOM score adjustment in a user namespace, for example the one of the
+	// kubelet for Guaranteed pods. It runs after NRI, which may change it.
+	restrictOOMScoreAdjInUserNS(ctx, specgen)
+
 	if hooks != nil {
 		if err := hooks.PreCreate(ctx, specgen, sb, ociContainer); err != nil {
 			return nil, fmt.Errorf(

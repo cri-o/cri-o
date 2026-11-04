@@ -46,6 +46,40 @@ function redis_ping() {
 	grep -q "Using conmonrs version:" "$CRIO_LOG"
 }
 
+@test "conmonrs is used for the runtime handler of a pod without infra container" {
+	setup_crio
+	# The default runtime uses conmon, the pod selects conmon-rs with its
+	# runtime handler and has no infra container with a container PID
+	# namespace.
+	cat << EOF > "$CRIO_CONFIG_DIR/99-runtime-handler.conf"
+[crio.runtime]
+drop_infra_ctr = true
+default_runtime = "conmon"
+[crio.runtime.runtimes.conmon]
+runtime_path = "$RUNTIME_BINARY_PATH"
+runtime_root = "$RUNTIME_ROOT"
+runtime_type = "oci"
+[crio.runtime.runtimes.conmonrs]
+runtime_path = "$RUNTIME_BINARY_PATH"
+runtime_root = "$RUNTIME_ROOT"
+runtime_type = "pod"
+EOF
+	unset CONTAINER_DEFAULT_RUNTIME
+	unset CONTAINER_RUNTIMES
+	unset CONTAINER_DROP_INFRA_CTR
+	start_crio_no_setup
+
+	POD=$(crictl runp -r conmonrs "$TESTDATA"/sandbox_config.json)
+	grep -q "Dropping infra container for pod $POD" "$CRIO_LOG"
+	CTR=$(crictl create "$POD" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$CTR"
+
+	grep -q "Using conmonrs version:" "$CRIO_LOG"
+	CTR_PID=$(crictl inspect "$CTR" | jq -r .info.pid)
+	PARENT_PID=$(ps -o ppid= -p "$CTR_PID" | tr -d ' ')
+	[[ $(cat /proc/"$PARENT_PID"/comm) == conmonrs ]]
+}
+
 @test "conmonrs streaming server for exec" {
 	start_crio_with_websocket_stream_server
 	POD=$(crictl runp "$TESTDATA"/sandbox_config.json)

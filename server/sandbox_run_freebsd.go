@@ -471,8 +471,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 	} else {
 		log.Debugf(ctx, "Dropping infra container for pod %s", sboxId)
-		container = oci.NewSpoofedContainer(sboxId, containerName, labels, sboxId, created, podContainer.RunDir)
+		container = oci.NewSpoofedContainer(sboxId, containerName, labels, kubeAnnotations, sboxId, runtimeHandler, created, podContainer.RunDir)
 		g.AddAnnotation(v2.Spoofed, "true")
+		g.AddAnnotation(annotations.InfraRuntimeHandler, runtimeHandler)
 	}
 	container.SetMountPoint(mountPoint)
 	container.SetSpec(g.Config)
