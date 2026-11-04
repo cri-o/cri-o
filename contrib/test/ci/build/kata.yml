@@ -98,7 +98,6 @@
           - libvirt-client
           - virt-install
           - edk2-ovmf
-          - "{{ 'guestfs-tools' if ansible_distribution_major_version | int >= 40 else 'libguestfs-tools-c' }}"
         state: present
 
     - name: Start and enable libvirtd
@@ -168,26 +167,6 @@
       args:
         executable: /bin/bash
 
-    - name: Write systemd mount unit for cloud-init ISO
-      become: yes
-      copy:
-        dest: /tmp/media-cidata.mount
-        content: |
-          [Unit]
-          Description=Mount cloud-init NoCloud ISO
-          DefaultDependencies=no
-          Before=process-user-data.service cloud-init-local.service
-          After=systemd-udevd.service
-
-          [Mount]
-          What=/dev/sr0
-          Where=/media/cidata
-          Type=iso9660
-          Options=ro,nofail
-
-          [Install]
-          WantedBy=local-fs.target
-
     - name: Download oras CLI
       get_url:
         url: "https://github.com/oras-project/oras/releases/download/v{{ oras_version }}/oras_{{ oras_version }}_linux_amd64.tar.gz"
@@ -208,7 +187,11 @@
         workdir=$(mktemp -d)
         trap 'rm -rf "$workdir"' EXIT
 
-        # the podvm is published as an OCI artifact, not as a container image
+        # The podvm is published as an OCI artifact (not a container image).
+        # Its rootfs is an immutable squashfs+dm-verity image, so it cannot
+        # be modified with virt-customize. No injection is needed: the image
+        # mounts the NoCloud ISO the CAA libvirt provider attaches (by label
+        # "cidata") at /media/cidata via a process-user-data.service drop-in.
         /usr/local/bin/oras pull {{ podvm_image }} -o "$workdir"
 
         if [ -f "$workdir/podvm.tar.xz" ]; then
@@ -221,17 +204,10 @@
           ls -l "$workdir" >&2
           exit 1
         fi
-        cp "$QCOW" /tmp/podvm.qcow2
 
-        LIBGUESTFS_BACKEND=direct virt-customize -a /tmp/podvm.qcow2 \
-          --run-command 'mkdir -p /media/cidata' \
-          --copy-in /tmp/media-cidata.mount:/etc/systemd/system/ \
-          --run-command 'systemctl enable media-cidata.mount'
-        rm -f /tmp/media-cidata.mount
         virsh vol-create-as --pool default --name podvm-base.qcow2 \
           --capacity 20G --allocation 2G --prealloc-metadata --format qcow2 || true
-        virsh vol-upload --vol podvm-base.qcow2 /tmp/podvm.qcow2 --pool default --sparse
-        rm -f /tmp/podvm.qcow2
+        virsh vol-upload --vol podvm-base.qcow2 "$QCOW" --pool default --sparse
       args:
         executable: /bin/bash
 
