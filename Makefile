@@ -79,7 +79,8 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -name '*_test.go')
 
 # Some of the packages use the golang testing infra in end-to-end tests.
 # These can't be run as unit tests so ginkgo should skip them.
-GINKGO_SKIP_PACKAGES = test/nri
+GINKGO_SKIP_PACKAGES = test/nri,scripts
+SCRIPTS_BIN_PATH := ${BUILD_PATH}/scripts
 
 # Set DEBUG=1 to enable debug symbols in binaries
 DEBUG ?= 0
@@ -326,6 +327,7 @@ lint: ${GOLANGCI_LINT} ## Run the golang linter, supposed to not run on CI.
 	${GOLANGCI_LINT} version
 	${GOLANGCI_LINT} linters
 	GL_DEBUG=gocritic ${GOLANGCI_LINT} run --fix
+	cd scripts && GL_DEBUG=gocritic ${GOLANGCI_LINT} run --fix
 
 .PHONY: check-log-lines
 check-log-lines: ## Verify that all log lines start with a capitalized letter.
@@ -378,6 +380,7 @@ testunit: ${GINKGO} ## Run the unit tests.
 		$(GO_MOD_VENDOR) \
 		--succinct
 	$(GO) tool cover -html=${COVERAGE_PATH}/coverprofile -o ${COVERAGE_PATH}/coverage.html
+	$(GO) -C scripts test ./...
 
 .PHONY: localintegration
 localintegration: clean binaries test-binaries ## Run the local integration tests.
@@ -390,6 +393,7 @@ verify-dependencies: ${ZEITGEIST} ## Verify the local dependencies.
 .PHONY: verify-gosec
 verify-gosec: ${GOSEC} ## Run gosec on the project.
 	${BUILD_BIN_PATH}/gosec -exclude-dir=test -exclude-dir=_output -severity high -confidence high -exclude G304,G108,G703 ./...
+	cd scripts && ${BUILD_BIN_PATH}/gosec -severity high -confidence high -exclude G304,G108,G703 ./...
 
 .PHONY: verify-govulncheck
 verify-govulncheck: ## Check common vulnerabilities.
@@ -437,6 +441,8 @@ vendor: ## Update the vendored dependencies.
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
+	$(GO) -C scripts mod tidy
+	$(GO) -C scripts mod verify
 
 .PHONY: testunit-bin
 testunit-bin: ## Build the unit test binaries.
@@ -588,27 +594,34 @@ docs-validation: ## Validate the documentation.
 
 ##@ CI targets:
 
+# The scripts are a separate Go module, but have to run from the repository
+# root, which is why they get built first instead of using go run.
+define run-script
+	$(GO) -C scripts build -o ${SCRIPTS_BIN_PATH}/$(1) ./$(1)
+	${SCRIPTS_BIN_PATH}/$(1)
+endef
+
 .PHONY: release
 release: ## Run the release script.
-	${GO_RUN} ./scripts/release
+	$(call run-script,release)
 
 .PHONY: tag-reconciler
 tag-reconciler: ## Run the release tag reconciler script.
-	${GO_RUN} ./scripts/tag-reconciler
+	$(call run-script,tag-reconciler)
 
 .PHONY: release-notes
 release-notes: ${RELEASE_NOTES} ## Run the release notes tool.
-	${GO_RUN} ./scripts/release-notes \
+	$(call run-script,release-notes) \
 		--output-path ${BUILD_PATH}/release-notes
 
 .PHONY: dependencies
 dependencies: ${GO_MOD_OUTDATED} ## Run the golang dependency report.
-	${GO_RUN} ./scripts/dependencies \
+	$(call run-script,dependencies) \
 		--output-path ${BUILD_PATH}/dependencies
 
 .PHONY: release-branch-forward
 release-branch-forward: ## Run the release branch fast forward script.
-	$(GO_RUN) ./scripts/release-branch-forward
+	$(call run-script,release-branch-forward)
 
 .PHONY: upload-artifacts
 upload-artifacts: ## Upload the built artifacts.
