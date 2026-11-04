@@ -76,12 +76,9 @@ type Container struct {
 	// is set before using it.
 	Created time.Time `json:"created"`
 
-	// UIDMap and GIDMap are the caller's requested UID/GID mapping for this
-	// container's user namespace.  They always reflect what the caller
-	// asked for, regardless of whether the mapping was applied at layer
-	// creation time (chown) or is deferred to mount time (idmapped mounts).
-	// At mount time, these maps are passed to the graph driver so that the
-	// container sees the expected file ownership.
+	// UIDMap and GIDMap are used for setting up a container's root
+	// filesystem for use inside of a user namespace where UID mapping is
+	// being used.
 	UIDMap []idtools.IDMap `json:"uidmap,omitempty"`
 	GIDMap []idtools.IDMap `json:"gidmap,omitempty"`
 

@@ -95,6 +95,9 @@ type MountOpts struct {
 	// Volatile specifies whether the container storage can be optimized
 	// at the cost of not syncing all the dirty files in memory.
 	Volatile bool
+
+	// DisableShifting forces the driver to not do any ID shifting at runtime.
+	DisableShifting bool
 }
 
 // ApplyDiffOpts contains optional arguments for ApplyDiff methods.
@@ -307,11 +310,6 @@ type DifferOptions struct {
 
 	// UseFsVerity defines whether fs-verity is used
 	UseFsVerity DifferFsVerity
-
-	// StagingDirectory is a writable directory the differ can use for
-	// temporary scratch data.  It must reside on the same filesystem
-	// as the destination directory.
-	StagingDirectory string
 }
 
 // Differ defines the interface for using a custom differ.

@@ -5,8 +5,6 @@ package system
 import (
 	"os"
 	"syscall"
-
-	"go.podman.io/storage/internal/stat"
 )
 
 // Lstat takes a path to a file and returns
@@ -18,5 +16,5 @@ func Lstat(path string) (*StatT, error) {
 	if err := syscall.Lstat(path, s); err != nil {
 		return nil, &os.PathError{Op: "Lstat", Path: path, Err: err}
 	}
-	return stat.FromStatT(s), nil
+	return fromStatT(s)
 }

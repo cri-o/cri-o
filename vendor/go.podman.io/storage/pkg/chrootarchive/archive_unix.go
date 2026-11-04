@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -29,8 +28,6 @@ type unpackDestination struct {
 func (dst *unpackDestination) Close() error {
 	return dst.root.Close()
 }
-
-const statusCodeENOSPC = 2
 
 // tarOptionsDescriptor is passed as an extra file
 const tarOptionsDescriptor = 3
@@ -85,9 +82,6 @@ func untar() {
 	}
 
 	if err := archive.Unpack(os.Stdin, dst, &options); err != nil {
-		if errors.Is(err, unix.ENOSPC) {
-			os.Exit(statusCodeENOSPC)
-		}
 		fatal(err)
 	}
 	// fully consume stdin in case it is zero padded
@@ -169,14 +163,6 @@ func invokeUnpack(decompressedArchive io.Reader, dest *unpackDestination, option
 			return fmt.Errorf("%w\nexhausting input failed (error: %w)", errorOut, err)
 		}
 
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			status := exitErr.ExitCode()
-			if status == statusCodeENOSPC {
-				return unix.ENOSPC
-			}
-		}
-
 		return errorOut
 	}
 	return nil
@@ -196,7 +182,7 @@ func tar() {
 		root = src
 	}
 
-	if err := chroot(root); err != nil {
+	if err := realChroot(root); err != nil {
 		fatal(err)
 	}
 
@@ -238,13 +224,6 @@ func invokePack(srcPath string, options *archive.TarOptions, root string) (io.Re
 	if strings.HasSuffix(srcPath, "/") && !strings.HasSuffix(relSrc, "/") {
 		relSrc += "/"
 	}
-
-	var optionsCopy archive.TarOptions
-	if options != nil {
-		optionsCopy = *options
-	}
-	optionsCopy.InternalRunningInMinimalChroot = true
-	options = &optionsCopy
 
 	cmd := reexec.Command("storage-tar", relSrc, root)
 

@@ -1,6 +1,8 @@
 package system
 
-import "go.podman.io/storage/internal/xattrs"
+import (
+	"errors"
+)
 
 // ErrNotSupportedPlatform means the platform is not supported.
-var ErrNotSupportedPlatform = xattrs.ErrNotSupportedPlatform
+var ErrNotSupportedPlatform = errors.New("platform and architecture is not supported")

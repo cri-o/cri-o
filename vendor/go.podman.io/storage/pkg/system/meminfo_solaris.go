@@ -97,7 +97,6 @@ func ReadMemInfo() (*MemInfo, error) {
 	// Total memory is total physical memory less than memory locked by kernel
 	meminfo.MemTotal = MemTotal - int64(ppKernel)
 	meminfo.MemFree = MemFree
-	meminfo.MemAvailable = -1
 	meminfo.SwapTotal = SwapTotal
 	meminfo.SwapFree = SwapFree
 

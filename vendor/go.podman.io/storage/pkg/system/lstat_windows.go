@@ -1,10 +1,6 @@
 package system
 
-import (
-	"os"
-
-	"go.podman.io/storage/internal/stat"
-)
+import "os"
 
 // Lstat calls os.Lstat to get a fileinfo interface back.
 // This is then copied into our own locally defined structure.
@@ -14,5 +10,5 @@ func Lstat(path string) (*StatT, error) {
 		return nil, err
 	}
 
-	return stat.FromFileInfo(fi), nil
+	return fromStatT(&fi)
 }

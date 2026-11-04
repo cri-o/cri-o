@@ -6,6 +6,7 @@ import (
 	"archive/tar"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"go.podman.io/storage/pkg/idtools"
@@ -16,6 +17,12 @@ import (
 // the path being passed in is not in a volume path format, convert it to one.
 func fixVolumePathPrefix(srcPath string) string {
 	return longpath.AddPrefix(srcPath)
+}
+
+// getWalkRoot calculates the root path when performing a TarWithOptions.
+// We use a separate function as this is platform specific.
+func getWalkRoot(srcPath string, include string) string {
+	return filepath.Join(srcPath, include)
 }
 
 // CanonicalTarNameForPath returns platform-specific filepath
@@ -60,7 +67,7 @@ func handleTarTypeBlockCharFifo(_ *tar.Header, _ string) error {
 	return nil
 }
 
-func handleLChmod(_ *tar.Header, _, _ string, _ os.FileInfo, _ *os.FileMode) error {
+func handleLChmod(_ *tar.Header, _ string, _ os.FileInfo, _ *os.FileMode) error {
 	return nil
 }
 

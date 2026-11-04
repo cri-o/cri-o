@@ -2,7 +2,6 @@ package mount
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 )
 
@@ -79,7 +78,8 @@ func MergeTmpfsOptions(options []string) ([]string, error) {
 
 	var newOptions []string
 	// We process in reverse order
-	for _, option := range slices.Backward(options) {
+	for i := len(options) - 1; i >= 0; i-- {
+		option := options[i]
 		if option == "defaults" {
 			continue
 		}

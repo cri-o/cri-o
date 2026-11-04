@@ -4,7 +4,6 @@ package archive
 
 import (
 	"archive/tar"
-	"errors"
 	"fmt"
 	"math/bits"
 	"os"
@@ -117,19 +116,7 @@ func ReadFileFlagsToTarHeader(path string, hdr *tar.Header) error {
 	if err != nil {
 		return err
 	}
-	return addFileFlagsToTarHeader(st.Flags(), hdr)
-}
-
-func readFileFlagsToTarHeader(fi os.FileInfo, hdr *tar.Header) error {
-	st, ok := fi.Sys().(*syscall.Stat_t)
-	if !ok {
-		return errors.New("internal error: readFileFlagsToTarHeader without input from Lstat")
-	}
-	return addFileFlagsToTarHeader(st.Flags, hdr)
-}
-
-func addFileFlagsToTarHeader(flags uint32, hdr *tar.Header) error {
-	fflags, err := formatFileFlags(flags)
+	fflags, err := formatFileFlags(st.Flags())
 	if err != nil {
 		return err
 	}

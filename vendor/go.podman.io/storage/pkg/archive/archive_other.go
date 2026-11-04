@@ -2,7 +2,7 @@
 
 package archive
 
-func getWhiteoutConverter(_ WhiteoutFormat, _ any) tarWhiteoutConverter {
+func GetWhiteoutConverter(_ WhiteoutFormat, _ any) TarWhiteoutConverter {
 	return nil
 }
 

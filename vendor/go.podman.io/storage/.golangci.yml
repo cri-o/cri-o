@@ -6,7 +6,6 @@ formatters:
 
 linters:
   enable:
-    - modernize
     - nolintlint
     - unconvert
   exclusions:

@@ -187,7 +187,7 @@ outer:
 	}
 
 	layerOptions := &LayerOptions{
-		IDMappingOptions: LayerIDMappingOptions{
+		IDMappingOptions: types.IDMappingOptions{
 			HostUIDMapping: true,
 			HostGIDMapping: true,
 			UIDMap:         nil,

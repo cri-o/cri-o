@@ -6,11 +6,11 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/Microsoft/go-winio v0.6.4
 	github.com/blang/semver/v4 v4.0.0
-	github.com/checkpoint-restore/checkpointctl v1.7.0
+	github.com/checkpoint-restore/checkpointctl v1.6.0
 	github.com/checkpoint-restore/go-criu/v8 v8.5.0
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.36
-	github.com/containerd/containerd/api v1.12.0
+	github.com/containerd/containerd/api v1.10.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/nri v0.12.5
 	github.com/containerd/otelttrpc v0.1.0
@@ -69,7 +69,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.47.0
 	go.podman.io/common v0.68.1
 	go.podman.io/image/v5 v5.40.0
-	go.podman.io/storage v1.64.2
+	go.podman.io/storage v1.63.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.62.0
 	golang.org/x/sync v0.24.0
@@ -117,7 +117,7 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v1.0.0-rc.4 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.18.2 // indirect
-	github.com/containerd/typeurl/v2 v2.3.0 // indirect
+	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467 // indirect
@@ -184,6 +184,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect
+	github.com/mattn/go-shellwords v1.0.13 // indirect
 	github.com/mattn/go-sqlite3 v1.14.44 // indirect
 	github.com/mdlayher/netlink v1.11.2 // indirect
 	github.com/mdlayher/socket v0.6.1 // indirect
@@ -221,7 +222,7 @@ require (
 	github.com/sylabs/sif/v2 v2.24.0 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
-	github.com/ulikunitz/xz v0.5.16 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.4.0 // indirect
 	github.com/vbatts/tar-split v0.12.3 // indirect
 	github.com/vbauerster/mpb/v8 v8.12.0 // indirect

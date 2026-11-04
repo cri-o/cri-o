@@ -222,5 +222,5 @@ func (gdw *NaiveDiffDriver) DiffSize(id string, idMappings *idtools.IDMappings, 
 	}
 	defer driverPut(driver, id, &err)
 
-	return archive.ChangesSizeWithError(layerFs, changes)
+	return archive.ChangesSize(layerFs, changes), nil
 }

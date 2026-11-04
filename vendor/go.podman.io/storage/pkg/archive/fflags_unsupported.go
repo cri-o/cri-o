@@ -11,10 +11,6 @@ func ReadFileFlagsToTarHeader(path string, hdr *tar.Header) error {
 	return nil
 }
 
-func readFileFlagsToTarHeader(_ os.FileInfo, _ *tar.Header) error {
-	return nil
-}
-
 func WriteFileFlagsFromTarHeader(path string, hdr *tar.Header) error {
 	return nil
 }
