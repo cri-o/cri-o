@@ -112,3 +112,26 @@ func pidfdExited(pidfd *os.File) (bool, error) {
 
 	return exited, nil
 }
+
+// openDirPath opens the directory only as a location, which needs no read
+// permission on it, the search permission which a lookup through it needs
+// is enough.
+func openDirPath(path string) (*os.File, error) {
+	fd, err := unix.Open(path, unix.O_PATH|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
+	if err != nil {
+		return nil, &os.PathError{Op: "open", Path: path, Err: err}
+	}
+
+	return os.NewFile(uintptr(fd), path), nil
+}
+
+// serverErrorFile returns a file in memory for the errors of the server
+// launch, see tempErrorFile, which it falls back to.
+func serverErrorFile() (*os.File, error) {
+	fd, err := unix.MemfdCreate("conmonrs-errors", unix.MFD_CLOEXEC)
+	if err != nil {
+		return tempErrorFile()
+	}
+
+	return os.NewFile(uintptr(fd), "conmonrs-errors"), nil
+}

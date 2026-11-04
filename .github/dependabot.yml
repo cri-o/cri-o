@@ -7,6 +7,24 @@ updates:
     labels:
       - "release-note-none"
     open-pull-requests-limit: 10
+    # Patch releases are still allowed for the modules below.
+    ignore:
+      # containerd/containerd v1.7 does not build against api v1.11 and later.
+      # Remove once github.com/containerd/containerd is dropped.
+      - dependency-name: "github.com/containerd/containerd/api"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      # Keep go.podman.io in sync with the RHEL releases of podman.
+      - dependency-name: "go.podman.io/*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      # checkpointctl v1.7.0 requires go.podman.io/storage v1.64.
+      - dependency-name: "github.com/checkpoint-restore/checkpointctl"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
     groups:
       kubernetes:
         patterns:

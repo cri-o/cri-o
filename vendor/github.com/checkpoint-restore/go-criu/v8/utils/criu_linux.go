@@ -8,7 +8,7 @@ import (
 	"github.com/checkpoint-restore/go-criu/v8/rpc"
 )
 
-// CheckForCRIU checks if CRIU is available and if it is as least the
+// CheckForCRIU checks if CRIU is available and if it is at least the
 // version as specified in the "version" parameter.
 func CheckForCriu(version int) error {
 	criuVersion, err := GetCriuVersion()

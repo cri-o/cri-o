@@ -8,7 +8,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelutil"
@@ -65,10 +65,10 @@ func (hook *Hook) Fire(entry *logrus.Entry) error {
 
 	if entry.Caller != nil {
 		if entry.Caller.Function != "" {
-			attrs = append(attrs, semconv.CodeFunctionKey.String(entry.Caller.Function))
+			attrs = append(attrs, semconv.CodeFunctionNameKey.String(entry.Caller.Function))
 		}
 		if entry.Caller.File != "" {
-			attrs = append(attrs, semconv.CodeFilepathKey.String(entry.Caller.File))
+			attrs = append(attrs, semconv.CodeFilePathKey.String(entry.Caller.File))
 			attrs = append(attrs, semconv.CodeLineNumberKey.Int(entry.Caller.Line))
 		}
 	}

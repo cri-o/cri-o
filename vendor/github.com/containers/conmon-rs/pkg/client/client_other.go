@@ -38,3 +38,14 @@ func pidfdSendSignal(*os.File, syscall.Signal) error {
 func pidfdExited(*os.File) (bool, error) {
 	return false, errPidfdUnsupported
 }
+
+// openDirPath opens the directory, O_PATH is only supported on Linux.
+func openDirPath(path string) (*os.File, error) {
+	return os.Open(path) //nolint:wrapcheck // wrapped by the caller
+}
+
+// serverErrorFile returns a file for the errors of the server launch, memfds
+// are only supported on Linux, see tempErrorFile.
+func serverErrorFile() (*os.File, error) {
+	return tempErrorFile()
+}
