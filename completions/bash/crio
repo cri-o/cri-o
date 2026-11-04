@@ -128,7 +128,9 @@ h
 --root
 --runroot
 --runtimes
+--seccomp-baseline-profile
 --seccomp-profile
+--security-profile-max-size
 --selinux
 --separate-pull-cgroup
 --shared-cpuset

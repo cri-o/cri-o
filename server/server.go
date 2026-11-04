@@ -36,6 +36,7 @@ import (
 	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
+	"github.com/cri-o/cri-o/internal/securityprofile"
 	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
@@ -101,6 +102,9 @@ type Server struct {
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
 
 	artifactStore *ociartifact.Store
+
+	// securityProfiles holds the security profiles pulled as OCI artifacts.
+	securityProfiles *securityprofile.Store
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -519,8 +523,10 @@ func New(
 		return nil, err
 	}
 
+	graphRoot := containerServer.Store().GraphRoot()
+
 	artifactStore, err := ociartifact.NewStore(
-		containerServer.Store().GraphRoot(),
+		graphRoot,
 		config.AdditionalArtifactStores,
 		config.SystemContext,
 		defaultImageServer.PinnedImageRegexps(),
@@ -660,6 +666,18 @@ func New(
 	} else {
 		log.Debugf(ctx, "Metrics are disabled")
 	}
+
+	// Security profiles live in a store of their own, so that they never
+	// show up as images, even if an image volume uses the same artifact.
+	s.securityProfiles = securityprofile.New(ctx, &securityprofile.Options{
+		Dir:     filepath.Join(graphRoot, "security-profiles"),
+		MaxSize: config.SecurityProfileMaxSize,
+		SystemContext: func(namespace string) (*imageTypes.SystemContext, error) {
+			sys, err := s.contextForNamespace(namespace)
+
+			return &sys, err
+		},
+	})
 
 	if s.config.Seccomp().IsDisabled() {
 		log.Infof(ctx, "Seccomp is disabled. Not starting notifier watcher")
