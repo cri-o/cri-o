@@ -1257,6 +1257,12 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	stateCmd := func() (*ContainerState, bool, error) {
 		out, err := r.runtimeCmd("state", c.ID())
 		if err != nil {
+			if errors.Is(err, ErrNotFound) && c.state.PodRestoreKey != "" &&
+				c.state.Restore && c.state.Status == ContainerStateCreated && c.state.InitPid == 0 {
+				// A pending Pod restore has storage and a spec, but no OCI task.
+				return nil, true, nil
+			}
+
 			log.Errorf(ctx, "Failed to update container state for %s: %v", c.ID(), err)
 			// There are many code paths that could lead to have a bad state in the
 			// underlying runtime.
@@ -1733,6 +1739,8 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 		case strings.Contains(stdErrStr, "no such process"):
 			fallthrough //nolint:gocritic // fallthrough in switch-like case chain is intentional
 		// runc, for most of the commands.
+		case strings.Contains(stdErrStr, "container does not exist"):
+			fallthrough //nolint:gocritic // same missing-container result as other runtimes
 		case strings.Contains(stdErrStr, "container not running"):
 			fallthrough //nolint:gocritic // fallthrough in switch-like case chain is intentional
 		// runc, on a rare occasion.

@@ -854,7 +854,10 @@ func isTrue(annotaton string) bool {
 
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk.
-func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Container) error {
+func (c *ContainerServer) ContainerStateToDisk(
+	ctx context.Context,
+	ctr *oci.Container,
+) (retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -867,7 +870,9 @@ func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Con
 		return err
 	}
 
-	defer jsonSource.Close()
+	defer func() {
+		retErr = errors.Join(retErr, jsonSource.Close())
+	}()
 
 	enc := json.NewEncoder(jsonSource)
 

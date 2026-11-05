@@ -64,6 +64,12 @@ func (s *Server) createContainerPlatform(
 		}
 	}
 
+	if container.PodRestoreKey() != "" {
+		// Like single-container restore, create the OCI task and conmon only
+		// when StartContainer restores the saved process.
+		return nil
+	}
+
 	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }
 
