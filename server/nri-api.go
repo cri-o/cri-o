@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/containerd/nri/pkg/api"
 	nrigen "github.com/containerd/nri/pkg/runtime-tools/generate"
@@ -948,6 +949,58 @@ func (c *criContainer) GetUser() *api.User {
 		Gid:            spec.Process.User.GID,
 		AdditionalGids: slices.Clone(spec.Process.User.AdditionalGids),
 	}
+}
+
+func (c *criContainer) GetImage() *api.Image {
+	if c.ctr == nil {
+		return nil
+	}
+
+	// Same as CRI ContainerStatus: empty if the image has no stored name.
+	name := ""
+	if someName := c.ctr.SomeNameOfTheImage(); someName != nil {
+		name = someName.StringForOutOfProcessConsumptionOnly()
+	}
+
+	// ImageRef is a repo digest (name@digest) if one is known, else the image ID.
+	_, digest, _ := strings.Cut(c.ctr.CRIContainer().GetImageRef(), "@")
+
+	configDigest := c.configDigest()
+
+	if name == "" && digest == "" && configDigest == "" {
+		return nil
+	}
+
+	return &api.Image{
+		Name:         name,
+		Digest:       digest,
+		ConfigDigest: configDigest,
+	}
+}
+
+// configDigest looks up the config digest of the container image. The storage
+// image ID is not used because it is not always the config digest.
+func (c *criContainer) configDigest() string {
+	id := c.ctr.ImageID()
+	if id == nil || c.api == nil || c.api.cri == nil {
+		return ""
+	}
+
+	imageService, err := c.api.cri.StorageImageServer(c.api.cri.GetSandbox(c.ctr.Sandbox()))
+	if err != nil {
+		return ""
+	}
+
+	status, err := imageService.ImageStatusByID(c.api.cri.config.SystemContext, *id)
+	if err != nil {
+		// The image might have been removed since the container was created.
+		log.Debugf(context.TODO(), "Unable to get config digest of image %s for container %s: %v",
+			id.IDStringForOutOfProcessConsumptionOnly(), c.ctr.ID(), err)
+
+		return ""
+	}
+
+	return status.ConfigDigest.String()
 }
 
 func (c *criContainer) GetRlimits() []*api.POSIXRlimit {
