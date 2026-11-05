@@ -503,7 +503,16 @@ function cleanup_test() {
         if [ "$RUNTIME_TYPE" == "vm" ]; then
             # cleanup left over kata processes
             # don't fail if there is none
-            run killall containerd-shim-kata-v2
+            # The runtime-rs shim ignores SIGTERM by design and expects its
+            # supervisor to escalate to SIGKILL, and the shim and its QEMU
+            # child inherit FD 3 of the test, so processes leaking the VM
+            # teardown would otherwise keep bats from exiting after all tests
+            # ran. Kill the whole VM process tree hard. The pkill is scoped
+            # to the kata install path so peer-pod VMs run by libvirt or CAA
+            # are not affected, and relies on the kata tests running with
+            # JOBS=1, so no other test has VMs in flight here.
+            run killall -9 containerd-shim-kata-v2
+            run pkill -KILL -f /opt/kata
         fi
         kill_leaked_processes
         cleanup_testdir
