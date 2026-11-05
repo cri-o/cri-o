@@ -129,14 +129,13 @@ function teardown() {
 
 	start_crio_no_setup
 
-	# This also reconnects CRI-O to the shim, which kubelet does by polling the
-	# container status after a restart.
-	output=$(crictl inspect -o table "$ctr_id")
-	[[ "${output}" == *"CONTAINER_RUNNING"* ]]
-
-	# The cached pid must not decide this: the runtime does.
+	# Exec must work using the runtime restored at startup, before an inspect
+	# can refresh its status. The stale cached pid must not decide this.
 	crictl exec "$ctr_id" echo after
 	crictl exec --sync "$ctr_id" echo after
+
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_RUNNING"* ]]
 
 	crictl stop "$ctr_id"
 	crictl rm "$ctr_id"

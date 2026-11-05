@@ -6,7 +6,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/oci"
@@ -58,6 +61,7 @@ var _ = t.Describe("ContainerExecSync", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+			Expect(status.Code(err)).To(Equal(codes.NotFound))
 			Expect(err.Error()).To(ContainSubstring("container is not created or running"))
 			Expect(response).To(BeNil())
 		})
@@ -86,13 +90,18 @@ var _ = t.Describe("ContainerExecSync", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+			Expect(status.Code(err)).To(Equal(codes.Unavailable))
 			Expect(err.Error()).To(ContainSubstring("shim for container is not connected"))
 			Expect(response).To(BeNil())
 		})
 
-		It("should attempt exec when the runtime reports the container alive", func() {
+		It("should exec with a stale pid when the runtime reports alive", func() {
 			// Given
 			addContainerAndSandbox()
+			testContainer.SetState(&oci.ContainerState{
+				State:   specs.State{Status: oci.ContainerStateRunning},
+				InitPid: 4194305,
+			})
 
 			// The server's background monitor may probe the container while
 			// this test installs its runtime implementation.
@@ -113,7 +122,12 @@ var _ = t.Describe("ContainerExecSync", func() {
 				})
 			ociRuntimeMock.EXPECT().
 				ExecSyncContainer(gomock.Any(), testContainer, []string{"/bin/sh"}, int64(0)).
-				Return(&types.ExecSyncResponse{}, nil)
+				DoAndReturn(func(ctx context.Context, _ *oci.Container, _ []string, _ int64) (*types.ExecSyncResponse, error) {
+					_, hasDeadline := ctx.Deadline()
+					Expect(hasDeadline).To(BeFalse())
+
+					return &types.ExecSyncResponse{}, nil
+				})
 			sut.Runtime().SetRuntimeImpl(testContainer.ID(), ociRuntimeMock)
 
 			// When

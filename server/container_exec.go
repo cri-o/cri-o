@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -27,7 +28,16 @@ func ensureContainerExecAllowed(ctx context.Context, rt *oci.Runtime, c *oci.Con
 
 	alive, err := rt.IsContainerAlive(aliveCtx, c)
 	if err != nil {
-		return status.Errorf(codes.NotFound, "container is not created or running: %v", err)
+		code := codes.Unavailable
+
+		switch {
+		case errors.Is(err, context.DeadlineExceeded) || status.Code(err) == codes.DeadlineExceeded:
+			code = codes.DeadlineExceeded
+		case errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled:
+			code = codes.Canceled
+		}
+
+		return status.Errorf(code, "unable to determine whether container is running: %v", err)
 	}
 
 	if !alive {
