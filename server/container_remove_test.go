@@ -88,10 +88,14 @@ var _ = t.Describe("ContainerRemove", func() {
 			started := make(chan struct{})
 			release := make(chan struct{})
 
-			go testContainer.RunPostStopCleanup(func() {
-				close(started)
-				<-release
-			})
+			go func() {
+				defer GinkgoRecover()
+
+				Expect(testContainer.RunPostStopCleanup(context.Background(), func() {
+					close(started)
+					<-release
+				})).To(Succeed())
+			}()
 
 			<-started
 

@@ -78,24 +78,30 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 	}
 
-	s.postStopCleanup(ctx, ctr, sb, hooks)
+	if err := s.postStopCleanup(ctx, ctr, sb, hooks); err != nil {
+		return status.Errorf(
+			status.FromContextError(err).Code(),
+			"failed to wait for post-stop cleanup of container %s: %v", ctr.ID(), err,
+		)
+	}
 
 	return nil
 }
 
 // postStopCleanup runs the post-stop cleanup once per container. Both
-// StopContainer and the exit monitor trigger it.
+// StopContainer and the exit monitor trigger it. It returns an error only if
+// ctx ends before the cleanup is done, which then keeps running.
 func (s *Server) postStopCleanup(
 	ctx context.Context,
 	ctr *oci.Container,
 	sb *sandbox.Sandbox,
 	hooks runtimehandlerhooks.RuntimeHandlerHooks,
-) {
+) error {
 	// The cleanup runs only once, so a canceled request must not cut it short.
-	ctx = context.WithoutCancel(ctx)
+	cleanupCtx := context.WithoutCancel(ctx)
 
-	ctr.RunPostStopCleanup(func() {
-		s.runPostStopCleanup(ctx, ctr, sb, hooks)
+	return ctr.RunPostStopCleanup(ctx, func() {
+		s.runPostStopCleanup(cleanupCtx, ctr, sb, hooks)
 	})
 }
 

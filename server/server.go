@@ -996,7 +996,11 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 
 	log.Debugf(ctx, "%s exited and found: %v", resource, containerID)
 
-	s.postStopCleanup(ctx, c, sb, s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations()))
+	// The exit monitor always waits for the cleanup to finish.
+	hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+	if err := s.postStopCleanup(context.WithoutCancel(ctx), c, sb, hooks); err != nil {
+		log.Warnf(ctx, "Failed to wait for post-stop cleanup of %s: %v", c.ID(), err)
+	}
 
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STOPPED_EVENT)
 

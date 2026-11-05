@@ -75,9 +75,11 @@ type Container struct {
 	stopping           bool
 	stopDone           bool
 	stopLock           sync.Mutex
-	// postStopOnce and postStopDone track the post-stop cleanup, see ReportedStatus.
-	postStopOnce sync.Once
-	postStopDone atomic.Bool
+	// postStopCh is closed when the post-stop cleanup is done, and postStopDone
+	// is set then. See RunPostStopCleanup and ReportedStatus.
+	postStopMutex sync.Mutex
+	postStopCh    chan struct{}
+	postStopDone  atomic.Bool
 	// stopTimeoutChan is used to update the stop timeout.
 	// After the container goes into the kill loop, the channel must not be used
 	// because it is not controlled by the timeout anymore.
@@ -728,19 +730,43 @@ func (c *Container) setFinishedIfUnset() {
 	}
 }
 
-// RunPostStopCleanup runs cleanup once and marks it as done. Concurrent callers
-// wait for the running cleanup.
-func (c *Container) RunPostStopCleanup(cleanup func()) {
-	c.postStopOnce.Do(func() {
-		cleanup()
-		c.SetPostStopDone()
-	})
+// RunPostStopCleanup starts cleanup unless it already started, and waits until
+// it is done or ctx ends. The cleanup runs only once and keeps running if ctx
+// ends, so a hanging poststop hook does not block callers past their deadline.
+func (c *Container) RunPostStopCleanup(ctx context.Context, cleanup func()) error {
+	c.postStopMutex.Lock()
+
+	done := c.postStopCh
+	start := done == nil
+
+	if start {
+		done = make(chan struct{})
+		c.postStopCh = done
+	}
+
+	c.postStopMutex.Unlock()
+
+	if start {
+		go func() {
+			defer close(done)
+
+			cleanup()
+			c.SetPostStopDone()
+		}()
+	}
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // AwaitPostStopCleanup waits for a running post-stop cleanup, or marks it as
 // done if none started.
-func (c *Container) AwaitPostStopCleanup() {
-	c.RunPostStopCleanup(func() {})
+func (c *Container) AwaitPostStopCleanup(ctx context.Context) error {
+	return c.RunPostStopCleanup(ctx, func() {})
 }
 
 // SetPostStopDone marks the post-stop cleanup as done.
