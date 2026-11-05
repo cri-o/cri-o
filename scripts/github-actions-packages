@@ -7,6 +7,7 @@ set -euo pipefail
 RUNTIME_PACKAGES=(
     conmon
     libcap-dev
+    libglib2.0-dev
     libgpgme11-dev
     libjson-c-dev
     libseccomp-dev

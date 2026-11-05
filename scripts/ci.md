@@ -75,6 +75,13 @@ and
 via [zeitgeist](https://github.com/kubernetes-sigs/zeitgeist) (checked in CI by
 `make verify-dependencies`).
 
+The [`update-dependencies.yml`](../.github/workflows/update-dependencies.yml)
+workflow runs every Sunday at 06:00 UTC and can also be triggered manually.
+It runs `make update-dependencies` to pin crun, cri-tools, and conmon to their
+latest upstream default-branch commits, then opens or refreshes a pull request
+against `main`. The update keeps `dependencies.yaml`, `scripts/versions`, and
+the CI variables synchronized.
+
 ## Tag Reconciler
 
 The
