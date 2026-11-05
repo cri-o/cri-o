@@ -15,12 +15,12 @@ RUNTIME_PACKAGES=(
     socat
 )
 
-# Packages only needed to build and unit test CRI-O. The integration tests use
-# criu only for checkpoint tests, which require runc.
+# Packages only needed to build and unit test CRI-O. The unit tests also use
+# criu, the integration tests only for the checkpoint tests, which require runc
+# and pass "criu" as second argument.
 BUILD_PACKAGES=(
     autoconf
     automake
-    criu
     libaio-dev
     libapparmor-dev
     libbtrfs-dev
@@ -40,8 +40,14 @@ BUILD_PACKAGES=(
 )
 
 PACKAGES=("${RUNTIME_PACKAGES[@]}")
+INSTALL_CRIU=${2:-}
 if [[ "${1:-}" != runtime ]]; then
     PACKAGES+=("${BUILD_PACKAGES[@]}")
+    INSTALL_CRIU=criu
+fi
+
+if [[ "$INSTALL_CRIU" == criu ]]; then
+    PACKAGES+=(criu)
 
     . /etc/os-release
     CRIU_REPO="https://download.opensuse.org/repositories/devel:/tools:/criu/xUbuntu_$VERSION_ID"

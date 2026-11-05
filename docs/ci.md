@@ -35,7 +35,8 @@ and arm64 (root), with coverage uploaded to Codecov.
 [`integration.yml`](../.github/workflows/integration.yml) runs
 [BATS](https://github.com/bats-core/bats-core) integration tests and
 [critest](https://github.com/kubernetes-sigs/cri-tools) CRI conformance across
-conmon/conmon-rs, amd64/arm64, and user namespace mode. All jobs use crun. Each
+conmon/conmon-rs, amd64/arm64, and user namespace mode. All jobs use crun,
+except for one job which runs the checkpoint tests with runc and CRIU. Each
 integration configuration is split into `INTEGRATION_SHARDS` shards for the
 parallel tests plus one shard for the serial tests (`TEST_SHARD` in
 [`test/test_runner.sh`](../test/test_runner.sh)), which distributes the parallel

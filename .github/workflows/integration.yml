@@ -65,6 +65,7 @@ jobs:
             bin/crio
             bin/pinns
             test/checkcriu/checkcriu
+            test/checkpod/checkpod
             test/checkseccomp/checkseccomp
             test/copyimg/copyimg
             test/updateunified/updateunified
@@ -122,9 +123,9 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.shards.outputs.list) }}
         # The runner, runtime type and job name are derived from these values.
-        # runc is not tested because of AppArmor issues in nested environments,
-        # see https://github.com/cri-o/cri-o/issues/9573. Re-enabling it also
-        # needs buildah and criu, which the checkpoint tests skip without.
+        # The test suite does not run with runc because of AppArmor issues in
+        # nested environments, see https://github.com/cri-o/cri-o/issues/9573.
+        # Only the checkpoint tests run with runc, which they require.
         run:
           - { monitor: conmon, arch: amd64 }
           - { monitor: conmon-rs, arch: amd64 }
@@ -137,12 +138,19 @@ jobs:
           - run: { monitor: conmon-rs, arch: amd64, critest: 1 }
           - run: { monitor: conmon, arch: arm64, critest: 1 }
           - run: { monitor: conmon-rs, arch: arm64, critest: 1 }
+          - run:
+              {
+                monitor: conmon,
+                arch: amd64,
+                runtime: runc,
+                tests: checkpoint.bats,
+              }
     env:
       GOCOVERDIR: ${{ github.workspace }}/build/coverage/bats # It's used to make coverage profiles. https://go.dev/doc/build-cover
     name: >-
       ${{ matrix.run.critest && 'critest' || 'integration' }}
       / ${{ matrix.run.userns && 'userns' || matrix.run.monitor }}
-      / crun / ${{ matrix.run.arch }}${{ matrix.shard && format(' ({0})', matrix.shard) || '' }}
+      / ${{ matrix.run.runtime || 'crun' }} / ${{ matrix.run.arch }}${{ matrix.shard && format(' ({0})', matrix.shard) || '' }}
     runs-on: ${{ matrix.run.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 15
     steps:
@@ -167,11 +175,12 @@ jobs:
             bin/crio \
             bin/pinns \
             test/checkcriu/checkcriu \
+            test/checkpod/checkpod \
             test/checkseccomp/checkseccomp \
             test/copyimg/copyimg \
             test/updateunified/updateunified \
             test/nri/nri.test
-      - run: scripts/github-actions-packages runtime
+      - run: scripts/github-actions-packages runtime ${{ matrix.run.runtime == 'runc' && 'criu' || '' }}
       - run: scripts/github-actions-setup
         env:
           RUN_CRITEST: ${{ matrix.run.critest }}
@@ -191,7 +200,7 @@ jobs:
             "TEST_REPORT_DIR=$TEST_REPORT_DIR" \
             "TEST_RETRIES=$TEST_RETRIES" \
             "BATS_TEST_TIMEOUT=$BATS_TEST_TIMEOUT" \
-            test/test_runner.sh
+            test/test_runner.sh ${TEST_FILES:+"$TEST_FILES"}
         # Below the job timeout, so that the results still get reported.
         timeout-minutes: 12
         env:
@@ -201,7 +210,8 @@ jobs:
           TEST_SHARD: ${{ matrix.shard }}
           RUNTIME_TYPE: ${{ matrix.run.monitor == 'conmon-rs' && 'pod' || 'oci' }}
           TEST_USERNS: ${{ matrix.run.userns }}
-          CONTAINER_DEFAULT_RUNTIME: crun
+          CONTAINER_DEFAULT_RUNTIME: ${{ matrix.run.runtime || 'crun' }}
+          TEST_FILES: ${{ matrix.run.tests }}
           TEST_REPORT_DIR: ${{ github.workspace }}/build/reports
           TEST_RETRIES: 1
           # Fail hanging tests early. critest runs the whole suite in one test.
