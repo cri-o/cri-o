@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	goruntime "runtime"
 
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -41,6 +42,7 @@ func (s *Server) Status(
 		Features: &types.RuntimeFeatures{
 			SupplementalGroupsPolicy:  true,
 			UserNamespacesHostNetwork: true,
+			MountOptions:              goruntime.GOOS == "linux",
 		},
 	}
 
