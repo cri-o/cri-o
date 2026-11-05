@@ -274,6 +274,10 @@ func (c *container) SpecAddAnnotations(
 		)
 	}
 
+	if imageResult.ConfigDigest != "" {
+		c.spec.AddAnnotation(annotations.ImageConfigDigest, imageResult.ConfigDigest.String())
+	}
+
 	c.spec.AddAnnotation(annotations.Name, c.Name())
 	c.spec.AddAnnotation(annotations.ContainerID, c.ID())
 	c.spec.AddAnnotation(annotations.SandboxID, sb.ID())

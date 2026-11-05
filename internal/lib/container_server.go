@@ -810,6 +810,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	ctr.SetMountPoint(m.Annotations[annotations.MountPoint])
 	spp := m.Annotations[annotations.SeccompProfilePath]
 	ctr.SetSeccompProfilePath(spp)
+	ctr.SetImageConfigDigest(m.Annotations[annotations.ImageConfigDigest])
 
 	if err := ctr.FromDisk(); err != nil {
 		return fmt.Errorf("error reading container state from disk %q: %w", ctr.ID(), err)

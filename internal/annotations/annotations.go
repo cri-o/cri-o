@@ -91,6 +91,9 @@ const (
 	// ImageRepoDigests are the repo@digest values of the image, persisted for restore.
 	ImageRepoDigests = "io.kubernetes.cri-o.ImageRepoDigests"
 
+	// ImageConfigDigest is the digest of the image config blob, persisted for restore.
+	ImageConfigDigest = "io.kubernetes.cri-o.ImageConfigDigest"
+
 	// KubeName is the kubernetes name annotation.
 	KubeName = "io.kubernetes.cri-o.KubeName"
 
