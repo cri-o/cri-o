@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 05 Nov 2026 16:30:19 UTC for commit [0f1db22][0]._
+_Generated on Thu, 05 Nov 2026 18:21:15 UTC for commit [6d75f31][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0f1db222eb1a00c7718d1bfc907df8c189cda1a9
+[0]: https://github.com/cri-o/cri-o/commit/6d75f314a8ca19c09738732bca6a3213b892461b
 
 ## Outdated Dependencies
 
@@ -25,7 +25,7 @@ _Generated on Thu, 05 Nov 2026 16:30:19 UTC for commit [0f1db22][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                        | false  | true             |
 | cel.dev/expr                                                                | v0.25.3                                |                                        | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                               | v0.21.0                                | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                                | v0.1.463                               | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                                | v0.1.464                               | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                               |                                        | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.15.1                                | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.17.1                                | false  | true             |
@@ -305,7 +305,7 @@ _Generated on Thu, 05 Nov 2026 16:30:19 UTC for commit [0f1db22][0]._
 | github.com/go-git/go-git/v5                                                 | v5.19.3                                |                                        | false  | true             |
 | github.com/go-ini/ini                                                       | v1.28.2                                | v1.67.3                                | false  | true             |
 | github.com/go-jose/go-jose/v3                                               | v3.0.5                                 |                                        | false  | true             |
-| github.com/go-jose/go-jose/v4                                               | v4.1.6                                 | v4.1.8                                 | false  | true             |
+| github.com/go-jose/go-jose/v4                                               | v4.1.6                                 | v4.1.9                                 | false  | true             |
 | github.com/go-kit/kit                                                       | v0.8.0                                 | v0.13.0                                | false  | true             |
 | github.com/go-logfmt/logfmt                                                 | v0.4.0                                 | v0.6.1                                 | false  | true             |
 | github.com/go-logr/logr                                                     | v1.4.4                                 |                                        | true   | true             |
@@ -417,7 +417,7 @@ _Generated on Thu, 05 Nov 2026 16:30:19 UTC for commit [0f1db22][0]._
 | github.com/kr/pty                                                           | v1.1.1                                 | v1.1.8                                 | false  | true             |
 | github.com/kr/text                                                          | v0.2.0                                 |                                        | false  | true             |
 | github.com/kylelemons/godebug                                               | v1.1.0                                 |                                        | false  | true             |
-| github.com/letsencrypt/boulder                                              | v0.20260223.0                          | v0.20261027.0                          | false  | true             |
+| github.com/letsencrypt/boulder                                              | v0.20260223.0                          | v0.20261105.0                          | false  | true             |
 | github.com/lithammer/dedent                                                 | v1.1.0                                 |                                        | false  | true             |
 | github.com/magefile/mage                                                    | v1.17.2                                |                                        | false  | true             |
 | github.com/magiconair/properties                                            | v1.8.10                                | v1.18.12                               | false  | true             |
