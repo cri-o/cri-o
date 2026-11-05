@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 05 Nov 2026 14:58:50 UTC for commit [af14966][0]._
+_Generated on Thu, 05 Nov 2026 16:30:19 UTC for commit [0f1db22][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/af14966a12c353fa6d6ccf3f8a11f44de45f37da
+[0]: https://github.com/cri-o/cri-o/commit/0f1db222eb1a00c7718d1bfc907df8c189cda1a9
 
 ## Outdated Dependencies
 
@@ -428,7 +428,7 @@ _Generated on Thu, 05 Nov 2026 14:58:50 UTC for commit [af14966][0]._
 | github.com/mattn/go-isatty                                                  | v0.0.20                                | v0.0.24                                | false  | true             |
 | github.com/mattn/go-runewidth                                               | v0.0.23                                | v0.0.31                                | false  | true             |
 | github.com/mattn/go-shellwords                                              | v1.0.13                                | v1.0.16                                | false  | true             |
-| github.com/mattn/go-sqlite3                                                 | v1.14.44                               | v1.14.52                               | false  | true             |
+| github.com/mattn/go-sqlite3                                                 | v1.14.44                               | v1.14.53                               | false  | true             |
 | github.com/matttproud/golang_protobuf_extensions                            | v1.0.4                                 |                                        | false  | true             |
 | github.com/matttproud/golang_protobuf_extensions/v2                         | v2.0.0                                 |                                        | false  | true             |
 | github.com/maxbrunsfeld/counterfeiter/v6                                    | v6.14.0                                |                                        | false  | true             |
