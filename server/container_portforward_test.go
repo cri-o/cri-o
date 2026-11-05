@@ -77,7 +77,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 			Expect(testSandbox.NetNsJoin("/proc/self/ns/net")).To(Succeed())
 
 			handler := serverConfig.Runtimes[serverConfig.DefaultRuntime]
-			handler.StreamWebsockets = true
+			handler.StreamWebsockets = new(true)
 			handler.SetConmonrsFeatures(features)
 
 			// The server's background monitor may probe the container while
@@ -185,7 +185,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 
 			handler := serverConfig.Runtimes[serverConfig.DefaultRuntime]
 			Expect(handler.RuntimeType).To(Equal(config.DefaultRuntimeType))
-			handler.StreamWebsockets = true
+			handler.StreamWebsockets = new(true)
 			handler.SetConmonrsFeatures([]string{conmonClient.FeaturePortForward})
 		}
 
@@ -254,7 +254,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 			addContainerAndSandbox()
 
 			handler := serverConfig.Runtimes[serverConfig.DefaultRuntime]
-			handler.StreamWebsockets = true
+			handler.StreamWebsockets = new(true)
 			handler.SetConmonrsFeatures([]string{conmonClient.FeaturePortForward})
 
 			// When

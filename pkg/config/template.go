@@ -1410,7 +1410,6 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # platform_runtime_paths = { "os/arch" = "/path/to/binary" }
 # no_sync_log = false
 # default_annotations = {}
-# stream_websockets = false
 # seccomp_profile = ""
 # container_create_timeout = 240
 # Where:
@@ -1473,7 +1472,12 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # - default_annotations (optional, map): Default annotations if not overridden by the pod spec.
 # - stream_websockets (optional, bool): Let conmon-rs serve container exec, attach and port forward over SPDY
 #   and WebSocket instead of the CRI-O streaming server. Only valid for the 'pod' runtime type, needs
-#   conmon-rs v1.2.0 or later and gets disabled for older versions.
+#   conmon-rs v1.2.0 or later and gets disabled for older versions. If not set, it is enabled for the 'pod'
+#   runtime type if conmon-rs supports the streaming protocols of the kubelet, stream_enable_tls is false
+#   and neither exec_cpu_affinity nor infra_ctr_cpuset is set: conmon-rs serves the streams over plain HTTP
+#   on 127.0.0.1, does not use stream_address, stream_port, stream_enable_tls and the stream_tls_* options,
+#   and neither runs the exec sessions in the exec cgroup of exec_cpu_affinity nor pins them to
+#   infra_ctr_cpuset.
 # - seccomp_profile (optional, string): The absolute path of the seccomp.json profile which is used as the default
 #   seccomp profile for the runtime.
 #   If not specified or set to "", the runtime seccomp_profile will be used.

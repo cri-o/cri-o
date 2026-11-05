@@ -536,7 +536,7 @@ var _ = t.Describe("Config", func() {
 					RuntimePath:      existingRuntimePath,
 					RuntimeType:      config.RuntimeTypePod,
 					MonitorPath:      conmonrs,
-					StreamWebsockets: true,
+					StreamWebsockets: new(true),
 				}
 			}
 
@@ -626,6 +626,115 @@ var _ = t.Describe("Config", func() {
 				Expect(sut.Runtimes["pod"].RuntimeStreamWebsockets()).To(BeFalse())
 				Expect(published.RuntimeStreamWebsockets()).To(BeTrue())
 				Expect(published.RuntimeStreamPortForward()).To(BeTrue())
+			})
+
+			It("should enable streaming websockets by default", func() {
+				// Given
+				handler := podRuntime()
+				handler.StreamWebsockets = nil
+
+				newConfig := &config.Config{}
+				newConfig.Runtimes = config.Runtimes{
+					config.DefaultRuntime: sut.Runtimes[config.DefaultRuntime],
+					"pod":                 handler,
+				}
+
+				// When
+				err := sut.ReloadRuntimes(newConfig)
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sut.Runtimes["pod"].RuntimeStreamWebsockets()).To(BeTrue())
+				Expect(sut.Runtimes["pod"].RuntimeStreamPortForward()).To(BeTrue())
+			})
+
+			It("should keep the published runtimes if the reloaded config is unchanged", func() {
+				// Given
+				// A freshly parsed config leaves stream_websockets unset,
+				// which the validation of the running handlers resolved.
+				handler := podRuntime()
+				handler.StreamWebsockets = nil
+
+				newConfig := &config.Config{}
+				newConfig.Runtimes = config.Runtimes{
+					config.DefaultRuntime: sut.Runtimes[config.DefaultRuntime],
+					"pod":                 handler,
+				}
+				Expect(sut.ReloadRuntimes(newConfig)).To(Succeed())
+				Expect(sut.Runtimes["pod"].RuntimeStreamWebsockets()).To(BeTrue())
+
+				published := sut.Runtimes["pod"]
+
+				// When
+				err := sut.ReloadRuntimes(newConfig)
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sut.Runtimes["pod"]).To(BeIdenticalTo(published))
+				Expect(handler.StreamWebsockets).To(BeNil())
+			})
+
+			It("should keep streaming websockets disabled explicitly", func() {
+				// Given
+				handler := podRuntime()
+				handler.StreamWebsockets = new(false)
+
+				newConfig := &config.Config{}
+				newConfig.Runtimes = config.Runtimes{
+					config.DefaultRuntime: sut.Runtimes[config.DefaultRuntime],
+					"pod":                 handler,
+				}
+
+				// When
+				err := sut.ReloadRuntimes(newConfig)
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sut.Runtimes["pod"].RuntimeStreamWebsockets()).To(BeFalse())
+			})
+
+			It("should ignore the stream_enable_tls of the reloaded config", func() {
+				// Given
+				handler := podRuntime()
+				handler.StreamWebsockets = nil
+
+				newConfig := &config.Config{}
+				newConfig.StreamEnableTLS = true
+				newConfig.Runtimes = config.Runtimes{
+					config.DefaultRuntime: sut.Runtimes[config.DefaultRuntime],
+					"pod":                 handler,
+				}
+
+				// When
+				err := sut.ReloadRuntimes(newConfig)
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sut.Runtimes["pod"].RuntimeStreamWebsockets()).To(BeTrue())
+				Expect(sut.Runtimes["pod"].RuntimeStreamPortForward()).To(BeTrue())
+			})
+
+			It("should not enable streaming websockets by default with stream_enable_tls", func() {
+				// Given
+				// Like Config.Validate on the start of the server.
+				sut.SetStreamEnableTLS(true)
+
+				handler := podRuntime()
+				handler.StreamWebsockets = nil
+
+				newConfig := &config.Config{}
+				newConfig.Runtimes = config.Runtimes{
+					config.DefaultRuntime: sut.Runtimes[config.DefaultRuntime],
+					"pod":                 handler,
+				}
+
+				// When
+				err := sut.ReloadRuntimes(newConfig)
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sut.Runtimes["pod"].RuntimeStreamWebsockets()).To(BeFalse())
+				Expect(sut.Runtimes["pod"].RuntimeStreamPortForward()).To(BeFalse())
 			})
 		})
 	})
