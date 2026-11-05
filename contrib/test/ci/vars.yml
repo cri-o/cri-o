@@ -43,7 +43,11 @@ ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
 
 # variables for testing with the kata-containers runtime
 kata_version: "4.3.1"
-kata_runtime_variant: "{{ KATA_RUNTIME_VARIANT | default('kata-static') }}"
+# TEMP: hardcode the Go runtime so the default pre-merge kata job
+# exercises it while the kata-go presubmit (openshift/release
+# 009e3de755b) is pending; the KATA_RUNTIME_VARIANT env passed by the
+# CI step is intentionally ignored. Revert once both variants run.
+kata_runtime_variant: "kata-go-static"
 # sha256 sourced from the GitHub release assets:
 # https://github.com/kata-containers/kata-containers/releases/expanded_assets/<kata_version>
 kata_amd64_checksums:
