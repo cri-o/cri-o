@@ -225,6 +225,106 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			Expect(sut.CleanupContainerCheckpoint(context.Background(), config)).To(Succeed())
 			Expect(myContainer.CheckpointPath()).ToNot(BeADirectory())
 		})
+
+		It("should not archive artifacts left by an earlier checkpoint", func() {
+			addContainerAndSandbox()
+
+			config := &metadata.ContainerConfig{ID: containerID}
+
+			// An earlier failed checkpoint left a rootfs diff behind. This run
+			// has no file system changes, so it must not export the old diff.
+			Expect(os.WriteFile(metadata.RootFsDiffTar, []byte("stale"), 0o600)).To(Succeed())
+			defer os.Remove(metadata.RootFsDiffTar)
+
+			myContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
+				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return(nil, nil),
+				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+			)
+
+			_, err := sut.ContainerCheckpoint(
+				context.Background(),
+				config,
+				&lib.ContainerCheckpointOptions{
+					KeepRunning:  true,
+					TargetFile:   "stale-cp.tar",
+					DeferArchive: true,
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(metadata.RootFsDiffTar).ToNot(BeAnExistingFile())
+			Expect(sut.CleanupContainerCheckpoint(context.Background(), config)).To(Succeed())
+		})
+
+		It("should fail when the caller did not pause the container", func() {
+			addContainerAndSandbox()
+
+			myContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+
+			_, err := sut.ContainerCheckpoint(
+				context.Background(),
+				&metadata.ContainerConfig{ID: containerID},
+				&lib.ContainerCheckpointOptions{ContainerIsPaused: true},
+			)
+			Expect(err).To(MatchError(ContainSubstring("is running, expected paused")))
+		})
+
+		It("should fail to export or clean up an unknown container", func() {
+			config := &metadata.ContainerConfig{ID: "unknown"}
+
+			Expect(
+				sut.ExportContainerCheckpoint(context.Background(), config, "cp.tar"),
+			).To(MatchError(ContainSubstring("failed to find container")))
+			Expect(
+				sut.CleanupContainerCheckpoint(context.Background(), config),
+			).To(MatchError(ContainSubstring("failed to find container")))
+		})
+
+		It("should fail to write the archive into a missing directory", func() {
+			addContainerAndSandbox()
+
+			// The failed export leaves the prepared metadata in the container directory.
+			defer os.Remove(metadata.ConfigDumpFile)
+			defer os.Remove(metadata.SpecDumpFile)
+
+			myContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			myContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+			gomock.InOrder(
+				storeMock.EXPECT().Container(gomock.Any()).Return(&cstorage.Container{}, nil),
+				storeMock.EXPECT().Changes(gomock.Any(), gomock.Any()).Return(nil, nil),
+				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
+			)
+
+			_, err := sut.ContainerCheckpoint(
+				context.Background(),
+				&metadata.ContainerConfig{ID: containerID},
+				&lib.ContainerCheckpointOptions{
+					KeepRunning: true,
+					TargetFile:  "missing/cp.tar",
+				},
+			)
+			Expect(err).To(MatchError(ContainSubstring("failed to export checkpoint")))
+		})
+
+		It("should fail to export into a missing directory", func() {
+			addContainerAndSandbox()
+
+			Expect(sut.ExportContainerCheckpoint(
+				context.Background(),
+				&metadata.ContainerConfig{ID: containerID},
+				"missing/cp.tar",
+			)).To(MatchError(ContainSubstring("error creating checkpoint export file")))
+		})
 	})
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail during unmount", func() {
