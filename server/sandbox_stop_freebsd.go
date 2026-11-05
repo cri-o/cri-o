@@ -63,9 +63,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 			// which exited on its own is pending.
 			if !ctr.PostStopDone() {
 				errorGroup.Go(func() error {
-					s.postStopCleanup(ctx, stopCtr, sb, hooks)
-
-					return nil
+					return s.postStopCleanup(ctx, stopCtr, sb, hooks)
 				})
 			}
 
