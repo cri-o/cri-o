@@ -234,6 +234,49 @@ var _ = t.Describe("RuntimePod", func() {
 		})
 	})
 
+	Context("NewCreateContainerConfig", func() {
+		var cfg *libconfig.Config
+
+		BeforeEach(func() {
+			var err error
+
+			cfg, err = libconfig.DefaultConfig()
+			Expect(err).ToNot(HaveOccurred())
+
+			cfg.ContainerAttachSocketDir = t.MustTempDir("attach-socket")
+		})
+
+		It("should not pass command arguments by default", func() {
+			// Given
+			runtime, err := oci.New(cfg)
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			createConfig := oci.NewCreateContainerConfig(
+				runtime, newPodTestContainer(false, false, false),
+			)
+
+			// Then
+			Expect(createConfig.ID).To(Equal("id"))
+			Expect(createConfig.CommandArgs).To(BeEmpty())
+		})
+
+		It("should pass --no-pivot to the runtime if no_pivot is set", func() {
+			// Given
+			cfg.NoPivot = true
+			runtime, err := oci.New(cfg)
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			createConfig := oci.NewCreateContainerConfig(
+				runtime, newPodTestContainer(false, false, false),
+			)
+
+			// Then
+			Expect(createConfig.CommandArgs).To(Equal([]string{"--no-pivot"}))
+		})
+	})
+
 	Context("RequireStreamingProtocols", func() {
 		It("should succeed if the server speaks the streaming protocols", func() {
 			// Given

@@ -34,7 +34,7 @@ var _ = t.Describe("ContainerAttach", func() {
 			addContainerAndSandbox()
 
 			handler := serverConfig.Runtimes[serverConfig.DefaultRuntime]
-			handler.StreamWebsockets = true
+			handler.StreamWebsockets = new(true)
 			handler.SetConmonrsFeatures([]string{conmonClient.FeatureStreamingProtocols})
 
 			// The server's background monitor may probe the container while

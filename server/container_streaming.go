@@ -59,10 +59,16 @@ func monitorStreamingURL(
 // streamingError returns the error of the container monitor for a streaming
 // request with the message in front. If too many URLs wait for their client
 // already, it gets ResourceExhausted, like the in-flight limit of CRI-O's
-// streaming server.
+// streaming server. For exec and attach, a container the monitor does not
+// know, like one which exited, gets NotFound, like on the streaming server of
+// CRI-O.
 func streamingError(err error, message string) error {
 	if errors.Is(err, conmonClient.ErrTooManyRequests) {
 		return status.Errorf(codes.ResourceExhausted, "%s: %v", message, err)
+	}
+
+	if errors.Is(err, conmonClient.ErrContainerNotFound) {
+		return status.Errorf(codes.NotFound, "%s: %v", message, err)
 	}
 
 	return fmt.Errorf("%s: %w", message, err)
