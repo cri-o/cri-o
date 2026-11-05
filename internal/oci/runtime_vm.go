@@ -34,6 +34,8 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
@@ -1364,6 +1366,14 @@ func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal sysca
 				return nil
 			}
 
+			return err
+		}
+
+		// FromGRPC loses context errors and gRPC timeout/cancellation codes.
+		// Preserve them so exec probes can distinguish a timeout from a missing task.
+		code := grpcstatus.Code(err)
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) ||
+			code == codes.DeadlineExceeded || code == codes.Canceled {
 			return err
 		}
 

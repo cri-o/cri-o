@@ -376,6 +376,20 @@ func (r *Runtime) sandboxRuntimeImpl(c *Container) RuntimeImpl {
 	return r.runtimeImplMap[c.Sandbox()]
 }
 
+// lookupRuntimeImpl looks up a container without recreating its runtime during
+// teardown. Creation and restoration establish the implementation before exec.
+func (r *Runtime) lookupRuntimeImpl(c *Container) (RuntimeImpl, error) {
+	r.runtimeImplMapMutex.RLock()
+	impl, ok := r.runtimeImplMap[c.ID()]
+	r.runtimeImplMapMutex.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("no runtime implementation for container %s", c.ID())
+	}
+
+	return impl, nil
+}
+
 // streamingRuntimeImpl returns the runtime implementation of the container
 // for the exec, attach and port forward requests of the CRI without creating
 // one. Creating one would start a conmon-rs server if the pod got removed
@@ -494,7 +508,7 @@ func (r *Runtime) ExecContainer(
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	impl, err := r.RuntimeImpl(c)
+	impl, err := r.lookupRuntimeImpl(c)
 	if err != nil {
 		return err
 	}
@@ -512,7 +526,7 @@ func (r *Runtime) ExecSyncContainer(
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	impl, err := r.RuntimeImpl(c)
+	impl, err := r.lookupRuntimeImpl(c)
 	if err != nil {
 		return nil, err
 	}
@@ -758,7 +772,7 @@ func (r *Runtime) RestoreContainer(
 }
 
 func (r *Runtime) IsContainerAlive(ctx context.Context, c *Container) (bool, error) {
-	impl, err := r.RuntimeImpl(c)
+	impl, err := r.lookupRuntimeImpl(c)
 	if err != nil {
 		return false, err
 	}

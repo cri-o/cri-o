@@ -2,6 +2,7 @@ package oci_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -11,6 +12,8 @@ import (
 	"github.com/containerd/ttrpc"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -203,6 +206,24 @@ var _ = t.Describe("RuntimeVM kill", func() {
 		Expect(err.Error()).To(ContainSubstring("is not connected"))
 		Expect(alive).To(BeFalse())
 	})
+
+	DescribeTable("should preserve deadline and cancellation errors",
+		func(taskErr error) {
+			c := newTestContainerWithBundle(GinkgoT().TempDir())
+			r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: taskErr})
+
+			Expect(r.Kill(context.Background(), c.ID(), "", 0)).To(MatchError(taskErr))
+
+			alive, err := r.IsContainerAlive(context.Background(), c)
+			Expect(alive).To(BeFalse())
+			Expect(err).To(MatchError(taskErr))
+		},
+		Entry("context deadline", context.DeadlineExceeded),
+		Entry("wrapped context deadline", fmt.Errorf("kill: %w", context.DeadlineExceeded)),
+		Entry("gRPC deadline", status.Error(codes.DeadlineExceeded, "shim deadline")),
+		Entry("context cancellation", context.Canceled),
+		Entry("gRPC cancellation", status.Error(codes.Canceled, "shim canceled")),
+	)
 
 	It("should report an error when the liveness check cannot tell", func() {
 		bundleDir := GinkgoT().TempDir()
