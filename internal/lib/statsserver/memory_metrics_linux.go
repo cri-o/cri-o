@@ -14,7 +14,7 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 	}
 	// Compute derived memory values
 	workingSetBytes, rssBytes, pageFaults, majorPageFaults, _ := computeMemoryMetricValues(mem)
-	swapUsage := computeSwapUsageForMetrics(mem)
+	swapUsage := mem.SwapOnlyUsage.Usage
 	fileMapped := computeFileMapped(mem)
 
 	memoryMetrics := []*containerMetric{
@@ -199,19 +199,6 @@ func computeMemoryMetricValues(
 	}
 
 	return workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes
-}
-
-// computeSwapUsageForMetrics computes the actual swap usage for metrics.
-func computeSwapUsageForMetrics(memStats *cgroups.MemoryStats) uint64 {
-	if node.CgroupIsV2() {
-		if memStats.SwapUsage.Usage > memStats.Usage.Usage {
-			return memStats.SwapUsage.Usage - memStats.Usage.Usage
-		}
-
-		return 0
-	}
-
-	return memStats.SwapUsage.Usage
 }
 
 // computeFileMapped computes the file mapped memory value.
