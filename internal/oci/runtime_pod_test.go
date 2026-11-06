@@ -549,6 +549,19 @@ done
 			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
 		})
 
+		It("should keep the server when deleting the runtime infra container", func() {
+			// Given
+			c := oci.NewSpoofedContainer("sandbox", "name", nil, nil, "sandbox", "", time.Now(), "")
+			sut.SetRuntimeImpl(c.ID(), oci.NewTestRuntimePod())
+
+			// When
+			err := sut.DeleteRuntimeContainer(context.Background(), c)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.HasRuntimeImpl(c.ID())).To(BeTrue())
+		})
+
 		It("should update the status of a container whose pod is gone", func() {
 			// Given
 			c := newPodTestContainer(false, false, false)

@@ -611,6 +611,8 @@ func (c *ContainerServer) LoadSandbox(
 		)
 	}
 
+	markPostStopDoneIfStopped(scontainer)
+
 	sb.SetCreated()
 
 	if scontainer.State().Status == oci.ContainerStateStopped {
@@ -821,6 +823,8 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		return fmt.Errorf("failed to write container state to disk %q: %w", ctr.ID(), err)
 	}
 
+	markPostStopDoneIfStopped(ctr)
+
 	ctr.SetCreated()
 
 	ctr.SetRuntimePathForPlatform(platformRuntimePath)
@@ -852,8 +856,18 @@ func isTrue(annotaton string) bool {
 	return annotaton == "true"
 }
 
+// markPostStopDoneIfStopped marks the post-stop cleanup of a container loaded in
+// the stopped state as done. Its poststop hooks run on container removal.
+func markPostStopDoneIfStopped(ctr *oci.Container) {
+	if ctr.State().Status == oci.ContainerStateStopped {
+		ctr.SetPostStopDone()
+	}
+}
+
 // ContainerStateToDiskWithUpdate refreshes the container status from the
 // runtime (best-effort) and then writes the container's state to disk.
+// The runtime update failure is non-fatal: a stale runtime view (e.g., after
+// the runtime container has been deleted) must not block state persistence.
 func (c *ContainerServer) ContainerStateToDiskWithUpdate(
 	ctx context.Context,
 	ctr *oci.Container,
