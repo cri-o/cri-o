@@ -4,18 +4,21 @@ import (
 	"github.com/opencontainers/cgroups"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats) []*types.Metric {
+func generateContainerMemoryMetrics(
+	ctr *oci.Container, mem *cgroups.MemoryStats, isCgroupV2 bool,
+) []*types.Metric {
 	if mem == nil {
 		return []*types.Metric{}
 	}
 	// Compute derived memory values
-	workingSetBytes, rssBytes, pageFaults, majorPageFaults, _ := computeMemoryMetricValues(mem)
-	swapUsage := computeSwapUsageForMetrics(mem)
-	fileMapped := computeFileMapped(mem)
+	workingSetBytes, rssBytes, pageFaults, majorPageFaults, _ := computeMemoryMetricValues(
+		mem, isCgroupV2,
+	)
+	swapUsage := computeSwapUsageForMetrics(mem, isCgroupV2)
+	fileMapped := computeFileMapped(mem, isCgroupV2)
 
 	memoryMetrics := []*containerMetric{
 		{
@@ -125,13 +128,12 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 // cAdvisor equivalent, so they can be enabled independently of the cAdvisor
 // compatible set in generateContainerMemoryMetrics.
 func generateContainerMemoryExtraMetrics(
-	ctr *oci.Container, mem *cgroups.MemoryStats,
+	ctr *oci.Container, mem *cgroups.MemoryStats, isCgroupV2 bool,
 ) []*types.Metric {
 	if mem == nil {
 		return []*types.Metric{}
 	}
 
-	isCgroupV2 := node.CgroupIsV2()
 	activeAnon, inactiveAnon := computeAnonMemory(mem, isCgroupV2)
 	anonTHP, shmemTHP, fileTHP := computeTransparentHugepages(mem, isCgroupV2)
 
@@ -173,13 +175,13 @@ func generateContainerMemoryExtraMetrics(
 
 // computeMemoryMetricValues computes derived memory statistics for metrics.
 func computeMemoryMetricValues(
-	memStats *cgroups.MemoryStats,
+	memStats *cgroups.MemoryStats, isCgroupV2 bool,
 ) (workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes uint64) {
 	var inactiveFileName string
 
 	usageBytes := memStats.Usage.Usage
 
-	if node.CgroupIsV2() {
+	if isCgroupV2 {
 		rssBytes = memStats.Stats["anon"]
 		inactiveFileName = "inactive_file"
 		pageFaults = memStats.Stats["pgfault"]
@@ -202,8 +204,8 @@ func computeMemoryMetricValues(
 }
 
 // computeSwapUsageForMetrics computes the actual swap usage for metrics.
-func computeSwapUsageForMetrics(memStats *cgroups.MemoryStats) uint64 {
-	if node.CgroupIsV2() {
+func computeSwapUsageForMetrics(memStats *cgroups.MemoryStats, isCgroupV2 bool) uint64 {
+	if isCgroupV2 {
 		if memStats.SwapUsage.Usage > memStats.Usage.Usage {
 			return memStats.SwapUsage.Usage - memStats.Usage.Usage
 		}
@@ -215,8 +217,8 @@ func computeSwapUsageForMetrics(memStats *cgroups.MemoryStats) uint64 {
 }
 
 // computeFileMapped computes the file mapped memory value.
-func computeFileMapped(memStats *cgroups.MemoryStats) uint64 {
-	if node.CgroupIsV2() {
+func computeFileMapped(memStats *cgroups.MemoryStats, isCgroupV2 bool) uint64 {
+	if isCgroupV2 {
 		return memStats.Stats["file_mapped"]
 	}
 
