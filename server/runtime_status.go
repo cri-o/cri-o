@@ -43,6 +43,8 @@ func (s *Server) Status(
 			SupplementalGroupsPolicy:  true,
 			UserNamespacesHostNetwork: true,
 			MountOptions:              goruntime.GOOS == "linux",
+			SeccompProfileOci: s.config.OCISeccompProfilesSupported() &&
+				s.securityProfiles.Available(),
 		},
 	}
 

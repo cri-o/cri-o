@@ -163,6 +163,9 @@ Path to the seccomp.json profile which is used as the default seccomp profile fo
 **privileged_seccomp_profile**=""
 Enable a seccomp profile for privileged containers from the local path.
 
+**seccomp_baseline_profile**=""
+Path to the seccomp profile that seccomp profiles pulled as OCI artifacts (the OCI profile type of KEP-6061) are intersected with in place of the runtime default profile. A Localhost base profile selected in the pod spec takes its place instead. Runtime handlers with a seccomp profile of their own intersect it with that profile. If not specified, then the default seccomp profile of the runtime handler is used, restated where the merge cannot read its rules exactly: clone with a namespace flag and AF_VSOCK sockets fail with the default errno instead of EPERM, and audit netlink sockets are allowed. The profile is validated when the configuration is loaded. This option supports live configuration reload.
+
 **apparmor_profile**=""
 Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default".
 
@@ -549,6 +552,9 @@ The valid values are "enforcing" and "disabled", and the default is "enforcing".
 If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 If "disabled", the first result will be chosen.
 
+**security_profile_max_size**=1048576
+The maximum size in bytes of a security profile pulled as an OCI artifact (KEP-6061), at most 64 MiB. Larger profiles are rejected. Pulled profiles are kept in the "security-profiles" directory of the storage root until the kubelet removes them; to remove all of them, stop CRI-O and remove that directory.
+
 ## CRIO.NETWORK TABLE
 
 The `crio.network` table containers settings pertaining to the management of CNI plugins.
@@ -572,7 +578,7 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 **enable_metrics**=false
 Globally enable or disable metrics support.
 
-**metrics_collectors**=["image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime"]
+**metrics_collectors**=["image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime", "security_profiles_stored", "security_profiles_stored_bytes", "security_profile_merges_constrained_total"]
 Specify enabled metrics collectors. Per default all metrics are enabled.
 
 **metrics_host**="127.0.0.1"

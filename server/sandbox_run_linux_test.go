@@ -42,6 +42,8 @@ func TestSetupSandboxSeccompPrivilegedEmptyProfileClearsDefaultFilter(t *testing
 		"",
 		true,
 		&types.LinuxSandboxSecurityContext{},
+		"namespace",
+		"name",
 	)
 	if err != nil {
 		t.Fatalf("setupSandboxSeccomp: %v", err)

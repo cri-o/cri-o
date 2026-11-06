@@ -80,6 +80,12 @@ const (
 	tasksetBinary                 = "taskset"
 	MonitorExecCgroupDefault      = ""
 	MonitorExecCgroupContainer    = "container"
+	// DefaultSecurityProfileMaxSize is the default maximum size of a
+	// security profile OCI artifact, as KEP-6061 recommends.
+	DefaultSecurityProfileMaxSize = 1024 * 1024 // 1 MiB
+	// maxSecurityProfileMaxSize bounds the security profile max size, as
+	// profiles are held in memory.
+	maxSecurityProfileMaxSize = 64 * 1024 * 1024 // 64 MiB
 )
 
 // When updating metrics, remember to update the document as well.
@@ -353,7 +359,8 @@ type RuntimeHandler struct {
 	// If not set, defaults to 240 seconds.
 	ContainerCreateTimeout int64 `toml:"container_create_timeout,omitempty"`
 
-	// seccompConfig is the seccomp configuration for the handler.
+	// seccompConfig is the seccomp configuration for the handler, nil if it
+	// has no seccomp profile of its own.
 	seccompConfig *seccomp.Config
 }
 
@@ -545,6 +552,12 @@ type RuntimeConfig struct {
 	// PrivilegedSeccompProfile can be set to enable a seccomp profile for
 	// privileged containers from the local path.
 	PrivilegedSeccompProfile string `toml:"privileged_seccomp_profile"`
+
+	// SeccompBaselineProfile is the path of the seccomp profile that OCI
+	// artifact seccomp profiles are intersected with in place of the runtime
+	// default profile, unless the pod spec selects a Localhost base profile.
+	// If set to "", the runtime default profile is used.
+	SeccompBaselineProfile string `toml:"seccomp_baseline_profile"`
 
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
@@ -788,6 +801,10 @@ type ImageConfig struct {
 	// If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 	// If "disabled", the first result will be chosen.
 	ShortNameMode string `toml:"short_name_mode"`
+	// SecurityProfileMaxSize is the maximum size in bytes of the profile
+	// layer of a security profile OCI artifact. PullSecurityProfile rejects
+	// larger profiles.
+	SecurityProfileMaxSize int64 `toml:"security_profile_max_size"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table.
@@ -1206,6 +1223,7 @@ func DefaultConfig() (*Config, error) {
 			OCIArtifactMountSupport: true,
 			ShortNameMode:           "enforcing",
 			NamespacedAuthDir:       cpConfig.AuthDir,
+			SecurityProfileMaxSize:  DefaultSecurityProfileMaxSize,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
@@ -1644,6 +1662,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			}
 		}
 
+		if err := c.loadSeccompBaselineProfile(); err != nil {
+			return err
+		}
+
 		if err := c.apparmorConfig.LoadProfile(c.ApparmorProfile); err != nil {
 			return fmt.Errorf("unable to load AppArmor profile: %w", err)
 		}
@@ -1782,7 +1804,7 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 
 	// Validate if runtime_path does exist for each runtime
 	for name, handler := range c.Runtimes {
-		if err := handler.Validate(name); err != nil {
+		if err := handler.validate(name, c.SeccompBaselineProfile); err != nil {
 			if c.DefaultRuntime == name {
 				return err
 			}
@@ -2077,6 +2099,13 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 		return fmt.Errorf("invalid short name mode %q", c.ShortNameMode)
 	}
 
+	if c.SecurityProfileMaxSize <= 0 || c.SecurityProfileMaxSize > maxSecurityProfileMaxSize {
+		return fmt.Errorf(
+			"security profile max size %d is not between 1 and %d",
+			c.SecurityProfileMaxSize, maxSecurityProfileMaxSize,
+		)
+	}
+
 	return nil
 }
 
@@ -2148,6 +2177,12 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 
 // Validate checks if the whole runtime is valid.
 func (r *RuntimeHandler) Validate(name string) error {
+	return r.validate(name, "")
+}
+
+// validate is Validate with the seccomp baseline profile that the seccomp
+// profile of the handler is intersected with.
+func (r *RuntimeHandler) validate(name, seccompBaseline string) error {
 	if err := r.ValidateRuntimeType(name); err != nil {
 		return err
 	}
@@ -2186,7 +2221,7 @@ func (r *RuntimeHandler) Validate(name string) error {
 		return err
 	}
 
-	if err := r.validateRuntimeSeccompProfile(); err != nil {
+	if err := r.validateRuntimeSeccompProfile(seccompBaseline); err != nil {
 		return err
 	}
 
@@ -2509,18 +2544,56 @@ func (r *RuntimeHandler) validateRuntimeExecCPUAffinity() error {
 	return fmt.Errorf("invalid exec_cpu_affinity %q", r.ExecCPUAffinity)
 }
 
-// validateRuntimeSeccompProfile tries to load the RuntimeHandler seccomp profile.
-func (r *RuntimeHandler) validateRuntimeSeccompProfile() error {
+// loadSeccompBaselineProfile loads the baseline for OCI artifact seccomp
+// profiles. Runtime handlers with a seccomp profile of their own load it with
+// their profile.
+func (c *RuntimeConfig) loadSeccompBaselineProfile() error {
+	if err := c.seccompConfig.LoadBaselineProfile(c.SeccompBaselineProfile, false); err != nil {
+		return fmt.Errorf("unable to load seccomp baseline profile: %w", err)
+	}
+
+	return nil
+}
+
+// OCISeccompProfilesSupported returns true if OCI artifact seccomp profiles
+// can be merged with the baseline of every runtime handler.
+func (c *RuntimeConfig) OCISeccompProfilesSupported() bool {
+	if !c.seccompConfig.OCIProfilesSupported() {
+		return false
+	}
+
+	runtimes, _ := c.RuntimeHandlers()
+	for _, handler := range runtimes {
+		if seccompConfig := handler.RuntimeSeccomp(); seccompConfig != nil &&
+			!seccompConfig.OCIProfilesSupported() {
+			return false
+		}
+	}
+
+	return true
+}
+
+// validateRuntimeSeccompProfile tries to load the RuntimeHandler seccomp
+// profile, and the baseline OCI artifact profiles get with it: the
+// intersection of the configured baseline and the profile of the handler.
+// The handler keeps its previous configuration if either fails to load.
+func (r *RuntimeHandler) validateRuntimeSeccompProfile(baseline string) error {
 	if r.SeccompProfile == "" {
 		r.seccompConfig = nil
 
 		return nil
 	}
 
-	r.seccompConfig = seccomp.New()
-	if err := r.seccompConfig.LoadProfile(r.SeccompProfile); err != nil {
+	seccompConfig := seccomp.New()
+	if err := seccompConfig.LoadProfile(r.SeccompProfile); err != nil {
 		return fmt.Errorf("unable to load runtime handler seccomp profile: %w", err)
 	}
+
+	if err := seccompConfig.LoadBaselineProfile(baseline, true); err != nil {
+		return fmt.Errorf("unable to load seccomp baseline profile: %w", err)
+	}
+
+	r.seccompConfig = seccompConfig
 
 	return nil
 }
