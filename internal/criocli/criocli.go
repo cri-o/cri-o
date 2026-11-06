@@ -355,6 +355,10 @@ func mergeRuntimeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
 	}
 
+	if ctx.IsSet("layer-dedup") {
+		config.LayerDedup = libconfig.LayerDedupBehavior(ctx.String("layer-dedup"))
+	}
+
 	if ctx.IsSet("infra-ctr-cpuset") {
 		config.InfraCtrCPUSet = ctx.String("infra-ctr-cpuset")
 	}
@@ -858,6 +862,24 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:    "separate-pull-cgroup",
 			Usage:   "[EXPERIMENTAL] Pull in new cgroup.",
 			EnvVars: []string{"PULL_IN_A_CGROUP"},
+		},
+		&cli.StringFlag{
+			Name: "layer-dedup",
+			Usage: `Controls image layer deduplication using filesystem reflinks ` +
+				`(copy-on-write clones via FIDEDUPERANGE). When set to "after_pull", identical ` +
+				`file extents across container image layers are unified after each successful ` +
+				`image pull, reducing disk usage without modifying layer data. When set to ` +
+				`"manual", the deduplication worker starts but only runs when explicitly ` +
+				`requested via 'crio dedup' -- useful on nodes where an ` +
+				`automatic scan after every pull would add unacceptable latency. Deduplication ` +
+				`runs in a background worker and does not block or fail the pull that ` +
+				`triggered it; however, a running pass holds the image store write lock, ` +
+				`so other image pulls on the node will block until it completes (roughly ` +
+				`4-5 seconds per GB of stored layers). Requires a ` +
+				`filesystem with reflink support (XFS with reflink=1 or Btrfs). ` +
+				`Supported values: "disabled" (default), "after_pull", "manual".`,
+			EnvVars: []string{"CONTAINER_LAYER_DEDUP"},
+			Value:   string(libconfig.LayerDedupDisabled),
 		},
 		&cli.StringFlag{
 			Name:      "global-auth-file",
