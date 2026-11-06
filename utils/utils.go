@@ -223,7 +223,7 @@ func GeneratePasswd(
 		return "", nil
 	}
 
-	origContent, err := readFileContent(passwdFilePath)
+	origContent, err := readAccountFileForAppend(passwdFilePath)
 	if err != nil || origContent == nil {
 		return "", err
 	}
@@ -272,7 +272,7 @@ func GenerateGroup(gid uint32, rootfs, rundir string) (string, error) {
 		return "", nil
 	}
 
-	origContent, err := readFileContent(groupFilePath)
+	origContent, err := readAccountFileForAppend(groupFilePath)
 	if err != nil || origContent == nil {
 		return "", err
 	}
@@ -323,7 +323,10 @@ func checkFilePermissions(stat *unix.Stat_t, id, statID uint32) bool {
 	return false
 }
 
-func readFileContent(path string) ([]byte, error) {
+// readAccountFileForAppend reads a passwd or group file to append an entry to.
+// Nonempty content is returned with a trailing newline. It returns nil if the
+// file does not exist.
+func readAccountFileForAppend(path string) ([]byte, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -331,6 +334,12 @@ func readFileContent(path string) ([]byte, error) {
 		}
 
 		return nil, fmt.Errorf("read file: %w", err)
+	}
+
+	// Make sure that an appended entry starts on its own line, even if the
+	// original file does not end with a newline.
+	if len(content) > 0 && content[len(content)-1] != '\n' {
+		content = append(content, '\n')
 	}
 
 	return content, nil
