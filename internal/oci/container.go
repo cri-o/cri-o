@@ -910,7 +910,7 @@ func (c *Container) DeleteExecPID(pid int) {
 // If shouldKill is true, the signal is SIGKILL. Otherwise, SIGINT.
 func (c *Container) KillExecPIDs() {
 	c.stopLock.Lock()
-	toKill := c.execPIDs
+	toKill := maps.Clone(c.execPIDs)
 	c.stopLock.Unlock()
 
 	for len(toKill) != 0 {
