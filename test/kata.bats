@@ -33,6 +33,13 @@ function teardown() {
 	crictl stopp "$pod_id"
 	crictl rmp "$pod_id"
 
+	# the Rust runtime tears the VM down asynchronously after the Shutdown
+	# RPC returns, so the shim can briefly outlive the pod removal
+	for _ in $(seq 1 30); do
+		[[ "$(ps --no-headers -C containerd-shim-kata-v2 | wc -l)" == "0" ]] && break
+		sleep 1
+	done
+
 	# verify that the shim goes away with the pod
 	[ "$(ps --no-headers -C containerd-shim-kata-v2 | wc -l)" == "0" ]
 }

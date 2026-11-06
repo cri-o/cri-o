@@ -66,23 +66,23 @@
 
     - name: Download kata tarball from upstream release
       get_url:
-        url: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-amd64.tar.zst"
-        dest: "/tmp/kata-static-{{ kata_version }}-amd64.tar.zst"
+        url: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/{{ kata_runtime_variant }}-{{ kata_version }}-amd64.tar.zst"
+        dest: "/tmp/{{ kata_runtime_variant }}-{{ kata_version }}-amd64.tar.zst"
         checksum: "{{ kata_amd64_checksum }}"
 
     - name: Extract kata tarball
-      command: tar -I zstd -xf /tmp/kata-static-{{ kata_version }}-amd64.tar.zst -C /
+      command: tar -I zstd -xf /tmp/{{ kata_runtime_variant }}-{{ kata_version }}-amd64.tar.zst -C /
 
     - name: Remove kata tarball
       file:
-        path: "/tmp/kata-static-{{ kata_version }}-amd64.tar.zst"
+        path: "/tmp/{{ kata_runtime_variant }}-{{ kata_version }}-amd64.tar.zst"
         state: absent
 
 - name: Set debugging logs
   block:
     - name: Edit Kata Containers config to enable debug log level
       replace:
-        path: "/opt/kata/share/defaults/kata-containers/configuration.toml"
+        path: "{{ kata_config_path }}"
         regexp: "^#enable_debug = true"
         replace: "enable_debug = true"
 
@@ -98,7 +98,6 @@
           - libvirt-client
           - virt-install
           - edk2-ovmf
-          - "{{ 'guestfs-tools' if ansible_distribution_major_version | int >= 40 else 'libguestfs-tools-c' }}"
         state: present
 
     - name: Start and enable libvirtd
@@ -168,43 +167,47 @@
       args:
         executable: /bin/bash
 
-    - name: Write systemd mount unit for cloud-init ISO
+    - name: Download oras CLI
+      get_url:
+        url: "https://github.com/oras-project/oras/releases/download/v{{ oras_version }}/oras_{{ oras_version }}_linux_amd64.tar.gz"
+        dest: "/tmp/oras-{{ oras_version }}.tar.gz"
+        checksum: "{{ oras_amd64_checksum }}"
+
+    - name: Install oras CLI
       become: yes
-      copy:
-        dest: /tmp/media-cidata.mount
-        content: |
-          [Unit]
-          Description=Mount cloud-init NoCloud ISO
-          DefaultDependencies=no
-          Before=process-user-data.service cloud-init-local.service
-          After=systemd-udevd.service
-
-          [Mount]
-          What=/dev/sr0
-          Where=/media/cidata
-          Type=iso9660
-          Options=ro,nofail
-
-          [Install]
-          WantedBy=local-fs.target
+      command: tar -xzf /tmp/oras-{{ oras_version }}.tar.gz -C /usr/local/bin oras
+      args:
+        creates: /usr/local/bin/oras
 
     - name: Pull and extract podvm image
       become: yes
       shell: |
-        podman pull {{ podvm_image }}
-        podman create --name qcow_extractor {{ podvm_image }} /bin/true
-        QCOW=$(podman export qcow_extractor | tar t | grep '\.qcow2$')
-        podman cp "qcow_extractor:/$QCOW" /tmp/podvm.qcow2
-        podman rm qcow_extractor
-        LIBGUESTFS_BACKEND=direct virt-customize -a /tmp/podvm.qcow2 \
-          --run-command 'mkdir -p /media/cidata' \
-          --copy-in /tmp/media-cidata.mount:/etc/systemd/system/ \
-          --run-command 'systemctl enable media-cidata.mount'
-        rm -f /tmp/media-cidata.mount
+        set -euo pipefail
+
+        workdir=$(mktemp -d)
+        trap 'rm -rf "$workdir"' EXIT
+
+        # The podvm is published as an OCI artifact (not a container image).
+        # Its rootfs is an immutable squashfs+dm-verity image, so it cannot
+        # be modified with virt-customize. No injection is needed: the image
+        # mounts the NoCloud ISO the CAA libvirt provider attaches (by label
+        # "cidata") at /media/cidata via a process-user-data.service drop-in.
+        /usr/local/bin/oras pull {{ podvm_image }} -o "$workdir"
+
+        if [ -f "$workdir/podvm.tar.xz" ]; then
+          tar -xJf "$workdir/podvm.tar.xz" -C "$workdir"
+        fi
+
+        QCOW=$(find "$workdir" -maxdepth 1 -name '*.qcow2' -print -quit)
+        if [ -z "$QCOW" ]; then
+          echo "no qcow2 found in {{ podvm_image }}" >&2
+          ls -l "$workdir" >&2
+          exit 1
+        fi
+
         virsh vol-create-as --pool default --name podvm-base.qcow2 \
           --capacity 20G --allocation 2G --prealloc-metadata --format qcow2 || true
-        virsh vol-upload --vol podvm-base.qcow2 /tmp/podvm.qcow2 --pool default --sparse
-        rm -f /tmp/podvm.qcow2
+        virsh vol-upload --vol podvm-base.qcow2 "$QCOW" --pool default --sparse
       args:
         executable: /bin/bash
 
