@@ -8,6 +8,31 @@ completely formalized.
 The main documentation of the CRI can be found [in the corresponding protobuf
 definition][0], whereas this document follows it on the `service`/`rpc` level.
 
+## `CreateContainer`
+
+### Cgroup mount modes
+
+On Linux, CRI-O advertises `RuntimeFeatures.cgroup_mount_mode`.
+`LinuxContainerSecurityContext.cgroup_mount_mode` selects how the container's
+`/sys/fs/cgroup` is mounted:
+
+- `CGROUP_MOUNT_MODE_UNSPECIFIED` uses CRI-O's default. The cgroup filesystem
+  is writable for privileged containers and, on cgroup v2, for systemd
+  containers and for pods outside the host network that set the
+  `cgroup2-mount-hierarchy-rw.crio.io` annotation to `true`. It is read-only
+  for all other containers.
+- `CGROUP_MOUNT_MODE_READ_ONLY` mounts the cgroup filesystem read-only.
+  `CreateContainer` returns an error for a privileged container.
+- `CGROUP_MOUNT_MODE_READ_WRITE` mounts the cgroup filesystem read-write. The
+  host must mount cgroup v2 at `/sys/fs/cgroup` with `nsdelegate`. Otherwise
+  `CreateContainer` returns an error. It also returns an error for a
+  host-network container in a user namespace.
+
+A container config mount or an image volume bind mount at `/sys/fs/cgroup` or
+at a parent directory of it, such as `/sys` or `/sys/fs`, replaces or hides
+CRI-O's cgroup mount. With `CGROUP_MOUNT_MODE_UNSPECIFIED`, that mount is what
+the container sees. With an explicit mode, `CreateContainer` returns an error.
+
 ## `ListImages`
 
 `ListImages` lists existing images. Its response consists of an array of

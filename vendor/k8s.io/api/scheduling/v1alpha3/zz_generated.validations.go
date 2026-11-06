@@ -24,7 +24,6 @@ package v1alpha3
 import (
 	context "context"
 
-	equality "k8s.io/apimachinery/pkg/api/equality"
 	operation "k8s.io/apimachinery/pkg/api/operation"
 	safe "k8s.io/apimachinery/pkg/api/safe"
 	validate "k8s.io/apimachinery/pkg/api/validate"
@@ -173,7 +172,7 @@ func Validate_CompositePodGroup(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -195,7 +194,7 @@ func Validate_CompositePodGroup(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -217,7 +216,7 @@ func Validate_CompositePodGroup(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -248,7 +247,7 @@ func Validate_CompositePodGroupSchedulingConstraints(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -456,18 +455,9 @@ func Validate_CompositePodGroupSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.Immutable(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				errs = append(errs, e...)
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
 			}
 			// call the type's validation function
 			errs = append(errs, Validate_CompositePodGroupSchedulingPolicy(ctx, op, fldPath, obj, oldObj)...)
@@ -487,7 +477,7 @@ func Validate_CompositePodGroupSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -521,7 +511,7 @@ func Validate_CompositePodGroupSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -608,9 +598,6 @@ func Validate_CompositePodGroupSpec(
 			if earlyReturn {
 				return // do not proceed
 			}
-			if e := validate.Maximum(ctx, op, fldPath, obj, oldObj, 1000000000); len(e) != 0 {
-				errs = append(errs, e...)
-			}
 			return
 		}
 		oldVal := safe.Field(oldObj,
@@ -633,18 +620,11 @@ func Validate_CompositePodGroupSpec(
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", false, validate.ForbiddenPointer).MarkShortCircuit(); len(e) != 0 {
-				errs = append(errs, e...)
-				earlyReturn = true
-			}
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", false, validate.OptionalPointer).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", true, validate.OptionalPointer).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
 			if e := validate.Immutable(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
+				earlyReturn = true
+			}
+			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
 				earlyReturn = true
 			}
 			if earlyReturn {
@@ -677,13 +657,13 @@ func Validate_CompositePodGroupStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.OptionalSlice(ctx, op, fldPath, obj, oldObj).MarkAlpha().MarkShortCircuit(); len(e) != 0 {
+			if e := validate.OptionalSlice(ctx, op, fldPath, obj, oldObj).MarkBeta().MarkShortCircuit(); len(e) != 0 {
 				earlyReturn = true
 			}
 			if earlyReturn {
@@ -691,7 +671,7 @@ func Validate_CompositePodGroupStatus(
 			}
 			// lists with map semantics require unique keys
 			if e := validate.ValSliceUnique(ctx, op, fldPath, obj, oldObj,
-				func(a *v1.Condition, b *v1.Condition) bool { return a.Type == b.Type }).MarkAlpha(); len(e) != 0 {
+				func(a *v1.Condition, b *v1.Condition) bool { return a.Type == b.Type }).MarkBeta(); len(e) != 0 {
 				errs = append(errs, e...)
 			}
 			// iterate the list and call the type's validation function
@@ -756,7 +736,7 @@ func Validate_CompositePodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -778,7 +758,7 @@ func Validate_CompositePodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -812,7 +792,7 @@ func Validate_CompositePodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -897,9 +877,6 @@ func Validate_CompositePodGroupTemplate(
 			if earlyReturn {
 				return // do not proceed
 			}
-			if e := validate.Maximum(ctx, op, fldPath, obj, oldObj, 1000000000); len(e) != 0 {
-				errs = append(errs, e...)
-			}
 			return
 		}
 		oldVal := safe.Field(oldObj,
@@ -922,18 +899,11 @@ func Validate_CompositePodGroupTemplate(
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", false, validate.ForbiddenPointer).MarkShortCircuit(); len(e) != 0 {
-				errs = append(errs, e...)
-				earlyReturn = true
-			}
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", false, validate.OptionalPointer).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", true, validate.OptionalPointer).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
 			if e := validate.Immutable(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
+				earlyReturn = true
+			}
+			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
 				earlyReturn = true
 			}
 			if earlyReturn {
@@ -957,7 +927,7 @@ func Validate_CompositePodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1004,7 +974,7 @@ func Validate_CompositePodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1186,7 +1156,7 @@ func Validate_PodGroup(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1208,7 +1178,7 @@ func Validate_PodGroup(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1230,7 +1200,7 @@ func Validate_PodGroup(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1424,7 +1394,7 @@ func Validate_PodGroupSchedulingConstraints(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1567,7 +1537,7 @@ func Validate_PodGroupSpec(
 				return false
 			}
 			return obj.WorkloadRef != nil
-		}).MarkAlpha(); len(e) != 0 {
+		}).MarkBeta(); len(e) != 0 {
 		errs = append(errs, e...)
 	}
 
@@ -1584,7 +1554,10 @@ func Validate_PodGroupSpec(
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "CompositePodGroup", false, validate.ForbiddenPointer).MarkShortCircuit(); len(e) != 0 {
+			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "CompositePodGroup", false,
+				func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *string) field.ErrorList {
+					return validate.ForbiddenPointer(ctx, op, fldPath, obj, oldObj)
+				}).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
 				earlyReturn = true
 			}
@@ -1654,7 +1627,7 @@ func Validate_PodGroupSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1676,13 +1649,16 @@ func Validate_PodGroupSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "TopologyAwareWorkloadScheduling", false, validate.ForbiddenPointer).MarkShortCircuit(); len(e) != 0 {
+			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "TopologyAwareWorkloadScheduling", false,
+				func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *PodGroupSchedulingConstraints) field.ErrorList {
+					return validate.ForbiddenPointer(ctx, op, fldPath, obj, oldObj)
+				}).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
 				earlyReturn = true
 			}
@@ -1717,7 +1693,7 @@ func Validate_PodGroupSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1763,7 +1739,7 @@ func Validate_PodGroupSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1850,9 +1826,6 @@ func Validate_PodGroupSpec(
 			if earlyReturn {
 				return // do not proceed
 			}
-			if e := validate.Maximum(ctx, op, fldPath, obj, oldObj, 1000000000); len(e) != 0 {
-				errs = append(errs, e...)
-			}
 			return
 		}
 		oldVal := safe.Field(oldObj,
@@ -1875,18 +1848,11 @@ func Validate_PodGroupSpec(
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", false, validate.ForbiddenPointer).MarkShortCircuit(); len(e) != 0 {
-				errs = append(errs, e...)
-				earlyReturn = true
-			}
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", false, validate.OptionalPointer).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", true, validate.OptionalPointer).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
 			if e := validate.Immutable(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
+				earlyReturn = true
+			}
+			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
 				earlyReturn = true
 			}
 			if earlyReturn {
@@ -1919,13 +1885,13 @@ func Validate_PodGroupStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.OptionalSlice(ctx, op, fldPath, obj, oldObj).MarkAlpha().MarkShortCircuit(); len(e) != 0 {
+			if e := validate.OptionalSlice(ctx, op, fldPath, obj, oldObj).MarkBeta().MarkShortCircuit(); len(e) != 0 {
 				earlyReturn = true
 			}
 			if earlyReturn {
@@ -1933,7 +1899,7 @@ func Validate_PodGroupStatus(
 			}
 			// lists with map semantics require unique keys
 			if e := validate.ValSliceUnique(ctx, op, fldPath, obj, oldObj,
-				func(a *v1.Condition, b *v1.Condition) bool { return a.Type == b.Type }).MarkAlpha(); len(e) != 0 {
+				func(a *v1.Condition, b *v1.Condition) bool { return a.Type == b.Type }).MarkBeta(); len(e) != 0 {
 				errs = append(errs, e...)
 			}
 			// iterate the list and call the type's validation function
@@ -1957,7 +1923,7 @@ func Validate_PodGroupStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -2040,7 +2006,7 @@ func Validate_PodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -2062,13 +2028,16 @@ func Validate_PodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "TopologyAwareWorkloadScheduling", false, validate.ForbiddenPointer).MarkShortCircuit(); len(e) != 0 {
+			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "TopologyAwareWorkloadScheduling", false,
+				func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *PodGroupSchedulingConstraints) field.ErrorList {
+					return validate.ForbiddenPointer(ctx, op, fldPath, obj, oldObj)
+				}).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
 				earlyReturn = true
 			}
@@ -2103,7 +2072,7 @@ func Validate_PodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -2149,7 +2118,7 @@ func Validate_PodGroupTemplate(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -2234,9 +2203,6 @@ func Validate_PodGroupTemplate(
 			if earlyReturn {
 				return // do not proceed
 			}
-			if e := validate.Maximum(ctx, op, fldPath, obj, oldObj, 1000000000); len(e) != 0 {
-				errs = append(errs, e...)
-			}
 			return
 		}
 		oldVal := safe.Field(oldObj,
@@ -2259,18 +2225,11 @@ func Validate_PodGroupTemplate(
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", false, validate.ForbiddenPointer).MarkShortCircuit(); len(e) != 0 {
-				errs = append(errs, e...)
-				earlyReturn = true
-			}
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", false, validate.OptionalPointer).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "PodGroupPreemptionPolicy", true, validate.OptionalPointer).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
 			if e := validate.Immutable(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
+				earlyReturn = true
+			}
+			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
 				earlyReturn = true
 			}
 			if earlyReturn {
@@ -2465,7 +2424,7 @@ func Validate_Workload(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -2487,7 +2446,7 @@ func Validate_Workload(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -2500,633 +2459,6 @@ func Validate_Workload(
 				return &oldObj.Spec
 			})
 		errs = append(errs, fn(fldPath.Child("spec"), &obj.Spec, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-var unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadCompositePodGroupDisruptionMode_ = validate.NewUnionMembership(validate.NewUnionMember("single"), validate.NewUnionMember("all"))
-
-// Validate_WorkloadCompositePodGroupDisruptionMode validates an instance of WorkloadCompositePodGroupDisruptionMode according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadCompositePodGroupDisruptionMode(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadCompositePodGroupDisruptionMode) (errs field.ErrorList) {
-
-	if e := validate.Union(ctx, op, fldPath, obj, oldObj, unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadCompositePodGroupDisruptionMode_,
-		func(obj *WorkloadCompositePodGroupDisruptionMode) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.Single != nil
-		},
-		func(obj *WorkloadCompositePodGroupDisruptionMode) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.All != nil
-		}); len(e) != 0 {
-		errs = append(errs, e...)
-	}
-
-	{ // field WorkloadCompositePodGroupDisruptionMode.Single
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *WorkloadCompositePodGroupSingleDisruptionMode,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadCompositePodGroupDisruptionMode) *WorkloadCompositePodGroupSingleDisruptionMode {
-				return oldObj.Single
-			})
-		errs = append(errs, fn(fldPath.Child("single"), obj.Single, oldVal, oldObj != nil)...)
-	}
-
-	{ // field WorkloadCompositePodGroupDisruptionMode.All
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *WorkloadCompositePodGroupAllDisruptionMode,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadCompositePodGroupDisruptionMode) *WorkloadCompositePodGroupAllDisruptionMode {
-				return oldObj.All
-			})
-		errs = append(errs, fn(fldPath.Child("all"), obj.All, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-// Validate_WorkloadCompositePodGroupGangSchedulingPolicy validates an instance of WorkloadCompositePodGroupGangSchedulingPolicy according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadCompositePodGroupGangSchedulingPolicy(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadCompositePodGroupGangSchedulingPolicy) (errs field.ErrorList) {
-
-	{ // field WorkloadCompositePodGroupGangSchedulingPolicy.MinGroupCount
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *int32,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			if e := validate.Minimum(ctx, op, fldPath, obj, oldObj, 1); len(e) != 0 {
-				errs = append(errs, e...)
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadCompositePodGroupGangSchedulingPolicy) *int32 {
-				return oldObj.MinGroupCount
-			})
-		errs = append(errs, fn(fldPath.Child("minGroupCount"), obj.MinGroupCount, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-// Validate_WorkloadCompositePodGroupSchedulingConstraints validates an instance of WorkloadCompositePodGroupSchedulingConstraints according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadCompositePodGroupSchedulingConstraints(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadCompositePodGroupSchedulingConstraints) (errs field.ErrorList) {
-
-	{ // field WorkloadCompositePodGroupSchedulingConstraints.Topology
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj []TopologyConstraint,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.MaxItems(ctx, op, fldPath, obj, oldObj, 1).MarkShortCircuit(); len(e) != 0 {
-				errs = append(errs, e...)
-				earlyReturn = true
-			}
-			if e := validate.OptionalSlice(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			// iterate the list and call the type's validation function
-			if e := validate.EachValSliceVal(ctx, op, fldPath, obj, oldObj, nil, nil, Validate_TopologyConstraint); len(e) != 0 {
-				errs = append(errs, e...)
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadCompositePodGroupSchedulingConstraints) []TopologyConstraint {
-				return oldObj.Topology
-			})
-		errs = append(errs, fn(fldPath.Child("topology"), obj.Topology, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-var unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadCompositePodGroupSchedulingPolicy_ = validate.NewUnionMembership(validate.NewUnionMember("basic"), validate.NewUnionMember("gang"))
-
-// Validate_WorkloadCompositePodGroupSchedulingPolicy validates an instance of WorkloadCompositePodGroupSchedulingPolicy according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadCompositePodGroupSchedulingPolicy(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadCompositePodGroupSchedulingPolicy) (errs field.ErrorList) {
-
-	if e := validate.Union(ctx, op, fldPath, obj, oldObj, unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadCompositePodGroupSchedulingPolicy_,
-		func(obj *WorkloadCompositePodGroupSchedulingPolicy) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.Basic != nil
-		},
-		func(obj *WorkloadCompositePodGroupSchedulingPolicy) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.Gang != nil
-		}); len(e) != 0 {
-		errs = append(errs, e...)
-	}
-
-	{ // field WorkloadCompositePodGroupSchedulingPolicy.Basic
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *WorkloadCompositePodGroupBasicSchedulingPolicy,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadCompositePodGroupSchedulingPolicy) *WorkloadCompositePodGroupBasicSchedulingPolicy {
-				return oldObj.Basic
-			})
-		errs = append(errs, fn(fldPath.Child("basic"), obj.Basic, oldVal, oldObj != nil)...)
-	}
-
-	{ // field WorkloadCompositePodGroupSchedulingPolicy.Gang
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *WorkloadCompositePodGroupGangSchedulingPolicy,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			// call the type's validation function
-			errs = append(errs, Validate_WorkloadCompositePodGroupGangSchedulingPolicy(ctx, op, fldPath, obj, oldObj)...)
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadCompositePodGroupSchedulingPolicy) *WorkloadCompositePodGroupGangSchedulingPolicy {
-				return oldObj.Gang
-			})
-		errs = append(errs, fn(fldPath.Child("gang"), obj.Gang, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-var unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadPodGroupDisruptionMode_ = validate.NewUnionMembership(validate.NewUnionMember("single"), validate.NewUnionMember("all"))
-
-// Validate_WorkloadPodGroupDisruptionMode validates an instance of WorkloadPodGroupDisruptionMode according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadPodGroupDisruptionMode(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadPodGroupDisruptionMode) (errs field.ErrorList) {
-
-	if e := validate.Union(ctx, op, fldPath, obj, oldObj, unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadPodGroupDisruptionMode_,
-		func(obj *WorkloadPodGroupDisruptionMode) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.Single != nil
-		},
-		func(obj *WorkloadPodGroupDisruptionMode) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.All != nil
-		}); len(e) != 0 {
-		errs = append(errs, e...)
-	}
-
-	{ // field WorkloadPodGroupDisruptionMode.Single
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *WorkloadPodGroupSingleDisruptionMode,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupDisruptionMode) *WorkloadPodGroupSingleDisruptionMode {
-				return oldObj.Single
-			})
-		errs = append(errs, fn(fldPath.Child("single"), obj.Single, oldVal, oldObj != nil)...)
-	}
-
-	{ // field WorkloadPodGroupDisruptionMode.All
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *WorkloadPodGroupAllDisruptionMode,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupDisruptionMode) *WorkloadPodGroupAllDisruptionMode {
-				return oldObj.All
-			})
-		errs = append(errs, fn(fldPath.Child("all"), obj.All, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-// Validate_WorkloadPodGroupGangSchedulingPolicy validates an instance of WorkloadPodGroupGangSchedulingPolicy according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadPodGroupGangSchedulingPolicy(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadPodGroupGangSchedulingPolicy) (errs field.ErrorList) {
-
-	{ // field WorkloadPodGroupGangSchedulingPolicy.MinCount
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *int32,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			if e := validate.Minimum(ctx, op, fldPath, obj, oldObj, 1); len(e) != 0 {
-				errs = append(errs, e...)
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupGangSchedulingPolicy) *int32 {
-				return oldObj.MinCount
-			})
-		errs = append(errs, fn(fldPath.Child("minCount"), obj.MinCount, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-var unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadPodGroupResourceClaim_ = validate.NewUnionMembership(validate.NewUnionMember("resourceClaimName"), validate.NewUnionMember("resourceClaimTemplateName"))
-
-// Validate_WorkloadPodGroupResourceClaim validates an instance of WorkloadPodGroupResourceClaim according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadPodGroupResourceClaim(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadPodGroupResourceClaim) (errs field.ErrorList) {
-
-	if e := validate.Union(ctx, op, fldPath, obj, oldObj, unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadPodGroupResourceClaim_,
-		func(obj *WorkloadPodGroupResourceClaim) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.ResourceClaimName != nil
-		},
-		func(obj *WorkloadPodGroupResourceClaim) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.ResourceClaimTemplateName != nil
-		}); len(e) != 0 {
-		errs = append(errs, e...)
-	}
-
-	{ // field WorkloadPodGroupResourceClaim.Name
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *string,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.RequiredValue(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				errs = append(errs, e...)
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			if e := validate.ShortName(ctx, op, fldPath, obj, oldObj); len(e) != 0 {
-				errs = append(errs, e...)
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupResourceClaim) *string {
-				return &oldObj.Name
-			})
-		errs = append(errs, fn(fldPath.Child("name"), &obj.Name, oldVal, oldObj != nil)...)
-	}
-
-	{ // field WorkloadPodGroupResourceClaim.ResourceClaimName
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *string,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			if e := validate.LongName(ctx, op, fldPath, obj, oldObj); len(e) != 0 {
-				errs = append(errs, e...)
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupResourceClaim) *string {
-				return oldObj.ResourceClaimName
-			})
-		errs = append(errs, fn(fldPath.Child("resourceClaimName"), obj.ResourceClaimName, oldVal, oldObj != nil)...)
-	}
-
-	{ // field WorkloadPodGroupResourceClaim.ResourceClaimTemplateName
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *string,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			if e := validate.LongName(ctx, op, fldPath, obj, oldObj); len(e) != 0 {
-				errs = append(errs, e...)
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupResourceClaim) *string {
-				return oldObj.ResourceClaimTemplateName
-			})
-		errs = append(errs, fn(fldPath.Child("resourceClaimTemplateName"), obj.ResourceClaimTemplateName, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-// Validate_WorkloadPodGroupSchedulingConstraints validates an instance of WorkloadPodGroupSchedulingConstraints according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadPodGroupSchedulingConstraints(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadPodGroupSchedulingConstraints) (errs field.ErrorList) {
-
-	{ // field WorkloadPodGroupSchedulingConstraints.Topology
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj []TopologyConstraint,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.MaxItems(ctx, op, fldPath, obj, oldObj, 1).MarkShortCircuit(); len(e) != 0 {
-				errs = append(errs, e...)
-				earlyReturn = true
-			}
-			if e := validate.OptionalSlice(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			// iterate the list and call the type's validation function
-			if e := validate.EachValSliceVal(ctx, op, fldPath, obj, oldObj, nil, nil, Validate_TopologyConstraint); len(e) != 0 {
-				errs = append(errs, e...)
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupSchedulingConstraints) []TopologyConstraint {
-				return oldObj.Topology
-			})
-		errs = append(errs, fn(fldPath.Child("topology"), obj.Topology, oldVal, oldObj != nil)...)
-	}
-
-	return errs
-}
-
-var unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadPodGroupSchedulingPolicy_ = validate.NewUnionMembership(validate.NewUnionMember("basic"), validate.NewUnionMember("gang"))
-
-// Validate_WorkloadPodGroupSchedulingPolicy validates an instance of WorkloadPodGroupSchedulingPolicy according
-// to declarative validation rules in the API schema.
-func Validate_WorkloadPodGroupSchedulingPolicy(
-	ctx context.Context, op operation.Operation, fldPath *field.Path,
-	obj, oldObj *WorkloadPodGroupSchedulingPolicy) (errs field.ErrorList) {
-
-	if e := validate.Union(ctx, op, fldPath, obj, oldObj, unionMembershipFor_k8s_io_api_scheduling_v1alpha3_WorkloadPodGroupSchedulingPolicy_,
-		func(obj *WorkloadPodGroupSchedulingPolicy) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.Basic != nil
-		},
-		func(obj *WorkloadPodGroupSchedulingPolicy) bool {
-			if obj == nil {
-				return false
-			}
-			return obj.Gang != nil
-		}); len(e) != 0 {
-		errs = append(errs, e...)
-	}
-
-	{ // field WorkloadPodGroupSchedulingPolicy.Basic
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *WorkloadPodGroupBasicSchedulingPolicy,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupSchedulingPolicy) *WorkloadPodGroupBasicSchedulingPolicy {
-				return oldObj.Basic
-			})
-		errs = append(errs, fn(fldPath.Child("basic"), obj.Basic, oldVal, oldObj != nil)...)
-	}
-
-	{ // field WorkloadPodGroupSchedulingPolicy.Gang
-		fn := func(
-			fldPath *field.Path,
-			obj, oldObj *WorkloadPodGroupGangSchedulingPolicy,
-			oldValueCorrelated bool) (errs field.ErrorList) {
-			// don't revalidate unchanged data
-			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
-					return nil
-				}
-			}
-			// call field-attached validations
-			earlyReturn := false
-			if e := validate.OptionalPointer(ctx, op, fldPath, obj, oldObj).MarkShortCircuit(); len(e) != 0 {
-				earlyReturn = true
-			}
-			if earlyReturn {
-				return // do not proceed
-			}
-			// call the type's validation function
-			errs = append(errs, Validate_WorkloadPodGroupGangSchedulingPolicy(ctx, op, fldPath, obj, oldObj)...)
-			return
-		}
-		oldVal := safe.Field(oldObj,
-			func(oldObj *WorkloadPodGroupSchedulingPolicy) *WorkloadPodGroupGangSchedulingPolicy {
-				return oldObj.Gang
-			})
-		errs = append(errs, fn(fldPath.Child("gang"), obj.Gang, oldVal, oldObj != nil)...)
 	}
 
 	return errs
@@ -3270,7 +2602,7 @@ func Validate_WorkloadSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -3317,13 +2649,16 @@ func Validate_WorkloadSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "CompositePodGroup", false, validate.ForbiddenSlice).MarkShortCircuit(); len(e) != 0 {
+			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "CompositePodGroup", false,
+				func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj []CompositePodGroupTemplate) field.ErrorList {
+					return validate.ForbiddenSlice(ctx, op, fldPath, obj, oldObj)
+				}).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
 				earlyReturn = true
 			}
