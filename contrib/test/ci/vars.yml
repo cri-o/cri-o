@@ -245,5 +245,29 @@ kata_rust_skip_logs_tests:
   # liveness probe reports the stopped container as alive
   - 'test "ReopenContainerLog should fail when the container is stopped"'
 
+# per-test skips that only apply to the Go runtime (the kata-go-static
+# variant); the Rust runtime (kata-static) passes these tests, so they stay
+# enabled for it
+kata_go_skip_ctr_tests:
+  # since kata d3291b877 ("runtime: publish TaskExit before sandbox
+  # teardown") a container Delete RPC can race the sandbox teardown in
+  # the shim: the delete either fails the container state check
+  # ("Container not ready or stopped, impossible to delete") or moves
+  # already-exited vCPU threads into the sandbox cgroup ("write
+  # cgroup.procs: no such process"), so container and pod removal fail.
+  # The fix belongs in kata-containers, not CRI-O; drop these once a
+  # kata release carrying it is used here.
+  - 'test "ctr remove"'
+  - 'test "ctr pod lifecycle with evented pleg enabled"'
+kata_go_skip_network_tests:
+  # pod sandbox removal hits the same Go shim Delete/teardown race as
+  # the ctr skips above
+  - 'test "pod deletion succeeds when NetNS path is missing"'
+kata_go_skip_pod_tests:
+  # pod removal hits the same Go shim Delete/teardown race as the ctr
+  # skips above
+  - 'test "pod remove"'
+  - 'test "pod remove with timeout from context"'
+
 runc_git_version: v1.5.1
 crun_git_version: 1.29.1

@@ -67,6 +67,9 @@
         + (['stats.bats'] | product(kata_rust_skip_stats_tests) if kata_runtime_variant == 'kata-static' else []) \
         + (['ctr.bats'] | product(kata_rust_skip_ctr_tests) if kata_runtime_variant == 'kata-static' else []) \
         + (['logs.bats'] | product(kata_rust_skip_logs_tests) if kata_runtime_variant == 'kata-static' else []) \
+        + (['ctr.bats'] | product(kata_go_skip_ctr_tests) if kata_runtime_variant == 'kata-go-static' else []) \
+        + (['network.bats'] | product(kata_go_skip_network_tests) if kata_runtime_variant == 'kata-go-static' else []) \
+        + (['pod.bats'] | product(kata_go_skip_pod_tests) if kata_runtime_variant == 'kata-go-static' else []) \
         | list }}"
 
     - name: Disable SELinux
