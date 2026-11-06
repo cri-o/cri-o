@@ -2,6 +2,7 @@ package oci_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -11,6 +12,8 @@ import (
 	"github.com/containerd/ttrpc"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -174,7 +177,7 @@ var _ = t.Describe("RuntimeVM DeleteContainer after restore", func() {
 var _ = t.Describe("RuntimeVM kill", func() {
 	It("should return nil when shim has already exited (ttrpc.ErrClosed) for stop signals", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(r.Kill(context.Background(), "ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
 	})
 
 	It("should propagate ttrpc.ErrClosed for signal 0 so IsContainerAlive returns false", func() {
@@ -183,19 +186,67 @@ var _ = t.Describe("RuntimeVM kill", func() {
 		c.SetState(&oci.ContainerState{})
 
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
-		Expect(r.IsContainerAlive(c)).To(BeFalse())
+
+		alive, err := r.IsContainerAlive(context.Background(), c)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(alive).To(BeFalse())
+	})
+
+	It("should report not alive instead of panicking when the shim is not connected", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{})
+
+		// No shim address in the bundle, so nothing has connected to the shim yet.
+		r := oci.NewRuntimeVM()
+		Expect(r.HasTask()).To(BeFalse())
+
+		alive, err := r.IsContainerAlive(context.Background(), c)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("is not connected"))
+		Expect(alive).To(BeFalse())
+	})
+
+	DescribeTable("should preserve deadline and cancellation errors",
+		func(taskErr error) {
+			c := newTestContainerWithBundle(GinkgoT().TempDir())
+			r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: taskErr})
+
+			Expect(r.Kill(context.Background(), c.ID(), "", 0)).To(MatchError(taskErr))
+
+			alive, err := r.IsContainerAlive(context.Background(), c)
+			Expect(alive).To(BeFalse())
+			Expect(err).To(MatchError(taskErr))
+		},
+		Entry("context deadline", context.DeadlineExceeded),
+		Entry("wrapped context deadline", fmt.Errorf("kill: %w", context.DeadlineExceeded)),
+		Entry("gRPC deadline", status.Error(codes.DeadlineExceeded, "shim deadline")),
+		Entry("context cancellation", context.Canceled),
+		Entry("gRPC cancellation", status.Error(codes.Canceled, "shim canceled")),
+	)
+
+	It("should report an error when the liveness check cannot tell", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{})
+
+		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: context.DeadlineExceeded})
+
+		alive, err := r.IsContainerAlive(context.Background(), c)
+		Expect(err).To(HaveOccurred())
+		Expect(alive).To(BeFalse())
 	})
 
 	It("should propagate errors that are not ttrpc.ErrClosed", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: ttrpc.ErrClosed})
 		rErr := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: context.DeadlineExceeded})
 
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
-		Expect(rErr.Kill("ctr-id", "", syscall.SIGTERM)).To(HaveOccurred())
+		Expect(r.Kill(context.Background(), "ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(rErr.Kill(context.Background(), "ctr-id", "", syscall.SIGTERM)).To(HaveOccurred())
 	})
 
 	It("should return nil when kill succeeds", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{killErr: nil})
-		Expect(r.Kill("ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
+		Expect(r.Kill(context.Background(), "ctr-id", "", syscall.SIGTERM)).NotTo(HaveOccurred())
 	})
 })
