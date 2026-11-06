@@ -212,6 +212,53 @@ func stopAfterStdinEOF(c *Container) bool {
 	return c.stdin && c.StdinOnce() && !c.terminal
 }
 
+// newCreateContainerConfig returns the conmon-rs configuration to create the
+// container c.
+func newCreateContainerConfig(r *Runtime, c *Container) *conmonClient.CreateContainerConfig {
+	var maxSize uint64
+	if r.config.LogSizeMax >= 0 {
+		maxSize = uint64(r.config.LogSizeMax)
+	}
+
+	logDrivers := []conmonClient.ContainerLogDriver{
+		{
+			Type:    conmonClient.LogDriverTypeContainerRuntimeInterface,
+			Path:    c.logPath,
+			MaxSize: maxSize,
+		},
+	}
+	// Like the journald log path of conmon, with the container name as
+	// CONTAINER_NAME, which servers without FeatureJournaldFields ignore.
+	if r.config.LogToJournald {
+		logDrivers = append(logDrivers, conmonClient.ContainerLogDriver{
+			Type:          conmonClient.LogDriverTypeJournald,
+			ContainerName: c.name,
+		})
+	}
+
+	createConfig := &conmonClient.CreateContainerConfig{
+		ID:         c.ID(),
+		BundlePath: c.bundlePath,
+		Terminal:   c.terminal,
+		Stdin:      c.stdin,
+		ExitPaths: []string{
+			filepath.Join(r.config.ContainerExitsDir, c.ID()),
+			c.exitFilePath(),
+		},
+		OOMExitPaths: []string{
+			filepath.Join(c.bundlePath, "oom"),
+		}, // Keep in sync with location in oci.UpdateContainerStatus()
+		LogDrivers: logDrivers,
+	}
+
+	// Like conmon, which passes --no-pivot to the create call of the runtime.
+	if r.config.NoPivot {
+		createConfig.CommandArgs = []string{"--no-pivot"}
+	}
+
+	return createConfig
+}
+
 func (r *runtimePod) CreateContainer(
 	ctx context.Context,
 	c *Container,
@@ -250,42 +297,7 @@ func (r *runtimePod) CreateContainer(
 		return nil
 	}
 
-	var maxSize uint64
-	if r.oci.config.LogSizeMax >= 0 {
-		maxSize = uint64(r.oci.config.LogSizeMax)
-	}
-
-	logDrivers := []conmonClient.ContainerLogDriver{
-		{
-			Type:    conmonClient.LogDriverTypeContainerRuntimeInterface,
-			Path:    c.logPath,
-			MaxSize: maxSize,
-		},
-	}
-	// Like the journald log path of conmon, with the container name as
-	// CONTAINER_NAME, which servers without FeatureJournaldFields ignore.
-	if r.oci.config.LogToJournald {
-		logDrivers = append(logDrivers, conmonClient.ContainerLogDriver{
-			Type:          conmonClient.LogDriverTypeJournald,
-			ContainerName: c.name,
-		})
-	}
-
-	createConfig := &conmonClient.CreateContainerConfig{
-		ID:         c.ID(),
-		BundlePath: c.bundlePath,
-		Terminal:   c.terminal,
-		Stdin:      c.stdin,
-		ExitPaths: []string{
-			filepath.Join(r.oci.config.ContainerExitsDir, c.ID()),
-			c.exitFilePath(),
-		},
-		OOMExitPaths: []string{
-			filepath.Join(c.bundlePath, "oom"),
-		}, // Keep in sync with location in oci.UpdateContainerStatus()
-		LogDrivers: logDrivers,
-	}
-	resp, err := r.client.CreateContainer(ctx, createConfig)
+	resp, err := r.client.CreateContainer(ctx, newCreateContainerConfig(r.oci.Runtime, c))
 	// TODO FIXME do we need to cleanup the container?
 	if err != nil {
 		return fmt.Errorf("create container: %w", err)

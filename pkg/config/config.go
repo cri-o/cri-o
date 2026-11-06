@@ -326,8 +326,13 @@ type RuntimeHandler struct {
 	// StreamWebsockets lets conmon-rs (runtime_type = "pod") serve container
 	// exec, attach and port forward over SPDY and WebSocket instead of the
 	// streaming server of CRI-O. It needs conmon-rs v1.2.0 or later and gets
-	// disabled for older versions.
-	StreamWebsockets bool `toml:"stream_websockets,omitempty"`
+	// disabled for older versions. If not set, it is enabled for conmon-rs
+	// versions which support it, unless stream_enable_tls is set, because
+	// the streaming server of conmon-rs does not support TLS, or
+	// exec_cpu_affinity or infra_ctr_cpuset is set, because conmon-rs
+	// neither runs the exec sessions in the exec cgroup of the container
+	// nor pins them to the infra container CPU set.
+	StreamWebsockets *bool `toml:"stream_websockets,omitempty"`
 
 	// conmonrsFeatures are the optional features the conmon-rs binary of
 	// this handler reports.
@@ -697,6 +702,12 @@ type RuntimeConfig struct {
 
 	// namespaceManager is the internal NamespaceManager configuration
 	namespaceManager *nsmgr.NamespaceManager
+
+	// streamEnableTLS is the stream_enable_tls of the API configuration,
+	// which decides if the runtime handlers enable stream_websockets by
+	// default. Only Config.Validate sets it, reloads keep the value of the
+	// running server.
+	streamEnableTLS bool
 
 	// Whether SELinux should be disabled within a pod,
 	// when it is running in the host network namespace
@@ -1292,6 +1303,8 @@ func (c *Config) Validate(onExecution bool) error {
 		return fmt.Errorf("validating root config: %w", err)
 	}
 
+	c.streamEnableTLS = c.StreamEnableTLS
+
 	if err := c.RuntimeConfig.Validate(c.SystemContext, onExecution); err != nil {
 		return fmt.Errorf("validating runtime config: %w", err)
 	}
@@ -1782,6 +1795,8 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 
 	// Validate if runtime_path does exist for each runtime
 	for name, handler := range c.Runtimes {
+		handler.applyWebsocketStreamingDefault(name, c.streamEnableTLS, c.InfraCtrCPUSet != "")
+
 		if err := handler.Validate(name); err != nil {
 			if c.DefaultRuntime == name {
 				return err
@@ -2356,10 +2371,87 @@ func (r *RuntimeHandler) ValidateContainerCreateTimeout(name string) {
 	}
 }
 
-// ValidateWebsocketStreaming can be used to verify if the runtime supports WebSocket streaming.
+// applyWebsocketStreamingDefault keeps stream_websockets disabled by
+// default if the streaming server of CRI-O uses TLS, because conmon-rs serves
+// the streams over plain HTTP on the loopback interface, or if
+// exec_cpu_affinity or infra_ctr_cpuset is set, because conmon-rs does not run
+// the exec sessions it serves in the exec cgroup of the container, nor pins
+// their runtime to the infra container CPU set. It has to run before
+// ValidateWebsocketStreaming, which enables an unset stream_websockets.
+func (r *RuntimeHandler) applyWebsocketStreamingDefault(
+	name string,
+	streamEnableTLS, infraCtrCPUSet bool,
+) {
+	if r.RuntimeType != RuntimeTypePod {
+		return
+	}
+
+	execCPUAffinity := r.ExecCPUAffinity != ExecCPUAffinityTypeDefault
+
+	if r.StreamWebsockets == nil {
+		switch {
+		case streamEnableTLS:
+			logrus.Infof(
+				"Not enabling streaming over websockets for runtime handler %q by default, because stream_enable_tls is set",
+				name,
+			)
+
+		case execCPUAffinity:
+			logrus.Infof(
+				"Not enabling streaming over websockets for runtime handler %q by default, because exec_cpu_affinity is set",
+				name,
+			)
+
+		case infraCtrCPUSet:
+			logrus.Infof(
+				"Not enabling streaming over websockets for runtime handler %q by default, because infra_ctr_cpuset is set",
+				name,
+			)
+
+		default:
+			return
+		}
+
+		r.StreamWebsockets = new(false)
+
+		return
+	}
+
+	if !*r.StreamWebsockets {
+		return
+	}
+
+	if streamEnableTLS {
+		logrus.Warnf(
+			"Runtime handler %q enables stream_websockets, conmon-rs serves the streams over plain HTTP on 127.0.0.1 and ignores stream_enable_tls",
+			name,
+		)
+	}
+
+	if execCPUAffinity {
+		logrus.Warnf(
+			"Runtime handler %q enables stream_websockets, the exec sessions served by conmon-rs do not run in the exec cgroup of exec_cpu_affinity",
+			name,
+		)
+	}
+
+	if infraCtrCPUSet {
+		logrus.Warnf(
+			"Runtime handler %q enables stream_websockets, conmon-rs does not pin the exec sessions it serves to infra_ctr_cpuset",
+			name,
+		)
+	}
+}
+
+// ValidateWebsocketStreaming can be used to verify if the runtime supports
+// WebSocket streaming. If stream_websockets is not set for a pod runtime, it
+// gets enabled if conmon-rs supports it. It does not know about
+// stream_enable_tls, exec_cpu_affinity and infra_ctr_cpuset, so callers have to
+// apply the default of applyWebsocketStreamingDefault first, like
+// ValidateRuntimes does.
 func (r *RuntimeHandler) ValidateWebsocketStreaming(name string) error {
 	if r.RuntimeType != RuntimeTypePod {
-		if r.StreamWebsockets {
+		if r.RuntimeStreamWebsockets() {
 			return fmt.Errorf(
 				`only the 'runtime_type = "pod"' supports websocket streaming, not %q (runtime %q)`,
 				r.RuntimeType,
@@ -2378,11 +2470,7 @@ func (r *RuntimeHandler) ValidateWebsocketStreaming(name string) error {
 		if errors.Is(err, conmonrsClient.ErrUnsupported) {
 			logrus.Debugf("Unable to verify pod runtime version: %v", err)
 
-			if r.StreamWebsockets {
-				logrus.Warnf("Disabling streaming over websockets, it requires conmon-rs >= v1.2.0")
-
-				r.StreamWebsockets = false
-			}
+			r.resolveWebsocketStreaming(name, false)
 
 			return nil
 		}
@@ -2411,16 +2499,41 @@ func (r *RuntimeHandler) ValidateWebsocketStreaming(name string) error {
 
 	// Before, the streaming server of conmon-rs only spoke the v5 WebSocket
 	// protocol for exec and attach, while the kubelet talks SPDY to it.
-	if r.StreamWebsockets && !r.conmonrsSupports(conmonrsClient.FeatureStreamingProtocols) {
+	r.resolveWebsocketStreaming(name, r.conmonrsSupports(conmonrsClient.FeatureStreamingProtocols))
+
+	return nil
+}
+
+// resolveWebsocketStreaming enables an unset stream_websockets if conmon-rs
+// supports the streaming protocols of the kubelet, and disables it if not.
+func (r *RuntimeHandler) resolveWebsocketStreaming(name string, supported bool) {
+	// Assign new values instead of writing through the pointer: a reload
+	// copies the handlers of the freshly parsed config, which keep sharing
+	// their pointers with that config.
+	switch {
+	case r.StreamWebsockets == nil:
+		if supported {
+			logrus.Infof(
+				"Enabling streaming over websockets for runtime handler %q by default",
+				name,
+			)
+		} else {
+			logrus.Debugf(
+				"Not enabling streaming over websockets for runtime handler %q by default, it requires conmon-rs >= v1.2.0",
+				name,
+			)
+		}
+
+		r.StreamWebsockets = new(supported)
+
+	case *r.StreamWebsockets && !supported:
 		logrus.Warnf(
 			"Disabling streaming over websockets for runtime handler %q, it requires conmon-rs >= v1.2.0",
 			name,
 		)
 
-		r.StreamWebsockets = false
+		r.StreamWebsockets = new(false)
 	}
-
-	return nil
 }
 
 // conmonrsSupports returns whether the conmon-rs binary of this handler
@@ -2484,14 +2597,14 @@ func (r *RuntimeHandler) RuntimeDefaultAnnotations() map[string]string {
 
 // RuntimeStreamWebsockets returns the configured websocket streaming option for this handler.
 func (r *RuntimeHandler) RuntimeStreamWebsockets() bool {
-	return r.StreamWebsockets
+	return r.StreamWebsockets != nil && *r.StreamWebsockets
 }
 
 // RuntimeStreamPortForward returns whether conmon-rs serves port forwarding
 // for this handler, which needs stream_websockets and a conmon-rs which
 // reports the port forward feature.
 func (r *RuntimeHandler) RuntimeStreamPortForward() bool {
-	return r.StreamWebsockets && r.conmonrsSupports(conmonrsClient.FeaturePortForward)
+	return r.RuntimeStreamWebsockets() && r.conmonrsSupports(conmonrsClient.FeaturePortForward)
 }
 
 // RuntimeSeccomp returns the configuration of the loaded seccomp profile for this handler.
@@ -2548,6 +2661,9 @@ func validateAllowedAndGenerateDisallowedAnnotations(
 			disallowed = append(disallowed, ann)
 		}
 	}
+
+	// Keep the order stable, the reload compares the validated handlers.
+	slices.Sort(disallowed)
 
 	return disallowed, nil
 }

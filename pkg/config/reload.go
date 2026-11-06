@@ -310,18 +310,14 @@ func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 //
 // It validates copies of the new runtime handlers and publishes them
 // afterwards, because the validation fills fields like the conmon-rs features
-// and may disable stream_websockets. Concurrent CRI calls must not see a
-// handler which is only partly validated.
+// and resolves the default of stream_websockets. Concurrent CRI calls must not
+// see a handler which is only partly validated. The validated copies get
+// compared with the running handlers, which the validation filled the same
+// way, so a reload of an unchanged configuration publishes nothing.
 func (c *Config) ReloadRuntimes(newConfig *Config) error {
-	runtimesChanged := !RuntimesEqual(c.Runtimes, newConfig.Runtimes)
-	if !runtimesChanged && c.DefaultRuntime == newConfig.DefaultRuntime {
-		return nil
-	}
-
-	if runtimesChanged {
-		logrus.Infof("Updating runtime configuration")
-	}
-
+	// The copy keeps the stream_enable_tls of the running streaming server,
+	// which does not support a live reload, for the default of
+	// stream_websockets.
 	validated := c.RuntimeConfig
 	validated.DefaultRuntime = newConfig.DefaultRuntime
 
@@ -345,6 +341,15 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 				filepath.Join(filepath.Dir(c.Listen), "seccomp"),
 			)
 		}
+	}
+
+	runtimesChanged := !RuntimesEqual(c.Runtimes, validated.Runtimes)
+	if !runtimesChanged && c.DefaultRuntime == validated.DefaultRuntime {
+		return nil
+	}
+
+	if runtimesChanged {
+		logrus.Infof("Updating runtime configuration")
 	}
 
 	if c.DefaultRuntime != validated.DefaultRuntime {

@@ -89,7 +89,7 @@ IP address on which the stream server will listen.
 The port on which the stream server will listen. If the port is set to "0", then CRI-O will allocate a random free port number.
 
 **stream_enable_tls**=false
-Enable encrypted TLS transport of the stream server.
+Enable encrypted TLS transport of the stream server. If set, the `runtime_type = "pod"` handlers do not enable `stream_websockets` by default, because conmon-rs does not use TLS.
 
 **stream_idle_timeout**=""
 Length of time until open streams terminate due to lack of activity. It applies to the CRI-O streaming server and to the exec, attach and port forward sessions served by conmon-rs (`stream_websockets`). It defaults to 4h if not set, "0" disables it and negative values fail the validation.
@@ -401,9 +401,10 @@ runtime type. Setting this option to true can cause data loss, e.g. when a machi
 **default_annotations**={}
 A mapping of keys to values of annotations set on containers run by this runtime handler, if not overridden by the pod spec.
 
-**stream_websockets**=false
+**stream_websockets**
 Let conmon-rs serve container exec, attach and port forward over SPDY and WebSocket instead of the CRI-O streaming server, with the idle timeout of `stream_idle_timeout`.
 Only valid for `runtime_type = "pod"`. It needs conmon-rs v1.2.0 or later and gets disabled for older versions.
+It is not set by default, which enables it for `runtime_type = "pod"` if conmon-rs supports the streaming protocols of the kubelet (v1.2.0 or later), `stream_enable_tls` is false and neither `exec_cpu_affinity` nor `infra_ctr_cpuset` is set. conmon-rs serves the streams over plain HTTP on 127.0.0.1 and does not use `stream_address`, `stream_port`, `stream_enable_tls` and the `stream_tls_*` options, and the exec sessions it serves neither run in the exec cgroup of `exec_cpu_affinity` nor get pinned to `infra_ctr_cpuset`.
 
 **seccomp_profile**=""
 Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the `crio.runtime` seccomp profile will be used.

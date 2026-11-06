@@ -42,6 +42,12 @@ func NewConmonServerConfig(
 	return newConmonServerConfig(r, handler, c, handler.RuntimeRoot)
 }
 
+// NewCreateContainerConfig returns the conmon-rs configuration to create the
+// container c.
+func NewCreateContainerConfig(r *Runtime, c *Container) *conmonClient.CreateContainerConfig {
+	return newCreateContainerConfig(r, c)
+}
+
 // StopAfterStdinEOF returns whether conmon-rs closes the container stdin
 // once an attach client closed its stdin.
 func StopAfterStdinEOF(c *Container) bool {

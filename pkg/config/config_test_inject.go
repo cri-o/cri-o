@@ -48,3 +48,9 @@ func (c *RuntimeConfig) SetCgroupManager(mgr cgmgr.CgroupManager) {
 func (r *RuntimeHandler) SetConmonrsFeatures(features []string) {
 	r.conmonrsFeatures = features
 }
+
+// SetStreamEnableTLS sets the stream_enable_tls of the API configuration for
+// the validation of the runtime handlers.
+func (c *RuntimeConfig) SetStreamEnableTLS(enabled bool) {
+	c.streamEnableTLS = enabled
+}

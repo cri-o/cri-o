@@ -122,4 +122,18 @@ var _ = t.Describe("MonitorStreamingURL", func() {
 		Expect(status.Code(err)).To(Equal(codes.ResourceExhausted))
 		Expect(url).To(BeEmpty())
 	})
+
+	It("should fail with NotFound if the container monitor does not know the container", func() {
+		// Given
+		// When
+		url, err := monitorStreamingURL(
+			enabled(true, nil),
+			serve(fmt.Errorf("call RPC: %w", conmonClient.ErrContainerNotFound)),
+		)
+
+		// Then
+		Expect(status.Code(err)).To(Equal(codes.NotFound))
+		Expect(err).To(MatchError(ContainSubstring(`could not serve exec for container "id"`)))
+		Expect(url).To(BeEmpty())
+	})
 })
