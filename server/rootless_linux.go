@@ -3,6 +3,7 @@ package server
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/opencontainers/cgroups"
@@ -13,14 +14,14 @@ import (
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 )
 
-func hasNetworkNamespace(config *rspec.Spec) bool {
-	for _, n := range config.Linux.Namespaces {
-		if n.Type == rspec.NetworkNamespace {
-			return true
-		}
+func hasNamespace(spec *rspec.Spec, nsType rspec.LinuxNamespaceType) bool {
+	if spec.Linux == nil {
+		return false
 	}
 
-	return false
+	return slices.ContainsFunc(spec.Linux.Namespaces, func(ns rspec.LinuxNamespace) bool {
+		return ns.Type == nsType
+	})
 }
 
 func makeOCIConfigurationRootless(g *generate.Generator) {
@@ -107,7 +108,7 @@ func makeOCIConfigurationRootless(g *generate.Generator) {
 		g.Config.Mounts[i].Options = newOptions
 	}
 
-	if !hasNetworkNamespace(g.Config) {
+	if !hasNamespace(g.Config, rspec.NetworkNamespace) {
 		g.RemoveMount("/sys")
 
 		sysMnt := rspec.Mount{

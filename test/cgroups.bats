@@ -12,7 +12,12 @@ function setup() {
 }
 
 function teardown() {
+	local restore_status=0
+	if [[ -n "${host_cgroup_options:-}" ]]; then
+		mount -o "remount,$host_cgroup_options" /sys/fs/cgroup || restore_status=$?
+	fi
 	cleanup_test
+	return "$restore_status"
 }
 
 function configure_monitor_cgroup_for_conmonrs() {
@@ -358,4 +363,32 @@ EOF
 	# Verify the container can access its cgroup (regression test for #9705)
 	# The container should be able to read its cgroup files
 	crictl exec --sync "$ctr_id" cat /proc/self/cgroup
+}
+
+@test "privileged ctr keeps the host cgroup mount options" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS already enabled globally"
+	fi
+	if ! is_cgroup_v2; then
+		skip "test requires cgroup v2"
+	fi
+	host_cgroup_options=$(findmnt -no FS-OPTIONS /sys/fs/cgroup)
+	if [[ "$host_cgroup_options" != *nsdelegate* ]]; then
+		skip "host cgroup mount must have nsdelegate for this test"
+	fi
+	start_crio
+
+	# A privileged container shares the host cgroup namespace. The kernel
+	# applies its cgroup mount options to the host superblock.
+	jq '	  .linux.security_context.privileged = true' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+	jq '	  .linux.security_context.privileged = true' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+	crictl run "$newconfig" "$sboxconfig"
+
+	output=$(findmnt -no FS-OPTIONS /sys/fs/cgroup)
+	if [[ "$output" != "$host_cgroup_options" ]]; then
+		echo "host cgroup mount options changed from '$host_cgroup_options' to '$output'"
+		return 1
+	fi
 }
