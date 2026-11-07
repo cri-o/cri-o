@@ -20,19 +20,15 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
-// updateSandbox updates the StatsServer's entry for this sandbox, as well as each child container.
-// It first populates the stats from the CgroupParent, then calculates network usage, updates
-// each of its children container stats by calling into the runtime, and finally calculates the CPUNanoCores.
-func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats {
+// collectSandbox performs all I/O for a sandbox and returns raw stats without
+// accessing or modifying shared state. Safe to call concurrently.
+func (ss *StatsServer) collectSandbox(sb *sandbox.Sandbox) *sandboxCollectResult {
 	if sb == nil {
 		return nil
 	}
 
 	// Sandbox metrics are to fulfill the CRI metrics endpoint.
-	sandboxMetrics, exists := ss.sboxMetrics[sb.ID()]
-	if !exists {
-		sandboxMetrics = NewSandboxMetrics(sb)
-	}
+	sandboxMetrics := NewSandboxMetrics(sb)
 
 	// Sandbox stats are to fulfill the Kubelet's /stats/summary endpoint.
 	sandboxStats := &types.PodSandboxStats{
@@ -85,32 +81,49 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		if err != nil {
 			log.Errorf(ss.ctx, "Error getting disk stats %s: %v", c.ID(), err)
 		}
+
 		// Convert container stats (cgroup + disk) to CRI stats.
 		cStats := containerCRIStats(ctrStats, diskStats, c, ctrStats.SystemNano)
 		ss.populateWritableLayer(cStats, c)
 
-		if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
-			updateUsageNanoCores(oldcStats.GetCpu(), cStats.GetCpu())
-		}
-
-		containerStats = append(containerStats, cStats)
-
 		// Convert cgroups stats to CRI metrics.
 		cMetrics := ss.containerMetricsFromContainerStats(sb, c, ctrStats, diskStats)
+
+		containerStats = append(containerStats, cStats)
 		containerMetrics = append(containerMetrics, cMetrics)
 	}
 
 	sandboxStats.Linux.Containers = containerStats
 	sandboxMetrics.metric.ContainerMetrics = containerMetrics
 
-	if old, ok := ss.sboxStats[sb.ID()]; ok {
-		updateUsageNanoCores(old.GetLinux().GetCpu(), sandboxStats.GetLinux().GetCpu())
+	return &sandboxCollectResult{
+		sandboxStats:   sandboxStats,
+		sandboxMetrics: sandboxMetrics,
+	}
+}
+
+// updateSandbox updates the StatsServer's entry for this sandbox and its containers.
+// The caller must hold ss.mutex.
+func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats {
+	r := ss.collectSandbox(sb)
+	if r == nil {
+		return nil
 	}
 
-	ss.sboxStats[sb.ID()] = sandboxStats
-	ss.sboxMetrics[sb.ID()] = sandboxMetrics
+	for _, cStats := range r.sandboxStats.GetLinux().GetContainers() {
+		if old, ok := ss.ctrStats[cStats.GetAttributes().GetId()]; ok {
+			updateUsageNanoCores(old.GetCpu(), cStats.GetCpu())
+		}
+	}
 
-	return sandboxStats
+	if old, ok := ss.sboxStats[sb.ID()]; ok {
+		updateUsageNanoCores(old.GetLinux().GetCpu(), r.sandboxStats.GetLinux().GetCpu())
+	}
+
+	ss.sboxStats[sb.ID()] = r.sandboxStats
+	ss.sboxMetrics[sb.ID()] = r.sandboxMetrics
+
+	return r.sandboxStats
 }
 
 // updateContainerStats calls into the runtime handler to update the container stats,
