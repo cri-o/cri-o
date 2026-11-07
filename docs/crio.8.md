@@ -125,6 +125,7 @@ crio
 [--seccomp-profile]=[value]
 [--selinux]
 [--separate-pull-cgroup]=[value]
+[--layer-dedup]=[value]
 [--shared-cpuset]=[value]
 [--short-name-mode]=[value]
 [--signature-policy-dir]=[value]
@@ -433,6 +434,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--selinux**: Enable selinux support. This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup.
+
+**--layer-dedup**="": Controls automatic image layer deduplication using filesystem reflinks (copy-on-write clones via the FIDEDUPERANGE ioctl). When set to "after_pull", identical file extents across container image layers are unified after each successful image pull, reducing disk usage without modifying layer data. Deduplication runs in a background worker and never blocks or fails the pull. Requires a filesystem with reflink support (XFS with reflink=1 or Btrfs); on unsupported filesystems the pass logs a warning and exits cleanly. Supported values: "disabled" (no deduplication, default), "after_pull" (deduplicate after every successful image pull). (default: "disabled")
 
 **--shared-cpuset**="": CPUs set that will be used for guaranteed containers that want access to shared cpus
 
