@@ -1221,6 +1221,9 @@ func DefaultConfig() (*Config, error) {
 			TracingSamplingRatePerMillion: 0,
 			EnableTracing:                 false,
 		},
+		StatsConfig: StatsConfig{
+			CollectionPeriod: 10,
+		},
 		NRI: nri.New(),
 	}, nil
 }
