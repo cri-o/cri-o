@@ -16,6 +16,7 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 	workingSetBytes, rssBytes, pageFaults, majorPageFaults, _ := computeMemoryMetricValues(mem)
 	swapUsage := computeSwapUsageForMetrics(mem)
 	fileMapped := computeFileMapped(mem)
+	isCgroupV2 := node.CgroupIsV2()
 
 	memoryMetrics := []*containerMetric{
 		{
@@ -80,6 +81,72 @@ func generateContainerMemoryMetrics(ctr *oci.Container, mem *cgroups.MemoryStats
 			desc: containerMemoryWorkingSetBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{value: workingSetBytes, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerMemoryFileDirtyBytes,
+			valueFunc: func() metricValues {
+				return metricValues{
+					{
+						value:      memStatsCGroupsV2(mem, "file_dirty", isCgroupV2),
+						metricType: types.MetricType_GAUGE,
+					},
+				}
+			},
+		},
+		{
+			desc: containerMemoryFileWritebackBytes,
+			valueFunc: func() metricValues {
+				return metricValues{
+					{
+						value:      memStatsCGroupsV2(mem, "file_writeback", isCgroupV2),
+						metricType: types.MetricType_GAUGE,
+					},
+				}
+			},
+		},
+		{
+			desc: containerMemoryPgscanTotal,
+			valueFunc: func() metricValues {
+				return metricValues{
+					{
+						value:      memStatsCGroupsV2(mem, "pgscan", isCgroupV2),
+						metricType: types.MetricType_COUNTER,
+					},
+				}
+			},
+		},
+		{
+			desc: containerMemoryPgstealTotal,
+			valueFunc: func() metricValues {
+				return metricValues{
+					{
+						value:      memStatsCGroupsV2(mem, "pgsteal", isCgroupV2),
+						metricType: types.MetricType_COUNTER,
+					},
+				}
+			},
+		},
+		{
+			desc: containerMemoryWorkingsetRefaultAnonTotal,
+			valueFunc: func() metricValues {
+				return metricValues{
+					{
+						value:      memStatsCGroupsV2(mem, "workingset_refault_anon", isCgroupV2),
+						metricType: types.MetricType_COUNTER,
+					},
+				}
+			},
+		},
+		{
+			desc: containerMemoryWorkingsetRefaultFileTotal,
+			valueFunc: func() metricValues {
+				return metricValues{
+					{
+						value:      memStatsCGroupsV2(mem, "workingset_refault_file", isCgroupV2),
+						metricType: types.MetricType_COUNTER,
+					},
+				}
 			},
 		},
 		{
@@ -254,6 +321,17 @@ func computeTransparentHugepages(
 	}
 
 	return memStats.Stats["anon_thp"], memStats.Stats["shmem_thp"], memStats.Stats["file_thp"]
+}
+
+// memStatsCGroupsV2 returns the value of a memory.stat key that only exists under cgroup
+// v2. cgroup v1 has no equivalent key, so zero is reported there. The cgroup
+// version is passed in so both branches are exercisable regardless of the host.
+func memStatsCGroupsV2(memStats *cgroups.MemoryStats, key string, isCgroupV2 bool) uint64 {
+	if !isCgroupV2 {
+		return 0
+	}
+
+	return memStats.Stats[key]
 }
 
 func GenerateContainerOOMMetrics(ctr *oci.Container, oomCount uint64) []*types.Metric {

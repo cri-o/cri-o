@@ -224,6 +224,22 @@ func TestContainerMemoryExtraMetricValues(t *testing.T) {
 	}
 }
 
+// TestMemStatsCGroupsV2 verifies that memStatsCGroupsV2 reads the memory.stat key under cgroup
+// v2 and reports zero under cgroup v1, where these keys do not exist.
+func TestMemStatsCGroupsV2(t *testing.T) {
+	t.Parallel()
+
+	memStats := testMemoryStats()
+
+	if got := memStatsCGroupsV2(&memStats, "file_dirty", true); got != memStats.Stats["file_dirty"] {
+		t.Errorf("cgroup v2: got %d, want %d", got, memStats.Stats["file_dirty"])
+	}
+
+	if got := memStatsCGroupsV2(&memStats, "file_dirty", false); got != 0 {
+		t.Errorf("cgroup v1: got %d, want 0", got)
+	}
+}
+
 // descriptorLabelCounts builds a lookup from metric name to expected label count.
 func descriptorLabelCounts() map[string]int {
 	m := make(map[string]int)
@@ -299,18 +315,24 @@ func testMemoryStats() cgroups.MemoryStats {
 		KernelUsage: cgroups.MemoryData{Usage: 256 * 1024},
 		Cache:       128 * 1024,
 		Stats: map[string]uint64{
-			"total_rss":           512 * 1024,
-			"total_inactive_file": 64 * 1024,
-			"total_mapped_file":   32 * 1024,
-			"pgfault":             100,
-			"pgmajfault":          5,
-			"active_anon":         256 * 1024,
-			"inactive_anon":       16 * 1024,
-			"total_active_anon":   192 * 1024,
-			"total_inactive_anon": 8 * 1024,
-			"anon_thp":            128 * 1024,
-			"shmem_thp":           64 * 1024,
-			"file_thp":            48 * 1024,
+			"total_rss":               512 * 1024,
+			"total_inactive_file":     64 * 1024,
+			"total_mapped_file":       32 * 1024,
+			"pgfault":                 100,
+			"pgmajfault":              5,
+			"active_anon":             256 * 1024,
+			"inactive_anon":           16 * 1024,
+			"total_active_anon":       192 * 1024,
+			"total_inactive_anon":     8 * 1024,
+			"anon_thp":                128 * 1024,
+			"shmem_thp":               64 * 1024,
+			"file_thp":                48 * 1024,
+			"file_dirty":              24 * 1024,
+			"file_writeback":          12 * 1024,
+			"pgscan":                  300,
+			"pgsteal":                 250,
+			"workingset_refault_anon": 40,
+			"workingset_refault_file": 60,
 		},
 		PSI: &cgroups.PSIStats{
 			Full: cgroups.PSIData{Total: 500000},
