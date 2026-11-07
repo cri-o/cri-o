@@ -353,5 +353,11 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 
 	c.setRuntimeHandlers(validated.Runtimes, validated.DefaultRuntime)
 
+	// Publish the validated runtime configuration as a single atomic
+	// snapshot, which is the state observed by the runtime consumers.
+	// Concurrent readers therefore never observe a runtime table with a
+	// mismatching default runtime or any other intermediate state, and a
+	// failed reload cannot leave the shared configuration half-applied.
+	c.publishRuntimeSnapshot()
 	return nil
 }

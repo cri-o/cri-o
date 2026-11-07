@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -130,6 +131,10 @@ type Config struct {
 	Comment          string
 	singleConfigPath string // Path to the single config file
 	dropInConfigDir  string // Path to the drop-in config files
+
+	// runtimeSnapshot holds the atomically published runtime configuration,
+	// see RuntimeSnapshot.
+	runtimeSnapshot atomic.Pointer[RuntimeSnapshot]
 
 	NRI           *nri.Config
 	SystemContext *types.SystemContext
@@ -1322,6 +1327,10 @@ func (c *Config) Validate(onExecution bool) error {
 			)
 		}
 	}
+
+	// Publish the fully validated runtime configuration as the active
+	// snapshot for all runtime consumers.
+	c.publishRuntimeSnapshot()
 
 	if err := c.ImageConfig.Validate(onExecution); err != nil {
 		return fmt.Errorf("validating image config: %w", err)
