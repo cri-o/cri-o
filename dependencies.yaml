@@ -8,6 +8,8 @@ dependencies:
         match: buildGo127Module
       - path: go.mod
         match: go
+      - path: scripts/go.mod
+        match: go
       - path: hack/build-rpms.sh
         match: go
       - path: hack/Containerfile.dev

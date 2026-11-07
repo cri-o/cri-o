@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"regexp"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"strconv"
 	"strings"
 
 	"github.com/blang/semver/v4"
@@ -56,23 +59,86 @@ func ConvertStringToSemver(tag string) (res semver.Version, err error) {
 	return sv, nil
 }
 
+// GetCurrentVersionFromVersionFile returns the Version declared in the
+// provided version file. Both "const" and "var" declarations are supported, the
+// latter allows downstream builds to override the value via -ldflags -X.
 func GetCurrentVersionFromVersionFile(versionFile string) (string, error) {
-	// Matches both the legacy "const Version" declaration and the "var
-	// Version" declaration used so downstream builds can override the
-	// value via -ldflags -X.
-	const versionPattern = `(?:const|var)\s+Version\s+=\s+"(.+)"`
-
-	content, err := os.ReadFile(versionFile)
+	expr, err := versionFileValue(versionFile, "Version")
 	if err != nil {
 		return "", err
 	}
 
-	re := regexp.MustCompile(versionPattern)
+	return stringLiteral(expr)
+}
 
-	matches := re.FindStringSubmatch(string(content))
-	if len(matches) < 2 {
-		return "", fmt.Errorf("unable to find current release version using file: %s", versionFile)
+// GetReleaseMinorVersionsFromVersionFile returns the ReleaseMinorVersions
+// declared in the provided version file.
+func GetReleaseMinorVersionsFromVersionFile(versionFile string) ([]string, error) {
+	expr, err := versionFileValue(versionFile, "ReleaseMinorVersions")
+	if err != nil {
+		return nil, err
 	}
 
-	return matches[1], nil
+	lit, ok := expr.(*ast.CompositeLit)
+	if !ok {
+		return nil, errors.New("ReleaseMinorVersions is not a composite literal")
+	}
+
+	res := make([]string, 0, len(lit.Elts))
+
+	for _, elt := range lit.Elts {
+		value, err := stringLiteral(elt)
+		if err != nil {
+			return nil, fmt.Errorf("ReleaseMinorVersions: %w", err)
+		}
+
+		res = append(res, value)
+	}
+
+	return res, nil
+}
+
+// versionFileValue returns the value of the top level const or var declaration
+// with the provided name in the version file.
+func versionFileValue(versionFile, name string) (ast.Expr, error) {
+	file, err := parser.ParseFile(token.NewFileSet(), versionFile, nil, parser.SkipObjectResolution)
+	if err != nil {
+		return nil, fmt.Errorf("parse version file %s: %w", versionFile, err)
+	}
+
+	for _, decl := range file.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || (genDecl.Tok != token.CONST && genDecl.Tok != token.VAR) {
+			continue
+		}
+
+		for _, spec := range genDecl.Specs {
+			valueSpec, ok := spec.(*ast.ValueSpec)
+			if !ok {
+				continue
+			}
+
+			for i, ident := range valueSpec.Names {
+				if ident.Name == name && i < len(valueSpec.Values) {
+					return valueSpec.Values[i], nil
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("unable to find %s in version file: %s", name, versionFile)
+}
+
+func stringLiteral(expr ast.Expr) (string, error) {
+	lit, ok := expr.(*ast.BasicLit)
+	if !ok || lit.Kind != token.STRING {
+		return "", errors.New("value is not a string literal")
+	}
+
+	value, err := strconv.Unquote(lit.Value)
+	if err != nil {
+		return "", fmt.Errorf("unquote %s: %w", lit.Value, err)
+	}
+
+	return value, nil
 }
