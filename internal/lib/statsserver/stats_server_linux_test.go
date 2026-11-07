@@ -211,3 +211,65 @@ func TestUpdateSandboxDiskStatsError(t *testing.T) {
 		t.Error("expected memory stats to be present")
 	}
 }
+
+func TestUpdateSandboxRefreshesContainerStatsCache(t *testing.T) {
+	t.Parallel()
+
+	const (
+		firstCollectionNano  = int64(1_000_000_000)
+		secondCollectionNano = int64(2_000_000_000)
+	)
+
+	cfg, err := config.DefaultConfig()
+	if err != nil {
+		t.Fatalf("DefaultConfig: %v", err)
+	}
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t, "ctr-1", "test-container")
+
+	fake := &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: firstCollectionNano},
+		diskStats:   &stats.DiskStats{},
+	}
+	rt.SetRuntimeImpl("ctr-1", fake)
+
+	sb := newTestSandbox(t, "sb-1")
+	sb.AddContainer(context.Background(), ctr)
+
+	ss := newTestStatsServer(t, rt, cfg)
+
+	// The first collection cycle must populate the container stats cache that
+	// the cached ListContainerStats path serves.
+	ss.updateSandbox(sb)
+
+	cached, ok := ss.ctrStats["ctr-1"]
+	if !ok {
+		t.Fatal(
+			"collector did not populate the container stats cache; the cached ListContainerStats path would serve a frozen snapshot",
+		)
+	}
+
+	if got := cached.GetCpu().GetTimestamp(); got != firstCollectionNano {
+		t.Fatalf("after first cycle: cpu timestamp = %d, want %d", got, firstCollectionNano)
+	}
+
+	// A later cycle must refresh the cache with the newer sample rather than
+	// leaving the previous snapshot frozen.
+	fake.cgroupStats.SystemNano = secondCollectionNano
+
+	ss.updateSandbox(sb)
+
+	refreshed, ok := ss.ctrStats["ctr-1"]
+	if !ok {
+		t.Fatal("collector dropped the container stats cache entry on the second cycle")
+	}
+
+	if got := refreshed.GetCpu().GetTimestamp(); got != secondCollectionNano {
+		t.Fatalf(
+			"after second cycle: cpu timestamp = %d, want %d; the collector must refresh the container stats cache every cycle",
+			got,
+			secondCollectionNano,
+		)
+	}
+}
