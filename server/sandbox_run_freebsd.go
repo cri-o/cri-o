@@ -343,7 +343,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	sbox.SetHostNetwork(hostNetwork)
 	sbox.SetNetworkIsolated(networkIsolated)
 	sbox.SetPodLinuxResources(resources)
-	sbox.SetDNSConfig(sbox.Config().DnsConfig)
+	// If the sandbox requests no network (network-isolated), it must not inherit
+	// the host's resolver configuration. Set empty DNS config to prevent that.
+	if networkIsolated && sbox.Config().GetDnsConfig() == nil {
+		sbox.SetDNSConfig(&types.DNSConfig{})
+	} else {
+		sbox.SetDNSConfig(sbox.Config().GetDnsConfig())
+	}
 
 	sb, err := sbox.GetSandbox()
 	if err != nil {

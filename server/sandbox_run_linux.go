@@ -817,7 +817,13 @@ func (s *Server) runPodSandbox(
 	hostnamePath := podContainer.RunDir + "/hostname"
 
 	sbox.SetResolvPath(sbox.ResolvPath())
-	sbox.SetDNSConfig(sbox.Config().GetDnsConfig())
+	// If the sandbox requests no network (network-isolated), it must not inherit
+	// the host's resolver configuration. Set empty DNS config to prevent that.
+	if networkIsolated && sbox.Config().GetDnsConfig() == nil {
+		sbox.SetDNSConfig(&types.DNSConfig{})
+	} else {
+		sbox.SetDNSConfig(sbox.Config().GetDnsConfig())
+	}
 	sbox.SetHostnamePath(hostnamePath)
 	sbox.SetNamespaceOptions(securityContext.GetNamespaceOptions())
 	sbox.SetSeccompProfilePath(seccompRef)
