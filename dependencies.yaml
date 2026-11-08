@@ -54,7 +54,7 @@ dependencies:
         match: version
 
   - name: conmon
-    version: v2.2.1
+    version: "46837cd4800889521b6eccd4cce75a69249b1702"
     refPaths:
       - path: scripts/versions
         match: conmon
@@ -62,7 +62,7 @@ dependencies:
         match: conmon_git_version
 
   - name: cri-tools
-    version: v1.37.0
+    version: "7f5ef6a765b64729f5a527104a524563b8c3cbe9"
     refPaths:
       - path: contrib/test/ci/vars.yml
         match: cri_tools_git_version
@@ -70,7 +70,7 @@ dependencies:
         match: cri-tools
 
   - name: crun
-    version: 1.29.1
+    version: "73547f5a297325ad4c697d466ca5045904b1902b"
     refPaths:
       - path: scripts/versions
         match: crun
