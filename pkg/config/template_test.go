@@ -2,6 +2,8 @@ package config_test
 
 import (
 	"bytes"
+	"context"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,6 +25,40 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		DescribeTable("should round-trip stream_websockets",
+			func(value *bool, rendered string) {
+				// Given
+				sut.Runtimes["pod"] = &config.RuntimeHandler{
+					RuntimePath:      validFilePath,
+					RuntimeType:      config.RuntimeTypePod,
+					StreamWebsockets: value,
+				}
+
+				var wr bytes.Buffer
+
+				// When
+				Expect(sut.WriteTemplate(false, &wr)).To(Succeed())
+
+				f := t.MustTempFile("config")
+				Expect(os.WriteFile(f, wr.Bytes(), 0o644)).To(Succeed())
+
+				cfg := defaultConfig()
+				Expect(cfg.UpdateFromFile(context.Background(), f)).To(Succeed())
+
+				// Then
+				if rendered == "" {
+					Expect(wr.String()).NotTo(ContainSubstring("\nstream_websockets ="))
+					Expect(cfg.Runtimes["pod"].StreamWebsockets).To(BeNil())
+				} else {
+					Expect(wr.String()).To(ContainSubstring("\n" + rendered + "\n"))
+					Expect(cfg.Runtimes["pod"].StreamWebsockets).To(HaveValue(Equal(*value)))
+				}
+			},
+			Entry("unset", nil, ""),
+			Entry("false", new(false), "stream_websockets = false"),
+			Entry("true", new(true), "stream_websockets = true"),
+		)
 	})
 	t.Describe("RuntimesEqual", func() {
 		It("not equal if different length", func() {
