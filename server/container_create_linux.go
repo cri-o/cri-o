@@ -32,6 +32,7 @@ import (
 	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/storage"
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 const (
@@ -45,6 +46,7 @@ func (s *Server) createContainerPlatform(
 	container *oci.Container,
 	cgroupParent string,
 	idMappings *idtools.IDMappings,
+	snapshot *libconfig.RuntimeSnapshot,
 ) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -64,7 +66,7 @@ func (s *Server) createContainerPlatform(
 		}
 	}
 
-	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false)
+	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false, snapshot)
 }
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.

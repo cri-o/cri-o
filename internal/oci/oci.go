@@ -130,31 +130,26 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 	return r.config.RuntimeSnapshot().ValidateRuntimeHandler(handler)
 }
 
-func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
-	// Take a single snapshot of the runtime configuration, so that the
-	// default runtime and the handler table of this lookup always match,
-	// even when a reload publishes a new configuration concurrently.
-	snapshot := r.config.RuntimeSnapshot()
+// getRuntimeHandler resolves the handler, or the default runtime handler for
+// an empty one, in the provided runtime snapshot. A nil snapshot resolves
+// against the current configuration. Both lookups use one snapshot, so the
+// default resolution and the explicit lookup never straddle a reload.
+func (r *Runtime) getRuntimeHandler(
+	handler string,
+	snapshot *config.RuntimeSnapshot,
+) (*config.RuntimeHandler, error) {
+	if snapshot == nil {
+		snapshot = r.config.RuntimeSnapshot()
+	}
 
-	// Define the current runtime handler as the default runtime handler.
+	if handler != "" {
+		return snapshot.ValidateRuntimeHandler(handler)
+	}
+
 	rh := snapshot.RuntimeHandler("")
 	if rh == nil {
 		return nil, fmt.Errorf("default runtime handler %q not found in runtime list %v",
 			snapshot.DefaultRuntime, snapshot.Runtimes)
-	}
-
-	// Override the current runtime handler with the runtime handler
-	// corresponding to the runtime handler key provided with this
-	// specific container. Validate against the same snapshot taken
-	// above, so the default resolution and the explicit lookup can
-	// never straddle a reload.
-	if handler != "" {
-		runtimeHandler, err := snapshot.ValidateRuntimeHandler(handler)
-		if err != nil {
-			return nil, err
-		}
-
-		rh = runtimeHandler
 	}
 
 	return rh, nil
@@ -164,7 +159,7 @@ func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, err
 // runtimeHandler indicating if devices on the host are passed/not passed
 // to a container running as privileged.
 func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
-	rh, err := r.getRuntimeHandler(handler)
+	rh, err := r.getRuntimeHandler(handler, nil)
 	if err != nil {
 		return false, err
 	}
@@ -174,7 +169,7 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 
 // PlatformRuntimePath returns the runtime path for a given platform.
 func (r *Runtime) PlatformRuntimePath(handler, platform string) (string, error) {
-	rh, err := r.getRuntimeHandler(handler)
+	rh, err := r.getRuntimeHandler(handler, nil)
 	if err != nil {
 		return "", err
 	}
@@ -188,7 +183,7 @@ func (r *Runtime) PlatformRuntimePath(handler, platform string) (string, error) 
 
 // AllowedAnnotations returns the allowed annotations for this runtime.
 func (r *Runtime) AllowedAnnotations(handler string) ([]string, error) {
-	rh, err := r.getRuntimeHandler(handler)
+	rh, err := r.getRuntimeHandler(handler, nil)
 	if err != nil {
 		return []string{}, err
 	}
@@ -200,7 +195,7 @@ func (r *Runtime) AllowedAnnotations(handler string) ([]string, error) {
 // This is needed when callers need to do specific work for oci vs vm
 // containers, like monitor an oci container's conmon.
 func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
-	rh, err := r.getRuntimeHandler(runtimeHandler)
+	rh, err := r.getRuntimeHandler(runtimeHandler, nil)
 	if err != nil {
 		return "", err
 	}
@@ -223,20 +218,9 @@ func (r *Runtime) RuntimeTypeInSnapshot(snapshot *config.RuntimeSnapshot, handle
 		snapshot = r.config.RuntimeSnapshot()
 	}
 
-	var rh *config.RuntimeHandler
-	if handler != "" {
-		var err error
-		if rh, err = snapshot.ValidateRuntimeHandler(handler); err != nil {
-			return "", false, err
-		}
-	} else {
-		rh = snapshot.RuntimeHandler("")
-		if rh == nil {
-			return "", false, fmt.Errorf(
-				"default runtime handler %q not found in runtime list %v",
-				snapshot.DefaultRuntime, snapshot.Runtimes,
-			)
-		}
+	rh, err := r.getRuntimeHandler(handler, snapshot)
+	if err != nil {
+		return "", false, err
 	}
 
 	return rh.RuntimeType,
@@ -246,7 +230,7 @@ func (r *Runtime) RuntimeTypeInSnapshot(snapshot *config.RuntimeSnapshot, handle
 
 // Seccomp returns the seccomp config for the specified handler. Falls back to the runtime seccomp config if not exist.
 func (r *Runtime) Seccomp(handler string) (*seccomp.Config, error) {
-	rh, err := r.getRuntimeHandler(handler)
+	rh, err := r.getRuntimeHandler(handler, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +250,7 @@ func (r *Runtime) Timezone() string {
 // GetContainerMinMemory returns the minimum memory for a container
 // for a given runtime handler.
 func (r *Runtime) GetContainerMinMemory(runtimeHandler string) (int64, error) {
-	rh, err := r.getRuntimeHandler(runtimeHandler)
+	rh, err := r.getRuntimeHandler(runtimeHandler, nil)
 	if err != nil {
 		return int64(0), err
 	}
@@ -282,7 +266,7 @@ func (r *Runtime) GetContainerMinMemory(runtimeHandler string) (int64, error) {
 // RuntimeSupportsIDMap returns whether the runtime of runtimeHandler supports the "runtime features"
 // command, and that the output of that command advertises IDMapped mounts as an option.
 func (r *Runtime) RuntimeSupportsIDMap(runtimeHandler string) bool {
-	rh, err := r.getRuntimeHandler(runtimeHandler)
+	rh, err := r.getRuntimeHandler(runtimeHandler, nil)
 	if err != nil {
 		return false
 	}
@@ -294,7 +278,7 @@ func (r *Runtime) RuntimeSupportsIDMap(runtimeHandler string) bool {
 // the "runtime features" command and that the output advertises support for the
 // Recursive Read-only (RRO) mount as an option.
 func (r *Runtime) RuntimeSupportsRROMounts(runtimeHandler string) bool {
-	rh, err := r.getRuntimeHandler(runtimeHandler)
+	rh, err := r.getRuntimeHandler(runtimeHandler, nil)
 	if err != nil {
 		return false
 	}
@@ -304,7 +288,7 @@ func (r *Runtime) RuntimeSupportsRROMounts(runtimeHandler string) bool {
 
 // RuntimeDefaultAnnotations returns the default annotations for this runtime handler.
 func (r *Runtime) RuntimeDefaultAnnotations(runtimeHandler string) (map[string]string, error) {
-	rh, err := r.getRuntimeHandler(runtimeHandler)
+	rh, err := r.getRuntimeHandler(runtimeHandler, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +298,7 @@ func (r *Runtime) RuntimeDefaultAnnotations(runtimeHandler string) (map[string]s
 
 // RuntimeStreamWebsockets returns the configured websocket streaming option for this handler.
 func (r *Runtime) RuntimeStreamWebsockets(runtimeHandler string) (bool, error) {
-	rh, err := r.getRuntimeHandler(runtimeHandler)
+	rh, err := r.getRuntimeHandler(runtimeHandler, nil)
 	if err != nil {
 		return false, err
 	}
@@ -325,7 +309,7 @@ func (r *Runtime) RuntimeStreamWebsockets(runtimeHandler string) (bool, error) {
 // RuntimeStreamPortForward returns whether the container monitor of this
 // handler serves port forwarding.
 func (r *Runtime) RuntimeStreamPortForward(runtimeHandler string) (bool, error) {
-	rh, err := r.getRuntimeHandler(runtimeHandler)
+	rh, err := r.getRuntimeHandler(runtimeHandler, nil)
 	if err != nil {
 		return false, err
 	}
@@ -333,13 +317,18 @@ func (r *Runtime) RuntimeStreamPortForward(runtimeHandler string) (bool, error) 
 	return rh.RuntimeStreamPortForward(), nil
 }
 
-// newRuntimeImpl creates the runtime implementation of the container. For the
-// pod runtime type, a container other than the infra container uses
-// sandboxImpl, the implementation of its sandbox. Callers read it with the
+// newRuntimeImpl creates the runtime implementation of the container,
+// resolving its runtime handler in the provided snapshot (nil for the current
+// one). For the pod runtime type, a container other than the infra container
+// uses sandboxImpl, the implementation of its sandbox. Callers read it with the
 // lock held, see sandboxRuntimeImpl. Without one, the container gets a
 // runtimePodGone, which must not be stored in runtimeImplMap.
-func (r *Runtime) newRuntimeImpl(c *Container, sandboxImpl RuntimeImpl) (RuntimeImpl, error) {
-	rh, err := r.getRuntimeHandler(c.runtimeHandler)
+func (r *Runtime) newRuntimeImpl(
+	c *Container,
+	sandboxImpl RuntimeImpl,
+	snapshot *config.RuntimeSnapshot,
+) (RuntimeImpl, error) {
+	rh, err := r.getRuntimeHandler(c.runtimeHandler, snapshot)
 	if err != nil {
 		if !c.Spoofed() || c.runtimeHandler == "" {
 			return nil, err
@@ -355,7 +344,7 @@ func (r *Runtime) newRuntimeImpl(c *Container, sandboxImpl RuntimeImpl) (Runtime
 			c.ID(), err,
 		)
 
-		if rh, err = r.getRuntimeHandler(""); err != nil {
+		if rh, err = r.getRuntimeHandler("", snapshot); err != nil {
 			return nil, err
 		}
 	}
@@ -392,7 +381,7 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 		return impl, nil
 	}
 
-	impl, err := r.newRuntimeImpl(c, r.runtimeImplMap[c.Sandbox()])
+	impl, err := r.newRuntimeImpl(c, r.runtimeImplMap[c.Sandbox()], nil)
 	if err != nil {
 		return nil, err
 	}
@@ -437,12 +426,16 @@ func (r *Runtime) streamingRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	return impl, nil
 }
 
-// CreateContainer creates a container.
+// CreateContainer creates a container. Its runtime handler is resolved in the
+// provided runtime snapshot, so callers that validated the handler against a
+// snapshot create the container from that same configuration. A nil snapshot
+// resolves against the current configuration.
 func (r *Runtime) CreateContainer(
 	ctx context.Context,
 	c *Container,
 	cgroupParent string,
 	restore bool,
+	snapshot *config.RuntimeSnapshot,
 ) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -450,7 +443,7 @@ func (r *Runtime) CreateContainer(
 	sandboxImpl := r.sandboxRuntimeImpl(c)
 
 	// Instantiate a new runtime implementation for this new container
-	impl, err := r.newRuntimeImpl(c, sandboxImpl)
+	impl, err := r.newRuntimeImpl(c, sandboxImpl, snapshot)
 	if err != nil {
 		return err
 	}
@@ -599,7 +592,7 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 	r.runtimeImplMapMutex.RUnlock()
 
 	if !ok {
-		if impl, err = r.newRuntimeImpl(c, r.sandboxRuntimeImpl(c)); err != nil {
+		if impl, err = r.newRuntimeImpl(c, r.sandboxRuntimeImpl(c), nil); err != nil {
 			return err
 		}
 	} else {

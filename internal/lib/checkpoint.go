@@ -289,7 +289,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 				return runtimeHandler
 			}
 
-			return c.config.DefaultRuntime
+			return c.config.RuntimeSnapshot().DefaultRuntime
 		}(),
 		CheckpointedAt: time.Now(),
 		Restored:       ctr.Restore(),

@@ -515,7 +515,7 @@ done
 			c := newPodTestContainer(false, false, false)
 
 			// When
-			err := sut.CreateContainer(context.Background(), c, "", false)
+			err := sut.CreateContainer(context.Background(), c, "", false, nil)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -528,7 +528,7 @@ done
 			c := newPodTestContainer(false, false, false)
 
 			// When
-			err := sut.CreateContainer(context.Background(), c, "", false)
+			err := sut.CreateContainer(context.Background(), c, "", false, nil)
 
 			// Then
 			Expect(err).To(MatchError(ContainSubstring("of container id is gone")))
