@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 12 Nov 2026 17:18:11 UTC for commit [3935d65][0]._
+_Generated on Thu, 12 Nov 2026 19:14:31 UTC for commit [2686129][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3935d65da8809c203968756d5979715a1aad5fae
+[0]: https://github.com/cri-o/cri-o/commit/2686129c91b6855ca9e6cc4e2aa318e14f94424f
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Thu, 12 Nov 2026 17:18:11 UTC for commit [3935d65][0]._
 | github.com/containerd/containerd/api                   | v1.10.0                            | v1.12.0                            | true   | true             |
 | github.com/containernetworking/plugins                 | v1.9.1                             | v1.10.0                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261112121342-66a6be521eea | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261112182733-b372a0fc11a7 | true   | true             |
 | go.podman.io/common                                    | v0.68.1                            | v0.70.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.40.0                            | v5.42.1                            | true   | true             |
 | go.podman.io/storage                                   | v1.63.0                            | v1.65.1                            | true   | true             |
@@ -29,7 +29,7 @@ _Generated on Thu, 12 Nov 2026 17:18:11 UTC for commit [3935d65][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                         |                                        | false  | true             |
 | cel.dev/expr                                                                | v0.25.3                                | v0.26.0                                | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                               | v0.21.0                                | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                                | v0.1.493                               | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                                | v0.1.494                               | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                               |                                        | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                 | v1.15.1                                | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                 | v1.17.1                                | false  | true             |
@@ -405,7 +405,7 @@ _Generated on Thu, 12 Nov 2026 17:18:11 UTC for commit [3935d65][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 | v1.1.0                                 | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                        | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                        | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20261112121342-66a6be521eea     | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20261112182733-b372a0fc11a7     | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                                 |                                        | false  | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                                 | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                        | false  | true             |
@@ -424,7 +424,7 @@ _Generated on Thu, 12 Nov 2026 17:18:11 UTC for commit [3935d65][0]._
 | github.com/letsencrypt/boulder                                              | v0.20260223.0                          | v0.20261110.0                          | false  | true             |
 | github.com/lithammer/dedent                                                 | v1.1.0                                 |                                        | false  | true             |
 | github.com/magefile/mage                                                    | v1.17.2                                |                                        | false  | true             |
-| github.com/magiconair/properties                                            | v1.8.10                                | v1.18.12                               | false  | true             |
+| github.com/magiconair/properties                                            | v1.8.10                                | v1.18.13                               | false  | true             |
 | github.com/mailru/easyjson                                                  | v0.7.7                                 | v0.9.2                                 | false  | true             |
 | github.com/manifoldco/promptui                                              | v0.9.0                                 |                                        | false  | true             |
 | github.com/maruel/natural                                                   | v1.1.1                                 | v1.3.0                                 | false  | true             |
@@ -642,8 +642,8 @@ _Generated on Thu, 12 Nov 2026 17:18:11 UTC for commit [3935d65][0]._
 | go.yaml.in/yaml/v3                                                          | v3.0.5                                 | v3.0.6                                 | false  | true             |
 | goa.design/goa/v3                                                           | v3.26.0                                | v3.35.0                                | false  | true             |
 | golang.org/x/crypto                                                         | v0.58.0                                | v0.59.0                                | false  | true             |
-| golang.org/x/exp                                                            | v0.0.0-20261014143641-f0251eb4aa3e     | v0.0.0-20261112162710-dab199d8bf38     | false  | true             |
-| golang.org/x/exp/typeparams                                                 | v0.0.0-20231108232855-2478ac86f678     | v0.0.0-20261112162710-dab199d8bf38     | false  | true             |
+| golang.org/x/exp                                                            | v0.0.0-20261014143641-f0251eb4aa3e     | v0.0.0-20261112173441-d10d3b464990     | false  | true             |
+| golang.org/x/exp/typeparams                                                 | v0.0.0-20231108232855-2478ac86f678     | v0.0.0-20261112173441-d10d3b464990     | false  | true             |
 | golang.org/x/mod                                                            | v0.42.0                                | v0.43.0                                | false  | true             |
 | golang.org/x/net                                                            | v0.62.0                                |                                        | true   | true             |
 | golang.org/x/oauth2                                                         | v0.37.0                                | v0.38.0                                | false  | true             |
