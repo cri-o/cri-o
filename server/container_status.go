@@ -135,7 +135,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	resp.Status.LogPath = c.LogPath()
 
 	if req.GetVerbose() {
-		info, err := s.createContainerInfo(c)
+		info, err := s.createContainerInfo(ctx, c)
 		if err != nil {
 			return nil, fmt.Errorf("creating container info: %w", err)
 		}
@@ -158,8 +158,20 @@ type containerInfoCheckpointRestore struct {
 	Restored       bool      `json:"restored"`
 }
 
-func (s *Server) createContainerInfo(container *oci.Container) (map[string]string, error) {
-	metadata, err := s.ContainerServer.StorageRuntimeServer().GetContainerMetadata(container.ID())
+func (s *Server) createContainerInfo(ctx context.Context, container *oci.Container) (map[string]string, error) {
+	sb, err := s.LookupSandbox(container.Sandbox())
+	if err != nil {
+		// Do not treat lookup failures as an error.
+		// If it happens, log the error, and use the default (nil) runtime handler.
+		log.Debugf(ctx, "Failed to lookup sandbox %s: %v", container.Sandbox(), err)
+	}
+
+	runtimeSvc, err := s.StorageRuntimeServer(sb)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime service: %w", err)
+	}
+
+	metadata, err := runtimeSvc.GetContainerMetadata(container.ID())
 	if err != nil {
 		return nil, fmt.Errorf("getting container metadata: %w", err)
 	}

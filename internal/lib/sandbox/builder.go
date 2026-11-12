@@ -36,6 +36,9 @@ type Builder interface {
 	// Name returns the id of the pod sandbox
 	Name() string
 
+	// RuntimeHandler returns the runtime handler for the pod sandbox.
+	RuntimeHandler() string
+
 	// InitInfraContainer initializes the sandbox's infra container
 	InitInfraContainer(*libconfig.Config, *storage.ContainerInfo, *idtools.IDMappings) error
 
@@ -317,16 +320,22 @@ func (b *sandboxBuilder) GenerateNameAndID() error {
 
 	id := stringid.GenerateNonCryptoID()
 	b.SetID(id)
-	name := strings.Join([]string{
-		"k8s",
-		b.config.GetMetadata().GetName(),
-		b.config.GetMetadata().GetNamespace(),
-		b.config.GetMetadata().GetUid(),
-		strconv.FormatUint(uint64(b.config.GetMetadata().GetAttempt()), 10),
-	}, "_")
-	b.SetName(name)
+	b.SetName(PodName(b.config.GetMetadata()))
 
 	return nil
+}
+
+// PodName returns the canonical name for a pod sandbox derived from its
+// metadata. The same format is used when looking up sandboxes by name during
+// image pulls; see server/image_pull.go.
+func PodName(meta *types.PodSandboxMetadata) string {
+	return strings.Join([]string{
+		"k8s",
+		meta.GetName(),
+		meta.GetNamespace(),
+		meta.GetUid(),
+		strconv.FormatUint(uint64(meta.GetAttempt()), 10),
+	}, "_")
 }
 
 // Config returns the sandbox configuration.
@@ -346,6 +355,15 @@ func (b *sandboxBuilder) ID() string {
 // Name returns the name of the pod sandbox.
 func (b *sandboxBuilder) Name() string {
 	return b.sandboxRef.name
+}
+
+// RuntimeHandler returns the runtime handler for the pod sandbox.
+func (b *sandboxBuilder) RuntimeHandler() string {
+	if b.sandboxRef == nil || b.sandboxRef.criSandbox == nil {
+		return ""
+	}
+
+	return b.sandboxRef.runtimeHandler
 }
 
 func (b *sandboxBuilder) ResolvPath() string {

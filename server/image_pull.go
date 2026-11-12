@@ -21,6 +21,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
 
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -45,14 +46,57 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 
 	pullArgs := pullArguments{image: image}
 
+	// set the default imageServer. It will be replaced later if required
+	defaultImageServer, err := s.StorageImageServer(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	pullArgs.imageServer = defaultImageServer
+
 	sc := req.GetSandboxConfig()
 	if sc != nil {
 		if sc.GetLinux() != nil {
 			pullArgs.sandboxCgroup = sc.GetLinux().GetCgroupParent()
 		}
 
+		var name string
+
 		if sc.GetMetadata() != nil {
 			pullArgs.namespace = sc.GetMetadata().GetNamespace()
+			name = libsandbox.PodName(sc.GetMetadata())
+		}
+
+		var sbErr error
+
+		podID, err := s.PodIDForName(name)
+		if err != nil {
+			log.Debugf(ctx, "PodIDForName(%s) failed during image pull, falling back to host image store: %v", name, err)
+		} else {
+			var sb *libsandbox.Sandbox
+
+			sb, sbErr = s.LookupSandbox(podID)
+			if sbErr != nil {
+				log.Debugf(ctx, "Failed to retrieve sandbox for image %s (podID: %s): %v", name, podID, sbErr)
+			} else {
+				pullArgs.imageServer, sbErr = s.StorageImageServer(sb)
+				if sbErr != nil {
+					log.Debugf(ctx, "Failed to get image server for sandbox %s: %v", podID, sbErr)
+				}
+			}
+		}
+
+		// Double-check the runtime handler from the image spec.
+		// Warn if we use the default ImageServer when we should have a runtimePulled one.
+		r, ok := s.config.Runtimes[img.GetRuntimeHandler()]
+		if ok && r.RuntimePullImage && (err != nil || sbErr != nil) {
+			log.Debugf(ctx, "Runtime handler for image %s is configured for runtime pull, but couldn't get the proper ImageServer", name)
+
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, sbErr
 		}
 	}
 
@@ -182,7 +226,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		}
 	}
 
-	remoteCandidates, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
+	remoteCandidates, err := pullArgs.imageServer.CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return "", err
 	}
@@ -191,12 +235,12 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
 
 	for _, remoteCandidateName := range remoteCandidates {
-		imageRef, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
+		imageRef, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup, pullArgs.imageServer)
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
 
-			return s.resolveImageRefToID(ctx, imageRef)
+			return s.resolveImageRefToID(ctx, imageRef, pullArgs.imageServer)
 		}
 
 		lastErr = err
@@ -297,7 +341,7 @@ func (s *Server) prepareTempAuthFile(ctx context.Context, sysCtx *imageTypes.Sys
 	return cleanup, nil
 }
 
-func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) (storage.RegistryImageReference, error) {
+func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string, is storage.ImageServer) (storage.RegistryImageReference, error) {
 	// Collect pull progress metrics
 	progress := make(chan imageTypes.ProgressProperties)
 	defer close(progress)
@@ -310,7 +354,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	pullCtx, cancel := context.WithCancel(ctx)
 	go consumeImagePullProgress(ctx, cancel, s.ContainerServer.Config().PullProgressTimeout, progress, remoteCandidateName)
 
-	repoDigest, err := s.ContainerServer.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
+	repoDigest, err := is.PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
@@ -337,9 +381,9 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 // container images the ID is looked up via ImageStatusByName. For OCI artifacts
 // (which are not stored in container storage) it falls back to the artifact
 // store.
-func (s *Server) resolveImageRefToID(ctx context.Context, imageRef storage.RegistryImageReference) (string, error) {
+func (s *Server) resolveImageRefToID(ctx context.Context, imageRef storage.RegistryImageReference, is storage.ImageServer) (string, error) {
 	// Try resolving as a regular container image first.
-	imageResult, err := s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, imageRef)
+	imageResult, err := is.ImageStatusByName(s.config.SystemContext, imageRef)
 	if err == nil {
 		return imageResult.ID.IDStringForOutOfProcessConsumptionOnly(), nil
 	}
