@@ -1547,7 +1547,7 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # Note that the "cpulimit" field overrides the "cpuquota" value supplied in this configuration.
 # Each resource can have a default value specified, or be empty.
 # For a container to opt-into this workload, the pod should be configured with the annotation $activation_annotation (key only, value is ignored).
-# To customize per-container, an annotation of the form $annotation_prefix.$resource/$ctrName = "value" can be specified
+# To customize per-container, an annotation of the form $annotation_prefix/$ctrName = {"$resource": $value} can be specified
 # signifying for that resource type to override the default value.
 # If the annotation_prefix is not present, every container in the pod will be given the default values.
 # Example:
@@ -1556,17 +1556,17 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # annotation_prefix = "io.crio.workload-type"
 # [crio.runtime.workloads.workload-type.resources]
 # cpuset = "0-1"
-# cpushares = "5"
-# cpuquota = "1000"
-# cpuperiod = "100000"
-# cpulimit = "35"
+# cpushares = 5
+# cpuquota = 1000
+# cpuperiod = 100000
+# cpulimit = 35
 # Where:
 # The workload name is workload-type.
-# To specify, the pod must have the "io.crio.workload" annotation (this is a precise string match).
+# To specify, the pod must have the "io.crio/workload" annotation (this is a precise string match).
 # This workload supports setting cpuset and cpu resources.
 # annotation_prefix is used to customize the different resources.
 # To configure the cpu shares a container gets in the example above, the pod would have to have the following annotation:
-# "io.crio.workload-type/$container_name = {"cpushares": "value"}"
+# "io.crio.workload-type/$container_name = {"cpushares": 5}"
 {{ range $workload_type, $workload_config := .Workloads  }}
 {{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}]
 {{ $.Comment }}activation_annotation = "{{ $workload_config.ActivationAnnotation }}"
