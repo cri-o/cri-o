@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/release-utils/command"
 	"sigs.k8s.io/release-utils/helpers"
 
-	"github.com/cri-o/cri-o/internal/version"
+	"github.com/cri-o/cri-o/scripts/utils"
 )
 
 const (
@@ -92,9 +92,15 @@ func run() error {
 	// Check if we're on a tag and adapt variables if necessary
 	bundleVersion := head
 	shortHead := head[:7]
-	endRev := helpers.AddTagPrefix(version.Version)
 
-	startVersion, err := startVersionFromCurrent(version.Version)
+	currentVersion, err := utils.GetCurrentVersionFromVersionFile(utils.VersionFile)
+	if err != nil {
+		return fmt.Errorf("reading current version: %w", err)
+	}
+
+	endRev := helpers.AddTagPrefix(currentVersion)
+
+	startVersion, err := startVersionFromCurrent(currentVersion)
 	if err != nil {
 		return fmt.Errorf("parsing start version: %w", err)
 	}

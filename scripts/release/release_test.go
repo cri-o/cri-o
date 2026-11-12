@@ -10,8 +10,28 @@ import (
 	"github.com/cri-o/cri-o/scripts/utils"
 )
 
-var _ = t.Describe("Automated Releases", func() {
-	t.Describe("Patch Release", func() {
+var _ = Describe("Automated Releases", func() {
+	Describe("Repository version file", func() {
+		const versionFile = "../../" + utils.VersionFile
+
+		It("should read the current version", func() {
+			currentVersion, err := utils.GetCurrentVersionFromVersionFile(versionFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(currentVersion).To(MatchRegexp(`^\d+\.\d+\.\d+`))
+		})
+
+		It("should read the release minor versions", func() {
+			minorVersions, err := utils.GetReleaseMinorVersionsFromVersionFile(versionFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(minorVersions).ToNot(BeEmpty())
+
+			for _, minorVersion := range minorVersions {
+				Expect(minorVersion).To(MatchRegexp(`^\d+\.\d+$`))
+			}
+		})
+	})
+
+	Describe("Patch Release", func() {
 		It("should read the version file", func() {
 			tmpfile, err := os.CreateTemp("", "tempVersionFile")
 			Expect(err).ToNot(HaveOccurred())
