@@ -503,7 +503,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	})
 
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox container runtime creation")
-	if err := s.createContainerPlatform(ctx, container, sb.CgroupParent(), sandboxIDMappings); err != nil {
+	if err := s.createContainerPlatform(ctx, container, sb.CgroupParent(), sandboxIDMappings, runtimeSnapshot); err != nil {
 		return nil, err
 	}
 	resourceCleaner.Add(ctx, "runSandbox: stopping container "+container.ID(), func() error {

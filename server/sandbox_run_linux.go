@@ -978,6 +978,7 @@ func (s *Server) runPodSandbox(
 		sb,
 		container,
 		sandboxIDMappings,
+		runtimeSnapshot,
 		sboxName,
 		resourceCleaner,
 	); err != nil {
@@ -1795,6 +1796,7 @@ func (s *Server) createAndStartInfraContainer(
 	sb *libsandbox.Sandbox,
 	container *oci.Container,
 	sandboxIDMappings *idtools.IDMappings,
+	runtimeSnapshot *libconfig.RuntimeSnapshot,
 	sboxName string,
 	resourceCleaner *resourcestore.ResourceCleaner,
 ) error {
@@ -1812,6 +1814,7 @@ func (s *Server) createAndStartInfraContainer(
 		container,
 		sb.CgroupParent(),
 		sandboxIDMappings,
+		runtimeSnapshot,
 	); err != nil {
 		return err
 	}

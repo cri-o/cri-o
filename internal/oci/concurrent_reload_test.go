@@ -120,5 +120,43 @@ var _ = t.Describe("Runtime", func() {
 			Expect(cfg.RuntimeSnapshot().DefaultRuntime).To(Equal("crun"))
 			Expect(cfg.RuntimeSnapshot().RuntimeHandler("")).ToNot(BeNil())
 		})
+
+		It("should resolve handlers in the snapshot the caller validated against", func() {
+			// Given a runtime with an extra handler, and a snapshot taken
+			// while that handler existed, like sandbox creation validates
+			// the requested handler before creating the infra container.
+			cfg, err := libconfig.DefaultConfig()
+			Expect(err).ToNot(HaveOccurred())
+			cfg.ContainerAttachSocketDir = t.MustTempDir("crio")
+			cfg.Runtimes = libconfig.Runtimes{
+				"crun":  &libconfig.RuntimeHandler{RuntimePath: "/bin/true"},
+				"extra": &libconfig.RuntimeHandler{RuntimePath: "/bin/true"},
+			}
+			cfg.DefaultRuntime = "crun"
+
+			runtime, err := oci.New(cfg)
+			Expect(err).ToNot(HaveOccurred())
+
+			validated := cfg.RuntimeSnapshot()
+			_, err = validated.ValidateRuntimeHandler("extra")
+			Expect(err).ToNot(HaveOccurred())
+
+			// When a reload removes the handler before creation resolves it.
+			newConfig, err := libconfig.DefaultConfig()
+			Expect(err).ToNot(HaveOccurred())
+			newConfig.Runtimes = libconfig.Runtimes{
+				"crun": &libconfig.RuntimeHandler{RuntimePath: "/bin/true"},
+			}
+			newConfig.DefaultRuntime = "crun"
+			Expect(cfg.ReloadRuntimes(newConfig)).To(Succeed())
+
+			// Then the validated snapshot still resolves it, while the
+			// current configuration no longer does.
+			_, _, err = runtime.RuntimeTypeInSnapshot(validated, "extra")
+			Expect(err).ToNot(HaveOccurred())
+
+			_, _, err = runtime.RuntimeTypeInSnapshot(nil, "extra")
+			Expect(err).To(HaveOccurred())
+		})
 	})
 })

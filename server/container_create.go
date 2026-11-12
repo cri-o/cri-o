@@ -646,6 +646,7 @@ func (s *Server) CreateContainer(
 		newContainer,
 		sb.CgroupParent(),
 		mappings,
+		nil,
 	); err != nil {
 		return nil, err
 	}
