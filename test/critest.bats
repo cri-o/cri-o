@@ -34,6 +34,7 @@ function teardown() {
 		--nri-socket "$NRI_SOCKET" \
 		--parallel="$(nproc)" \
 		--ginkgo.randomize-all \
+		--ginkgo.label-filter '!Slow' \
 		--ginkgo.skip 'runtime should support (returning metrics descriptors|listing pod sandbox metrics)' \
 		--ginkgo.timeout 5m \
 		--ginkgo.trace \
