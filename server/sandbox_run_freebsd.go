@@ -446,6 +446,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// describe the same configuration even when a reload publishes a new
 	// one concurrently.
 	runtimeType, defaultIsKata, err := s.ContainerServer.Runtime().RuntimeTypeInSnapshot(runtimeSnapshot, runtimeHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	// A container is kernel separated if we're using shimv2, or we're using a kata v1 binary
 	podIsKernelSeparated := runtimeType == libconfig.RuntimeTypeVM ||
