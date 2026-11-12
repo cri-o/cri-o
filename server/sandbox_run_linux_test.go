@@ -60,3 +60,43 @@ func TestSetupSandboxSeccompPrivilegedEmptyProfileClearsDefaultFilter(t *testing
 		)
 	}
 }
+
+// TestRuntimeHandlerEmptyHandlerReturnsSnapshot checks that an empty runtime
+// handler still returns the snapshot it resolves the default runtime from,
+// so that all steps of one sandbox creation use the same default runtime even
+// if a reload publishes a different one in between.
+func TestRuntimeHandlerEmptyHandlerReturnsSnapshot(t *testing.T) {
+	t.Parallel()
+
+	cfg := &config.Config{}
+	cfg.Runtimes = config.Runtimes{
+		"runc": &config.RuntimeHandler{RuntimePath: "/bin/runc"},
+		"crun": &config.RuntimeHandler{RuntimePath: "/bin/crun"},
+	}
+	cfg.DefaultRuntime = "runc"
+	cfg.PublishRuntimeSnapshot()
+
+	sut := &Server{config: cfg}
+
+	handler, snapshot, err := sut.runtimeHandler(&types.RunPodSandboxRequest{})
+	if err != nil {
+		t.Fatalf("runtimeHandler: %v", err)
+	}
+
+	if handler != "" {
+		t.Fatalf("handler = %q, want empty", handler)
+	}
+
+	if snapshot == nil {
+		t.Fatal("runtimeHandler returned a nil snapshot for an empty handler")
+	}
+
+	// A reload changes the default runtime after the handler was resolved.
+	cfg.DefaultRuntime = "crun"
+	cfg.PublishRuntimeSnapshot()
+
+	rh := snapshot.RuntimeHandler("")
+	if rh == nil || rh.RuntimePath != "/bin/runc" {
+		t.Fatalf("default runtime from the returned snapshot = %+v, want runc", rh)
+	}
+}
