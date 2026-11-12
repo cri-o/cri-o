@@ -425,7 +425,7 @@ activation_annotation is the pod annotation that activates these workload settin
 
 **annotation_prefix**=""
 annotation_prefix is the way a pod can override a specific resource for a container.
-The full annotation must be of the form `$annotation_prefix.$resource/$ctrname = $value`.
+The full annotation must be of the form `$annotation_prefix/$ctrname = {"$resource": $value}`.
 
 **allowed_annotations**=[]
 allowed_annotations is a slice of experimental annotations that this workload is allowed to process.
@@ -475,7 +475,7 @@ based on the seccomp defaultAction, which is a general runtime limitation.
 The resources table is a structure for overriding certain resources for pods using this workload.
 This structure provides a default value, and can be overridden by using the AnnotationPrefix.
 
-**cpushares**=""
+**cpushares**=0
 Specifies the number of CPU shares this pod has access to.
 
 **cpuset**=""
@@ -600,7 +600,7 @@ Globally enable or disable OpenTelemetry trace data exporting.
 **tracing_endpoint**="127.0.0.1:4317"
 Address on which the gRPC trace collector will listen.
 
-**tracing_sampling_rate_per_million**=""
+**tracing_sampling_rate_per_million**=0
 Number of samples to collect per million OpenTelemetry spans. Set to 1000000 to always sample.
 
 ## CRIO.STATS TABLE

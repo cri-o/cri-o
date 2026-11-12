@@ -1,6 +1,10 @@
 package config_test
 
 import (
+	"context"
+	"os"
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -12,6 +16,84 @@ import (
 // The actual test suite.
 var _ = t.Describe("Workloads config", func() {
 	BeforeEach(beforeEach)
+
+	It("should require integer workload resources in TOML", func() {
+		// Given
+		f := t.MustTempFile("workload-config")
+		contents := `
+[crio.runtime.workloads.management]
+activation_annotation = "target.workload.openshift.io/management"
+[crio.runtime.workloads.management.resources]
+cpushares = "5"
+cpuquota = 10000
+cpuperiod = 100000
+cpulimit = 100
+`
+
+		// When
+		By("rejecting a quoted numeric value")
+		Expect(os.WriteFile(f, []byte(contents), 0o600)).To(Succeed())
+		err := sut.UpdateFromFile(context.Background(), f)
+
+		// Then
+		Expect(err).To(MatchError(ContainSubstring("incompatible types")))
+
+		// When
+		By("loading and validating integer values")
+
+		contents = strings.Replace(contents, `cpushares = "5"`, "cpushares = 5", 1)
+		Expect(os.WriteFile(f, []byte(contents), 0o600)).To(Succeed())
+		err = sut.UpdateFromFile(context.Background(), f)
+
+		// Then
+		Expect(err).NotTo(HaveOccurred())
+		Expect(sut.Workloads.Validate()).To(Succeed())
+		Expect(sut.Workloads["management"].Resources).To(Equal(&config.Resources{
+			CPUShares: 5,
+			CPUQuota:  10000,
+			CPUPeriod: 100000,
+			CPULimit:  100,
+		}))
+	})
+
+	It("should require integer workload resources in annotations", func() {
+		// Given
+		workloads := config.Workloads{
+			"management": &config.WorkloadConfig{
+				ActivationAnnotation: "target.workload.openshift.io/management",
+				AnnotationPrefix:     "resources.workload.openshift.io",
+			},
+		}
+		g := &generate.Generator{
+			Config: &rspec.Spec{
+				Linux: &rspec.Linux{
+					Resources: &rspec.LinuxResources{},
+				},
+			},
+		}
+		annotations := map[string]string{
+			"target.workload.openshift.io/management":  "true",
+			"resources.workload.openshift.io/limitbox": `{"cpushares": "5"}`,
+		}
+
+		// When
+		By("rejecting a quoted numeric value")
+
+		err := workloads.MutateSpecGivenAnnotations("limitbox", g, annotations)
+
+		// Then
+		Expect(err).To(MatchError(ContainSubstring("cannot unmarshal string")))
+
+		// When
+		By("applying an integer value")
+
+		annotations["resources.workload.openshift.io/limitbox"] = `{"cpushares": 5}`
+		err = workloads.MutateSpecGivenAnnotations("limitbox", g, annotations)
+
+		// Then
+		Expect(err).NotTo(HaveOccurred())
+		Expect(g.Config.Linux.Resources.CPU.Shares).To(Equal(new(uint64(5))))
+	})
 
 	It("should fail on invalid cpuset", func() {
 		// Given

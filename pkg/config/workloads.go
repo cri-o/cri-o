@@ -28,7 +28,7 @@ type WorkloadConfig struct {
 	// ActivationAnnotation is the pod annotation that activates these workload settings
 	ActivationAnnotation string `toml:"activation_annotation"`
 	// AnnotationPrefix is the way a pod can override a specific resource for a container.
-	// The full annotation must be of the form $annotation_prefix.$resource/$ctrname = $value
+	// The full annotation must be of the form $annotation_prefix/$ctrname = {"$resource": $value}
 	AnnotationPrefix string `toml:"annotation_prefix"`
 	// AllowedAnnotations is a slice of experimental annotations that this workload is allowed to process.
 	// The currently recognized values are:
