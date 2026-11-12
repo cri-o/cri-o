@@ -134,7 +134,7 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			waitOnContainerTimeout(sut, shortTimeout, mediumTimeout, sleepProcess)
 		})
-		It("should kill a created but never started container without waiting for the timeout", func() {
+		It("should kill a never started container without waiting for the timeout", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Status = oci.ContainerStateCreated
@@ -155,6 +155,7 @@ var _ = t.Describe("Oci", func() {
 					func(_ string, args ...string) any {
 						Expect(args).To(ContainElement("kill"))
 						signals = append(signals, args[len(args)-1])
+
 						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
 
@@ -192,6 +193,7 @@ var _ = t.Describe("Oci", func() {
 					func(_ string, args ...string) any {
 						Expect(args).To(ContainElement("kill"))
 						signals = append(signals, args[len(args)-1])
+
 						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
 
@@ -307,6 +309,7 @@ var _ = t.Describe("Oci", func() {
 					func(_ string, args ...string) any {
 						Expect(args).To(ContainElement("kill"))
 						signals = append(signals, args[len(args)-1])
+
 						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
 
