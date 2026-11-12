@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 12 Nov 2026 19:14:31 UTC for commit [2686129][0]._
+_Generated on Thu, 12 Nov 2026 21:50:13 UTC for commit [c5294a7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2686129c91b6855ca9e6cc4e2aa318e14f94424f
+[0]: https://github.com/cri-o/cri-o/commit/c5294a7277be476ce37f91a0a4e89dae4e630f60
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Thu, 12 Nov 2026 19:14:31 UTC for commit [2686129][0]._
 | github.com/containerd/containerd/api                   | v1.10.0                            | v1.12.0                            | true   | true             |
 | github.com/containernetworking/plugins                 | v1.9.1                             | v1.10.0                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261112182733-b372a0fc11a7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261112210849-44bffefb22a4 | true   | true             |
 | go.podman.io/common                                    | v0.68.1                            | v0.70.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.40.0                            | v5.42.1                            | true   | true             |
 | go.podman.io/storage                                   | v1.63.0                            | v1.65.1                            | true   | true             |
@@ -405,7 +405,7 @@ _Generated on Thu, 12 Nov 2026 19:14:31 UTC for commit [2686129][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                 | v1.1.0                                 | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                                |                                        | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                 |                                        | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20261112182733-b372a0fc11a7     | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239     | v0.0.0-20261112210849-44bffefb22a4     | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                                 |                                        | false  | true             |
 | github.com/kevinburke/ssh_config                                            | v1.2.0                                 | v1.6.0                                 | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                 |                                        | false  | true             |
@@ -658,7 +658,7 @@ _Generated on Thu, 12 Nov 2026 19:14:31 UTC for commit [2686129][0]._
 | golang.org/x/tools/go/packages/packagestest                                 | v0.1.1-deprecated                      |                                        | false  | true             |
 | golang.org/x/xerrors                                                        | v0.0.0-20200804184101-5ec99f83aff1     | v0.0.0-20240903120638-7835f813f4da     | false  | true             |
 | gonum.org/v1/gonum                                                          | v0.17.0                                |                                        | false  | true             |
-| google.golang.org/api                                                       | v0.305.0                               | v0.313.0                               | false  | true             |
+| google.golang.org/api                                                       | v0.305.0                               | v0.314.0                               | false  | true             |
 | google.golang.org/genproto                                                  | v0.0.0-20260319201613-d00831a3d3e7     | v0.0.0-20261110000943-09e21b237f2c     | false  | true             |
 | google.golang.org/genproto/googleapis/api                                   | v0.0.0-20261012220534-4341edf3f941     | v0.0.0-20261110000943-09e21b237f2c     | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                   | v0.0.0-20261005182115-fad411399dd8     | v0.0.0-20261110000943-09e21b237f2c     | false  | true             |
