@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -813,4 +814,19 @@ func (r *Runtime) ServePortForwardContainer(
 	}
 
 	return impl.ServePortForwardContainer(ctx, c, netNsPath)
+}
+
+// maxTimeoutSeconds is the largest timeout in seconds which a duration holds,
+// around 292 years.
+const maxTimeoutSeconds = int64(math.MaxInt64 / time.Second)
+
+// timeoutFromSeconds returns the duration of a timeout which a CRI request
+// gives in seconds. A timeout beyond the largest duration gets that one
+// instead of overflowing into a negative duration, which would end the wait
+// right away. A negative timeout stays negative the same way, so that it
+// cannot overflow into a valid one.
+func timeoutFromSeconds(seconds int64) time.Duration {
+	seconds = max(min(seconds, maxTimeoutSeconds), -maxTimeoutSeconds)
+
+	return time.Duration(seconds) * time.Second
 }

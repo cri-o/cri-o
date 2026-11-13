@@ -2,11 +2,13 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
 	"strconv"
 	"sync/atomic"
+	"syscall"
 
 	"capnproto.org/go/capnp/v3"
 	"capnproto.org/go/capnp/v3/rpc"
@@ -22,7 +24,8 @@ import (
 // new one, which records the features of the server again. A connection
 // which gets reset during the call, like by Close or Shutdown, fails it as
 // disconnected, see ErrServerDisconnected. A dial without a server fails
-// with ErrServerUnreachable.
+// with ErrServerUnreachable, one to a socket whose backlog is full with
+// ErrServerNotResponding.
 func (c *ConmonClient) client(ctx context.Context) (proto.Conmon, error) {
 	_, rpcClient, err := c.clientConn(ctx)
 
@@ -71,8 +74,12 @@ func (c *ConmonClient) usableConn(ctx context.Context) (*rpcConn, proto.Conmon, 
 
 	socketConn, err := dialLongSocket("unix", c.socket())
 	if err != nil {
-		if serverMissing(err) {
+		switch {
+		case serverMissing(err):
 			err = fmt.Errorf("%w: %w", ErrServerUnreachable, err)
+		case errors.Is(err, syscall.EAGAIN):
+			// The backlog of the socket is full, like in New.
+			err = fmt.Errorf("%w: socket backlog full: %w", ErrServerNotResponding, err)
 		}
 
 		return nil, proto.Conmon{}, false, err
@@ -114,12 +121,45 @@ func call[
 	fill func(Q) error,
 	read func(T) (R, error),
 ) (R, error) {
-	rpcClient, err := c.client(ctx)
+	return callRequiring(ctx, c, "", "", method, fill, read)
+}
+
+// callRequiring runs a method of the server like call, on the connection
+// which got checked for the feature, see requireServerFeature, whose error
+// names the usage. An empty feature skips the check.
+//
+//nolint:ireturn // R is the result of the call, not an interface
+func callRequiring[
+	P paramsWithRequest[Q], Q requestWithMetadata,
+	F resultsFuture[S], S resultsWithResponse[T], T, R any,
+](
+	ctx context.Context,
+	c *ConmonClient,
+	feature, usage string,
+	method func(proto.Conmon, context.Context, func(P) error) (F, capnp.ReleaseFunc),
+	fill func(Q) error,
+	read func(T) (R, error),
+) (R, error) {
+	var (
+		rpcClient proto.Conmon
+		err       error
+	)
+
+	if feature == "" {
+		rpcClient, err = c.client(ctx)
+		if err != nil {
+			err = fmt.Errorf("create RPC client: %w", err)
+		}
+	} else {
+		rpcClient, err = c.requireServerFeature(ctx, feature, usage)
+	}
+
 	if err != nil {
 		var zero R
 
-		return zero, fmt.Errorf("create RPC client: %w", err)
+		return zero, err
 	}
+
 	defer rpcClient.Release()
 
 	return callOn(ctx, c, rpcClient, method, fill, read)
@@ -168,21 +208,16 @@ func callOn[
 	return read(response)
 }
 
-// noRequest fills a request which carries nothing but the metadata.
-func noRequest[Q any](Q) error {
-	return nil
-}
-
 // noResponse reads a response which carries nothing.
 func noResponse[T any](T) (struct{}, error) {
 	return struct{}{}, nil
 }
 
 // refreshServer records the PID and the features of the server on a new
-// connection, which may be another server than before, for example one
-// which got restarted. Shutdown and KillContext stop that one then. If the
-// server does not tell them within serverProbeTimeout, the recorded ones
-// stay for SupportsFeature and the call which dialed the connection goes on,
+// connection, which may be another server than before, for example one which
+// got restarted. Shutdown and Kill stop that one then. If the server does
+// not tell them within serverProbeTimeout, the recorded ones stay for
+// SupportsFeature and the call which dialed the connection goes on,
 // requireServerFeature asks the server again. The peer credentials of the
 // socket are no replacement: they name the process which called listen at
 // that time, which may have exited by the time the PID gets used, and the
@@ -369,6 +404,17 @@ func (s *watchedSocket) Write(b []byte) (int, error) {
 	return n, err //nolint:wrapcheck // passed on as it is like Read
 }
 
+// connClosedOnWrite reports whether err is the one of a write to a
+// connection which got closed, by this side or by its peer, whose writes
+// fail with EPIPE or ECONNRESET then.
+func connClosedOnWrite(err error) bool {
+	var opErr *net.OpError
+
+	return errors.As(err, &opErr) && opErr.Op == "write" &&
+		(errors.Is(opErr, net.ErrClosed) || errors.Is(opErr, syscall.EPIPE) ||
+			errors.Is(opErr, syscall.ECONNRESET))
+}
+
 // resetConn closes the connection, the next call dials a new one.
 func (c *ConmonClient) resetConn() {
 	c.connMu.Lock()
@@ -392,21 +438,11 @@ func (c *ConmonClient) closeConnLocked() {
 	}
 }
 
-// DialLongSocket is a wrapper around net.DialUnix.
-// Its purpose is to allow for an arbitrarily long socket.
-// It does so by opening the parent directory of path, and using the
-// `/proc/self/fd` entry of that parent (which is a symlink to the actual parent)
-// to construct the path to the socket.
-// It assumes a valid path, as well as a file name that doesn't exceed the unix max socket length.
-//
-// Deprecated: It is an implementation detail of the client, which dials all
-// sockets of the server itself. It will be removed in a future release.
-func DialLongSocket(network, path string) (*net.UnixConn, error) {
-	return dialLongSocket(network, path)
-}
-
-// dialLongSocket implements DialLongSocket. Its errors name the socket
-// path, the address of the dial is only the /proc/self/fd alias of it.
+// dialLongSocket dials a socket whose path may exceed the limit of a socket
+// address. It opens the parent directory of the path and dials the socket
+// through the /proc/self/fd entry of that directory, which only needs the
+// file name to fit. Its errors name the socket path, the address of the dial
+// is only the /proc/self/fd alias of it.
 func dialLongSocket(network, path string) (*net.UnixConn, error) {
 	conn, err := dialSocketInDir(network, path)
 	if err != nil {
@@ -417,7 +453,7 @@ func dialLongSocket(network, path string) (*net.UnixConn, error) {
 }
 
 // dialSocketInDir dials the socket at path through the /proc/self/fd entry
-// of its parent directory, see DialLongSocket.
+// of its parent directory, see dialLongSocket.
 func dialSocketInDir(network, path string) (*net.UnixConn, error) {
 	parent := filepath.Dir(path)
 

@@ -1,9 +1,12 @@
 package oci_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -51,7 +54,7 @@ func (f *fakeConmonServer) PID() uint32 {
 	return 1
 }
 
-func (f *fakeConmonServer) ShutdownContext(ctx context.Context) error {
+func (f *fakeConmonServer) Shutdown(ctx context.Context) error {
 	if f.closed {
 		return conmonClient.ErrClientClosed
 	}
@@ -61,7 +64,7 @@ func (f *fakeConmonServer) ShutdownContext(ctx context.Context) error {
 	return f.shutdownErr
 }
 
-func (f *fakeConmonServer) KillContext(ctx context.Context) error {
+func (f *fakeConmonServer) Kill(ctx context.Context) error {
 	if f.closed {
 		return conmonClient.ErrClientClosed
 	}
@@ -80,6 +83,19 @@ func (f *fakeConmonServer) Close() error {
 	f.closed = true
 
 	return errors.New("close")
+}
+
+// closeRecorder is a stream which records whether it got closed.
+type closeRecorder struct {
+	bytes.Buffer
+
+	closed bool
+}
+
+func (c *closeRecorder) Close() error {
+	c.closed = true
+
+	return nil
 }
 
 // fakeConmonFeatures reports the features of a conmon-rs server.
@@ -291,7 +307,7 @@ var _ = t.Describe("RuntimePod", func() {
 
 		It("should fail with ErrUnsupported if the server is older", func() {
 			// Given
-			client := fakeConmonFeatures{conmonClient.FeatureSdNotify: true}
+			client := fakeConmonFeatures{conmonClient.FeaturePortForward: true}
 
 			// When
 			err := oci.RequireStreamingProtocols(client)
@@ -305,7 +321,7 @@ var _ = t.Describe("RuntimePod", func() {
 	Context("ExecSyncResponse", func() {
 		It("should pass the exit code and output of a finished command", func() {
 			// Given
-			res := &conmonClient.ExecContainerResult{
+			res := &conmonClient.ExecSyncContainerResult{
 				ExitCode: 137,
 				Stdout:   []byte("out"),
 				Stderr:   []byte("err"),
@@ -323,7 +339,7 @@ var _ = t.Describe("RuntimePod", func() {
 
 		It("should report a timeout as a failed command like conmon", func() {
 			// Given
-			res := &conmonClient.ExecContainerResult{
+			res := &conmonClient.ExecSyncContainerResult{
 				ExitCode: conmonClient.ExecExitCodeTimedOut,
 				TimedOut: true,
 			}
@@ -341,7 +357,7 @@ var _ = t.Describe("RuntimePod", func() {
 			"should fail without an exit status",
 			func(exitCode int32, message string) {
 				// Given
-				res := &conmonClient.ExecContainerResult{
+				res := &conmonClient.ExecSyncContainerResult{
 					ExitCode: exitCode,
 					Stderr:   []byte("runtime failed"),
 				}
@@ -364,39 +380,78 @@ var _ = t.Describe("RuntimePod", func() {
 				conmonClient.ExecExitCodeTimedOut,
 				"exit status of exec unknown",
 			),
-			Entry("unknown", int32(-1), "exit status of exec unknown"),
+			Entry("unknown", conmonClient.ExecExitCodeUnknown, "exit status of exec unknown"),
 		)
 	})
 
-	Context("UnsupportedError", func() {
-		It("should add the error of the standard library", func() {
+	Context("NewExecSyncContainerConfig", func() {
+		// The largest timeout in seconds which a duration holds.
+		const maxSeconds = int64(math.MaxInt64 / time.Second)
+
+		DescribeTable(
+			"should pass the timeout of the CRI request in seconds",
+			func(timeout int64, expected time.Duration) {
+				// Given
+				c := newPodTestContainer(true, false, false)
+
+				// When
+				cfg := oci.NewExecSyncContainerConfig(c, []string{"true"}, timeout)
+
+				// Then
+				Expect(cfg.Timeout).To(Equal(expected))
+				Expect(cfg.ID).To(Equal("id"))
+				Expect(cfg.Command).To(Equal([]string{"true"}))
+				Expect(cfg.Terminal).To(BeTrue())
+			},
+			Entry("no timeout", int64(0), time.Duration(0)),
+			Entry("one second", int64(1), time.Second),
+			Entry("several seconds", int64(30), 30*time.Second),
+			Entry("the largest duration", maxSeconds, time.Duration(maxSeconds)*time.Second),
+			Entry(
+				"more than a duration holds",
+				int64(math.MaxInt64),
+				time.Duration(maxSeconds)*time.Second,
+			),
+			// The client rejects the negative ones.
+			Entry("a negative one", int64(-1), -time.Second),
+			Entry(
+				"less than a duration holds",
+				int64(math.MinInt64),
+				-time.Duration(maxSeconds)*time.Second,
+			),
+		)
+	})
+
+	Context("NewAttachStreams", func() {
+		It("should pass the streams of the caller and keep its stdin open", func() {
 			// Given
-			rpcErr := fmt.Errorf(
-				"call ServePortForwardContainer RPC: %w",
-				conmonClient.ErrUnsupported,
-			)
+			stdin := &closeRecorder{}
+			stdin.WriteString("in")
+
+			stdout := &closeRecorder{}
+			stderr := &closeRecorder{}
 
 			// When
-			err := oci.UnsupportedError(rpcErr)
+			streams := oci.NewAttachStreams(stdin, stdout, stderr)
 
 			// Then
-			Expect(err).To(MatchError(conmonClient.ErrUnsupported))
-			Expect(err).To(MatchError(errors.ErrUnsupported))
+			Expect(streams.Stdout).To(BeIdenticalTo(stdout))
+			Expect(streams.Stderr).To(BeIdenticalTo(stderr))
+
+			data, err := io.ReadAll(streams.Stdin)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(data)).To(Equal("in"))
+			Expect(streams.Stdin.Close()).To(Succeed())
+			Expect(stdin.closed).To(BeFalse())
 		})
 
-		It("should keep other errors", func() {
-			// Given
-			rpcErr := fmt.Errorf(
-				"call ServePortForwardContainer RPC: %w",
-				conmonClient.ErrTooManyRequests,
-			)
-
+		It("should leave out the streams the caller does not use", func() {
 			// When
-			err := oci.UnsupportedError(rpcErr)
+			streams := oci.NewAttachStreams(nil, nil, nil)
 
-			// Then
-			Expect(err).To(BeIdenticalTo(rpcErr))
-			Expect(err).NotTo(MatchError(errors.ErrUnsupported))
+			// Then: the empty value, a typed nil in one of the interfaces
+			// would not be nil for the client.
+			Expect(streams).To(Equal(conmonClient.AttachStreams{}))
 		})
 	})
 
