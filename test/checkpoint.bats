@@ -13,7 +13,395 @@ function setup() {
 }
 
 function teardown() {
+	if [[ -f "$TESTDIR/blocked-runtime" ]]; then
+		kill "$(cat "$TESTDIR/blocked-runtime")" 2> /dev/null || true
+	fi
 	cleanup_test
+}
+
+# Use the existing runtime-wrapper pattern to stop at an OCI operation while
+# still running every other runtime command through the configured runc.
+function start_crio_with_checkpoint_blocker() {
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" setup_crio
+	wrapper="$TESTDIR/runtime-wrapper"
+	cat > "$wrapper" << EOF
+#!/bin/bash
+for arg; do
+    if [[ -f "$TESTDIR/block-operation" && "\$arg" == "\$(cat "$TESTDIR/block-operation")" ]]; then
+        echo "\$\$" > "$TESTDIR/blocked-runtime"
+        exec sleep 300
+    fi
+done
+exec "$RUNTIME_BINARY_PATH" "\$@"
+EOF
+	chmod +x "$wrapper"
+	cat > "$CRIO_CONFIG_DIR/01-runtime-wrapper.conf" << EOF
+[crio.runtime.runtimes.runc]
+runtime_path = "$wrapper"
+runtime_root = "$RUNTIME_ROOT"
+runtime_type = "$RUNTIME_TYPE"
+EOF
+	unset CONTAINER_RUNTIMES
+	start_crio_no_setup
+}
+
+# The Pod RPCs stay disabled until the runtime can confirm cancellation of
+# lower-layer work, and CRI-O advertises them through RuntimeStatus.
+function require_pod_operations() {
+	"$CHECKPOD_BINARY" supported --endpoint "unix://$CRIO_SOCKET" ||
+		skip "CRI-O does not advertise Pod checkpoint and restore support"
+}
+
+function interrupt_blocked_pod_operation() {
+	retry 30 1 test -s "$TESTDIR/blocked-runtime"
+	stop_crio_no_clean -KILL || true
+	kill "$(cat "$TESTDIR/blocked-runtime")"
+	rm "$TESTDIR/blocked-runtime" "$TESTDIR/block-operation"
+	wait "$pod_operation" && return 1
+	start_crio_no_setup
+}
+
+# bats test_tags=crio:serial
+@test "checkpoint and restore a pod with two containers" {
+	if is_using_crun; then
+		skip "Pod checkpoint restore coverage currently requires runc"
+	fi
+
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
+	require_pod_operations
+
+	sandbox_config="$TESTDIR/sandbox.json"
+	container_one="$TESTDIR/container-one.json"
+	container_two="$TESTDIR/container-two.json"
+	cp "$TESTDATA/sandbox_config.json" "$sandbox_config"
+	# Keep both process memory and a writable-layer token across restore.
+	jq '.metadata.name = "pod-checkpoint-one" |
+		.command = ["/bin/bash"] |
+		.args = ["-c", "token=$(cat /proc/sys/kernel/random/uuid); echo \"$token\" >/checkpoint-token; n=0; while :; do n=$((n+1)); echo \"$token $n\" >/checkpoint-counter; sleep 0.1; done"] |
+		.envs += [{key: "POD_NAME", value: "source"}]' \
+		"$TESTDATA/container_sleep.json" > "$container_one"
+	jq '.metadata.name = "pod-checkpoint-two"' \
+		"$container_one" > "$container_two"
+
+	pod_id=$(crictl runp "$sandbox_config")
+	ctr_one=$(crictl create "$pod_id" "$container_one" "$sandbox_config")
+	ctr_two=$(crictl create "$pod_id" "$container_two" "$sandbox_config")
+	crictl start "$ctr_one"
+	crictl start "$ctr_two"
+
+	retry 10 1 crictl exec "$ctr_one" test -s /checkpoint-counter
+	retry 10 1 crictl exec "$ctr_two" test -s /checkpoint-counter
+	read -r token_one count_one < <(crictl exec "$ctr_one" cat /checkpoint-counter)
+	read -r token_two count_two < <(crictl exec "$ctr_two" cat /checkpoint-counter)
+
+	checkpoint_dir="$TESTDIR/pod-checkpoint"
+	mkdir -m 700 "$checkpoint_dir"
+	"$CHECKPOD_BINARY" checkpoint \
+		--endpoint "unix://$CRIO_SOCKET" \
+		--sandbox "$pod_id" \
+		--containers "$ctr_one,$ctr_two" \
+		--output "$checkpoint_dir"
+
+	# A successful checkpoint leaves the source group running.
+	retry 10 1 crictl exec "$ctr_one" /bin/bash -c "read -r token count </checkpoint-counter; test \"\$count\" -gt $count_one"
+	crictl rmp -f "$pod_id"
+
+	restore_sandbox="$TESTDIR/restore-sandbox.json"
+	jq '.metadata.uid = "redhat-test-crio-restored" | .metadata.attempt = 2 | .hostname = "restored"' \
+		"$sandbox_config" > "$restore_sandbox"
+
+	image=$(jq -r '.image.image' "$container_one")
+	pinned_image=$(crictl inspecti "$image" | jq -r '.status.repoDigests[0]')
+	for config in "$container_one" "$container_two"; do
+		jq --arg image "$pinned_image" '.image.image = $image |
+			.command = ["/bin/false"] | .args = [] |
+			(.envs[] | select(.key == "POD_NAME").value) = "destination"' "$config" > "$config.restore"
+	done
+
+	# Validate both missing and mismatched local images before allocating a Pod.
+	for image in example.invalid/unpulled:missing registry.k8s.io/pause:3.10.2; do
+		jq --arg image "$image" '.image.image = $image' "$container_one.restore" > "$TESTDIR/wrong-image.json"
+		run "$CHECKPOD_BINARY" restore \
+			--endpoint "unix://$CRIO_SOCKET" --checkpoint "$checkpoint_dir" \
+			--sandbox-config "$restore_sandbox" \
+			--container-configs "$TESTDIR/wrong-image.json,$container_two.restore"
+		[[ "$status" -ne 0 ]]
+		[[ "$output" == *FailedPrecondition* ]]
+		if [[ "$image" == example.invalid/* ]]; then
+			[[ "$output" == *"must be pulled before RestorePod"* ]]
+		else
+			[[ "$output" == *"does not match the checkpoint"* ]]
+		fi
+		[[ -z $(crictl pods -q) ]]
+	done
+
+	# Matching names do not make an ordinary sandbox part of a restore.
+	unrelated_pod=$(crictl runp "$restore_sandbox")
+	run "$CHECKPOD_BINARY" restore \
+		--endpoint "unix://$CRIO_SOCKET" --checkpoint "$checkpoint_dir" \
+		--sandbox-config "$restore_sandbox" \
+		--container-configs "$container_one.restore,$container_two.restore"
+	[[ "$status" -ne 0 && "$output" == *AlreadyExists* ]]
+	crictl inspectp "$unrelated_pod"
+	crictl rmp -f "$unrelated_pod"
+
+	# Failed attempts release the restore target after their asynchronous
+	# cleanup settles them.
+	retry 10 1 "$CHECKPOD_BINARY" restore \
+		--endpoint "unix://$CRIO_SOCKET" \
+		--operation-id restore-operation \
+		--checkpoint "$checkpoint_dir" \
+		--sandbox-config "$restore_sandbox" \
+		--container-configs "$container_one.restore,$container_two.restore"
+	# retry keeps the successful command's standard output in $output.
+	restore_response=$output
+
+	restored_pod=$(jq -r '.pod_sandbox_id' <<< "$restore_response")
+	[[ -n "$restored_pod" ]]
+	[[ $(jq '.restored_containers | length' <<< "$restore_response") -eq 2 ]]
+
+	# An admitted operation is never replayed, even after a daemon restart.
+	stop_crio_no_clean
+	start_crio_no_setup
+	run "$CHECKPOD_BINARY" restore \
+		--endpoint "unix://$CRIO_SOCKET" --operation-id restore-operation \
+		--checkpoint "$checkpoint_dir" --sandbox-config "$restore_sandbox" \
+		--container-configs "$container_two.restore,$container_one.restore"
+	[[ "$status" -ne 0 && "$output" == *AlreadyExists* ]]
+
+	while read -r restored_container; do
+		crictl start "$restored_container"
+		[[ $(crictl inspect --output go-template --template '{{.status.state}}' "$restored_container") == "CONTAINER_RUNNING" ]]
+		name=$(crictl inspect "$restored_container" | jq -r '.status.metadata.name')
+		if [[ "$name" == pod-checkpoint-one ]]; then
+			token="$token_one"
+			count="$count_one"
+		else
+			token="$token_two"
+			count="$count_two"
+		fi
+		[[ $(crictl exec "$restored_container" cat /checkpoint-token) == "$token" ]]
+		retry 10 1 crictl exec "$restored_container" /bin/bash -c \
+			"read -r token count </checkpoint-counter; test \"\$token\" = '$token' && test \"\$count\" -gt $count"
+	done < <(jq -r '.restored_containers[].container_id' <<< "$restore_response")
+
+	# The restored Pod keeps its target after the containers start, so
+	# neither the original operation nor a new one can restore it again.
+	run "$CHECKPOD_BINARY" restore \
+		--endpoint "unix://$CRIO_SOCKET" --operation-id restore-operation \
+		--checkpoint "$checkpoint_dir" --sandbox-config "$restore_sandbox" \
+		--container-configs "$container_one.restore,$container_two.restore"
+	[[ "$status" -ne 0 && "$output" == *AlreadyExists* ]]
+	run "$CHECKPOD_BINARY" restore \
+		--endpoint "unix://$CRIO_SOCKET" --checkpoint "$checkpoint_dir" \
+		--sandbox-config "$restore_sandbox" \
+		--container-configs "$container_one,$container_two"
+	[[ "$status" -ne 0 ]]
+	[[ "$output" == *AlreadyExists* ]]
+}
+
+# bats test_tags=crio:serial
+@test "recover an interrupted Pod checkpoint" {
+	start_crio_with_checkpoint_blocker
+	require_pod_operations
+	pod_id=$(crictl runp "$TESTDATA/sandbox_config.json")
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$ctr_id"
+	checkpoint_dir="$TESTDIR/pod-checkpoint"
+	mkdir -m 700 "$checkpoint_dir"
+	echo checkpoint > "$TESTDIR/block-operation"
+	"$CHECKPOD_BINARY" checkpoint --endpoint "unix://$CRIO_SOCKET" \
+		--operation-id interrupted-checkpoint \
+		--sandbox "$pod_id" --containers "$ctr_id" --output "$checkpoint_dir" \
+		> "$TESTDIR/interrupted-checkpoint.log" 2>&1 3>&- &
+	pod_operation=$!
+	interrupt_blocked_pod_operation
+
+	# Startup leaves caller-identified work to its cancellation. Recovery
+	# resumes the source and removes only its unfinished output.
+	"$CHECKPOD_BINARY" cancel --endpoint "unix://$CRIO_SOCKET" \
+		--operation-id interrupted-checkpoint --type checkpoint
+	crictl exec "$ctr_id" true
+	[[ -z $(ls -A "$checkpoint_dir") ]]
+	"$CHECKPOD_BINARY" checkpoint --endpoint "unix://$CRIO_SOCKET" \
+		--sandbox "$pod_id" --containers "$ctr_id" --output "$checkpoint_dir"
+	crictl exec "$ctr_id" true
+}
+
+# bats test_tags=crio:serial
+@test "Pod restore preserves workload security and rejects changed resolved seccomp policy" {
+	if is_using_crun; then
+		skip "Pod checkpoint restore coverage currently requires runc"
+	fi
+	if ! "$CHECKSECCOMP_BINARY"; then
+		skip "seccomp is not enabled"
+	fi
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
+	require_pod_operations
+
+	profile="$TESTDIR/checkpoint-seccomp.json"
+	cat > "$profile" << EOF
+{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"names":["kill"],"action":"SCMP_ACT_ERRNO","errnoRet":1}]}
+EOF
+	cp "$profile" "$profile.original"
+	cat > "$TESTDIR/security-workload.sh" << 'EOF'
+token=$(cat /proc/sys/kernel/random/uuid)
+n=0
+while :; do
+    n=$((n+1))
+    {
+        printf '%s %s\n' "$token" "$n"
+        grep -E '^(Uid|Gid|Groups|CapInh|CapPrm|CapEff|CapBnd|CapAmb|NoNewPrivs|Seccomp):' "/proc/$$/status"
+        cat "/proc/$$/attr/current" 2>/dev/null || true
+        if kill -0 "$$" 2>/dev/null; then
+            echo kill-allowed
+        else
+            echo kill-denied
+        fi
+    } >/tmp/checkpoint-security.next
+    mv /tmp/checkpoint-security.next /tmp/checkpoint-security
+    sleep 0.1
+done
+EOF
+	container_config="$TESTDIR/security-container.json"
+	jq --arg profile "$profile" --rawfile script "$TESTDIR/security-workload.sh" '
+		.command = ["/bin/bash"] | .args = ["-c", $script] |
+		.linux.security_context += {
+			run_as_user: {value: 1000}, run_as_group: {value: 1000},
+			supplemental_groups: [1234], supplemental_groups_policy: 1,
+			no_new_privs: true, capabilities: {drop_capabilities: ["ALL"]},
+			seccomp: {profile_type: 2, localhost_ref: $profile}
+		}' "$TESTDATA/container_sleep.json" > "$container_config"
+	pod_id=$(crictl runp "$TESTDATA/sandbox_config.json")
+	ctr_id=$(crictl create "$pod_id" "$container_config" "$TESTDATA/sandbox_config.json")
+	crictl start "$ctr_id"
+	retry 10 1 crictl exec "$ctr_id" test -s /tmp/checkpoint-security
+	crictl exec "$ctr_id" cat /tmp/checkpoint-security > "$TESTDIR/source-security"
+	grep -Eq '^Uid:[[:space:]]+1000[[:space:]]+1000[[:space:]]+1000[[:space:]]+1000$' "$TESTDIR/source-security"
+	grep -Eq '^Gid:[[:space:]]+1000[[:space:]]+1000[[:space:]]+1000[[:space:]]+1000$' "$TESTDIR/source-security"
+	grep -Eq '^Groups:[[:space:]]+1234[[:space:]]*$' "$TESTDIR/source-security"
+	[[ $(grep -Ec '^Cap(Inh|Prm|Eff|Bnd|Amb):[[:space:]]+0+$' "$TESTDIR/source-security") -eq 5 ]]
+	grep -Eq '^NoNewPrivs:[[:space:]]+1$' "$TESTDIR/source-security"
+	grep -Eq '^Seccomp:[[:space:]]+2$' "$TESTDIR/source-security"
+	grep -qx kill-denied "$TESTDIR/source-security"
+	read -r token count < "$TESTDIR/source-security"
+
+	checkpoint_dir="$TESTDIR/security-checkpoint"
+	mkdir -m 700 "$checkpoint_dir"
+	"$CHECKPOD_BINARY" checkpoint --endpoint "unix://$CRIO_SOCKET" \
+		--sandbox "$pod_id" --containers "$ctr_id" --output "$checkpoint_dir"
+	crictl rmp -f "$pod_id"
+	# The CRI profile reference stays the same, but the resolved policy differs.
+	jq '.syscalls[0].names += ["tkill", "tgkill"]' "$profile.original" > "$profile"
+	run "$CHECKPOD_BINARY" restore --endpoint "unix://$CRIO_SOCKET" \
+		--checkpoint "$checkpoint_dir" --sandbox-config "$TESTDATA/sandbox_config.json" \
+		--container-configs "$container_config"
+	[[ "$status" -ne 0 && "$output" == *"resolved policy"* ]]
+	[[ -z $(crictl pods -q) ]]
+
+	cp "$profile.original" "$profile"
+	retry 10 1 "$CHECKPOD_BINARY" restore --endpoint "unix://$CRIO_SOCKET" \
+		--checkpoint "$checkpoint_dir" --sandbox-config "$TESTDATA/sandbox_config.json" \
+		--container-configs "$container_config"
+	response="$output"
+	restored=$(jq -r '.restored_containers[0].container_id' <<< "$response")
+	crictl start "$restored"
+	# The file is refreshed by the checkpointed shell itself. A fresh exec's
+	# credentials or filters cannot satisfy either the token or counter check.
+	retry 10 1 crictl exec "$restored" /bin/bash -c \
+		"read -r token count </tmp/checkpoint-security; test \"\$token\" = '$token' && test \"\$count\" -gt $count"
+	crictl exec "$restored" cat /tmp/checkpoint-security > "$TESTDIR/restored-security"
+	tail -n +2 "$TESTDIR/source-security" > "$TESTDIR/source-policy"
+	tail -n +2 "$TESTDIR/restored-security" > "$TESTDIR/restored-policy"
+	cmp "$TESTDIR/source-policy" "$TESTDIR/restored-policy"
+}
+
+# bats test_tags=crio:serial
+@test "Pod checkpoint recovers after byte and inode exhaustion on its output filesystem" {
+	if is_using_crun; then
+		skip "Pod checkpoint restore coverage currently requires runc"
+	fi
+	command -v mkfs.ext4 > /dev/null || skip "requires mkfs.ext4 and loop mounts"
+	CONTAINER_DROP_INFRA_CTR=false CONTAINER_CHECKPOINT_RESTORE_LEVEL="checkpoint_restore" start_crio
+	require_pod_operations
+	pod_id=$(crictl runp "$TESTDATA/sandbox_config.json")
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$ctr_id"
+	for pressure in bytes inodes; do
+		image="$TESTDIR/checkpoint-$pressure.ext4"
+		storage="$TESTDIR/checkpoint-$pressure"
+		truncate -s 64M "$image"
+		mkfs.ext4 -q -F -N 128 "$image"
+		mkdir "$storage"
+		mount -o loop "$image" "$storage"
+		checkpoint_dir="$storage/output"
+		mkdir -m 700 "$checkpoint_dir"
+		if [[ "$pressure" == bytes ]]; then
+			run dd if=/dev/zero of="$storage/filler" bs=1M status=none
+			[[ "$status" -ne 0 && "$output" == *"No space left on device"* ]]
+			# Leave enough space for admission metadata, but not a process dump.
+			truncate -s -262144 "$storage/filler"
+		else
+			i=0
+			while touch "$storage/filler-$i" 2> /dev/null; do
+				i=$((i + 1))
+			done
+			[[ "$i" -gt 8 ]]
+			for ((j = 0; j < 8; j++)); do
+				rm "$storage/filler-$j"
+			done
+		fi
+		run "$CHECKPOD_BINARY" checkpoint --endpoint "unix://$CRIO_SOCKET" \
+			--operation-id "exhausted-$pressure" --sandbox "$pod_id" --containers "$ctr_id" --output "$checkpoint_dir"
+		[[ "$status" -ne 0 ]]
+		grep -Eiq 'no space left on device|ENOSPC' <<< "$output"
+		"$CHECKPOD_BINARY" cancel --endpoint "unix://$CRIO_SOCKET" \
+			--operation-id "exhausted-$pressure" --type checkpoint
+		crictl exec "$ctr_id" true
+		[[ -z $(ls -A "$checkpoint_dir") ]]
+		rm -f "$storage"/filler*
+		# A different operation can use the same filesystem after cleanup.
+		"$CHECKPOD_BINARY" checkpoint --endpoint "unix://$CRIO_SOCKET" \
+			--sandbox "$pod_id" --containers "$ctr_id" --output "$checkpoint_dir"
+		crictl exec "$ctr_id" true
+		[[ -s "$checkpoint_dir/checkpoint-manifest.json" ]]
+		umount "$storage"
+	done
+}
+
+# bats test_tags=crio:serial
+@test "recover an interrupted Pod restore" {
+	start_crio_with_checkpoint_blocker
+	require_pod_operations
+	pod_id=$(crictl runp "$TESTDATA/sandbox_config.json")
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA/container_sleep.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$ctr_id"
+	checkpoint_dir="$TESTDIR/pod-checkpoint"
+	mkdir -m 700 "$checkpoint_dir"
+	"$CHECKPOD_BINARY" checkpoint --endpoint "unix://$CRIO_SOCKET" \
+		--sandbox "$pod_id" --containers "$ctr_id" --output "$checkpoint_dir"
+	crictl rmp -f "$pod_id"
+
+	# Interrupt sandbox creation after its storage has been allocated.
+	echo create > "$TESTDIR/block-operation"
+	"$CHECKPOD_BINARY" restore --endpoint "unix://$CRIO_SOCKET" \
+		--operation-id interrupted-restore \
+		--checkpoint "$checkpoint_dir" --sandbox-config "$TESTDATA/sandbox_config.json" \
+		--container-configs "$TESTDATA/container_sleep.json" \
+		> "$TESTDIR/interrupted-restore.log" 2>&1 3>&- &
+	pod_operation=$!
+	interrupt_blocked_pod_operation
+
+	# Cancellation removes the incomplete destination and releases its target.
+	"$CHECKPOD_BINARY" cancel --endpoint "unix://$CRIO_SOCKET" \
+		--operation-id interrupted-restore --type restore
+	[[ -z $(crictl pods -q) ]]
+	restore_response=$("$CHECKPOD_BINARY" restore --endpoint "unix://$CRIO_SOCKET" \
+		--checkpoint "$checkpoint_dir" --sandbox-config "$TESTDATA/sandbox_config.json" \
+		--container-configs "$TESTDATA/container_sleep.json")
+	restored_container=$(jq -r '.restored_containers[0].container_id' <<< "$restore_response")
+	crictl start "$restored_container"
+	crictl exec "$restored_container" true
 }
 
 @test "checkpoint and restore one container into a new pod (drop infra:true)" {

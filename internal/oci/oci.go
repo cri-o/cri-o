@@ -20,6 +20,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/podoperation"
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
@@ -754,6 +755,15 @@ func (r *Runtime) RestoreContainer(
 		return err
 	}
 
+	if id := podoperation.ID(ctx); id != "" {
+		if _, ok := impl.(PodRestoreSettler); !ok {
+			return ErrPodRestoreSettlementUnsupported
+		}
+
+		if err := podoperation.RegisterBackend(ctx, c.ID()); err != nil {
+			return err
+		}
+	}
 	return impl.RestoreContainer(ctx, c, cgroupParent, mountLabel)
 }
 

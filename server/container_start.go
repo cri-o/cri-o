@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"google.golang.org/grpc/codes"
@@ -12,10 +13,19 @@ import (
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/podoperation"
 )
 
-// StartContainer starts the container.
+// StartContainer starts a container under any existing Pod restore owner.
 func (s *Server) StartContainer(
+	ctx context.Context,
+	request *types.StartContainerRequest,
+) (*types.StartContainerResponse, error) {
+	return s.startContainerWithPodOperation(ctx, request)
+}
+
+// StartContainer starts the container.
+func (s *Server) startContainer(
 	ctx context.Context,
 	req *types.StartContainerRequest,
 ) (res *types.StartContainerResponse, retErr error) {
@@ -34,57 +44,17 @@ func (s *Server) StartContainer(
 		)
 	}
 
-	if c.Restore() {
-		// If the create command found a checkpoint image, the container
-		// has the restore flag set to true. At this point we need to jump
-		// into the restore code.
-		log.Debugf(ctx, "Restoring container %q", req.GetContainerId())
+	state := c.State()
 
-		ctr, err := s.ContainerRestore(
-			ctx,
-			&metadata.ContainerConfig{
-				ID: c.ID(),
-			},
-			&lib.ContainerCheckpointOptions{},
-		)
-		if err != nil {
-			ociContainer, err1 := s.GetContainerFromShortID(ctx, c.ID())
-			if err1 != nil {
-				return nil, fmt.Errorf("failed to find container %s: %w", c.ID(), err1)
-			}
-
-			s.ReleaseContainerName(ctx, ociContainer.Name())
-
-			sb, err2 := s.LookupSandbox(c.Sandbox())
-			if err2 != nil {
-				// log the error, but proceed with a "nil" sandbox
-				// This will continue the cleanup process using the default
-				// runtime server, as "best effort" cleanup.
-				log.Warnf(ctx, "Failed to lookup sandbox %s: %v", c.Sandbox(), err2)
-			}
-
-			runtimeSvc, err2 := s.StorageRuntimeServer(sb)
-			if err2 == nil {
-				err2 = runtimeSvc.DeleteContainer(ctx, c.ID())
-			}
-
-			if err2 != nil {
-				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
-			}
-
-			s.removeContainer(ctx, ociContainer)
-
-			return nil, err
-		}
-
-		log.Infof(ctx, "Restored container: %s", ctr)
-
-		return &types.StartContainerResponse{}, nil
+	// A container created from a checkpoint archive has no OCI task, and
+	// therefore no runtime status, until the restore below creates it.
+	pendingRestore := c.Restore() && state.Status == ""
+	if state.Status != oci.ContainerStateCreated && !pendingRestore {
+		return nil, fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
 	}
 
-	state := c.State()
-	if state.Status != oci.ContainerStateCreated {
-		return nil, fmt.Errorf("container %s is not in created state: %s", c.ID(), state.Status)
+	if err := s.requirePodRestoreCommitted(c); err != nil {
+		return nil, err
 	}
 
 	sandbox := s.getSandbox(ctx, c.Sandbox())
@@ -97,10 +67,12 @@ func (s *Server) StartContainer(
 
 	defer func() {
 		// if the call to StartContainer fails below we still want to fill
-		// some fields of a container status. In particular, we're going to
+		// some fields of a container status. Identified restores defer cleanup
+		// to their settlement owner so storage cannot disappear under late work.
+		// In particular, we're going to
 		// adjust container started/finished time and set an error to be
 		// returned in the Reason field for container status call.
-		if retErr != nil {
+		if retErr != nil && podoperation.ID(ctx) == "" {
 			c.SetStartFailed(retErr)
 
 			if hooks != nil {
@@ -129,7 +101,45 @@ func (s *Server) StartContainer(
 		}
 	}
 
-	if err := s.ContainerServer.Runtime().StartContainer(ctx, c); err != nil {
+	if c.Restore() {
+		log.Debugf(ctx, "Restoring container %q", req.GetContainerId())
+
+		restoreArchive := c.RestoreArchivePath()
+		if _, err := s.ContainerRestore(
+			ctx,
+			&metadata.ContainerConfig{ID: c.ID()},
+			&lib.ContainerCheckpointOptions{},
+		); err != nil {
+			return nil, err
+		}
+
+		c.SetRestore(false)
+		c.SetRestoreArchivePath("")
+		c.SetRestoreStorageImageID(nil)
+		c.SetRestored(true)
+
+		// The process is running now, so a state write failure must not fail
+		// the start. Keep the staged archive until the completed state is saved.
+		stateErr := s.ContainerStateToDiskWithUpdate(ctx, c)
+		if stateErr != nil {
+			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), stateErr)
+		}
+
+		// A single-container restore reads the caller's archive in place. Only
+		// a Pod restore owns its staged copy.
+		if stateErr == nil && c.PodRestoreKey() != "" && restoreArchive != "" {
+			if err := os.Remove(restoreArchive); err != nil && !os.IsNotExist(err) {
+				log.Warnf(
+					ctx,
+					"Unable to remove consumed restore archive %q: %v",
+					restoreArchive,
+					err,
+				)
+			}
+		}
+
+		log.Infof(ctx, "Restored container: %s", c.ID())
+	} else if err := s.ContainerServer.Runtime().StartContainer(ctx, c); err != nil {
 		return nil, fmt.Errorf("failed to start container %s: %w", c.ID(), err)
 	}
 

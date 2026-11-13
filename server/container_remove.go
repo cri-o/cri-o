@@ -65,6 +65,30 @@ func (s *Server) removeContainerInPod(
 	sb *sandbox.Sandbox,
 	c *oci.Container,
 ) error {
+	if c.PodRestoreKey() != "" {
+		operationID, err := s.podRestoreOperationForSandbox(c.Sandbox())
+		if err != nil {
+			return fmt.Errorf("resolve container restore operation before removal: %w", err)
+		}
+
+		return s.removePodRestoreContainer(
+			ctx,
+			operationID,
+			c.ID(),
+			func(joined context.Context) error {
+				return s.removeContainerInPodWithoutRestore(joined, sb, c)
+			},
+		)
+	}
+
+	return s.removeContainerInPodWithoutRestore(ctx, sb, c)
+}
+
+func (s *Server) removeContainerInPodWithoutRestore(
+	ctx context.Context,
+	sb *sandbox.Sandbox,
+	c *oci.Container,
+) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 

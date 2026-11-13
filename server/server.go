@@ -77,7 +77,7 @@ type Server struct {
 
 	monitorsChan        chan struct{}
 	defaultIDMappings   *idtools.IDMappings
-	ContainerEventsChan chan types.ContainerEventResponse
+	ContainerEventsChan chan *types.ContainerEventResponse
 
 	minimumMappableUID, minimumMappableGID int64
 
@@ -94,6 +94,12 @@ type Server struct {
 
 	containerEventClients           sync.Map
 	containerEventStreamBroadcaster sync.Once
+	podCheckpointsInProgress        sync.Map
+	podCheckpointOutputs            sync.Map
+	containerCheckpointsInProgress  sync.Map
+	podRestoresInProgress           sync.Map
+	podOperations                   sync.Map
+	podOperationRoot                string
 
 	// NRI runtime interface
 	nri *nriAPI
@@ -519,8 +525,9 @@ func New(
 		return nil, err
 	}
 
+	graphRoot := containerServer.Store().GraphRoot()
 	artifactStore, err := ociartifact.NewStore(
-		containerServer.Store().GraphRoot(),
+		graphRoot,
 		config.AdditionalArtifactStores,
 		config.SystemContext,
 		defaultImageServer.PinnedImageRegexps(),
@@ -531,6 +538,7 @@ func New(
 
 	s := &Server{
 		ContainerServer:          containerServer,
+		podOperationRoot:         graphRoot,
 		hostportManager:          hostportManager,
 		config:                   *config,
 		stream:                   &StreamService{},
@@ -546,7 +554,7 @@ func New(
 
 	if s.config.EnablePodEvents {
 		// creating a container events channel only if the evented pleg is enabled
-		s.ContainerEventsChan = make(chan types.ContainerEventResponse, 1000)
+		s.ContainerEventsChan = make(chan *types.ContainerEventResponse, 1000)
 	}
 
 	if err := configureMaxThreads(); err != nil {
@@ -566,6 +574,10 @@ func New(
 	}
 
 	deletedImages := s.restore(ctx)
+	if err := s.recoverPodCheckpoints(ctx); err != nil {
+		return nil, fmt.Errorf("recover interrupted Pod checkpoints: %w", err)
+	}
+
 	s.wipeIfAppropriate(ctx, deletedImages)
 
 	var bindAddressStr string
@@ -680,6 +692,10 @@ func New(
 
 	if err := s.nri.start(); err != nil {
 		return nil, err
+	}
+
+	if err := s.recoverPodRestores(ctx); err != nil {
+		return nil, fmt.Errorf("recover interrupted Pod restores: %w", err)
 	}
 
 	if err := watchdog.New(s.checkCRIHealth).Start(ctx); err != nil {
@@ -1160,7 +1176,7 @@ func (s *Server) generateCRIEvent(
 	}
 
 	select {
-	case s.ContainerEventsChan <- types.ContainerEventResponse{ContainerId: container.ID(), ContainerEventType: eventType, CreatedAt: time.Now().UnixNano(), PodSandboxStatus: sandboxStatuses, ContainersStatuses: containerStatuses}:
+	case s.ContainerEventsChan <- &types.ContainerEventResponse{ContainerId: container.ID(), ContainerEventType: eventType, CreatedAt: time.Now().UnixNano(), PodSandboxStatus: sandboxStatuses, ContainersStatuses: containerStatuses}:
 		log.Debugf(ctx, "Container event %s generated for %s", eventType, container.ID())
 	default:
 		log.Errorf(

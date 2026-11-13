@@ -89,6 +89,32 @@ var _ = t.Describe("ContainerStatus", func() {
 			}, types.ContainerState_CONTAINER_EXITED, false),
 		)
 
+		It("should report a completed restore", func() {
+			// Given
+			serverConfig.SetCheckpointRestore(true)
+			setupSUT()
+			addContainerAndSandbox()
+			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			testContainer.SetRestored(true)
+			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
+
+			runtimeServerMock.EXPECT().GetContainerMetadata(gomock.Any()).
+				Return(storage.RuntimeContainerMetadata{}, nil)
+
+			// When
+			response, err := sut.ContainerStatus(context.Background(),
+				&types.ContainerStatusRequest{
+					Verbose:     true,
+					ContainerId: testContainer.ID(),
+				})
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.GetInfo()["info"]).To(ContainSubstring(`"restored":true`))
+		})
+
 		It("should fail with invalid container ID", func() {
 			// Given
 			// When

@@ -870,13 +870,18 @@ func (c *ContainerServer) ContainerStateToDiskWithUpdate(
 
 // ContainerStateToDisk writes the container's state information to a JSON file
 // on disk.
-func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Container) error {
+func (c *ContainerServer) ContainerStateToDisk(
+	ctx context.Context,
+	ctr *oci.Container,
+) (retErr error) {
 	jsonSource, err := ioutils.NewAtomicFileWriter(ctr.StatePath(), 0o644)
 	if err != nil {
 		return err
 	}
 
-	defer jsonSource.Close()
+	defer func() {
+		retErr = errors.Join(retErr, jsonSource.Close())
+	}()
 
 	enc := json.NewEncoder(jsonSource)
 
@@ -925,6 +930,11 @@ func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
 // pods.
 func (c *ContainerServer) ReleasePodName(name string) {
 	c.podNameIndex.Release(name)
+}
+
+// ReleasePodNameForID cannot release a name reassigned to another sandbox.
+func (c *ContainerServer) ReleasePodNameForID(id string) {
+	c.podNameIndex.Delete(id)
 }
 
 // PodIDForName gets the pod ID given the pod name from the ID Index.

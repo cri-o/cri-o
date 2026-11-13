@@ -52,8 +52,9 @@ type Container struct {
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
-	dir        string
-	stopSignal string
+	checkpointWorkPath string
+	dir                string
+	stopSignal         string
 	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 	someNameOfTheImage *references.RegistryImageReference
 	imageID            *storage.StorageImageID // nil for infra containers.
@@ -81,8 +82,6 @@ type Container struct {
 	stopWatchers          []chan struct{}
 	stopKillLoopBegun     bool
 	pidns                 nsmgr.Namespace
-	restore               bool
-	restoreArchivePath    string
 	restoreStorageImageID *storage.StorageImageID
 	resources             *types.ContainerResources
 	runtimePath           string // runtime path for a given platform
@@ -137,6 +136,12 @@ type ContainerState struct {
 	InitStartTime string `json:"initStartTime,omitempty"`
 	// Checkpoint/Restore related states
 	CheckpointedAt time.Time `json:"checkpointedTime"`
+	Restore        bool      `json:"restore,omitempty"`
+	RestoreArchive string    `json:"restoreArchive,omitempty"`
+	RestoreImage   string    `json:"restoreImage,omitempty"`
+	PodRestoreKey  string    `json:"podRestoreKey,omitempty"`
+	// Restored is set once StartContainer has restored the process.
+	Restored bool `json:"restored,omitempty"`
 	// ContainerMonitorProcess is used to check the liveness of the container monitor.
 	// This is supposed to be immutable once set.
 	ContainerMonitorProcess *ContainerMonitorProcess `json:"containerMonitorProcess,omitempty"`
@@ -496,6 +501,41 @@ func (c *Container) Dir() string {
 	return c.dir
 }
 
+// CheckpointWorkPath returns the operation's bulk storage directory. Normal
+// container checkpointing retains its existing storage location.
+func (c *Container) CheckpointWorkPath() string {
+	c.metaLock.RLock()
+	defer c.metaLock.RUnlock()
+	if c.checkpointWorkPath != "" {
+		return c.checkpointWorkPath
+	}
+	return c.dir
+}
+
+// UseCheckpointWorkPath scopes Pod checkpoint artifacts to caller-owned storage.
+// The caller holds the container's checkpoint reservation through capture, export
+// and cleanup, and releases this override only after synchronous native work ends.
+func (c *Container) UseCheckpointWorkPath(path string) (func(), error) {
+	if !filepath.IsAbs(path) {
+		return nil, fmt.Errorf("checkpoint work path must be absolute: %q", path)
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return nil, fmt.Errorf("checkpoint work path is not a real directory: %q", path)
+	}
+	c.metaLock.Lock()
+	defer c.metaLock.Unlock()
+	if c.checkpointWorkPath != "" {
+		return nil, fmt.Errorf("container checkpoint storage is already reserved")
+	}
+	c.checkpointWorkPath = path
+	var once sync.Once
+	return func() { once.Do(func() { c.metaLock.Lock(); defer c.metaLock.Unlock(); c.checkpointWorkPath = "" }) }, nil
+}
+
 // CheckpointPath returns the path to the directory containing the checkpoint.
 func (c *Container) CheckpointPath() string {
 	// Podman uses 'bundlePath' as base directory for the checkpoint
@@ -504,7 +544,7 @@ func (c *Container) CheckpointPath() string {
 	// the checkpoint contains all memory pages, it can be as large as the
 	// available memory and writing that again to a tmpfs might lead to
 	// problems. 'dir' seems to be based on /var
-	return filepath.Join(c.dir, metadata.CheckpointDirectory)
+	return filepath.Join(c.CheckpointWorkPath(), metadata.CheckpointDirectory)
 }
 
 // Metadata returns the metadata of the container.
@@ -856,30 +896,97 @@ func (c *Container) nodeLevelPIDNamespace() bool {
 // Restore returns if the container is marked as being
 // restored from a checkpoint.
 func (c *Container) Restore() bool {
-	return c.restore
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	return c.state.Restore
 }
 
 // SetRestore marks the container as being restored from a checkpoint.
 func (c *Container) SetRestore(restore bool) {
-	c.restore = restore
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	c.state.Restore = restore
+}
+
+// Restored returns if the container process has been restored from a
+// checkpoint.
+func (c *Container) Restored() bool {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	return c.state.Restored
+}
+
+// SetRestored marks the container process as restored from a checkpoint.
+func (c *Container) SetRestored(restored bool) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	c.state.Restored = restored
 }
 
 // If Restore(), and the container is being restored from a local path, RestoreArchivePath returns that path.
 func (c *Container) RestoreArchivePath() string {
-	return c.restoreArchivePath
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	return c.state.RestoreArchive
 }
 
 func (c *Container) SetRestoreArchivePath(restoreArchivePath string) {
-	c.restoreArchivePath = restoreArchivePath
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	c.state.RestoreArchive = restoreArchivePath
+}
+
+// PodRestoreKey identifies the durable Pod restore transaction. It is set
+// before publishing the created container and remains after process restore.
+func (c *Container) PodRestoreKey() string {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	return c.state.PodRestoreKey
+}
+
+// PreparePodRestore records a container whose OCI task will be restored at start.
+func (c *Container) PreparePodRestore(key string) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
+	c.state.PodRestoreKey = key
+	c.state.Restore = true
+	c.state.Status = ContainerStateCreated
 }
 
 // If Restore(), and the container is being restored from a container image, restoreStorageImageID returns the ID of that image.
 func (c *Container) RestoreStorageImageID() *storage.StorageImageID {
+	c.opLock.RLock()
+	defer c.opLock.RUnlock()
+
+	if c.restoreStorageImageID == nil && c.state.RestoreImage != "" {
+		// The state saved before a daemon restart carries only the ID string.
+		id, err := storage.ParseStorageImageIDFromOutOfProcessData(c.state.RestoreImage)
+		if err == nil {
+			return &id
+		}
+	}
+
 	return c.restoreStorageImageID
 }
 
 func (c *Container) SetRestoreStorageImageID(restoreStorageImageID *storage.StorageImageID) {
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
+
 	c.restoreStorageImageID = restoreStorageImageID
+	c.state.RestoreImage = ""
+
+	if restoreStorageImageID != nil {
+		c.state.RestoreImage = restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly()
+	}
 }
 
 // SetResources loads the OCI Spec.Linux.Resources in the container struct.

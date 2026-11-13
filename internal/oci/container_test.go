@@ -3,6 +3,7 @@ package oci_test
 import (
 	"context"
 	"errors"
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"os"
 	"path"
 	"strconv"
@@ -36,6 +37,27 @@ var _ = t.Describe("Container", func() {
 		sut = getTestContainer()
 	})
 
+	It("scopes checkpoint bulk storage without changing the container directory", func() {
+		original := sut.Dir()
+		work := GinkgoT().TempDir()
+		release, err := sut.UseCheckpointWorkPath(work)
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(release)
+		Expect(sut.Dir()).To(Equal(original))
+		Expect(sut.CheckpointWorkPath()).To(Equal(work))
+		Expect(sut.CheckpointPath()).To(Equal(path.Join(work, metadata.CheckpointDirectory)))
+		_, err = sut.UseCheckpointWorkPath(GinkgoT().TempDir())
+		Expect(err).To(HaveOccurred())
+		release()
+		Expect(sut.CheckpointWorkPath()).To(Equal(original))
+		Expect(sut.CheckpointPath()).To(Equal(path.Join(original, metadata.CheckpointDirectory)))
+		second := GinkgoT().TempDir()
+		releaseSecond, err := sut.UseCheckpointWorkPath(second)
+		Expect(err).NotTo(HaveOccurred())
+		release()
+		Expect(sut.CheckpointWorkPath()).To(Equal(second))
+		releaseSecond()
+	})
 	It("should succeed to get the container fields", func() {
 		// Given
 		// When

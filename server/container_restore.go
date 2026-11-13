@@ -413,6 +413,12 @@ func (s *Server) CRImportCheckpoint(
 	newContainer.SetRestoreStorageImageID(restoreStorageImageID)
 	newContainer.SetCheckpointedAt(config.CheckpointedAt)
 
+	// Save the pending restore so StartContainer can still restore the
+	// container after a daemon restart.
+	if err := s.ContainerStateToDiskWithUpdate(ctx, newContainer); err != nil {
+		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", newContainer.ID(), err)
+	}
+
 	if isContextError(ctx.Err()) {
 		log.Infof(
 			ctx,

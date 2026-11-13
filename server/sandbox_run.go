@@ -2,14 +2,18 @@ package server
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 
+	"google.golang.org/protobuf/proto"
 	v1 "k8s.io/api/core/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/podoperation"
 )
 
 const (
@@ -70,8 +74,47 @@ func (s *Server) RunPodSandbox(
 	ctx context.Context,
 	req *types.RunPodSandboxRequest,
 ) (*types.RunPodSandboxResponse, error) {
+	return s.runPodSandboxRequest(ctx, req, "")
+}
+
+func (s *Server) runPodSandboxRequest(
+	ctx context.Context,
+	req *types.RunPodSandboxRequest,
+	sandboxID string,
+) (*types.RunPodSandboxResponse, error) {
+	var checkpointConfig *types.PodSandboxConfig
+	if s.config.CheckpointRestore() && req != nil && req.GetConfig() != nil {
+		checkpointConfig = proto.CloneOf(req.GetConfig())
+	}
 	// platform dependent call
-	return s.runPodSandbox(ctx, req)
+	response, err := s.runPodSandbox(ctx, req, sandboxID)
+	if err != nil || !s.config.CheckpointRestore() {
+		return response, err
+	}
+
+	sb := s.GetSandbox(response.GetPodSandboxId())
+	if sb == nil || sb.InfraContainer() == nil {
+		return nil, fmt.Errorf(
+			"persist checkpoint metadata: sandbox %q is unavailable after creation",
+			response.GetPodSandboxId(),
+		)
+	}
+
+	if err := persistPodSandboxConfig(sb.InfraContainer().Dir(), checkpointConfig); err != nil {
+		// A Pod restore owns this sandbox. Remove it as that owner instead of
+		// cancelling the restore operation that is still running this call.
+		cleanupCtx := podoperation.WithCleanup(context.WithoutCancel(ctx), ctx)
+		if cleanupErr := s.removePodSandbox(cleanupCtx, sb); cleanupErr != nil {
+			return nil, errors.Join(
+				fmt.Errorf("persist sandbox checkpoint metadata: %w", err),
+				fmt.Errorf("remove sandbox after metadata failure: %w", cleanupErr),
+			)
+		}
+
+		return nil, fmt.Errorf("persist sandbox checkpoint metadata: %w", err)
+	}
+
+	return response, nil
 }
 
 func convertPortMappings(in []*types.PortMapping) []*hostport.PortMapping {
