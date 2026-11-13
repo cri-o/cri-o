@@ -81,7 +81,6 @@ func (s *Server) CRImportCheckpoint(
 	}
 
 	ctrMetadata := types.ContainerMetadata{}
-	originalAnnotations := make(map[string]string)
 	originalLabels := make(map[string]string)
 
 	if dumpSpec.Annotations[annotations.ContainerManager] == "libpod" {
@@ -93,29 +92,12 @@ func (s *Server) CRImportCheckpoint(
 			return "", fmt.Errorf("failed to read %q: %w", annotations.Metadata, err)
 		}
 
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
-		}
-
 		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Labels]), &originalLabels); err != nil {
 			return "", fmt.Errorf("failed to read %q: %w", annotations.Labels, err)
 		}
 		if sandboxUID != "" {
 			if _, ok := originalLabels[kubetypes.KubernetesPodUIDLabel]; ok {
 				originalLabels[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-			}
-			if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
-				originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-			}
-		}
-
-		if createAnnotations != nil {
-			// The hash also needs to be update or Kubernetes thinks the container needs to be restarted
-			_, ok1 := createAnnotations["io.kubernetes.container.hash"]
-			_, ok2 := originalAnnotations["io.kubernetes.container.hash"]
-
-			if ok1 && ok2 {
-				originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
 			}
 		}
 	}
@@ -150,7 +132,7 @@ func (s *Server) CRImportCheckpoint(
 			Resources:       &types.LinuxContainerResources{},
 			SecurityContext: &types.LinuxContainerSecurityContext{},
 		},
-		Annotations: originalAnnotations,
+		Annotations: createAnnotations,
 		Labels:      originalLabels,
 	}
 
