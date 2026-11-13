@@ -342,6 +342,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.PrivilegedSeccompProfile, c.PrivilegedSeccompProfile),
 		},
 		{
+			templateString: templateStringCrioRuntimeSeccompBaselineProfile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.SeccompBaselineProfile, c.SeccompBaselineProfile),
+		},
+		{
 			templateString: templateStringCrioRuntimeApparmorProfile,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.ApparmorProfile, c.ApparmorProfile),
@@ -649,6 +654,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.ShortNameMode, c.ShortNameMode),
 		},
 		{
+			templateString: templateStringCrioImageSecurityProfileMaxSize,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.SecurityProfileMaxSize, c.SecurityProfileMaxSize),
+		},
+		{
 			templateString: templateStringOCIArtifactMountSupport,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.OCIArtifactMountSupport, c.OCIArtifactMountSupport),
@@ -807,12 +817,25 @@ func RuntimesEqual(a, b Runtimes) bool {
 			return false
 		}
 
-		if !reflect.DeepEqual(valueA, valueB) {
+		if !runtimeHandlersEqual(valueA, valueB) {
 			return false
 		}
 	}
 
 	return true
+}
+
+// runtimeHandlersEqual compares the seccomp configurations of the handlers
+// with their Equal method, which reflect.DeepEqual cannot do.
+func runtimeHandlersEqual(a, b *RuntimeHandler) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+
+	aCopy, bCopy := *a, *b
+	aCopy.seccompConfig, bCopy.seccompConfig = nil, nil
+
+	return reflect.DeepEqual(aCopy, bCopy) && a.seccompConfig.Equal(b.seccompConfig)
 }
 
 func WorkloadsEqual(a, b Workloads) bool {
@@ -1105,6 +1128,21 @@ const templateStringCrioRuntimeSeccompProfile = `# Path to the seccomp.json prof
 const templateStringCrioRuntimePrivilegedSeccompProfile = `# Enable a seccomp profile for privileged containers from the local path.
 # This option supports live configuration reload.
 {{ $.Comment }}privileged_seccomp_profile = "{{ .PrivilegedSeccompProfile }}"
+
+`
+
+const templateStringCrioRuntimeSeccompBaselineProfile = `# Path to the seccomp profile that seccomp profiles pulled as OCI artifacts
+# (the OCI profile type of KEP-6061) are intersected with in place of the
+# runtime default profile. A Localhost base profile selected in the pod spec
+# takes its place instead. Runtime handlers with a seccomp profile of their
+# own intersect it with that profile. If not specified or set to "", then the
+# default seccomp profile of the runtime handler is used, restated where the
+# merge cannot read its rules exactly: clone with a namespace flag and
+# AF_VSOCK sockets fail with the default errno instead of EPERM, and audit
+# netlink sockets are allowed.
+# The profile is validated when the configuration is loaded.
+# This option supports live configuration reload.
+{{ $.Comment }}seccomp_baseline_profile = "{{ .SeccompBaselineProfile }}"
 
 `
 
@@ -1718,6 +1756,15 @@ const templateStringCrioImageShortNameMode = `# The mode of short name resolutio
 # If "enforcing", an image pull will fail if a short name is used, but the results are ambiguous.
 # If "disabled", the first result will be chosen.
 {{ $.Comment }}short_name_mode = "{{ .ShortNameMode }}"
+
+`
+
+const templateStringCrioImageSecurityProfileMaxSize = `# The maximum size in bytes of a security profile pulled as an OCI artifact
+# (KEP-6061), at most 64 MiB. Larger profiles are rejected. Pulled profiles are
+# kept in the "security-profiles" directory of the storage root until the
+# kubelet removes them; to remove all of them, stop CRI-O and remove that
+# directory.
+{{ $.Comment }}security_profile_max_size = {{ .SecurityProfileMaxSize }}
 
 `
 

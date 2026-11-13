@@ -32,6 +32,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/rdt"
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/linklogs"
@@ -444,6 +445,13 @@ func (s *Server) CreateContainer(
 
 	if req.GetSandboxConfig().GetMetadata() == nil {
 		return nil, errors.New("sandbox config metadata is nil")
+	}
+
+	if err := s.validateSecurityProfiles(
+		req.GetConfig().GetLinux().GetSecurityContext().GetSeccomp(),
+		req.GetConfig().GetLinux().GetSecurityContext().GetApparmor(),
+	); err != nil {
+		return nil, err
 	}
 
 	log.Infof(ctx, "Creating container: %s", oci.LabelsToDescription(req.GetConfig().GetLabels()))
@@ -1202,17 +1210,14 @@ func (s *Server) createSandboxContainer(
 		}
 	}
 
-	saveOptions := generate.ExportOptions{}
-	if err := specgen.SaveToFile(
-		filepath.Join(containerInfo.Dir, "config.json"),
-		saveOptions,
+	if err := seccomp.SaveSpecToFile(
+		specgen, filepath.Join(containerInfo.Dir, "config.json"),
 	); err != nil {
 		return nil, err
 	}
 
-	if err := specgen.SaveToFile(
-		filepath.Join(containerInfo.RunDir, "config.json"),
-		saveOptions,
+	if err := seccomp.SaveSpecToFile(
+		specgen, filepath.Join(containerInfo.RunDir, "config.json"),
 	); err != nil {
 		return nil, err
 	}
@@ -1427,6 +1432,10 @@ func (s *Server) setupSeccomp(
 			specgen,
 			securityContext.GetSeccomp(),
 			s.Store().GraphRoot(),
+			s.securityProfiles.For(
+				sb.Namespace(),
+				sb.Namespace()+"/"+sb.KubeName()+"/"+ctr.Config().GetMetadata().GetName(),
+			),
 		)
 		if err != nil {
 			return "", fmt.Errorf("setup seccomp: %w", err)
