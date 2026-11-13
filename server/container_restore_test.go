@@ -204,7 +204,9 @@ var _ = t.Describe("ContainerRestore", func() {
 			)
 
 			// Then
-			Expect(err.Error()).To(ContainSubstring(`failed to read "io.kubernetes.cri-o.Annotations": unexpected end of JSON input`))
+			Expect(
+				err,
+			).To(MatchError("CreateContainerRequest.ContainerConfig.Image.Image is empty"))
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
@@ -290,11 +292,13 @@ var _ = t.Describe("ContainerRestore", func() {
 			)
 
 			// Then
-			Expect(err.Error()).To(Equal(`failed to read "io.kubernetes.cri-o.Annotations": unexpected end of JSON input`))
+			Expect(
+				err,
+			).To(MatchError("CreateContainerRequest.ContainerConfig.Image.Image is empty"))
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
-		It("should fail because archive contains no actual checkpoint", func() {
+		It("should fail when the root filesystem image cannot be resolved", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
@@ -310,6 +314,15 @@ var _ = t.Describe("ContainerRestore", func() {
 			defer os.RemoveAll("spec.dump")
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
 			Expect(err).ToNot(HaveOccurred())
+
+			gomock.InOrder(
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+					Return(nil),
+				imageServerMock.EXPECT().
+					CandidatesForPotentiallyShortImageName(gomock.Any(), "image").
+					Return(nil, t.TestError),
+			)
+
 			defer os.RemoveAll("config.dump")
 			outFile, err := os.Create("archive.tar")
 			Expect(err).ToNot(HaveOccurred())
@@ -339,7 +352,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			)
 
 			// Then
-			Expect(err.Error()).To(Equal(`failed to read "io.kubernetes.cri-o.Annotations": unexpected end of JSON input`))
+			Expect(err).To(MatchError(t.TestError))
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
@@ -403,6 +416,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			{`{"rootfsImageName": "image"}`, false},
 			{`{"rootfsImageRef": "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"}`, true},
 		}
+
 		for _, image := range images {
 			It(fmt.Sprintf("should succeed (%s)", image.config), func() {
 				if unshare.IsRootless() {
@@ -511,6 +525,11 @@ var _ = t.Describe("ContainerRestore", func() {
 							}, nil),
 					)
 				}
+
+				if !serverConfig.Seccomp().IsDisabled() {
+					storeMock.EXPECT().GraphRoot().Return(emptyDir)
+				}
+
 				mockutils.InOrder(
 					imageLookup,
 
@@ -533,7 +552,7 @@ var _ = t.Describe("ContainerRestore", func() {
 
 				// When
 
-				_, err = sut.CRImportCheckpoint(
+				ctrID, err := sut.CRImportCheckpoint(
 					context.Background(),
 					containerConfig,
 					"",
@@ -542,6 +561,10 @@ var _ = t.Describe("ContainerRestore", func() {
 
 				// Then
 				Expect(err).ToNot(HaveOccurred())
+
+				restoredContainer := sut.GetContainer(context.Background(), ctrID)
+				Expect(restoredContainer).ToNot(BeNil())
+				Expect(restoredContainer.Annotations()).To(Equal(containerConfig.GetAnnotations()))
 			})
 		}
 	})
