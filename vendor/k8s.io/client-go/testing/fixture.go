@@ -19,6 +19,7 @@ package testing
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -41,6 +42,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 )
 
 // ObjectTracker keeps track of objects. It is intended to be used to
@@ -288,6 +290,7 @@ func (o objectTrackerReact) Patch(action PatchActionImpl) (runtime.Object, error
 type tracker struct {
 	scheme  ObjectScheme
 	decoder runtime.Decoder
+	logger  klog.Logger
 	lock    sync.RWMutex
 	objects map[schema.GroupVersionResource]map[types.NamespacedName]versionedObject
 	// The value type of watchers is a map of which the key is either a namespace or
@@ -297,10 +300,11 @@ type tracker struct {
 	// see apimachinery/pkg/watch.DefaultChanSize) will cause a panic.
 	watchers map[schema.GroupVersionResource]map[string][]*watch.RaceFreeFakeWatcher
 	// resourceVersions is the highest resource version of any tracked object with
-	// a certain gvr. Conceptually it starts at 1 when no objects are stored (0 is
-	// special in queries) but the map contains no entries in that case.
+	// a certain gvr, including objects that have been deleted since. Conceptually
+	// it starts at 1 when no objects are stored (0 is special in queries) but the
+	// map contains no entries in that case.
 	// The resource version for that set of objects gets bumped before
-	// storing a new or modified object.
+	// storing a new or modified object and when deleting an object.
 	//
 	// Object content does not get changed to preserve the traditional behavior
 	// (hence also the versionedObject type instead of storing a runtime.Object
@@ -318,7 +322,26 @@ type tracker struct {
 	// also tracked by GroupVersionResource instead of GroupVersion, so the
 	// same is done here to match how List is implemented.
 	resourceVersions map[schema.GroupVersionResource]int64
+
+	// deletions are the most recent deletions per gvr, ordered by resource
+	// version. Watch sends them to a watch that starts at an older resource
+	// version, in the same way as it sends objects that were stored after that
+	// version. Without them a deletion between List and Watch would get lost.
+	//
+	// Only the last maxTrackedDeletions are kept.
+	deletions map[schema.GroupVersionResource][]versionedObject
+
+	// compactedRV is the resource version of the most recent deletion that
+	// was dropped from deletions. Starting a watch at an older version fails
+	// with an "expired" error, as it does when the API server no longer has
+	// the history for the requested version.
+	compactedRV map[schema.GroupVersionResource]int64
 }
+
+// maxTrackedDeletions is how many deletions are remembered per gvr. It matches
+// the size of the channel of a fake watch because that is how many events
+// can be sent to a new watch before it has to be read.
+const maxTrackedDeletions = 100
 
 // versionedObject stores an object together with the resource version that was
 // assigned to it by the tracker. The version could be stored inline in the object,
@@ -335,13 +358,24 @@ var _ ObjectTracker = &tracker{}
 
 // NewObjectTracker returns an ObjectTracker that can be used to keep track
 // of objects for the fake clientset. Mostly useful for unit tests.
+//
+// Contextual logging: NewObjectTrackerWithLogger should be used instead of NewObjectTracker in code which supports contextual logging.
 func NewObjectTracker(scheme ObjectScheme, decoder runtime.Decoder) ObjectTracker {
+	return NewObjectTrackerWithLogger(klog.Background(), scheme, decoder)
+}
+
+// NewObjectTrackerWithLogger is like NewObjectTracker, but supports passing
+// a logger for contextual logging instead of falling back to klog.Background.
+func NewObjectTrackerWithLogger(logger klog.Logger, scheme ObjectScheme, decoder runtime.Decoder) ObjectTracker {
 	return &tracker{
 		scheme:           scheme,
 		decoder:          decoder,
+		logger:           logger,
 		objects:          make(map[schema.GroupVersionResource]map[types.NamespacedName]versionedObject),
 		watchers:         make(map[schema.GroupVersionResource]map[string][]*watch.RaceFreeFakeWatcher),
 		resourceVersions: make(map[schema.GroupVersionResource]int64),
+		deletions:        make(map[schema.GroupVersionResource][]versionedObject),
+		compactedRV:      make(map[schema.GroupVersionResource]int64),
 	}
 }
 
@@ -430,16 +464,28 @@ func (t *tracker) Watch(gvr schema.GroupVersionResource, ns string, opts ...meta
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	fakewatcher := watch.NewRaceFreeFake()
-
-	if _, exists := t.watchers[gvr]; !exists {
-		t.watchers[gvr] = make(map[string][]*watch.RaceFreeFakeWatcher)
-	}
-	t.watchers[gvr][ns] = append(t.watchers[gvr][ns], fakewatcher)
-
-	// Deliver all objects that match the list options, for example
-	// between the initial List and the following Watch.
+	// Collect the events that must be sent to the new watch right away,
+	// for example for changes between the initial List and the following Watch.
+	var replay []watch.Event
 	if addExisting {
+		// Objects deleted in the meantime come first. If an object with the
+		// same name was created again, then that happened after the deletion.
+		if addFromRV > 0 {
+			for _, deleted := range t.deletions[gvr] {
+				if deleted.resourceVersion <= addFromRV {
+					continue
+				}
+				acc, err := meta.Accessor(deleted.Object)
+				if err != nil {
+					return nil, err
+				}
+				if ns != "" && acc.GetNamespace() != ns {
+					continue
+				}
+				replay = append(replay, watch.Event{Type: watch.Deleted, Object: deleted.DeepCopyObject()})
+			}
+		}
+
 		objs := t.objects[gvr]
 		matchingObjs, err := filterByNamespace(objs, ns)
 		if err != nil {
@@ -447,8 +493,37 @@ func (t *tracker) Watch(gvr schema.GroupVersionResource, ns string, opts ...meta
 		}
 		for _, obj := range matchingObjs {
 			if addFromRV < obj.resourceVersion {
-				fakewatcher.Add(obj.Object)
+				replay = append(replay, watch.Event{Type: watch.Added, Object: obj.Object})
 			}
+		}
+	}
+
+	fakewatcher := watch.NewRaceFreeFakeWithLogger(t.logger)
+
+	// Starting at "most recent" (resource version 0 or unset) doesn't need
+	// any history, otherwise the watch has to know about all changes since
+	// then and be able to send them. If it doesn't, the watch ends with an
+	// "expired" error event right away, like it can happen with a real API
+	// server. Returning an error instead would not work because the
+	// generated fake clientsets replace it with a generic "unhandled watch"
+	// error.
+	if addFromRV > 0 && (addFromRV < t.compactedRV[gvr] || len(replay) > int(watch.DefaultChanSize)) {
+		fakewatcher.Error(&apierrors.NewResourceExpired(fmt.Sprintf("too old resource version: %d", addFromRV)).ErrStatus)
+		fakewatcher.Stop()
+		return fakewatcher, nil
+	}
+
+	if _, exists := t.watchers[gvr]; !exists {
+		t.watchers[gvr] = make(map[string][]*watch.RaceFreeFakeWatcher)
+	}
+	t.watchers[gvr][ns] = append(t.watchers[gvr][ns], fakewatcher)
+
+	for _, event := range replay {
+		switch event.Type {
+		case watch.Added:
+			fakewatcher.Add(event.Object)
+		case watch.Deleted:
+			fakewatcher.Delete(event.Object)
 		}
 	}
 
@@ -727,6 +802,22 @@ func (t *tracker) Delete(gvr schema.GroupVersionResource, ns, name string, opts 
 	}
 
 	delete(objs, namespacedName)
+
+	// Deleting is a change like any other and gets its own resource version.
+	resourceVersion, ok := t.resourceVersions[gvr]
+	if !ok {
+		resourceVersion = 1
+	}
+	resourceVersion++
+	t.resourceVersions[gvr] = resourceVersion
+
+	deletions := append(t.deletions[gvr], versionedObject{resourceVersion, obj.Object})
+	if len(deletions) > maxTrackedDeletions {
+		t.compactedRV[gvr] = deletions[0].resourceVersion
+		deletions = slices.Delete(deletions, 0, 1)
+	}
+	t.deletions[gvr] = deletions
+
 	for _, w := range t.getWatches(gvr, ns) {
 		w.Delete(obj.DeepCopyObject())
 	}
@@ -745,9 +836,17 @@ var _ ObjectTracker = &managedFieldObjectTracker{}
 
 // NewFieldManagedObjectTracker returns an ObjectTracker that can be used to keep track
 // of objects and managed fields for the fake clientset. Mostly useful for unit tests.
+//
+//logcheck:context // NewFieldManagedObjectTrackerWithLogger should be used instead of NewFieldManagedObjectTracker in code which supports contextual logging.
 func NewFieldManagedObjectTracker(scheme *runtime.Scheme, decoder runtime.Decoder, typeConverter managedfields.TypeConverter) ObjectTracker {
+	return NewFieldManagedObjectTrackerWithLogger(klog.Background(), scheme, decoder, typeConverter)
+}
+
+// NewFieldManagedObjectTrackerWithLogger is like NewFieldManagedObjectTracker, but supports passing
+// a logger for contextual logging instead of falling back to klog.Background.
+func NewFieldManagedObjectTrackerWithLogger(logger klog.Logger, scheme *runtime.Scheme, decoder runtime.Decoder, typeConverter managedfields.TypeConverter) ObjectTracker {
 	return &managedFieldObjectTracker{
-		ObjectTracker:   NewObjectTracker(scheme, decoder),
+		ObjectTracker:   NewObjectTrackerWithLogger(logger, scheme, decoder),
 		scheme:          scheme,
 		objectConverter: scheme,
 		mapper: func() meta.RESTMapper {
