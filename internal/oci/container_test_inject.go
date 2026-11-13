@@ -78,7 +78,7 @@ func (r RuntimeVM) HasTask() bool {
 	return r.task != nil
 }
 
-func NewRuntimeVMWithTask(t task.TaskService) RuntimeVM {
+func NewRuntimeVMWithTask(t task.TTRPCTaskService) RuntimeVM {
 	return RuntimeVM{
 		runtimeVM: &runtimeVM{
 			task: t,

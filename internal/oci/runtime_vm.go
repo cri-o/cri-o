@@ -18,14 +18,8 @@ import (
 
 	"github.com/containerd/containerd/api/runtime/task/v2"
 	containerdTypes "github.com/containerd/containerd/api/types"
+	runtimeoptions "github.com/containerd/containerd/api/types/runtimeoptions/v1"
 	tasktypes "github.com/containerd/containerd/api/types/task"
-	ctrio "github.com/containerd/containerd/cio"
-	"github.com/containerd/containerd/namespaces"
-	cio "github.com/containerd/containerd/pkg/cri/io"
-	cioutil "github.com/containerd/containerd/pkg/ioutil"
-	runtimeoptions "github.com/containerd/containerd/pkg/runtimeoptions/v1"
-	"github.com/containerd/containerd/protobuf"
-	client "github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/fifo"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
@@ -41,6 +35,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/shimio"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
@@ -59,14 +54,14 @@ type runtimeVM struct {
 	pullImage  bool
 	ctx        context.Context
 	client     *ttrpc.Client
-	task       task.TaskService
+	task       task.TTRPCTaskService
 	handler    *config.RuntimeHandler
 
 	ctrs map[string]containerInfo
 }
 
 type containerInfo struct {
-	cio *cio.ContainerIO
+	cio *shimio.ContainerIO
 }
 
 const (
@@ -204,7 +199,7 @@ func (r *runtimeVM) CreateContainer(
 			return err
 		}
 
-		opts = protobuf.FromAny(marshaledOtps)
+		opts = toProtoAny(marshaledOtps)
 	}
 
 	// First thing, we need to start the runtime daemon
@@ -215,7 +210,7 @@ func (r *runtimeVM) CreateContainer(
 	containerIO, err := r.createContainerIO(
 		ctx,
 		c,
-		cio.WithNewFIFOs(r.getFIFOPath(), c.terminal, c.stdin),
+		shimio.WithNewFIFOs(r.getFIFOPath(), c.terminal, c.stdin),
 	)
 	if err != nil {
 		return err
@@ -311,7 +306,7 @@ func (r *runtimeVM) CreateContainer(
 // emit just the address string. If the output does not unmarshal into a
 // versioned (>= 2) BootstrapParams object, it is treated as a raw address.
 func ParseShimAddress(out []byte) (string, error) {
-	var params client.BootstrapParams
+	var params shimBootstrapParams
 	if err := json.Unmarshal(out, &params); err != nil || params.Version < 2 {
 		// Legacy shim: the raw output is the ttrpc address.
 		return strings.TrimSpace(string(out)), nil
@@ -342,17 +337,10 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 
 	args = append(args, "start")
 
-	r.ctx = namespaces.WithNamespace(r.ctx, namespaces.Default)
+	r.ctx = withShimNamespace(r.ctx)
 
 	// Prepare the command to exec
-	cmd, err := client.Command(
-		r.ctx,
-		&client.CommandConfig{
-			Runtime: r.handler.RuntimePath,
-			Path:    c.BundlePath(),
-			Args:    args,
-		},
-	)
+	cmd, err := shimCommand(r.ctx, r.handler.RuntimePath, c.BundlePath(), args)
 	if err != nil {
 		return err
 	}
@@ -393,7 +381,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	}
 
 	// Now the RPC server is running, let's connect to it
-	conn, err := client.Connect(address, client.AnonDialer)
+	conn, err := shimConnect(address)
 	if err != nil {
 		return err
 	}
@@ -403,7 +391,7 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 
 	// Update the runtime structure
 	r.client = cl
-	r.task = task.NewTaskClient(cl)
+	r.task = task.NewTTRPCTaskClient(cl)
 
 	return nil
 }
@@ -597,7 +585,7 @@ func (r *runtimeVM) execContainerCommon(
 	}
 
 	// Create IO fifos
-	execIO, err := cio.NewExecIO(c.ID(), r.getFIFOPath(), tty, stdin != nil)
+	execIO, err := shimio.NewExecIO(c.ID(), r.getFIFOPath(), tty, stdin != nil)
 	if err != nil {
 		return execError, errdefs.FromGRPC(err)
 	}
@@ -612,7 +600,7 @@ func (r *runtimeVM) execContainerCommon(
 		}
 	}()
 
-	execIO.Attach(cio.AttachOptions{
+	execIO.Attach(shimio.AttachOptions{
 		Stdin:     stdin,
 		Stdout:    stdout,
 		Stderr:    stderr,
@@ -644,7 +632,7 @@ func (r *runtimeVM) execContainerCommon(
 		Stdout:   execIO.Config().Stdout,
 		Stderr:   execIO.Config().Stderr,
 		Terminal: execIO.Config().Terminal,
-		Spec:     protobuf.FromAny(anyType),
+		Spec:     toProtoAny(anyType),
 	}
 
 	// Create the "exec" process
@@ -761,7 +749,7 @@ func (r *runtimeVM) UpdateContainer(
 
 	if _, err := r.task.Update(r.ctx, &task.UpdateTaskRequest{
 		ID:        c.ID(),
-		Resources: protobuf.FromAny(anyType),
+		Resources: toProtoAny(anyType),
 	}); err != nil {
 		return errdefs.FromGRPC(err)
 	}
@@ -1008,7 +996,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 
 		address := strings.TrimSpace(string(data))
 
-		conn, err := client.Connect(address, client.AnonDialer)
+		conn, err := shimConnect(address)
 		if err != nil {
 			log.Warnf(ctx,
 				"Failed to reconnect to shim for %s, marking container stopped: %v",
@@ -1022,7 +1010,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 		options := ttrpc.WithOnClose(func() { conn.Close() })
 		cl := ttrpc.NewClient(conn, options)
 		r.client = cl
-		r.task = task.NewTaskClient(cl)
+		r.task = task.NewTTRPCTaskClient(cl)
 	}
 
 	response, err := r.task.State(r.ctx, &task.StateRequest{
@@ -1091,7 +1079,7 @@ func (r *runtimeVM) restoreContainerIO(
 
 	r.Unlock()
 
-	cioCfg := ctrio.Config{
+	cioCfg := shimio.Config{
 		Terminal: state.GetTerminal(),
 		Stdin:    state.GetStdin(),
 		Stdout:   state.GetStdout(),
@@ -1126,7 +1114,7 @@ func (r *runtimeVM) restoreContainerIO(
 
 		return nil
 	}
-	_, err := r.createContainerIO(ctx, c, cio.WithFIFOs(ctrio.NewFIFOSet(cioCfg, closer)))
+	_, err := r.createContainerIO(ctx, c, shimio.WithFIFOs(shimio.NewFIFOSet(cioCfg, closer)))
 
 	return err
 }
@@ -1134,10 +1122,10 @@ func (r *runtimeVM) restoreContainerIO(
 func (r *runtimeVM) createContainerIO(
 	ctx context.Context,
 	c *Container,
-	cioOpts ...cio.ContainerIOOpts,
-) (_ *cio.ContainerIO, retErr error) {
+	cioOpts ...shimio.ContainerIOOpts,
+) (_ *shimio.ContainerIO, retErr error) {
 	// Create IO fifos
-	containerIO, err := cio.NewContainerIO(c.ID(), cioOpts...)
+	containerIO, err := shimio.NewContainerIO(c.ID(), cioOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1177,9 +1165,9 @@ func (r *runtimeVM) createContainerLoggers(
 
 	var stdoutCh, stderrCh <-chan struct{}
 
-	wc := cioutil.NewSerialWriteCloser(f)
-	stdout, stdoutCh = cio.NewCRILogger(logPath, wc, cio.Stdout, -1)
-	stderr, stderrCh = cio.NewCRILogger(logPath, wc, cio.Stderr, -1)
+	wc := shimio.NewSerialWriteCloser(f)
+	stdout, stdoutCh = shimio.NewCRILogger(logPath, wc, shimio.Stdout)
+	stderr, stderrCh = shimio.NewCRILogger(logPath, wc, shimio.Stderr)
 
 	go func() {
 		if stdoutCh != nil {
@@ -1262,7 +1250,7 @@ func (r *runtimeVM) AttachContainer(
 		return errors.New("could not retrieve container information")
 	}
 
-	opts := cio.AttachOptions{
+	opts := shimio.AttachOptions{
 		Stdin:     inputStream,
 		Stdout:    outputStream,
 		Stderr:    errorStream,
