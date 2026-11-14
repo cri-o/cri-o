@@ -43,14 +43,33 @@ ssh_user: "{{ lookup('env','USER') }}"
 ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
 
 # variables for testing with the kata-containers runtime
-kata_version: "3.31.0"
-# sha256 sourced from the GitHub release attestation — decode the
-# base64 payload and look up kata-static-<version>-amd64.tar.zst:
-# https://github.com/kata-containers/kata-containers/attestations/28048664/download
-kata_amd64_checksum: "sha256:68c2786a0b97023f62f3eca02dc868b78a794e5469d4ddd6cc9e0bd4a7212b0b"
+kata_version: "4.3.1"
+kata_runtime_variant: "{{ KATA_RUNTIME_VARIANT | default('kata-static') }}"
+# sha256 sourced from the GitHub release assets:
+# https://github.com/kata-containers/kata-containers/releases/expanded_assets/<kata_version>
+kata_amd64_checksums:
+  kata-static: "sha256:1463a2b86845f4d3d8e87f2f764ec59856fc0fee3520967a79ade32762be2e97"
+  kata-go-static: "sha256:66b35b06f6b41b56f8606ddf3ed3e5660b0971d1e309d903457c4056a0b9eff0"
+kata_amd64_checksum: "{{ kata_amd64_checksums[kata_runtime_variant] }}"
+kata_shim_bin_dirs:
+  kata-static: "/opt/kata/runtime-rs/bin"
+  kata-go-static: "/opt/kata/bin"
+kata_shim_bin_dir: "{{ kata_shim_bin_dirs[kata_runtime_variant] }}"
+kata_config_paths:
+  kata-static: "/opt/kata/share/defaults/kata-containers/runtime-rs/configuration.toml"
+  kata-go-static: "/opt/kata/share/defaults/kata-containers/configuration.toml"
+kata_config_path: "{{ kata_config_paths[kata_runtime_variant] }}"
 int_test_timeout: "{{ 120 * 60 }}"
-podvm_image: "quay.io/confidential-containers/podvm-generic-ubuntu-amd64:v0.18.0"
-caa_image: "quay.io/confidential-containers/cloud-api-adaptor:v0.18.0-dev"
+podvm_image: "ghcr.io/confidential-containers/podvm-amd64:v0.23.0"
+# cloud-api-adaptor publishes the podvm images as OCI artifacts (oras); the
+# v0.23.0 ubuntu image is only available on ghcr.io, not quay.io
+oras_version: "1.3.6"
+# sha256 sourced from
+# https://github.com/oras-project/oras/releases/download/v{{ oras_version }}/oras_{{ oras_version }}_checksums.txt
+oras_amd64_checksum: "sha256:66fb0ad7206f3f6fa77ed5b552049d364ccf4b50b1684554f731f76302b52ca0"
+# the -dev tag is required: stable CAA releases do not ship the libvirt
+# provider used by the kata-remote (peer pods) tests
+caa_image: "quay.io/confidential-containers/cloud-api-adaptor:v0.23.0-dev"
 
 kata_skip_files:
   - "apparmor.bats"
@@ -67,6 +86,13 @@ kata_skip_files:
   - "infra_ctr_cpuset.bats"
   - "imagefsinfo.bats" # image and container filesystems is not in kata at the moment
   - "inspect.bats"
+  # peer-pods: the host 4.3.x kata shim no longer sends the image metadata
+  # in driver_options for image_guest_pull volumes (kata f66d7fda4), which
+  # the published v0.23.0 podvm's 4.2.0 agent still requires; re-enable
+  # when CoCo 0.24 (kata 4.4, due Nov 2026) ships a podvm with a matching
+  # agent; CAA already bumped its agent pin in 9e0887d5, but no image has
+  # been published from it
+  - "kata-remote.bats"
   - "metrics.bats"
   - "network_ping.bats"
   - "nri.bats"
@@ -84,7 +110,7 @@ kata_skip_files:
   - "cri-metrics.bats"
 
 kata_int_test_env:
-  CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"
+  CONTAINER_RUNTIMES: "containerd-shim-kata-v2:{{ kata_shim_bin_dir }}/containerd-shim-kata-v2:/run/vc:vm:true:{{ kata_config_path }}"
   CONTAINER_RUNTIME: "containerd-shim-kata-v2"
   CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
   RUNTIME_NAME: "containerd-shim-kata-v2"
@@ -95,8 +121,8 @@ kata_int_test_env:
     | map('basename') | difference(kata_skip_files) | join(' ') }}"
   JOBS: "1" # TODO: add support to parallelization in kata (causes failures in the integration tests)
   PRIVILEGED_WITHOUT_HOST_DEVICES: true
-  RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
-  PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
+  RUNTIME_CONFIG_PATH: "{{ kata_config_path }}"
+  PATH: "{{ kata_shim_bin_dir }}:{{ ansible_env.PATH }}"
   CONTAINER_STORAGE_OPT: "overlay.skip_mount_home=true"
 
 kata_skip_cgroups_tests:
@@ -193,6 +219,28 @@ kata_skip_annotation_migration_tests:
   - 'test "v2 userns-mode annotation should work"'
   - 'test "v1 umask annotation should still work"'
   - 'test "v2 unified-cgroup annotation for specific container with slash separator should work"'
+
+# per-test skips that only apply to the Rust runtime (the kata-static
+# variant); the Go runtime (kata-go-static) passes these tests, so they stay
+# enabled for it
+kata_rust_skip_hooks_tests:
+  # runtime-rs only executes prestart hooks from the sandbox OCI spec, never
+  # from the container spec where CRI-O injects them
+  - 'test "pod test hooks"'
+kata_rust_skip_stats_tests:
+  # runtime-rs does not report kernel TCP memory in Stats, which nil-panics
+  # CRI-O's stats conversion and takes down the daemon mid-suite
+  - 'test "stats"'
+  - 'test "container stats"'
+  - 'test "pod stats"'
+kata_rust_skip_ctr_tests:
+  # calls crictl stats and hits the same missing kernel TCP memory gap as
+  # the stats tests
+  - 'test "memory limit decrease below usage should be blocked"'
+kata_rust_skip_logs_tests:
+  # runtime-rs acknowledges signal 0 on a stopped process, so CRI-O's
+  # liveness probe reports the stopped container as alive
+  - 'test "ReopenContainerLog should fail when the container is stopped"'
 
 runc_git_version: v1.5.1
 crun_git_version: 1.29.1
