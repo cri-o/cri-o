@@ -10,6 +10,7 @@ import (
 
 	"github.com/opencontainers/cgroups"
 
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
 )
@@ -29,6 +30,7 @@ func statsFromLibctrMgr(cgMgr cgroups.Manager) (*stats.CgroupStats, error) {
 		Stats:        *cgStats,
 		SystemNano:   time.Now().UnixNano(),
 		ProcessStats: *cgroupProcessStats(cgStats, pids),
+		IsCgroupV2:   node.CgroupIsV2(),
 	}, nil
 }
 
