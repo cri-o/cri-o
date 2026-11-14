@@ -81,12 +81,19 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 			continue
 		}
 
-		diskStats, err := ss.Runtime().DiskStats(ss.ctx, c, sb.CgroupParent())
-		if err != nil {
-			log.Errorf(ss.ctx, "Error getting disk stats %s: %v", c.ID(), err)
+		// Disk stats are only consumed by the disk pod metric collector.
+		var diskStats *stats.DiskStats
+
+		if slices.Contains(ss.Config().EnabledPodMetrics(), config.DiskMetrics) {
+			var err error
+
+			diskStats, err = ss.Runtime().DiskStats(ss.ctx, c, sb.CgroupParent())
+			if err != nil {
+				log.Errorf(ss.ctx, "Error getting disk stats %s: %v", c.ID(), err)
+			}
 		}
-		// Convert container stats (cgroup + disk) to CRI stats.
-		cStats := containerCRIStats(ctrStats, diskStats, c, ctrStats.SystemNano)
+
+		cStats := containerCRIStats(ctrStats, c, ctrStats.SystemNano)
 		ss.populateWritableLayer(cStats, c)
 
 		if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
@@ -135,12 +142,7 @@ func (ss *StatsServer) updateContainerStats(
 		return nil
 	}
 
-	diskStats, err := ss.Runtime().DiskStats(ss.ctx, c, sb.CgroupParent())
-	if err != nil {
-		log.Errorf(ss.ctx, "Error getting disk stats %s: %v", c.ID(), err)
-	}
-
-	cStats := containerCRIStats(ctrStats, diskStats, c, ctrStats.SystemNano)
+	cStats := containerCRIStats(ctrStats, c, ctrStats.SystemNano)
 	ss.populateWritableLayer(cStats, c)
 
 	if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
@@ -421,7 +423,6 @@ func linkToInterface(link netlink.Link) (*types.NetworkInterfaceUsage, error) {
 
 func containerCRIStats(
 	cgstats *stats.CgroupStats,
-	diskStats *stats.DiskStats,
 	ctr *oci.Container,
 	systemNano int64,
 ) *types.ContainerStats {
@@ -431,11 +432,6 @@ func containerCRIStats(
 	criStats.Cpu = criCPUStats(&cgstats.CpuStats, systemNano)
 	criStats.Memory = criMemStats(&cgstats.MemoryStats, systemNano)
 	criStats.Swap = criSwapStats(&cgstats.MemoryStats, systemNano)
-
-	// Add filesystem stats if available
-	if diskStats != nil {
-		criStats.WritableLayer = criFilesystemStats(&diskStats.Filesystem, ctr, systemNano)
-	}
 
 	return criStats
 }
@@ -477,24 +473,6 @@ func criProcessStats(pStats *cgroups.PidsStats, systemNano int64) *types.Process
 	return &types.ProcessUsage{
 		Timestamp:    systemNano,
 		ProcessCount: &types.UInt64Value{Value: pStats.Current},
-	}
-}
-
-func criFilesystemStats(
-	diskStats *stats.FilesystemStats,
-	ctr *oci.Container,
-	systemNano int64,
-) *types.FilesystemUsage {
-	mountpoint := ctr.MountPoint()
-	if mountpoint == "" {
-		// Skip FS stats as mount point is unknown
-		return nil
-	}
-
-	return &types.FilesystemUsage{
-		Timestamp: systemNano,
-		FsId:      &types.FilesystemIdentifier{Mountpoint: mountpoint},
-		UsedBytes: &types.UInt64Value{Value: diskStats.UsageBytes},
 	}
 }
 
