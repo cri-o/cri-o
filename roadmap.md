@@ -79,7 +79,7 @@ Some of these features can be seen below:
 - Increase pod density on nodes:
   - Reduce overhead of relisting pods and containers (alongside [KEP 3386](https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/3386-kubelet-evented-pleg/README.md))
   - Reduce overhead of metrics collection (alongside [KEP 2371](https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/2371-cri-pod-container-stats/README.md))
-  - Reduce process overhead of multiple conmons per pod (through [conmon-rs](github.com/containers/conmon-rs))
+  - Reduce process overhead of multiple conmons per pod (through [conmon-rs](https://github.com/containers/conmon-rs))
   - Improve maintainability by ensuring the code is easy to understand and follow
   - Improve observability and tracing internally
 - Evaluate rust reimplementation of different pieces of the codebase.
