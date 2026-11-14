@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	goruntime "runtime"
 
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -42,12 +41,11 @@ func (s *Server) Status(
 		Features: &types.RuntimeFeatures{
 			SupplementalGroupsPolicy:  true,
 			UserNamespacesHostNetwork: true,
-			MountOptions:              goruntime.GOOS == "linux",
+			DefaultNetworkNone:        true,
 		},
 	}
 
-	runtimes, defaultRuntime := s.config.RuntimeHandlers()
-	for name, runtime := range runtimes {
+	for name, runtime := range s.config.Runtimes {
 		makeRuntimeHandler := func(name string, rro, userns bool) *types.RuntimeHandler {
 			return &types.RuntimeHandler{
 				Name: name,
@@ -64,7 +62,7 @@ func (s *Server) Status(
 		resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 
 		// if it is the default runtime, also add it with an empty name
-		if name == defaultRuntime {
+		if name == s.config.DefaultRuntime {
 			h := makeRuntimeHandler("", rro, userns)
 			resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 		}
