@@ -93,6 +93,11 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 			updateUsageNanoCores(oldcStats.GetCpu(), cStats.GetCpu())
 		}
 
+		// The periodic update only goes through here: without this,
+		// ListContainerStats would serve the first sample forever and
+		// UsageNanoCores would average since then.
+		ss.ctrStats[c.ID()] = cStats
+
 		containerStats = append(containerStats, cStats)
 
 		// Convert cgroups stats to CRI metrics.
