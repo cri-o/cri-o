@@ -87,6 +87,9 @@ func (t *TestFramework) MustTempFile(pattern string) string {
 	if err != nil {
 		panic(err)
 	}
+	if err := path.Close(); err != nil {
+		panic(err)
+	}
 
 	t.tempFiles = append(t.tempFiles, path.Name())
 
