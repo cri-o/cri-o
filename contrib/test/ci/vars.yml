@@ -13,8 +13,8 @@ use_conmonrs: "{{ USE_CONMONRS | default(False) | bool }}"
 evented_pleg_fg: "{{ EVENTED_PLEG | default(False) | bool }}"
 
 critest_mirror_repo: quay.io/crio
-cri_tools_git_version: v1.37.0
-conmon_git_version: v2.2.1
+cri_tools_git_version: "7f5ef6a765b64729f5a527104a524563b8c3cbe9"
+conmon_git_version: "46837cd4800889521b6eccd4cce75a69249b1702"
 
 # For results.yml Paths use rsync 'source' conventions
 artifacts: "/tmp/artifacts" # Base-directory for collection
@@ -195,4 +195,4 @@ kata_skip_annotation_migration_tests:
   - 'test "v2 unified-cgroup annotation for specific container with slash separator should work"'
 
 runc_git_version: v1.5.1
-crun_git_version: 1.29.1
+crun_git_version: "73547f5a297325ad4c697d466ca5045904b1902b"
