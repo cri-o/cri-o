@@ -172,6 +172,38 @@ function teardown() {
 	crictl rmp "$pod_id"
 }
 
+@test "crio vm runtime reports container exited when its shim dies" {
+	if [[ $RUNTIME_TYPE != vm ]]; then
+		skip "only applicable to vm runtime type"
+	fi
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_RUNNING"* ]]
+
+	# Kill the shims, as a crash or the OOM killer would. The pids have to be
+	# word split, so they are passed unquoted.
+	shim_pids=$(ps --no-headers -C containerd-shim-kata-v2 -o pid=)
+	[ -n "$shim_pids" ]
+	# shellcheck disable=SC2086
+	kill -9 $shim_pids
+
+	# No shim is left to report the exit status, so CRI-O uses 255.
+	EXPECTED_EXIT_STATUS=255 wait_until_exit "$ctr_id"
+
+	# The shim's delete command must still run to completion.
+	wait_for_log "Shim delete for container ${ctr_id} completed"
+
+	crictl rm "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+}
+
 @test "crio vm pod with signal trapping container deletes gracefully" {
 	if [[ $RUNTIME_TYPE != vm ]]; then
 		skip "only applicable to vm runtime type"
