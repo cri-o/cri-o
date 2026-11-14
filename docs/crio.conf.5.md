@@ -308,6 +308,7 @@ The minimal amount of time in seconds to wait before issuing a timeout regarding
 **drop_infra_ctr**=true
 Determines whether we drop the infra container when a pod does not have a private PID namespace, and does not use a kernel separating runtime (like kata).
 Requires **manage_ns_lifecycle** to be true.
+A runtime handler can override this value with its own **drop_infra_ctr** option, see the CRIO.RUNTIME.RUNTIMES TABLE. Kernel-separating runtimes keep the infra container even when this is true, unless their `"vm"` handler explicitly sets **drop_infra_ctr** to true and the shim implements the Sandbox API. Pods that need an infra task for PID namespace sharing still retain it.
 
 **infra_ctr_cpuset**=""
 Determines the CPU set to run infra containers. If not specified, the CRI-O will use all online CPUs to run infra containers.
@@ -370,6 +371,27 @@ Override the runtime path, runtime config path, runtime root and runtime type fr
 
 **runtime_config_path**=""
 Path to the runtime configuration file, should only be used with VM runtime types
+
+**drop_infra_ctr** (unset by default)
+Override the global **drop_infra_ctr** option of the CRIO.RUNTIME TABLE for
+this runtime handler. An explicit `true` or `false` takes precedence over the
+global value. When unset, the global value applies. Changing this setting
+affects new pods; existing pods retain their sandbox mode across CRI-O restarts.
+
+For a `"vm"` handler, the values behave as follows:
+
+- unset: the infra container is kept, even when the global **drop_infra_ctr**
+  is true. This is the behavior of CRI-O before this option existed.
+- `false`: the infra container is kept.
+- `true`: the infra container is dropped and CRI-O manages the pod through
+  containerd's Sandbox API, which the shim must implement. Sandbox creation,
+  startup, status, stop and shutdown then run independently of an infra task;
+  workloads use the task API. Pods needing an infra task for PID namespace
+  sharing still retain it.
+
+For host-pulled images with Kata and overlay storage, set
+`storage_option = ["overlay.skip_mount_home=true"]` in `[crio]` so workload
+rootfs mounts propagate into the sandbox shim's mount namespace.
 
 **privileged_without_host_devices**=false
 Whether this runtime handler prevents host devices from being passed to privileged containers.
