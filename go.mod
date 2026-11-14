@@ -17,7 +17,7 @@ require (
 	github.com/containerd/ttrpc v1.2.10
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.3.1
-	github.com/containernetworking/plugins v1.9.1
+	github.com/containernetworking/plugins v1.10.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v1.2.2
 	github.com/containers/kubensmnt v1.3.0
@@ -72,8 +72,8 @@ require (
 	go.podman.io/storage v1.63.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.62.0
-	golang.org/x/sync v0.24.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/sync v0.25.0
+	golang.org/x/sys v0.50.0
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
 	k8s.io/api v0.38.0-beta.0
@@ -184,7 +184,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect
-	github.com/mattn/go-shellwords v1.0.13 // indirect
+	github.com/mattn/go-shellwords v1.0.16 // indirect
 	github.com/mattn/go-sqlite3 v1.14.44 // indirect
 	github.com/mdlayher/netlink v1.11.2 // indirect
 	github.com/mdlayher/socket v0.6.1 // indirect
