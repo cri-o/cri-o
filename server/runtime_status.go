@@ -43,6 +43,7 @@ func (s *Server) Status(
 			SupplementalGroupsPolicy:  true,
 			UserNamespacesHostNetwork: true,
 			MountOptions:              goruntime.GOOS == "linux",
+			CgroupMountMode:           cgroupMountModeSupported,
 		},
 	}
 
