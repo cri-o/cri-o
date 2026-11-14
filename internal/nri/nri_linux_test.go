@@ -2,12 +2,14 @@ package nri
 
 import (
 	"context"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/containerd/nri/pkg/api"
+	"github.com/containerd/nri/pkg/stub"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 
@@ -199,6 +201,89 @@ func TestUntrackedContainerSkipsConversion(t *testing.T) {
 		}
 	}
 }
+
+// TestPostUpdatePodSandbox checks that a successful pod sandbox update is
+// relayed to plugins as a PostUpdatePodSandbox event after the
+// UpdatePodSandbox request.
+func TestPostUpdatePodSandbox(t *testing.T) {
+	dir := t.TempDir()
+	cfg := config.New()
+	cfg.SocketPath = filepath.Join(dir, "nri.sock")
+	cfg.PluginPath = filepath.Join(dir, "plugins")
+	cfg.PluginConfigPath = filepath.Join(dir, "conf.d")
+
+	l, err := New(cfg)
+	require.NoError(t, err)
+	t.Cleanup(l.Stop)
+
+	SetDomain(&emptyDomain{})
+	require.NoError(t, l.Start())
+
+	p := &podUpdatePlugin{
+		updates:     make(chan string, 16),
+		postUpdates: make(chan string, 16),
+	}
+	s, err := stub.New(p,
+		stub.WithSocketPath(cfg.SocketPath),
+		stub.WithPluginName("post-update-test"),
+		stub.WithPluginIdx("00"),
+	)
+	require.NoError(t, err)
+	require.NoError(t, s.Start(t.Context()))
+	t.Cleanup(s.Stop)
+
+	pod := &testPodSandbox{PodSandbox: &api.PodSandbox{
+		Id:    "pod",
+		Linux: &api.LinuxPodSandbox{},
+	}}
+
+	// The plugin only starts receiving events once the runtime side of
+	// its synchronization has finished, so retry the update until the
+	// plugin sees it.
+	require.Eventually(t, func() bool {
+		require.NoError(t, l.UpdatePodSandbox(t.Context(), pod, nil, nil))
+
+		select {
+		case id := <-p.updates:
+			return id == pod.GetId()
+		default:
+			return false
+		}
+	}, 5*time.Second, 10*time.Millisecond, "plugin did not receive UpdatePodSandbox")
+
+	require.NoError(t, l.PostUpdatePodSandbox(t.Context(), pod))
+	require.Equal(t, pod.GetId(), waitFor(t, p.postUpdates),
+		"plugin did not receive PostUpdatePodSandbox")
+}
+
+type podUpdatePlugin struct {
+	updates     chan string
+	postUpdates chan string
+}
+
+func (p *podUpdatePlugin) UpdatePodSandbox(
+	_ context.Context,
+	pod *api.PodSandbox,
+	_, _ *api.LinuxResources,
+) error {
+	p.updates <- pod.GetId()
+
+	return nil
+}
+
+func (p *podUpdatePlugin) PostUpdatePodSandbox(_ context.Context, pod *api.PodSandbox) error {
+	p.postUpdates <- pod.GetId()
+
+	return nil
+}
+
+type emptyDomain struct {
+	Domain
+}
+
+func (*emptyDomain) GetName() string                               { return "test" }
+func (*emptyDomain) ListPodSandboxes(context.Context) []PodSandbox { return nil }
+func (*emptyDomain) ListContainers() []Container                   { return nil }
 
 func containerNotifications(
 	l *local,

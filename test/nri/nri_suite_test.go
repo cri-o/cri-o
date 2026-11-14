@@ -10,6 +10,7 @@ import (
 	"github.com/containerd/nri/pkg/api"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+	cri "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 var crio *runtime
@@ -214,6 +215,10 @@ func (t *nriTest) createPod() string {
 	require.NoError(t, err, "create pod")
 
 	return pod
+}
+
+func (t *nriTest) updatePod(pod string, overhead, resources *cri.LinuxContainerResources) {
+	require.NoError(t, crio.UpdatePod(pod, overhead, resources), "update pod")
 }
 
 func (t *nriTest) stopPod(pod string) {
