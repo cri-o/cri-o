@@ -98,6 +98,23 @@ var _ = t.Describe("MonitorStreamingURL", func() {
 		Expect(served).To(BeTrue())
 	})
 
+	It("should fall back if the conmon-rs server does not support it", func() {
+		// Given
+		// The error of the conmon-rs client, like the pod runtime returns it.
+		clientErr := fmt.Errorf(
+			"call ServePortForwardContainer RPC: %w",
+			conmonClient.ErrUnsupported,
+		)
+
+		// When
+		url, err := monitorStreamingURL(enabled(true, nil), serve(clientErr))
+
+		// Then
+		Expect(err).ToNot(HaveOccurred())
+		Expect(url).To(BeEmpty())
+		Expect(served).To(BeTrue())
+	})
+
 	It("should fail if the container monitor fails", func() {
 		// Given
 		monitorErr := errors.New("monitor")

@@ -4,6 +4,7 @@ package oci
 
 import (
 	"context"
+	"io"
 
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -48,6 +49,24 @@ func NewCreateContainerConfig(r *Runtime, c *Container) *conmonClient.CreateCont
 	return newCreateContainerConfig(r, c)
 }
 
+// NewExecSyncContainerConfig returns the conmon-rs configuration to run cmd in
+// the container c with the timeout of the CRI request in seconds.
+func NewExecSyncContainerConfig(
+	c *Container,
+	cmd []string,
+	timeout int64,
+) *conmonClient.ExecSyncContainerConfig {
+	return newExecSyncContainerConfig(c, cmd, timeout)
+}
+
+// NewAttachStreams returns the streams of an attach for the conmon-rs client.
+func NewAttachStreams(
+	inputStream io.Reader,
+	outputStream, errorStream io.WriteCloser,
+) conmonClient.AttachStreams {
+	return newAttachStreams(inputStream, outputStream, errorStream)
+}
+
 // StopAfterStdinEOF returns whether conmon-rs closes the container stdin
 // once an attach client closed its stdin.
 func StopAfterStdinEOF(c *Container) bool {
@@ -73,14 +92,10 @@ func RequireStreamingProtocols(client ConmonFeatureChecker) error {
 
 // ExecSyncResponse turns the result of a conmon-rs exec sync into the
 // response of the kubelet.
-func ExecSyncResponse(res *conmonClient.ExecContainerResult) (*types.ExecSyncResponse, error) {
+func ExecSyncResponse(
+	res *conmonClient.ExecSyncContainerResult,
+) (*types.ExecSyncResponse, error) {
 	return execSyncResponse(res)
-}
-
-// UnsupportedError adds errors.ErrUnsupported to an error of the conmon-rs
-// client which tells that the server does not support a feature.
-func UnsupportedError(err error) error {
-	return unsupportedError(err)
 }
 
 // HasRuntimeImpl returns whether a RuntimeImpl exists for the container ID.

@@ -96,8 +96,8 @@ github.com/containernetworking/plugins v1.9.1 h1:8oU6WsIsU3bpnNZuvHp74a6cE1MJwbj
 github.com/containernetworking/plugins v1.9.1/go.mod h1:fj7kS55qg3o/RgS+WGsF3+ZxwIImMPusQZKzBpcSr4c=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/conmon-rs v1.2.2 h1:opK/xgTkCKCfvoe4R0s+boPAzLQqoxB+FOeCRtR5n5Y=
-github.com/containers/conmon-rs v1.2.2/go.mod h1:EXC6Jb/rwI4mf+HO1u7xsAYVj/hTXbB86TYSaVz70TE=
+github.com/containers/conmon-rs v1.2.3 h1:YQKj127H2FtpRx1qieyCzscUR5B8d+t3CkM2dva3IOM=
+github.com/containers/conmon-rs v1.2.3/go.mod h1:IzUJ3O27A4kDZLfxTOZ9KaoJ0g/FRnU4z0v06Jh7mEM=
 github.com/containers/kubensmnt v1.3.0 h1:h1U1ECFw9R3emwRkjuBcA+6mTMt8a/bCMc8hCsFA/4c=
 github.com/containers/kubensmnt v1.3.0/go.mod h1:1/HG09N/a1+WSD3zkurzeWtqlKRSfUUnlIF/08zloqk=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=

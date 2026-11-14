@@ -236,8 +236,8 @@ github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v1.2.2
-## explicit; go 1.27.1
+# github.com/containers/conmon-rs v1.2.3
+## explicit; go 1.27.2
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
 # github.com/containers/kubensmnt v1.3.0
@@ -1086,7 +1086,6 @@ go.podman.io/common/pkg/capabilities
 go.podman.io/common/pkg/cgroups
 go.podman.io/common/pkg/config
 go.podman.io/common/pkg/crutils
-go.podman.io/common/pkg/detach
 go.podman.io/common/pkg/download
 go.podman.io/common/pkg/filters
 go.podman.io/common/pkg/hooks
