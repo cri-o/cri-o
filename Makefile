@@ -14,7 +14,12 @@ PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
+
+ifeq ($(shell uname -s),FreeBSD)
+ETCDIR ?= ${PREFIX}/etc
+else
 ETCDIR ?= ${DESTDIR}/etc
+endif
 ETCDIR_CRIO ?= ${ETCDIR}/crio
 DATAROOTDIR ?= ${PREFIX}/share/containers
 BUILDTAGS ?= containers_image_ostree_stub \
@@ -25,7 +30,7 @@ BUILDTAGS ?= containers_image_ostree_stub \
 			 $(shell hack/seccomp_tag.sh) \
 			 $(shell hack/selinux_tag.sh) \
 			 $(shell hack/libsubid_tag.sh)
-CRICTL_CONFIG_DIR=${DESTDIR}/etc
+CRICTL_CONFIG_DIR=${ETCDIR}
 CONTAINER_RUNTIME ?= podman
 PWD := $(shell pwd)
 BUILD_PATH := ${PWD}/build
@@ -180,7 +185,11 @@ $(SHELLCHECK): $(BUILD_BIN_PATH)
 ##@ Build targets:
 
 .PHONY: binaries
+ifeq ($(shell uname -s),FreeBSD)
+binaries: bin/crio ## Build all binaries.
+else
 binaries: bin/crio bin/pinns ## Build all binaries.
+endif
 
 .PHONY: test-binaries
 test-binaries: ## Build all test-binaries.
@@ -256,8 +265,11 @@ install: install.bin install.man install.completions install.systemd install.con
 
 .PHONY: install.bin-nobuild
 install.bin-nobuild: ## Install the binaries.
-	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
-	install ${SELINUXOPT} -D -m 755 bin/pinns $(BINDIR)/pinns
+	install ${SELINUXOPT} -d -m 755 $(BINDIR)
+	install ${SELINUXOPT} -m 755 bin/crio $(BINDIR)/crio
+ifneq ($(shell uname -s),FreeBSD)
+	install ${SELINUXOPT} -m 755 bin/pinns $(BINDIR)/pinns
+endif
 
 .PHONY: install.bin
 install.bin: binaries install.bin-nobuild ## Build and install the binaries.
@@ -266,8 +278,8 @@ install.bin: binaries install.bin-nobuild ## Build and install the binaries.
 install.man-nobuild: ## Install the man pages.
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man8
-	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
-	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
+	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) $(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) $(MANDIR)/man8
 
 .PHONY: install.man
 install.man: $(MANPAGES) install.man-nobuild ## Build and install the man pages.
@@ -276,9 +288,10 @@ install.man: $(MANPAGES) install.man-nobuild ## Build and install the man pages.
 install.config-nobuild: ## Install the configuration files.
 	install ${SELINUXOPT} -d $(DATAROOTDIR)/oci/hooks.d
 	install ${SELINUXOPT} -d $(ETCDIR_CRIO)/crio.conf.d
-	install ${SELINUXOPT} -D -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
-	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
-	install ${SELINUXOPT} -D -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
+	install ${SELINUXOPT} -d $(OCIUMOUNTINSTALLDIR)
+	install ${SELINUXOPT} -m 644 crio.conf $(ETCDIR_CRIO)/crio.conf
+	install ${SELINUXOPT} -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
+	install ${SELINUXOPT} -m 644 crictl.yaml $(CRICTL_CONFIG_DIR)
 
 .PHONY: install.config
 install.config: crio.conf install.config-nobuild ## Build and install the configuration files.
@@ -288,14 +301,16 @@ install.completions: ## Install the completions.
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
 	install ${SELINUXOPT} -d -m 755 ${FISHINSTALLDIR}
 	install ${SELINUXOPT} -d -m 755 ${ZSHINSTALLDIR}
-	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} completions/bash/crio
-	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} completions/fish/crio.fish
-	install ${SELINUXOPT} -D -m 644 -t ${ZSHINSTALLDIR}  completions/zsh/_crio
+	install ${SELINUXOPT} -m 644 completions/bash/crio ${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/fish/crio.fish ${FISHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/zsh/_crio ${ZSHINSTALLDIR}
 
 .PHONY: install.systemd
 install.systemd: ## Install the systemd unit files.
+ifneq ($(shell uname -s),FreeBSD)
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio-wipe.service $(PREFIX)/lib/systemd/system/crio-wipe.service
+endif
 
 .PHONY: uninstall
 uninstall: ## Uninstall all files.
