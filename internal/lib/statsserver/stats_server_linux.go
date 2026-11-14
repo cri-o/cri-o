@@ -464,7 +464,9 @@ func criMemStats(memStats *cgroups.MemoryStats, systemNano int64) *types.MemoryU
 }
 
 func criSwapStats(memStats *cgroups.MemoryStats, systemNano int64) *types.SwapUsage {
-	swapUsage := computeSwapUsage(memStats)
+	// SwapOnlyUsage is the swap-only value; SwapUsage.Limit is the combined
+	// mem+swap limit, so available swap is that limit minus swap-only usage.
+	swapUsage := memStats.SwapOnlyUsage.Usage
 
 	return &types.SwapUsage{
 		Timestamp:          systemNano,
@@ -533,22 +535,6 @@ func computeMemoryStats(
 	}
 
 	return workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes
-}
-
-// computeSwapUsage computes the actual swap usage from cgroups.MemoryStats.
-func computeSwapUsage(memStats *cgroups.MemoryStats) uint64 {
-	if node.CgroupIsV2() {
-		// libcontainer adds memory.swap.current to memory.current and reports them as SwapUsage to be compatible with cgroup v1,
-		// because cgroup v1 reports SwapUsage as mem+swap combined.
-		// Here we subtract SwapUsage from memory usage to get the actual swap value.
-		if memStats.SwapUsage.Usage > memStats.Usage.Usage {
-			return memStats.SwapUsage.Usage - memStats.Usage.Usage
-		}
-
-		return 0
-	}
-
-	return memStats.SwapUsage.Usage
 }
 
 // isMemoryUnlimited checks if the memory limit is effectively unlimited.
