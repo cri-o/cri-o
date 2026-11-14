@@ -69,6 +69,10 @@ type ImageResult struct {
 	Annotations         map[string]string
 	Pinned              bool // pinned image to prevent it from garbage collection
 	MountPoint          string
+	// ConfigDigest is the digest of the image config blob. It is not always
+	// the same as ID (e.g. for images partially pulled by TOC), and it is
+	// empty if the image has no config blob (schema1).
+	ConfigDigest digest.Digest
 }
 
 // A set of information that we prefer to cache about images, so that we can
@@ -77,10 +81,11 @@ type ImageResult struct {
 // Every field in imageCacheItem are fixed properties of an "image", which in this
 // context is the image.ID stored in c/storage, and thus don't need to be recomputed.
 type imageCacheItem struct {
-	config      *specs.Image
-	size        *uint64
-	info        *types.ImageInspectInfo
-	annotations map[string]string
+	config       *specs.Image
+	configDigest digest.Digest
+	size         *uint64
+	info         *types.ImageInspectInfo
+	annotations  map[string]string
 }
 
 type imageCache map[string]imageCacheItem
@@ -347,10 +352,11 @@ func (svc *imageService) buildImageCacheItem(
 	}
 
 	return imageCacheItem{
-		config:      imageConfig,
-		size:        size,
-		info:        info,
-		annotations: ociManifest.Annotations,
+		config:       imageConfig,
+		configDigest: imageFull.ConfigInfo().Digest,
+		size:         size,
+		info:         info,
+		annotations:  ociManifest.Annotations,
 	}, nil
 }
 
@@ -441,6 +447,7 @@ func (svc *imageService) buildImageResult(
 		Annotations:         cacheItem.annotations,
 		Pinned:              imagePinned,
 		MountPoint:          mountPoint,
+		ConfigDigest:        cacheItem.configDigest,
 	}, nil
 }
 
