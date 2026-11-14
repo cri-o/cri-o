@@ -10,6 +10,7 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 const (
@@ -49,20 +50,30 @@ func (s *Server) privilegedSandbox(req *types.RunPodSandboxRequest) bool {
 }
 
 // runtimeHandler returns the runtime handler key provided by CRI if the key
-// does exist and the associated data are valid. If the key is empty, there
-// is nothing to do, and the empty key is returned. For every other case, this
-// function will return an empty string with the error associated.
-func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, error) {
+// does exist and the associated data are valid. If the key is empty, the
+// empty key is returned and the default runtime applies. For every other
+// case, this function will return an empty string with the error associated.
+//
+// The runtime snapshot the handler was validated against, or whose default
+// runtime an empty handler resolves to, is returned as well, so that the
+// caller can resolve all further runtime properties from that same
+// configuration instead of looking up a potentially concurrently reloaded one.
+func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, *libconfig.RuntimeSnapshot, error) {
+	// Capture the snapshot before looking at the handler: an empty handler
+	// resolves to the default runtime, which has to come from the same
+	// snapshot for every later step of the sandbox creation.
+	snapshot := s.config.RuntimeSnapshot()
+
 	handler := req.GetRuntimeHandler()
 	if handler == "" {
-		return handler, nil
+		return handler, snapshot, nil
 	}
 
-	if _, err := s.ContainerServer.Runtime().ValidateRuntimeHandler(handler); err != nil {
-		return "", err
+	if _, err := snapshot.ValidateRuntimeHandler(handler); err != nil {
+		return "", nil, err
 	}
 
-	return handler, nil
+	return handler, snapshot, nil
 }
 
 // RunPodSandbox creates and runs a pod-level sandbox.
