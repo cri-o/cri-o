@@ -134,6 +134,82 @@ var _ = t.Describe("Oci", func() {
 			// Then
 			waitOnContainerTimeout(sut, shortTimeout, mediumTimeout, sleepProcess)
 		})
+		It("should kill a never started container without waiting for the timeout", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateCreated
+			Expect(state.SetInitPid(sleepProcess.Process.Pid)).To(Succeed())
+			sut.SetState(state)
+
+			var signals []string
+
+			gomock.InOrder(
+				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ string, args ...string) any {
+						Expect(args).To(ContainElement("state"))
+
+						return exec.Command("echo", `{"status":"created"}`)
+					},
+				),
+				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ string, args ...string) any {
+						Expect(args).To(ContainElement("kill"))
+						signals = append(signals, args[len(args)-1])
+
+						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
+						waitForKillToComplete(sleepProcess)
+
+						return exec.Command("/bin/true")
+					},
+				),
+			)
+			sut.SetAsStopping()
+
+			go runtime.StopLoopForContainer(context.Background(), sut, bm)
+
+			// Then
+			// The stop timeout is much longer than the time we wait for the stop.
+			waitOnContainerTimeout(sut, longTimeout, shortTimeout+1, sleepProcess)
+			Expect(signals).To(Equal([]string{"KILL"}))
+		})
+		It("should use the stop signal if the cached created state is outdated", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateCreated
+			Expect(state.SetInitPid(sleepProcess.Process.Pid)).To(Succeed())
+			sut.SetState(state)
+
+			var signals []string
+
+			gomock.InOrder(
+				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ string, args ...string) any {
+						Expect(args).To(ContainElement("state"))
+
+						return exec.Command("echo", `{"status":"running"}`)
+					},
+				),
+				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ string, args ...string) any {
+						Expect(args).To(ContainElement("kill"))
+						signals = append(signals, args[len(args)-1])
+
+						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
+						waitForKillToComplete(sleepProcess)
+
+						return exec.Command("/bin/true")
+					},
+				),
+			)
+			sut.SetAsStopping()
+
+			go runtime.StopLoopForContainer(context.Background(), sut, bm)
+
+			// Then
+			waitOnContainerTimeout(sut, shortTimeout, mediumTimeout, sleepProcess)
+			Expect(signals).To(HaveLen(1))
+			Expect(signals[0]).NotTo(Equal("KILL"))
+		})
 		It("should interrupt longer stop timeout", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
@@ -207,6 +283,46 @@ var _ = t.Describe("Oci", func() {
 			// unconditionally expect the container was not stopped
 			Expect(<-stoppedChan).To(MatchError(context.Canceled))
 			verifyContainerNotStopped(sut)
+		})
+
+		It("should kill a created container whose state has no PID yet", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Status = oci.ContainerStateCreated
+			Expect(state.SetInitPid(sleepProcess.Process.Pid)).To(Succeed())
+			Expect(state.Pid).To(BeZero())
+			sut.SetState(state)
+
+			var signals []string
+
+			// StopContainer and the stop loop both confirm the state with the runtime.
+			stateQuery := func(_ string, args ...string) any {
+				Expect(args).To(ContainElement("state"))
+
+				return exec.Command("echo", `{"status":"created"}`)
+			}
+
+			gomock.InOrder(
+				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(stateQuery),
+				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(stateQuery),
+				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ string, args ...string) any {
+						Expect(args).To(ContainElement("kill"))
+						signals = append(signals, args[len(args)-1])
+
+						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
+						waitForKillToComplete(sleepProcess)
+
+						return exec.Command("/bin/true")
+					},
+				),
+			)
+
+			// When
+			Expect(runtime.StopContainer(context.Background(), sut, longTimeout)).To(Succeed())
+
+			// Then
+			Expect(signals).To(Equal([]string{"KILL"}))
 		})
 
 		DescribeTable("should not report an interrupted stop as successful", func(deadline bool) {
