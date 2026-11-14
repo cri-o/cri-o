@@ -12,10 +12,12 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 	imageTypes "go.podman.io/image/v5/types"
+	cstorage "go.podman.io/storage"
 	"go.podman.io/storage/pkg/idtools"
 	storageTypes "go.podman.io/storage/types"
 	"golang.org/x/sys/unix"
@@ -101,6 +103,28 @@ type Server struct {
 	hooksRetriever *runtimehandlerhooks.HooksRetriever
 
 	artifactStore *ociartifact.Store
+
+	// dedupTrigger is a size-1 buffered channel used to schedule store-wide
+	// layer deduplication passes. A pull signals it with a non-blocking send;
+	// if a pass is already queued the send is dropped because the pending
+	// entry already covers it. The worker drains and serializes all passes.
+	dedupTrigger chan struct{}
+
+	// manualDedupRequest carries on-demand dedup requests (e.g. from
+	// `crio dedup`). Each request includes a response channel
+	// so the caller can block for the pass to finish and receive its result.
+	// Requests are served by the same worker goroutine as dedupTrigger, so a
+	// manual pass and an after-pull pass are never run concurrently against
+	// the same store.
+	manualDedupRequest chan chan dedupPassResult
+}
+
+// dedupPassResult carries the outcome of a single store-wide dedup pass back
+// to a manual caller.
+type dedupPassResult struct {
+	Duration time.Duration
+	SavedMB  float64
+	Err      error
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -462,6 +486,30 @@ func New(
 		return nil, err
 	}
 
+	// Validate the layer dedup configuration before any side-effectful
+	// services are started below: callers of New cannot shut those down
+	// when it returns an error. The storage library only deduplicates
+	// overlay layers below the graph root, so configurations where passes
+	// would silently skip the node's image content are rejected outright.
+	if config.LayerDedup == libconfig.LayerDedupAfterPull ||
+		config.LayerDedup == libconfig.LayerDedupManual {
+		if config.ImageStore != "" {
+			return nil, errors.New(
+				"layer_dedup is not supported with a separate imagestore:" +
+					" the storage library currently skips imagestore layers" +
+					" during deduplication",
+			)
+		}
+
+		if driver := containerServer.Store().GraphDriverName(); driver != "overlay" {
+			return nil, fmt.Errorf(
+				"layer_dedup requires the overlay storage driver, got %q:"+
+					" this driver does not implement layer deduplication",
+				driver,
+			)
+		}
+	}
+
 	if strings.ToLower(
 		strings.TrimSpace(config.IrqBalanceConfigRestoreFile),
 	) != irqBalanceConfigRestoreDisable {
@@ -684,6 +732,21 @@ func New(
 
 	if err := watchdog.New(s.checkCRIHealth).Start(ctx); err != nil {
 		return nil, fmt.Errorf("start systemd watchdog: %w", err)
+	}
+
+	// Start the layer dedup worker only after the remaining fallible
+	// setup above has succeeded: if server.New returned an error with the
+	// worker already running, the goroutine would block forever on
+	// monitorsChan, which is only closed when a successfully created
+	// server shuts down.
+	if s.config.LayerDedup == libconfig.LayerDedupAfterPull ||
+		s.config.LayerDedup == libconfig.LayerDedupManual {
+		s.dedupTrigger = make(chan struct{}, 1)
+
+		s.manualDedupRequest = make(chan chan dedupPassResult)
+		go s.runDedupWorker(ctx)
+
+		log.Infof(ctx, "Layer dedup worker started (mode: %s)", s.config.LayerDedup)
 	}
 
 	return s, nil
@@ -911,6 +974,202 @@ func (s *Server) getPodSandboxFromRequest(
 	}
 
 	return sb, nil
+}
+
+// runDedupWorker is the background goroutine that serializes store-wide layer
+// deduplication passes. Pulls signal dedupTrigger with a non-blocking send;
+// the size-1 buffer ensures at most one additional pass is queued while a pass
+// is already running. Manual requests (e.g. from `crio dedup`)
+// arrive on manualDedupRequest and are served by this same goroutine, so a
+// manual pass and an after-pull pass are never run concurrently against the
+// same store. The goroutine exits when monitorsChan is closed.
+func (s *Server) runDedupWorker(ctx context.Context) {
+	for {
+		select {
+		case <-s.monitorsChan:
+			log.Infof(ctx, "Layer dedup worker shutting down")
+
+			return
+		case <-s.dedupTrigger:
+			s.runStoreDedupPass(ctx)
+		case respCh := <-s.manualDedupRequest:
+			respCh <- s.runStoreDedupPass(ctx)
+		}
+	}
+}
+
+// runStoreDedupPass performs a single store-wide layer deduplication pass,
+// logs its outcome, and returns the result. After-pull triggers only need
+// the logging; manual callers additionally forward the result to the
+// requesting client.
+func (s *Server) runStoreDedupPass(ctx context.Context) dedupPassResult {
+	result := s.runStoreDedupPassResult(ctx)
+	if result.Err != nil {
+		log.Warnf(ctx, "Store-wide layer deduplication pass failed: %v", result.Err)
+
+		return result
+	}
+
+	log.Debugf(
+		ctx,
+		"Layer deduplication pass complete: saved %.2f MB in %v",
+		result.SavedMB,
+		result.Duration,
+	)
+
+	return result
+}
+
+// dedupStoreSupported verifies that every filesystem a store-wide layer
+// deduplication pass will touch supports reflink-based deduplication.
+func dedupStoreSupported(store cstorage.Store) error {
+	for _, dir := range dedupProbeDirs(store) {
+		if err := dedupReflinkSupported(dir); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// dedupProbeDirs returns one directory per distinct filesystem that a
+// store-wide layer deduplication pass reads and writes: the directories
+// of the existing layers. Those are not guaranteed to share the
+// filesystem of the graph root, so probing the graph root alone can
+// report the wrong capability. A store without layers returns no
+// directories, as such a pass touches no files.
+func dedupProbeDirs(store cstorage.Store) []string {
+	// The overlay driver keeps each layer's contents in
+	// <root>/<driver>/<layer-id>/diff, where <root> is the configured
+	// image store when set and the graph root otherwise. Layers found in
+	// additional image stores are skipped by the dedup pass itself.
+	roots := []string{store.GraphRoot()}
+	if imageStore := store.ImageStore(); imageStore != "" {
+		roots = append(roots, imageStore)
+	}
+
+	driver := store.GraphDriverName()
+
+	layers, err := store.Layers()
+	if err != nil {
+		// Reading the layers failed; the dedup pass will surface the real
+		// error when it walks the image layers itself.
+		return nil
+	}
+
+	var (
+		dirs    []string
+		devices = make(map[any]bool)
+	)
+
+	addDir := func(dir string) {
+		if dir == "" {
+			return
+		}
+
+		fi, err := os.Stat(dir)
+		if err != nil || !fi.IsDir() {
+			return
+		}
+
+		st, ok := fi.Sys().(*syscall.Stat_t)
+		if !ok {
+			dirs = append(dirs, dir)
+
+			return
+		}
+
+		// The type of st.Dev differs across platforms (for example uint64
+		// on Linux, uint32 on FreeBSD), so it is used as-is as the map key
+		// rather than converted to a fixed-width type.
+		if devices[st.Dev] {
+			return
+		}
+
+		devices[st.Dev] = true
+
+		dirs = append(dirs, dir)
+	}
+
+	// Probe each layer's directory rather than its "diff" subdirectory:
+	// diff directories are active overlay lowerdirs of running containers,
+	// and the probe's temporary files would briefly be visible inside those
+	// containers' rootfs. Both directories share a filesystem unless
+	// "diff" itself is a separate mount.
+	for i := range layers {
+		for _, root := range roots {
+			addDir(filepath.Join(root, driver, layers[i].ID))
+		}
+	}
+
+	// Layers exist but none of their directories were found (for example
+	// with a storage driver using a different on-disk layout): fall back
+	// to the store roots as a best-effort approximation of the filesystems
+	// the pass will touch.
+	if len(dirs) == 0 && len(layers) > 0 {
+		for _, root := range roots {
+			addDir(root)
+		}
+	}
+
+	return dirs
+}
+
+// runStoreDedupPassResult performs a single store-wide layer deduplication
+// pass and returns its outcome. It is called exclusively from
+// runDedupWorker (either for an after-pull trigger or a manual request), so
+// it never runs concurrently with itself.
+//
+// Note: the pass holds the layer store's write lock for its full
+// duration (roughly 4-5 s/GB of layer content), so image pulls and other
+// layer-store writes block until it completes; run manual passes during a
+// maintenance window.
+func (s *Server) runStoreDedupPassResult(ctx context.Context) dedupPassResult {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
+	imageServer, err := s.StorageImageServer(nil)
+	if err != nil {
+		return dedupPassResult{Err: fmt.Errorf("get image server: %w", err)}
+	}
+
+	store := imageServer.GetStore()
+
+	log.Debugf(ctx, "Starting store-wide layer deduplication pass")
+
+	// The storage library silently swallows the "reflinks not supported"
+	// error and reports success, which would mislead operators running on
+	// filesystems without reflink support (e.g. ext4 or XFS without
+	// reflink=1). Probe every filesystem the pass will touch up front so
+	// an unsupported store is reported as an error instead of a successful
+	// no-op pass.
+	if err := dedupStoreSupported(store); err != nil {
+		log.Warnf(ctx, "Layer deduplication not supported: %v", err)
+
+		return dedupPassResult{Err: err}
+	}
+
+	start := time.Now()
+
+	result, dedupErr := store.Dedup(cstorage.DedupArgs{
+		Options: cstorage.DedupOptions{
+			HashMethod: cstorage.DedupHashSHA256,
+		},
+	})
+
+	duration := time.Since(start)
+
+	if dedupErr != nil {
+		return dedupPassResult{Duration: duration, Err: dedupErr}
+	}
+
+	metrics.Instance().MetricImageLayerDedupDurationObserve(duration)
+	metrics.Instance().MetricImageLayerDedupBytesSavedObserve(int64(result.Deduped))
+
+	return dedupPassResult{
+		Duration: duration,
+		SavedMB:  float64(result.Deduped) / (1024 * 1024),
+	}
 }
 
 // StopMonitors stops all the monitors.

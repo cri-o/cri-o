@@ -385,6 +385,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.SeparatePullCgroup, c.SeparatePullCgroup),
 		},
 		{
+			templateString: templateStringCrioRuntimeLayerDedup,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.LayerDedup, c.LayerDedup),
+		},
+		{
 			templateString: templateStringCrioRuntimeDefaultCapabilities,
 			group:          crioRuntimeConfig,
 			isDefaultValue: slices.Equal(dc.DefaultCapabilities, c.DefaultCapabilities),
@@ -1148,6 +1153,23 @@ const templateStringCrioRuntimeCgroupManager = `# Cgroup management implementati
 
 const templateStringCrioRuntimeSeparatePullCgroup = `# Specify whether the image pull must be performed in a separate cgroup.
 {{ $.Comment }}separate_pull_cgroup = "{{ .SeparatePullCgroup }}"
+
+`
+
+const templateStringCrioRuntimeLayerDedup = `# Controls layer deduplication using filesystem reflinks.
+# Requires the overlay storage driver on a filesystem with reflink support
+# (XFS with reflink=1, or Btrfs); not supported with a separate imagestore
+# or other storage drivers.
+# Dedup failures are logged as warnings and never fail the pull.
+# Valid values:
+#   "disabled"   - no deduplication (default)
+#   "after_pull" - deduplicate after every successful image pull
+#   "manual"     - worker starts but only runs on demand, via
+#                  'crio dedup'. Use this on nodes with a
+#                  large amount of layer content already on disk, where an
+#                  automatic scan after every pull would add unacceptable
+#                  latency to every image pull.
+{{ $.Comment }}layer_dedup = "{{ .LayerDedup }}"
 
 `
 

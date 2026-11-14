@@ -26,6 +26,8 @@ best if CRI-O and any currently running containers are stopped."
         'config:Outputs a commented version of the configuration file that could be used
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
+        'dedup:Trigger an on-demand, store-wide image layer deduplication pass and wait for it to complete. Requires layer_dedup to be set to "manual" or "after_pull" in crio.conf.d. This can take a long time on nodes with a large amount of layer content already on disk (roughly 4-5 seconds per GB of stored layers); there is no built-in timeout, so run it during a planned maintenance window. While the pass runs it holds the image store write lock, so image pulls on the node will block until it completes; running containers are unaffected.'
+        'd:Trigger an on-demand, store-wide image layer deduplication pass and wait for it to complete. Requires layer_dedup to be set to "manual" or "after_pull" in crio.conf.d. This can take a long time on nodes with a large amount of layer content already on disk (roughly 4-5 seconds per GB of stored layers); there is no built-in timeout, so run it during a planned maintenance window. While the pass runs it holds the image store write lock, so image pulls on the node will block until it completes; running containers are unaffected.'
         'man:Generate the man page documentation.'
         'markdown:Generate the markdown documentation.'
         'md:Generate the markdown documentation.'
@@ -99,6 +101,7 @@ it later with **--config**. Global options will modify the output.'
         '--internal-wipe'
         '--irqbalance-config-file'
         '--irqbalance-config-restore-file'
+        '--layer-dedup'
         '--listen'
         '--log'
         '--log-dir'

@@ -348,6 +348,15 @@ Enable/Disable the container hostport mapping in CRI-O. Default value is set to 
 **timezone**=""
 To set the timezone for a container in CRI-O. If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.
 
+**layer_dedup**="disabled"
+Controls image layer deduplication using filesystem reflinks (copy-on-write clones). Requires the overlay storage driver on a filesystem with reflink support (e.g., XFS with reflink=1 or Btrfs); not supported with a separate imagestore or other storage drivers. Dedup failures are logged as warnings and do not fail the pull. Valid values:
+
+- **disabled** — no deduplication (default)
+- **after_pull** — deduplicate layers after every successful image pull
+- **manual** — the deduplication worker starts but never triggers automatically. A pass only runs when explicitly requested via `crio dedup`, which blocks until the pass completes and reports its duration and bytes saved.
+
+A deduplication pass holds the image store write lock for its full duration: it reads and hashes every file of every image layer (roughly 4-5 seconds per GB of stored layers), and image pulls on the node will block until it completes. Running containers are unaffected. Because of this, "after_pull" mode is best suited to nodes with modest stores, and "manual" mode with planned maintenance windows is recommended for nodes with large stores.
+
 ### CRIO.RUNTIME.RUNTIMES TABLE
 
 The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes. The runtime to use is picked based on the runtime handler provided by the CRI. If no runtime handler is provided, the runtime will be picked based on the level of trust of the workload. This option supports live configuration reload. This option supports live configuration reload.

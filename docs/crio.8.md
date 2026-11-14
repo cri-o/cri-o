@@ -71,6 +71,7 @@ crio
 [--internal-wipe]
 [--irqbalance-config-file]=[value]
 [--irqbalance-config-restore-file]=[value]
+[--layer-dedup]=[value]
 [--listen]=[value]
 [--log-dir]=[value]
 [--log-filter]=[value]
@@ -326,6 +327,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--irqbalance-config-restore-file**="": Determines if CRI-O should attempt to restore the irqbalance config at startup with the mask in this file. Use the 'disable' value to disable the restore flow entirely. (default: "/etc/sysconfig/orig_irq_banned_cpus")
 
+**--layer-dedup**="": Controls image layer deduplication using filesystem reflinks (copy-on-write clones via FIDEDUPERANGE). When set to "after_pull", identical file extents across container image layers are unified after each successful image pull, reducing disk usage without modifying layer data. When set to "manual", the deduplication worker starts but only runs when explicitly requested via 'crio dedup' -- useful on nodes where an automatic scan after every pull would add unacceptable latency. Deduplication runs in a background worker and does not block or fail the pull that triggered it; however, a running pass holds the image store write lock, so other image pulls on the node will block until it completes (roughly 4-5 seconds per stored GB of layers). Requires the overlay storage driver on a filesystem with reflink support (XFS with reflink=1 or Btrfs); not supported with a separate imagestore or other storage drivers. Supported values: "disabled" (default), "after_pull", "manual". (default: "disabled")
+
 **--listen**="": Path to the CRI-O socket. (default: "/var/run/crio/crio.sock")
 
 **--log**="": Set the log file path where internal debug information is written.
@@ -344,7 +347,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
-**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime")
+**--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage", "containers_stopped_monitor_count", "default_runtime", "image_layer_dedup_duration_seconds", "image_layer_dedup_bytes_saved")
 
 **--metrics-host**="": Host for the metrics endpoint. (default: "127.0.0.1")
 
@@ -526,6 +529,12 @@ by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.
 
 **--default**: Output the default configuration (without taking into account any configuration options).
+
+## dedup, d
+
+Trigger an on-demand, store-wide image layer deduplication pass and wait for it to complete. Requires layer_dedup to be set to "manual" or "after_pull" in crio.conf.d. This can take a long time on nodes with a large amount of layer content already on disk (roughly 4-5 seconds per GB of stored layers); there is no built-in timeout, so run it during a planned maintenance window. While the pass runs it holds the image store write lock, so image pulls on the node will block until it completes; running containers are unaffected.
+
+**--socket, -s**="": absolute path to the unix socket (default: "/var/run/crio/crio.sock")
 
 ## man
 
