@@ -21,10 +21,12 @@ import (
 type fakeRuntimeImpl struct {
 	oci.RuntimeImpl
 
-	cgroupStats    *stats.CgroupStats
-	cgroupStatsErr error
-	diskStats      *stats.DiskStats
-	diskStatsErr   error
+	cgroupStats      *stats.CgroupStats
+	cgroupStatsErr   error
+	cgroupStatsCalls int
+	diskStats        *stats.DiskStats
+	diskStatsErr     error
+	diskStatsCalls   int
 }
 
 func (f *fakeRuntimeImpl) CgroupStats(
@@ -32,6 +34,8 @@ func (f *fakeRuntimeImpl) CgroupStats(
 	_ *oci.Container,
 	_ string,
 ) (*stats.CgroupStats, error) {
+	f.cgroupStatsCalls++
+
 	return f.cgroupStats, f.cgroupStatsErr
 }
 
@@ -40,6 +44,8 @@ func (f *fakeRuntimeImpl) DiskStats(
 	_ *oci.Container,
 	_ string,
 ) (*stats.DiskStats, error) {
+	f.diskStatsCalls++
+
 	return f.diskStats, f.diskStatsErr
 }
 
@@ -62,8 +68,10 @@ func (f *fakeParentServer) ListSandboxes() []*sandbox.Sandbox  { return nil }
 func (f *fakeParentServer) GetSandbox(string) *sandbox.Sandbox { return nil }
 func (f *fakeParentServer) Config() *config.Config             { return f.cfg }
 
-func newTestSandbox(t *testing.T, id string) *sandbox.Sandbox {
+func newTestSandbox(t *testing.T) *sandbox.Sandbox {
 	t.Helper()
+
+	const id = "sb-1"
 
 	b := sandbox.NewBuilder()
 	b.SetID(id)
@@ -106,8 +114,13 @@ func newTestSandbox(t *testing.T, id string) *sandbox.Sandbox {
 	return sb
 }
 
-func newRunningContainer(t *testing.T, id, name string) *oci.Container {
+func newRunningContainer(t *testing.T) *oci.Container {
 	t.Helper()
+
+	const (
+		id   = "ctr-1"
+		name = "test-container"
+	)
 
 	ctr, err := oci.NewContainer(
 		id, name, "", "", nil, nil, nil,
@@ -146,13 +159,13 @@ func TestUpdateSandboxContainerStatsError(t *testing.T) {
 	}
 
 	rt := oci.NewTestRuntime()
-	ctr := newRunningContainer(t, "ctr-1", "test-container")
+	ctr := newRunningContainer(t)
 
 	rt.SetRuntimeImpl("ctr-1", &fakeRuntimeImpl{
 		cgroupStatsErr: errors.New("cgroup deleted"),
 	})
 
-	sb := newTestSandbox(t, "sb-1")
+	sb := newTestSandbox(t)
 	sb.AddContainer(context.Background(), ctr)
 
 	ss := newTestStatsServer(t, rt, cfg)
@@ -179,14 +192,14 @@ func TestUpdateSandboxDiskStatsError(t *testing.T) {
 	}
 
 	rt := oci.NewTestRuntime()
-	ctr := newRunningContainer(t, "ctr-1", "test-container")
+	ctr := newRunningContainer(t)
 
 	rt.SetRuntimeImpl("ctr-1", &fakeRuntimeImpl{
 		cgroupStats:  &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
 		diskStatsErr: errors.New("disk stats unavailable"),
 	})
 
-	sb := newTestSandbox(t, "sb-1")
+	sb := newTestSandbox(t)
 	sb.AddContainer(context.Background(), ctr)
 
 	ss := newTestStatsServer(t, rt, cfg)
@@ -209,5 +222,196 @@ func TestUpdateSandboxDiskStatsError(t *testing.T) {
 
 	if result.GetLinux().GetContainers()[0].GetMemory() == nil {
 		t.Error("expected memory stats to be present")
+	}
+}
+
+func testConfigWithMetrics(t *testing.T, metrics ...string) *config.Config {
+	t.Helper()
+
+	cfg, err := config.DefaultConfig()
+	if err != nil {
+		t.Fatalf("DefaultConfig: %v", err)
+	}
+
+	cfg.IncludedPodMetrics = metrics //nolint:staticcheck // user-input field is the only way to seed EnabledPodMetrics via Validate
+	if err := cfg.StatsConfig.Validate(); err != nil {
+		t.Fatalf("StatsConfig.Validate: %v", err)
+	}
+
+	return cfg
+}
+
+func TestGenerateSandboxContainerMetricsSkipsCollectionWhenDisabled(t *testing.T) {
+	t.Parallel()
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t)
+
+	fake := &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
+		diskStats:   &stats.DiskStats{},
+	}
+	rt.SetRuntimeImpl("ctr-1", fake)
+
+	sb := newTestSandbox(t)
+	ss := newTestStatsServer(t, rt, testConfigWithMetrics(t, config.SpecMetrics))
+
+	result := ss.GenerateSandboxContainerMetrics(sb, ctr, NewSandboxMetrics(sb))
+
+	if result == nil {
+		t.Fatal("GenerateSandboxContainerMetrics returned nil")
+	}
+
+	if fake.cgroupStatsCalls != 0 {
+		t.Errorf("expected no cgroup stats collection, got %d calls", fake.cgroupStatsCalls)
+	}
+
+	if fake.diskStatsCalls != 0 {
+		t.Errorf("expected no disk stats collection, got %d calls", fake.diskStatsCalls)
+	}
+}
+
+func TestGenerateSandboxContainerMetricsCollectsWhenEnabled(t *testing.T) {
+	t.Parallel()
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t)
+
+	fake := &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
+		diskStats:   &stats.DiskStats{},
+	}
+	rt.SetRuntimeImpl("ctr-1", fake)
+
+	sb := newTestSandbox(t)
+	ss := newTestStatsServer(t, rt, testConfigWithMetrics(t, config.CPUMetrics, config.DiskMetrics))
+
+	result := ss.GenerateSandboxContainerMetrics(sb, ctr, NewSandboxMetrics(sb))
+
+	if result == nil {
+		t.Fatal("GenerateSandboxContainerMetrics returned nil")
+	}
+
+	if fake.cgroupStatsCalls != 1 {
+		t.Errorf("expected cgroup stats collected once, got %d calls", fake.cgroupStatsCalls)
+	}
+
+	if fake.diskStatsCalls != 1 {
+		t.Errorf("expected disk stats collected once, got %d calls", fake.diskStatsCalls)
+	}
+}
+
+func TestUpdateSandboxEmitsLastSeenWhenMetricsDisabled(t *testing.T) {
+	t.Parallel()
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t)
+
+	rt.SetRuntimeImpl("ctr-1", &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
+		diskStats:   &stats.DiskStats{},
+	})
+
+	sb := newTestSandbox(t)
+	sb.AddContainer(context.Background(), ctr)
+
+	ss := newTestStatsServer(t, rt, testConfigWithMetrics(t))
+	ss.updateSandbox(sb)
+
+	sm := ss.sboxMetrics["sb-1"]
+	if sm == nil {
+		t.Fatal("expected sandbox metrics entry")
+	}
+
+	if len(sm.metric.GetContainerMetrics()) != 1 {
+		t.Fatalf("expected 1 container metrics entry, got %d", len(sm.metric.GetContainerMetrics()))
+	}
+
+	metrics := sm.metric.GetContainerMetrics()[0].GetMetrics()
+	if len(metrics) != 1 {
+		t.Fatalf("expected only container_last_seen, got %d metrics", len(metrics))
+	}
+
+	if metrics[0].GetName() != "container_last_seen" {
+		t.Errorf("expected container_last_seen, got %q", metrics[0].GetName())
+	}
+}
+
+func TestUpdateSandboxGeneratesMetricsWhenEnabled(t *testing.T) {
+	t.Parallel()
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t)
+
+	rt.SetRuntimeImpl("ctr-1", &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
+		diskStats:   &stats.DiskStats{},
+	})
+
+	sb := newTestSandbox(t)
+	sb.AddContainer(context.Background(), ctr)
+
+	ss := newTestStatsServer(t, rt, testConfigWithMetrics(t, config.CPUMetrics))
+	ss.updateSandbox(sb)
+
+	sm := ss.sboxMetrics["sb-1"]
+	if sm == nil {
+		t.Fatal("expected sandbox metrics entry")
+	}
+
+	if len(sm.metric.GetContainerMetrics()) != 1 {
+		t.Fatalf("expected 1 container metrics entry, got %d", len(sm.metric.GetContainerMetrics()))
+	}
+}
+
+// TestContainerMetricsFromContainerStatsNilSafety enforces that each metric's
+// declared source in metricDefinitions matches the stats its generator reads.
+// For each available metric it supplies the stats arguments exactly as
+// GenerateSandboxContainerMetrics would (nil when CgroupStatsEnabled /
+// DiskStatsEnabled report the stats are not needed), then generates the metric.
+// A generator reading cgroup stats while declaring a non-cgroup source is passed
+// a nil cgroupStats and panics, failing this test.
+func TestContainerMetricsFromContainerStatsNilSafety(t *testing.T) {
+	t.Parallel()
+
+	for _, m := range config.AvailableMetrics {
+		t.Run(m, func(t *testing.T) {
+			t.Parallel()
+
+			var cgroupStats *stats.CgroupStats
+			if CgroupStatsEnabled([]string{m}) {
+				cgroupStats = &stats.CgroupStats{}
+			}
+
+			var diskStats *stats.DiskStats
+			if DiskStatsEnabled([]string{m}) {
+				diskStats = &stats.DiskStats{}
+			}
+
+			rt := oci.NewTestRuntime()
+			rt.SetRuntimeImpl("test-id", &fakeRuntimeImpl{})
+
+			sb := newTestSandbox(t)
+			ss := newTestStatsServer(t, rt, testConfigWithMetrics(t, m))
+
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf(
+						"metric %q read stats skipped by the collection gate; its source in metricDefinitions must match the stats it reads: %v",
+						m,
+						r,
+					)
+				}
+			}()
+
+			if result := ss.containerMetricsFromContainerStats(
+				sb,
+				newTestContainer(t),
+				cgroupStats,
+				diskStats,
+			); result == nil {
+				t.Fatal("expected non-nil container metrics")
+			}
+		})
 	}
 }
