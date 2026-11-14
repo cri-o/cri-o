@@ -625,8 +625,8 @@ func (r *runtimePod) ReopenContainerLog(ctx context.Context, c *Container) error
 	})
 }
 
-func (r *runtimePod) IsContainerAlive(c *Container) bool {
-	return c.Living() == nil
+func (r *runtimePod) IsContainerAlive(_ context.Context, c *Container) (bool, error) {
+	return c.Living() == nil, nil
 }
 
 func (r *runtimePod) ProbeMonitor(ctx context.Context, c *Container) error {

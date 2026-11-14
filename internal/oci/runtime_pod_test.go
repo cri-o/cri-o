@@ -614,7 +614,7 @@ done
 			reopenErr := sut.ReopenContainerLog(context.Background(), c)
 
 			// Then
-			Expect(execErr).To(MatchError(ContainSubstring("of container id is gone")))
+			Expect(execErr).To(MatchError("no runtime implementation for container id"))
 			Expect(reopenErr).To(MatchError(ContainSubstring("of container id is gone")))
 			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
 			Expect(runtimeCalls).ToNot(BeAnExistingFile())
