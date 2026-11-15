@@ -1,9 +1,9 @@
 # Software versions to be used.
 declare -A VERSIONS=(
     ["cni-plugins"]=v1.9.1
-    ["conmon"]=v2.2.1
-    ["cri-tools"]=v1.37.0
-    ["crun"]=1.29.1
+    ["conmon"]=23c8436f5d75561623dcdff132c7a98f56633b8b
+    ["cri-tools"]=45dba98491b1c334aadd73879e3dcac6446b0c95
+    ["crun"]=7ae6bf3e96eeee193d62d20f6d370b991dec3b3a
     ["runc"]=v1.5.1
     ["bats"]=v1.14.0
 )
