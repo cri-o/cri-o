@@ -1380,6 +1380,10 @@ function assert_linked_logs_readonly() {
 	if [[ $RUNTIME_TYPE == vm ]]; then
 		skip "not applicable to vm runtime type"
 	fi
+	# Mapped root cannot write host-root-owned logs, masking read-only mount errors.
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
 	setup_crio
 	create_runtime_with_allowed_annotation logs link-logs.crio.io
 	start_crio_no_setup
@@ -1492,6 +1496,10 @@ function assert_linked_logs_readonly() {
 @test "ctr log linking both runtime and workload" {
 	if [[ $RUNTIME_TYPE == vm ]]; then
 		skip "not applicable to vm runtime type"
+	fi
+	# Mapped root cannot write host-root-owned logs, masking read-only mount errors.
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
 	fi
 	setup_crio
 	create_runtime_with_allowed_annotation logs link-logs.crio.io
