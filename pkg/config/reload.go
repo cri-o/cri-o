@@ -15,6 +15,7 @@ import (
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/log"
 )
 
@@ -228,29 +229,44 @@ func (c *Config) ReloadDecryptionKeyConfig(newConfig *Config) {
 	}
 }
 
-// ReloadSeccompProfile reloads the seccomp profile from the new config if
-// their paths differ.
+// ReloadSeccompProfile reloads the seccomp profile and the baseline from the
+// new config, which replace the old ones at once and only if both load. The
+// profiles of the runtime handlers are reloaded by ReloadRuntimes, which
+// knows which handlers the new config has.
 func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 	// Reload the seccomp profile in any case because its content could have
 	// changed as well
+	next := seccomp.New()
+
 	if newConfig.SeccompProfile == "" {
-		if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
+		if err := next.LoadDefaultProfile(); err != nil {
 			return fmt.Errorf("unable to load default seccomp profile: %w", err)
 		}
-	} else if err := c.seccompConfig.LoadProfile(newConfig.SeccompProfile); err != nil {
+	} else if err := next.LoadProfile(newConfig.SeccompProfile); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("unable to load seccomp profile: %w", err)
 		}
 
 		logrus.Info("Seccomp profile does not exist on disk, fallback to internal default profile")
 
-		if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
+		if err := next.LoadDefaultProfile(); err != nil {
 			return fmt.Errorf("unable to load default seccomp profile: %w", err)
 		}
 	}
 
+	// Reload the baseline in any case, because an empty value refers to the
+	// seccomp profile, and the file content could have changed as well.
+	if err := next.LoadBaselineProfile(newConfig.SeccompBaselineProfile, false); err != nil {
+		return fmt.Errorf("unable to load seccomp baseline profile: %w", err)
+	}
+
+	c.seccompConfig.Replace(next)
+
 	c.SeccompProfile = newConfig.SeccompProfile
 	logConfig("seccomp_profile", c.SeccompProfile)
+
+	c.SeccompBaselineProfile = newConfig.SeccompBaselineProfile
+	logConfig("seccomp_baseline_profile", c.SeccompBaselineProfile)
 
 	c.PrivilegedSeccompProfile = newConfig.PrivilegedSeccompProfile
 	logConfig("privileged_seccomp_profile", c.PrivilegedSeccompProfile)
@@ -324,6 +340,13 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 	validated.Runtimes = make(Runtimes, len(newConfig.Runtimes))
 	for name, handler := range newConfig.Runtimes {
 		handlerCopy := *handler
+
+		// A handler keeps its seccomp profile if the profile does not load
+		// again, as long as its path stays the same.
+		if running, ok := c.Runtimes[name]; ok && running.SeccompProfile == handler.SeccompProfile {
+			handlerCopy.seccompConfig = running.seccompConfig
+		}
+
 		validated.Runtimes[name] = &handlerCopy
 	}
 
@@ -335,12 +358,19 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 		return fmt.Errorf("unable to reload runtimes: %w", err)
 	}
 
-	for _, handler := range validated.Runtimes {
-		if handler.seccompConfig != nil {
-			handler.seccompConfig.SetNotifierPath(
-				filepath.Join(filepath.Dir(c.Listen), "seccomp"),
-			)
+	for name, handler := range validated.Runtimes {
+		if handler.seccompConfig == nil {
+			continue
 		}
+
+		// A kept profile is in use and has its notifier path already.
+		if running, ok := c.Runtimes[name]; ok && running.seccompConfig == handler.seccompConfig {
+			continue
+		}
+
+		handler.seccompConfig.SetNotifierPath(
+			filepath.Join(filepath.Dir(c.Listen), "seccomp"),
+		)
 	}
 
 	runtimesChanged := !RuntimesEqual(c.Runtimes, validated.Runtimes)

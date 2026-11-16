@@ -15,6 +15,7 @@ import (
 	"go.podman.io/storage/pkg/archive"
 
 	"github.com/cri-o/cri-o/internal/annotations"
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 )
@@ -304,14 +305,14 @@ func (c *ContainerServer) ContainerRestore(
 
 	ctr.SetSandbox(ctr.Sandbox())
 
-	saveOptions := generate.ExportOptions{}
-	if err := ctrSpec.SaveToFile(filepath.Join(ctr.Dir(), "config.json"), saveOptions); err != nil {
+	if err := seccomp.SaveSpecToFile(
+		&ctrSpec, filepath.Join(ctr.Dir(), "config.json"),
+	); err != nil {
 		return "", err
 	}
 
-	if err := ctrSpec.SaveToFile(
-		filepath.Join(ctr.BundlePath(), "config.json"),
-		saveOptions,
+	if err := seccomp.SaveSpecToFile(
+		&ctrSpec, filepath.Join(ctr.BundlePath(), "config.json"),
 	); err != nil {
 		return "", err
 	}

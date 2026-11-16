@@ -28,6 +28,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/annotations"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
+	"github.com/cri-o/cri-o/internal/config/seccomp"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/constants"
@@ -802,7 +803,9 @@ func (s *Server) runPodSandbox(
 		return nil, err
 	}
 
-	seccompRef, err := s.setupSandboxSeccomp(ctx, g, runtimeHandler, privileged, securityContext)
+	seccompRef, err := s.setupSandboxSeccomp(
+		ctx, g, runtimeHandler, privileged, securityContext, namespace, kubeName,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1421,6 +1424,7 @@ func (s *Server) setupSandboxSeccomp(
 	runtimeHandler string,
 	privileged bool,
 	securityContext *types.LinuxSandboxSecurityContext,
+	namespace, kubeName string,
 ) (string, error) {
 	seccompRef := types.SecurityProfile_Unconfined.String()
 	setupSeccompForPrivCtr := (privileged && s.config.PrivilegedSeccompProfile != "")
@@ -1450,6 +1454,7 @@ func (s *Server) setupSandboxSeccomp(
 			g,
 			securityContext.GetSeccomp(),
 			s.Store().GraphRoot(),
+			s.securityProfiles.For(namespace, namespace+"/"+kubeName),
 		)
 		if err != nil {
 			return "", fmt.Errorf("setup seccomp: %w", err)
@@ -1754,11 +1759,8 @@ func (s *Server) configureAndSaveInfraContainer(
 		return err
 	}
 
-	saveOptions := generate.ExportOptions{}
-
-	if err := g.SaveToFile(
-		filepath.Join(podContainer.Dir, "config.json"),
-		saveOptions,
+	if err := seccomp.SaveSpecToFile(
+		g, filepath.Join(podContainer.Dir, "config.json"),
 	); err != nil {
 		return fmt.Errorf(
 			"failed to save template configuration for pod sandbox %s(%s): %w",
@@ -1768,9 +1770,8 @@ func (s *Server) configureAndSaveInfraContainer(
 		)
 	}
 
-	if err := g.SaveToFile(
-		filepath.Join(podContainer.RunDir, "config.json"),
-		saveOptions,
+	if err := seccomp.SaveSpecToFile(
+		g, filepath.Join(podContainer.RunDir, "config.json"),
 	); err != nil {
 		return fmt.Errorf(
 			"failed to write runtime configuration for pod sandbox %s(%s): %w",

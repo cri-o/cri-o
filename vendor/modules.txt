@@ -1817,6 +1817,12 @@ sigs.k8s.io/release-utils/command
 sigs.k8s.io/release-utils/env
 sigs.k8s.io/release-utils/env/internal
 sigs.k8s.io/release-utils/helpers
+# sigs.k8s.io/security-profiles-merger v0.7.1
+## explicit; go 1.24
+sigs.k8s.io/security-profiles-merger/internal/merge
+sigs.k8s.io/security-profiles-merger/internal/strictjson
+sigs.k8s.io/security-profiles-merger/seccomp
+sigs.k8s.io/security-profiles-merger/spm
 # sigs.k8s.io/structured-merge-diff/v7 v7.0.1
 ## explicit; go 1.27
 sigs.k8s.io/structured-merge-diff/v7/fieldpath
