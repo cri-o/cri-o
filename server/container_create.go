@@ -737,7 +737,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
-	containerVolumes, ociMounts, safeMounts, err := s.addOCIBindMounts(ctx, ctr, containerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport)
+	containerVolumes, ociMounts, safeMounts, err := s.addOCIBindMounts(ctx, ctr, containerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, sb)
 	if err != nil {
 		return nil, err
 	}

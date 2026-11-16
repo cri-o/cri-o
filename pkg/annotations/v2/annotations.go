@@ -19,7 +19,7 @@ const (
 	DisableFIPS = "disable-fips.crio.io"
 
 	// LinkLogs indicates that CRI-O should link the pod containers logs into the specified
-	// emptyDir volume.
+	// emptyDir volume. The volume is mounted read-only in containers.
 	LinkLogs = "link-logs.crio.io"
 
 	// PlatformRuntimePath indicates the runtime path that CRI-O should use for a specific platform.
