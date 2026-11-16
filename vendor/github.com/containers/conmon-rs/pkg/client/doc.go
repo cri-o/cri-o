@@ -15,21 +15,33 @@
 // releases them, the server and its containers keep running. Shutdown stops
 // the server, which kills its containers before it exits, and releases them
 // once the server is gone. If the server does not exit in time, Shutdown
-// fails with ErrShutdownTimeout, and ShutdownContext fails as well once its
-// context ends first. Either way, the client keeps its pidfd of the server
-// open: KillContext (or Kill) ends the server with SIGKILL and releases them
-// as well, or Close releases them and leaves the server running. Close is
-// safe to call at any time, see its documentation for what it covers.
+// fails with ErrShutdownTimeout, or with the error of its context once that
+// ends first. Either way, the client keeps its pidfd of the server open:
+// Kill ends the server with SIGKILL and releases them as well, or Close
+// releases them and leaves the server running. Close is safe to call at any
+// time, see its documentation for what it covers.
 //
 // # Features
 //
 // Servers of older releases do not support every method or field. The
-// Features of the response of Version list what the server supports beyond
+// Features of the result of Version list what the server supports beyond
 // what its version tells, see the Feature constants. SupportsFeature checks
 // one of them for the server the client is connected to, which may be older
-// than the binary on disk. Methods which need a feature fail with
-// ErrUnsupported on a server without it, fields which an older server
-// ignores say so in their documentation.
+// than the binary on disk.
+//
+// A request fails with ErrUnsupported on a server without the feature it
+// needs if dropping it would change what the container or the session does:
+// ServePortForwardContainer needs FeaturePortForward, and CreateContainer
+// with a RestorePath needs FeatureRestore. Best effort fields get
+// dropped by an older server instead, the request succeeds without them:
+// the IdleTimeout of ServeExecContainerConfig and ServeAttachContainerConfig
+// without FeatureIdleTimeout, which the client logs a warning about once, and
+// the ContainerName of a ContainerLogDriver on servers before v1.2.1. Fields
+// which an older server ignores say so in their documentation.
+// ServeExecContainer and ServeAttachContainer succeed on a server without
+// FeatureStreamingProtocols, only the SPDY or older WebSocket upgrade of the
+// client fails then, so a caller which serves such clients checks the
+// feature itself.
 //
 // # Errors
 //
@@ -39,14 +51,16 @@
 // leaves the container to the runtime instead, the result of one which the
 // runtime does not know has ExecExitCodeNotStarted. A configuration with an
 // unknown value of a type like CgroupManager fails without asking the server
-// with an error matching ErrInvalidValue, too many file descriptors for one
-// request of RemoteFDs with ErrTooManyFileDescriptors. ErrUnsupported, see
-// Features, also matches errors.ErrUnsupported.
+// with an error matching ErrInvalidValue. ErrUnsupported, see Features, also
+// matches errors.ErrUnsupported.
 //
 // A call fails with an error matching ErrServerUnreachable if no server
-// listens on the socket when the client connects, and with
-// ErrServerDisconnected if the connection ended during the call, for example
-// because the server exited. The next call connects again in both cases.
+// listens on the socket when the client connects, with
+// ErrServerNotResponding if the backlog of the socket is full then, and with
+// ErrServerDisconnected if the connection ended before the request could be
+// sent or during the call, for example because the server exited. That error
+// does not tell whether the server got the request. The next call connects
+// again in each case.
 //
 // # Streaming
 //

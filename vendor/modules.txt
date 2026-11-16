@@ -37,7 +37,7 @@ dario.cat/mergo
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/Masterminds/semver/v3 v3.4.0
+# github.com/Masterminds/semver/v3 v3.5.0
 ## explicit; go 1.21
 github.com/Masterminds/semver/v3
 # github.com/Microsoft/go-winio v0.6.4
@@ -230,14 +230,14 @@ github.com/containernetworking/cni/pkg/types/create
 github.com/containernetworking/cni/pkg/types/internal
 github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v1.9.1
-## explicit; go 1.24.2
+# github.com/containernetworking/plugins v1.10.0
+## explicit; go 1.26.8
 github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v1.2.2
-## explicit; go 1.27.1
+# github.com/containers/conmon-rs v1.2.3
+## explicit; go 1.27.2
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
 # github.com/containers/kubensmnt v1.3.0
@@ -277,8 +277,8 @@ github.com/creack/pty
 ## explicit; go 1.24.0
 github.com/cri-o/crio-credential-provider/pkg/auth
 github.com/cri-o/crio-credential-provider/pkg/config
-# github.com/cri-o/ocicni v0.5.1
-## explicit; go 1.25.0
+# github.com/cri-o/ocicni v0.6.0
+## explicit; go 1.26.8
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
 ## explicit
@@ -559,8 +559,8 @@ github.com/google/nftables/expr
 github.com/google/nftables/internal/parseexprfunc
 github.com/google/nftables/userdata
 github.com/google/nftables/xt
-# github.com/google/pprof v0.0.0-20260402051712-545e8a4df936
-## explicit; go 1.24.0
+# github.com/google/pprof v0.0.0-20261111200114-fac431ef4d26
+## explicit; go 1.26.0
 github.com/google/pprof/profile
 # github.com/google/renameio v1.0.1
 ## explicit; go 1.13
@@ -641,7 +641,7 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.23
 ## explicit; go 1.20
 github.com/mattn/go-runewidth
-# github.com/mattn/go-shellwords v1.0.13
+# github.com/mattn/go-shellwords v1.0.16
 ## explicit; go 1.13
 github.com/mattn/go-shellwords
 # github.com/mattn/go-sqlite3 v1.14.44
@@ -1086,7 +1086,6 @@ go.podman.io/common/pkg/capabilities
 go.podman.io/common/pkg/cgroups
 go.podman.io/common/pkg/config
 go.podman.io/common/pkg/crutils
-go.podman.io/common/pkg/detach
 go.podman.io/common/pkg/download
 go.podman.io/common/pkg/filters
 go.podman.io/common/pkg/hooks
@@ -1233,7 +1232,7 @@ go.uber.org/mock/mockgen/model
 # go.yaml.in/yaml/v2 v2.4.4
 ## explicit; go 1.15
 go.yaml.in/yaml/v2
-# go.yaml.in/yaml/v3 v3.0.5
+# go.yaml.in/yaml/v3 v3.0.6
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
 # golang.org/x/crypto v0.58.0
@@ -1264,7 +1263,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/mod v0.42.0
+# golang.org/x/mod v0.43.0
 ## explicit; go 1.26.0
 golang.org/x/mod/semver
 # golang.org/x/net v0.62.0
@@ -1289,11 +1288,11 @@ golang.org/x/net/websocket
 ## explicit; go 1.26.0
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.24.0
+# golang.org/x/sync v0.25.0
 ## explicit; go 1.26.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.49.0
+# golang.org/x/sys v0.50.0
 ## explicit; go 1.26.0
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1304,7 +1303,7 @@ golang.org/x/sys/windows/registry
 # golang.org/x/term v0.47.0
 ## explicit; go 1.26.0
 golang.org/x/term
-# golang.org/x/text v0.43.0
+# golang.org/x/text v0.44.0
 ## explicit; go 1.26.0
 golang.org/x/text/currency
 golang.org/x/text/encoding
@@ -1834,7 +1833,7 @@ sigs.k8s.io/structured-merge-diff/v7/value
 # sigs.k8s.io/yaml v1.6.0
 ## explicit; go 1.22
 sigs.k8s.io/yaml
-# tags.cncf.io/container-device-interface v1.1.1
+# tags.cncf.io/container-device-interface v1.1.2
 ## explicit; go 1.23
 tags.cncf.io/container-device-interface/internal/ociedit
 tags.cncf.io/container-device-interface/internal/validation

@@ -18,8 +18,8 @@ type ServeExecContainerConfig struct {
 	// Command is the command to be run.
 	Command []string
 
-	// Tty indicates if a tty should be used or not.
-	Tty bool
+	// Whether the command runs with a terminal.
+	Terminal bool
 
 	// Stdin indicates if stdin should be available or not. The stdin of the
 	// process gets closed once the client closed its stdin, which only SPDY
@@ -34,20 +34,14 @@ type ServeExecContainerConfig struct {
 	// Stderr indicates if stderr should be available or not.
 	Stderr bool
 
-	// CgroupManager can be used to select the cgroup manager.
-	//
-	// To use this option set [ConmonServerConfig.CgroupManager] to
-	// [CgroupManagerPerCommand].
-	CgroupManager CgroupManager
-
 	// IdleTimeout fails a session whose connection got no frame of the
 	// client and no data either way for this long, rounded up to whole
 	// seconds, and kills the process then. WebSocket pings and pongs, the
 	// pings of the server and the answers to them and other control frames
 	// of the server do not count. Stdin counts once the server reads it,
 	// stdin which backs up behind a process which does not read it stops
-	// that. Zero disables the timeout. Servers without [FeatureIdleTimeout]
-	// ignore it.
+	// that. Zero disables the timeout. Servers before v1.2.0 ignore it, the
+	// client logs a warning once then.
 	IdleTimeout time.Duration
 }
 
@@ -64,8 +58,8 @@ type ServeExecContainerResult struct {
 // and the older WebSocket versions down to channel.k8s.io.
 //
 // See the Streaming section of the package documentation for how long the
-// URL is good for and how many may wait (ErrTooManyRequests), and usage.md
-// in the repository for the protocols.
+// URL is good for and how many may wait (ErrTooManyRequests), and
+// docs/protocols.md in the repository for the protocols.
 func (c *ConmonClient) ServeExecContainer(
 	ctx context.Context,
 	cfg *ServeExecContainerConfig,
@@ -75,10 +69,6 @@ func (c *ConmonClient) ServeExecContainer(
 
 	if cfg == nil {
 		return nil, ErrMissingConfig
-	}
-
-	if err := c.validateCgroupManager(cfg.CgroupManager); err != nil {
-		return nil, err
 	}
 
 	url, err := call(ctx, c, proto.Conmon.ServeExecContainer,
@@ -91,13 +81,13 @@ func (c *ConmonClient) ServeExecContainer(
 				return fmt.Errorf("convert command to text list: %w", err)
 			}
 
-			req.SetTty(cfg.Tty)
+			req.SetTty(cfg.Terminal)
 			req.SetStdin(cfg.Stdin)
 			req.SetStdout(cfg.Stdout)
 			req.SetStderr(cfg.Stderr)
-			req.SetIdleTimeoutSec(idleTimeoutSeconds(cfg.IdleTimeout))
-
-			c.setCgroupManager(cfg.CgroupManager, req)
+			req.SetIdleTimeoutSec(timeoutSeconds(cfg.IdleTimeout))
+			c.warnIgnoredIdleTimeout(cfg.IdleTimeout)
+			req.SetCgroupManager(proto.Conmon_CgroupManager(c.cgroupManager))
 
 			return nil
 		},
@@ -137,17 +127,11 @@ type ServeAttachContainerConfig struct {
 	// terminal, the end of the stdin of the client ends the session.
 	StopAfterStdinEOF bool
 
-	// CgroupManager can be used to select the cgroup manager.
-	//
-	// Deprecated: Attach does not run the runtime, so the value was never
-	// sent and has no effect.
-	CgroupManager CgroupManager
-
 	// IdleTimeout fails a session which was idle for this long, like
 	// [ServeExecContainerConfig.IdleTimeout], without killing anything.
 	// Stdin which backs up behind a container which does not read it stops
-	// counting. Zero disables the timeout. Servers without
-	// [FeatureIdleTimeout] ignore it.
+	// counting. Zero disables the timeout. Servers before v1.2.0 ignore it,
+	// the client logs a warning once then.
 	IdleTimeout time.Duration
 }
 
@@ -161,8 +145,8 @@ type ServeAttachContainerResult struct {
 // a running container. Clients speak the protocols of ServeExecContainer.
 //
 // See the Streaming section of the package documentation for how long the
-// URL is good for and how many may wait (ErrTooManyRequests), and usage.md
-// in the repository for the protocols.
+// URL is good for and how many may wait (ErrTooManyRequests), and
+// docs/protocols.md in the repository for the protocols.
 func (c *ConmonClient) ServeAttachContainer(
 	ctx context.Context,
 	cfg *ServeAttachContainerConfig,
@@ -184,7 +168,8 @@ func (c *ConmonClient) ServeAttachContainer(
 			req.SetStdout(cfg.Stdout)
 			req.SetStderr(cfg.Stderr)
 			req.SetStopAfterStdinEof(cfg.StopAfterStdinEOF)
-			req.SetIdleTimeoutSec(idleTimeoutSeconds(cfg.IdleTimeout))
+			req.SetIdleTimeoutSec(timeoutSeconds(cfg.IdleTimeout))
+			c.warnIgnoredIdleTimeout(cfg.IdleTimeout)
 
 			return nil
 		},
@@ -229,8 +214,8 @@ type ServePortForwardContainerResult struct {
 // Servers without the FeaturePortForward feature return ErrUnsupported.
 //
 // See the Streaming section of the package documentation for how long the
-// URL is good for and how many may wait (ErrTooManyRequests), and usage.md
-// in the repository for the protocols.
+// URL is good for and how many may wait (ErrTooManyRequests), and
+// docs/protocols.md in the repository for the protocols.
 func (c *ConmonClient) ServePortForwardContainer(
 	ctx context.Context,
 	cfg *ServePortForwardContainerConfig,
@@ -238,29 +223,23 @@ func (c *ConmonClient) ServePortForwardContainer(
 	ctx, span := c.startSpan(ctx, "ServePortForwardContainer")
 	defer endSpan(span, &retErr)
 
-	// Both errors, a nil config always failed with the latter.
 	if cfg == nil {
-		return nil, fmt.Errorf("%w: %w", ErrMissingConfig, ErrMissingNetNsPath)
+		return nil, ErrMissingConfig
 	}
 
 	if cfg.NetNsPath == "" {
-		return nil, ErrMissingNetNsPath
+		return nil, fmt.Errorf("%w: network namespace path is empty", ErrInvalidValue)
 	}
 
 	// The request goes to the checked server.
-	rpcClient, err := c.requireServerFeature(ctx, FeaturePortForward, "port forwarding")
-	if err != nil {
-		return nil, err
-	}
-	defer rpcClient.Release()
-
-	url, err := callOn(ctx, c, rpcClient, proto.Conmon.ServePortForwardContainer,
+	url, err := callRequiring(ctx, c, FeaturePortForward, "port forwarding",
+		proto.Conmon.ServePortForwardContainer,
 		func(req proto.Conmon_ServePortForwardContainerRequest) error {
 			if setErr := req.SetNetNsPath(cfg.NetNsPath); setErr != nil {
 				return fmt.Errorf("set network namespace path: %w", setErr)
 			}
 
-			req.SetIdleTimeoutSec(idleTimeoutSeconds(cfg.IdleTimeout))
+			req.SetIdleTimeoutSec(timeoutSeconds(cfg.IdleTimeout))
 
 			return nil
 		},
@@ -283,12 +262,33 @@ func readURL[T interface{ Url() (string, error) }](response T) (string, error) {
 	return url, nil
 }
 
-// idleTimeoutSeconds converts an idle timeout to seconds, rounded up so that a
-// short timeout does not disable it.
-func idleTimeoutSeconds(timeout time.Duration) uint64 {
+// timeoutSeconds converts a timeout to seconds, rounded up so that a short
+// timeout does not disable it, zero or less for none. Rounded without adding
+// a second first, which would overflow close to the largest duration.
+func timeoutSeconds(timeout time.Duration) uint64 {
 	if timeout <= 0 {
 		return 0
 	}
 
-	return uint64((timeout + time.Second - 1) / time.Second)
+	return uint64((timeout-1)/time.Second + 1)
+}
+
+// warnIgnoredIdleTimeout warns once if the server ignores the idle timeout of
+// an exec or attach session. Unlike a field whose absence changes what the
+// container does, the request does not fail then: CRI-O sets the timeout for
+// every session, also on a server which outlived an upgrade of CRI-O. It
+// relies on the recorded features, see SupportsFeature.
+func (c *ConmonClient) warnIgnoredIdleTimeout(timeout time.Duration) {
+	features := c.serverFeatures()
+	if timeout <= 0 || features == nil || features[FeatureIdleTimeout] {
+		return
+	}
+
+	c.idleTimeoutWarning.Do(func() {
+		c.logger.Warnf(
+			"Server PID %d on %s does not report the %q feature and ignores the idle "+
+				"timeout of exec and attach sessions (logged once)",
+			c.PID(), c.socket(), FeatureIdleTimeout,
+		)
+	})
 }
