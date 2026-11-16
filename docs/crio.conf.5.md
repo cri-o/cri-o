@@ -439,6 +439,8 @@ The currently recognized values are:
 Note that the annotation works on containers as well as on images.
 "io.kubernetes.cri-o.DisableFIPS" for disabling FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
 
+The `link-logs.crio.io` annotation (formerly `io.kubernetes.cri-o.LinkLogs`) exposes pod logs through the named emptyDir volume. CRI-O mounts this volume read-only in containers, even when the container requests write access. Log collectors must store offsets, buffers, and other writable state in a separate volume.
+
 #### Using the seccomp notifier feature:
 
 This feature can help you to debug seccomp related issues, for example if

@@ -21,12 +21,14 @@ import (
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
 
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/linklogs"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/ociartifact"
@@ -149,7 +151,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, sb *sandbox.Sandbox) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -198,6 +200,21 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	mountInfos, err := mount.GetMounts()
 	if err != nil {
 		return nil, nil, nil, err
+	}
+
+	var logMounts *linklogs.Mounts
+
+	if sb != nil {
+		if volumeName, ok := v2.GetAnnotationValue(sb.Annotations(), v2.LinkLogs); ok {
+			logMounts, err = linklogs.NewMounts(
+				sb.Labels()[kubeletTypes.KubernetesPodUIDLabel],
+				volumeName,
+				mountInfos,
+			)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("identify linked log volume: %w", err)
+			}
+		}
 	}
 
 	imageVolumesPath, err := s.ensureImageVolumesPath(ctx, mounts)
@@ -292,6 +309,13 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			}
 		}
 
+		// Include kubelet subPath bind aliases when enforcing read-only log access.
+		linked, err := logMounts.Contains(src)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("identify linked log mount %q: %w", src, err)
+		}
+
+		readOnly := m.GetReadonly() || linked
 		options := []string{"rbind"}
 
 		// mount propagation
@@ -331,6 +355,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 
 		// Recursive Read-only (RRO) support requires the mount to be
 		// read-only and the mount propagation set to private.
+		// Validate the original request even when linked logs force read-only access.
 		switch {
 		case m.GetRecursiveReadOnly() && m.GetReadonly():
 			if !rroSupport {
@@ -353,7 +378,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 				"recursive read-only mount conflicts with read-write mount for hostPath %q",
 				m.GetHostPath(),
 			)
-		case m.GetReadonly():
+		case readOnly:
 			options = append(options, "ro")
 		default:
 			options = append(options, "rw")
@@ -372,7 +397,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		volumes = append(volumes, oci.ContainerVolume{
 			ContainerPath:     dest,
 			HostPath:          src,
-			Readonly:          m.GetReadonly(),
+			Readonly:          readOnly,
 			RecursiveReadOnly: m.GetRecursiveReadOnly(),
 			Propagation:       m.GetPropagation(),
 			SelinuxRelabel:    m.GetSelinuxRelabel(),
