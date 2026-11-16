@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 16 Nov 2026 08:18:13 UTC for commit [f750f98][0]._
+_Generated on Mon, 16 Nov 2026 11:26:24 UTC for commit [856652e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f750f98a218c1bb47727889316a5e418b0dfc56d
+[0]: https://github.com/cri-o/cri-o/commit/856652e9e3eb74f004e6c455f48a556125ac30a3
 
 ## Outdated Dependencies
 
@@ -316,11 +316,11 @@ _Generated on Mon, 16 Nov 2026 08:18:13 UTC for commit [f750f98][0]._
 | github.com/go-logr/logr                                                     | v1.4.4                                 |                                        | true   | true             |
 | github.com/go-logr/stdr                                                     | v1.2.2                                 |                                        | false  | true             |
 | github.com/go-logr/zapr                                                     | v1.3.0                                 |                                        | false  | true             |
-| github.com/go-openapi/analysis                                              | v1.0.0                                 | v1.0.1                                 | false  | true             |
+| github.com/go-openapi/analysis                                              | v1.0.0                                 | v1.0.2                                 | false  | true             |
 | github.com/go-openapi/errors                                                | v0.22.9                                |                                        | false  | true             |
 | github.com/go-openapi/jsonpointer                                           | v1.0.2                                 |                                        | false  | true             |
 | github.com/go-openapi/jsonreference                                         | v1.0.2                                 | v1.0.3                                 | false  | true             |
-| github.com/go-openapi/loads                                                 | v0.25.3                                |                                        | false  | true             |
+| github.com/go-openapi/loads                                                 | v0.25.3                                | v0.25.4                                | false  | true             |
 | github.com/go-openapi/runtime                                               | v0.33.3                                | v0.33.4                                | false  | true             |
 | github.com/go-openapi/runtime/server-middleware                             | v0.33.3                                | v0.33.4                                | false  | true             |
 | github.com/go-openapi/spec                                                  | v1.0.1                                 |                                        | false  | true             |
@@ -340,7 +340,7 @@ _Generated on Mon, 16 Nov 2026 08:18:13 UTC for commit [f750f98][0]._
 | github.com/go-openapi/swag/yamlutils                                        | v0.29.2                                |                                        | false  | true             |
 | github.com/go-openapi/testify/enable/yaml/v2                                | v2.7.0                                 | v2.8.1                                 | false  | true             |
 | github.com/go-openapi/testify/v2                                            | v2.8.0                                 | v2.8.1                                 | false  | true             |
-| github.com/go-openapi/validate                                              | v1.0.0                                 | v1.0.1                                 | false  | true             |
+| github.com/go-openapi/validate                                              | v1.0.0                                 | v1.0.2                                 | false  | true             |
 | github.com/go-rod/rod                                                       | v0.116.2                               |                                        | false  | true             |
 | github.com/go-stack/stack                                                   | v1.8.0                                 | v1.8.1                                 | false  | true             |
 | github.com/go-task/slim-sprig/v3                                            | v3.0.0                                 |                                        | false  | true             |
