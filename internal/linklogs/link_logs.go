@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
+	"path/filepath"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -26,13 +26,6 @@ func MountPodLogs(
 	ctx context.Context,
 	kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel string,
 ) error {
-	// Validate the empty dir volume name
-	// This uses the same validation as the one in kubernetes
-	// It can be alphanumeric with dashes allowed in between
-	if errs := validation.IsDNS1123Label(emptyDirVolName); len(errs) != 0 {
-		return errors.New("empty dir vol name is invalid")
-	}
-
 	emptyDirLoggingVolumePath, err := podEmptyDirPath(kubePodUID, emptyDirVolName)
 	if err != nil {
 		return fmt.Errorf("failed to get empty dir path: %w", err)
@@ -114,15 +107,18 @@ func LinkContainerLogs(
 }
 
 func podEmptyDirPath(podUID, emptyDirVolName string) (string, error) {
-	relativePath := strings.Join(
-		[]string{podUID, "volumes", kubeletEmptyDirLogDir, emptyDirVolName},
-		"/",
-	)
-
-	dirPath, err := securejoin.SecureJoin(kubeletPodsRootDir, relativePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to join %v and %v: %w", kubeletPodsRootDir, relativePath, err)
+	// Mounting, linking, and unmounting must validate the volume name.
+	if errs := validation.IsDNS1123Label(emptyDirVolName); len(errs) != 0 {
+		return "", errors.New("empty dir vol name is invalid")
 	}
 
-	return dirPath, err
+	// This path assumes a trusted pod UID supplied by kubelet.
+	emptyDirRoot := filepath.Join(kubeletPodsRootDir, podUID, "volumes", kubeletEmptyDirLogDir)
+
+	dirPath, err := securejoin.SecureJoin(emptyDirRoot, emptyDirVolName)
+	if err != nil {
+		return "", fmt.Errorf("failed to join %v and %v: %w", emptyDirRoot, emptyDirVolName, err)
+	}
+
+	return dirPath, nil
 }
