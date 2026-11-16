@@ -124,8 +124,11 @@ function assert_linked_logs_readonly() {
 
 	run ! --separate-stderr crictl exec --sync "$ctr_id" touch "$log_dir/forbidden"
 	[[ "$stderr" == *"Read-only file system"* ]]
+	# Expand $1 inside the container, not in the test shell.
+	# shellcheck disable=SC2016
 	run ! --separate-stderr crictl exec --sync "$ctr_id" sh -c 'echo forbidden >> "$1"' sh "$log_file"
 	[[ "$stderr" == *"Read-only file system"* ]]
+	# shellcheck disable=SC2016
 	run ! --separate-stderr crictl exec --sync "$ctr_id" sh -c ': > "$1"' sh "$log_file"
 	[[ "$stderr" == *"Read-only file system"* ]]
 	run ! --separate-stderr crictl exec --sync "$ctr_id" rm "$log_file"
