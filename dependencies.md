@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 16 Nov 2026 11:26:24 UTC for commit [856652e][0]._
+_Generated on Mon, 16 Nov 2026 14:38:25 UTC for commit [a1ec11f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/856652e9e3eb74f004e6c455f48a556125ac30a3
+[0]: https://github.com/cri-o/cri-o/commit/a1ec11f705baa8f479af7638d68947d67a65f4a6
 
 ## Outdated Dependencies
 
@@ -281,7 +281,7 @@ _Generated on Mon, 16 Nov 2026 11:26:24 UTC for commit [856652e][0]._
 | github.com/digitorus/timestamp                                              | v0.0.0-20231217203849-220c5c2851b7     | v0.0.0-20260914073129-b4b58b92aa51     | false  | true             |
 | github.com/disiqueira/gotree/v3                                             | v3.0.2                                 |                                        | false  | true             |
 | github.com/distribution/reference                                           | v0.6.0                                 |                                        | false  | true             |
-| github.com/docker/cli                                                       | v29.7.2+incompatible                   | v29.9.3+incompatible                   | false  | true             |
+| github.com/docker/cli                                                       | v29.7.2+incompatible                   | v29.10.0+incompatible                  | false  | true             |
 | github.com/docker/distribution                                              | v2.8.3+incompatible                    |                                        | true   | true             |
 | github.com/docker/docker-credential-helpers                                 | v0.9.7                                 | v0.9.13                                | false  | true             |
 | github.com/docker/go-connections                                            | v0.7.0                                 | v0.8.2                                 | false  | true             |
@@ -543,7 +543,7 @@ _Generated on Mon, 16 Nov 2026 11:26:24 UTC for commit [856652e][0]._
 | github.com/sigstore/sigstore/pkg/signature/kms/azure                        | v1.10.6                                | v1.11.3                                | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/gcp                          | v1.10.6                                | v1.11.3                                | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/hashivault                   | v1.10.6                                | v1.11.3                                | false  | true             |
-| github.com/sigstore/timestamp-authority/v2                                  | v2.2.0                                 |                                        | false  | true             |
+| github.com/sigstore/timestamp-authority/v2                                  | v2.2.0                                 | v2.2.1                                 | false  | true             |
 | github.com/sirupsen/logrus                                                  | v1.10.2                                |                                        | true   | true             |
 | github.com/skeema/knownhosts                                                | v1.3.2                                 | v1.3.3                                 | false  | true             |
 | github.com/smallstep/pkcs7                                                  | v0.2.1                                 | v0.2.3                                 | false  | true             |
@@ -696,6 +696,7 @@ _Generated on Mon, 16 Nov 2026 11:26:24 UTC for commit [856652e][0]._
 | sigs.k8s.io/randfill                                                        | v1.0.0                                 |                                        | false  | true             |
 | sigs.k8s.io/release-sdk                                                     | v0.13.1                                |                                        | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.12.5                                |                                        | true   | true             |
+| sigs.k8s.io/security-profiles-merger                                        | v0.7.1                                 |                                        | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                        | v4.2.3                                 | v4.7.0                                 | false  | true             |
 | sigs.k8s.io/structured-merge-diff/v6                                        | v6.3.0                                 | v6.4.2                                 | false  | true             |
 | sigs.k8s.io/structured-merge-diff/v7                                        | v7.0.1                                 |                                        | false  | true             |
