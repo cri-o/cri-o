@@ -8,10 +8,29 @@ import (
 	"os"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/vishvananda/netlink"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 )
+
+// bringUpLoopback brings the loopback interface up inside the given network
+// namespace path. Used for network-isolated sandboxes (KEP-6313) where CNI
+// is skipped but `lo` must still be usable.
+func (s *Server) bringUpLoopback(netnsPath string) error {
+	if err := ns.WithNetNSPath(netnsPath, func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName("lo")
+		if err != nil {
+			return err
+		}
+
+		return netlink.LinkSetUp(link)
+	}); err != nil {
+		return fmt.Errorf("error setting loopback interface up: %w", err)
+	}
+
+	return nil
+}
 
 // validateNetworkNamespace checks if the given path is a valid network namespace.
 func (s *Server) validateNetworkNamespace(netnsPath string) error {

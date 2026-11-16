@@ -45,6 +45,13 @@ func (ss *StatsServer) readNetDev(sb *sandbox.Sandbox) (procfs.NetDev, error) {
 		return proc.NetDev()
 	}
 
+	// Network-isolated sandboxes have no default network interface.
+	// Skip collecting network metrics for them to avoid reporting
+	// CNI-provided interface counters that don't exist.
+	if sb.NetworkIsolated() {
+		return nil, nil
+	}
+
 	for _, ctr := range sb.Containers().List() {
 		pid, err := ctr.Pid()
 		if err != nil {

@@ -377,6 +377,7 @@ func (c *ContainerServer) LoadSandbox(
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
+	networkIsolated := isTrue(m.Annotations[annotations.NetworkIsolated])
 
 	nsOpts := types.NamespaceOption{}
 	if err := json.Unmarshal(
@@ -433,6 +434,7 @@ func (c *ContainerServer) LoadSandbox(
 	sbox.SetHostname(m.Annotations[annotations.HostName])
 	sbox.SetPortMappings(portMappings)
 	sbox.SetHostNetwork(hostNetwork)
+	sbox.SetNetworkIsolated(networkIsolated)
 
 	usernsMode, _ := v2.GetAnnotationValue(m.Annotations, v2.UsernsMode)
 	sbox.SetUsernsMode(usernsMode)

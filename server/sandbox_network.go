@@ -13,6 +13,7 @@ import (
 	cnicurrent "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"k8s.io/apimachinery/pkg/api/resource"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	utilnet "k8s.io/utils/net"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -23,6 +24,16 @@ import (
 const (
 	cacheDir = "/var/lib/cni/results"
 )
+
+// isNetworkIsolated handles checking if the sandbox was requested to be
+// network-isolated (KEP-6313 Non Network Pods), i.e. the CNI plugin should
+// not be invoked to set up or tear down its networking.
+// It only applies when NamespaceOption.network is POD; for NODE (host
+// network) sandboxes there is no sandbox network namespace and callers MUST
+// ignore this field. Unset defaults to DEFAULT_NETWORK_POD (historic behavior).
+func isNetworkIsolated(config *types.PodSandboxConfig) bool {
+	return config.GetDefaultNetwork() == types.PodSandboxDefaultNetwork_DEFAULT_NETWORK_NONE
+}
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
 // or an error.
@@ -49,6 +60,21 @@ func (s *Server) networkStart(
 	defer startCancel()
 
 	if sb.HostNetwork() {
+		return nil, nil, nil
+	}
+
+	if sb.NetworkIsolated() {
+		log.Debugf(ctx, "Skipping CNI setup for network-isolated sandbox %s(%s)", sb.Name(), sb.ID())
+
+		if err := s.bringUpLoopback(sb.NetNsPath()); err != nil {
+			return nil, nil, fmt.Errorf(
+				"unable to set lo to up for sandbox %s(%s): %w",
+				sb.Name(),
+				sb.ID(),
+				err,
+			)
+		}
+
 		return nil, nil, nil
 	}
 
@@ -167,6 +193,10 @@ func (s *Server) getSandboxIPs(ctx context.Context, sb *sandbox.Sandbox) ([]stri
 		return nil, nil
 	}
 
+	if sb.NetworkIsolated() {
+		return nil, nil
+	}
+
 	podNetwork, err := s.newPodNetwork(ctx, sb)
 	if err != nil {
 		return nil, err
@@ -208,6 +238,12 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 
 	if sb.HostNetwork() || sb.NetworkStopped() {
 		return nil
+	}
+
+	if sb.NetworkIsolated() {
+		log.Debugf(ctx, "Skipping CNI teardown for network-isolated sandbox %s(%s)", sb.Name(), sb.ID())
+
+		return sb.SetNetworkStopped(ctx, true)
 	}
 	// give a network stop call 1 minutes, half of a StopPod request timeout limit
 	stopCtx, stopCancel := context.WithTimeout(ctx, 1*time.Minute)

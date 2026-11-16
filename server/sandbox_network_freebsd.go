@@ -21,3 +21,8 @@ func (s *Server) validateNetworkNamespace(netnsPath string) error {
 func (s *Server) cleanupNetns(ctx context.Context, netnsPath string, sb *sandbox.Sandbox) {
 	log.Debugf(ctx, "Network namespace cleanup not supported on this platform")
 }
+
+// bringUpLoopback is a no-op on FreeBSD since network namespaces are Linux-specific.
+func (s *Server) bringUpLoopback(netnsPath string) error {
+	return nil
+}
