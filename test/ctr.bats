@@ -116,6 +116,23 @@ function assert_log_linking() {
 	fi
 }
 
+function assert_linked_logs_readonly() {
+	local ctr_id=$1
+	local log_dir=$2
+	local log_file=$3
+	local stderr
+
+	run ! --separate-stderr crictl exec --sync "$ctr_id" touch "$log_dir/forbidden"
+	[[ "$stderr" == *"Read-only file system"* ]]
+	run ! --separate-stderr crictl exec --sync "$ctr_id" sh -c 'echo forbidden >> "$1"' sh "$log_file"
+	[[ "$stderr" == *"Read-only file system"* ]]
+	run ! --separate-stderr crictl exec --sync "$ctr_id" sh -c ': > "$1"' sh "$log_file"
+	[[ "$stderr" == *"Read-only file system"* ]]
+	run ! --separate-stderr crictl exec --sync "$ctr_id" rm "$log_file"
+	[[ "$stderr" == *"Read-only file system"* ]]
+	crictl exec --sync "$ctr_id" grep -E "Hello log linking" "$log_file"
+}
+
 @test "ctr not found correct error message" {
 	start_crio
 	run ! crictl inspect "container_not_exist"
@@ -1363,15 +1380,41 @@ function assert_log_linking() {
 	mkdir -p "$pod_log_dir/$ctr_name"
 	touch "$pod_log_dir/$ctr_name/$ctr_attempt.log"
 
+	# Model a kubelet subpath bind and a symlink alias, plus an ordinary volume.
+	mkdir "$TESTDIR/log-subpath" "$TESTDIR/writable"
+	mount --bind "$pod_empty_dir_volume_path/$ctr_name" "$TESTDIR/log-subpath"
+	ln -s "$pod_empty_dir_volume_path" "$TESTDIR/log-alias"
+
 	# Create a new container
 	jq --arg host_path "$pod_empty_dir_volume_path" --arg ctr_path "$ctr_path" --arg log_path "$ctr_name/$ctr_attempt.log" \
+		--arg test_dir "$TESTDIR" \
 		'	  .command = ["sh", "-c", "echo Hello log linking && sleep 1000"]
 		| .log_path = $log_path
 		| .mounts = [ {
 				host_path: $host_path,
-				container_path: $ctr_path
+				container_path: $ctr_path,
+				selinux_relabel: true
+			}, {
+				host_path: ($test_dir + "/log-subpath"),
+				container_path: "/mnt/log-subpath",
+				readonly: false
+			}, {
+				host_path: ($test_dir + "/log-alias"),
+				container_path: "/mnt/log-alias",
+				readonly: false
+			}, {
+				host_path: ($test_dir + "/writable"),
+				container_path: "/mnt/writable",
+				selinux_relabel: true,
+				readonly: false
 			} ]' \
 		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+
+	# Forcing linked logs read-only must not accept an invalid RRO request.
+	jq '.mounts[0].recursive_read_only = true' "$TESTDIR/container_config.json" > "$TESTDIR/invalid-rro.json"
+	run ! crictl create "$pod_id" "$TESTDIR/invalid-rro.json" "$TESTDIR/sandbox_config.json"
+	[[ "$output" == *"recursive read-only mount conflicts with read-write mount"* ]]
+
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDIR/sandbox_config.json")
 
 	# Check that the log is linked
@@ -1391,8 +1434,30 @@ function assert_log_linking() {
 
 	crictl exec --sync "$ctr_id" grep -E "Hello log linking" "$ctr_path"/"$ctr_id.log"
 
+	assert_linked_logs_readonly "$ctr_id" "$ctr_path" "$ctr_path/$ctr_id.log"
+	assert_linked_logs_readonly "$ctr_id" "$ctr_path/$ctr_name" "$ctr_path/$ctr_name/$ctr_attempt.log"
+	assert_linked_logs_readonly "$ctr_id" /mnt/log-subpath "/mnt/log-subpath/$ctr_attempt.log"
+	assert_linked_logs_readonly "$ctr_id" /mnt/log-alias "/mnt/log-alias/$ctr_id.log"
+	crictl exec --sync "$ctr_id" touch /mnt/writable/allowed
+	[ -f "$TESTDIR/writable/allowed" ]
+
+	# Report the effective access mode through CRI as well as the OCI spec.
+	crictl inspect "$ctr_id" | jq -e '.status.mounts | all(.[];
+		if .containerPath == "/mnt/writable" then .readonly == false else .readonly == true end)'
+
+	# CRI-O's host alias stays writable for linking and ongoing logging.
+	echo "host log update" >> "$linked_log_path"
+	crictl exec --sync "$ctr_id" grep "host log update" "$ctr_path/$ctr_id.log"
+	mkdir "$pod_log_dir/second"
+	jq '.metadata.name = "second" | .metadata.attempt = 0 | .log_path = "second/0.log"' \
+		"$TESTDIR/container_config.json" > "$TESTDIR/second-container.json"
+	second_id=$(crictl create "$pod_id" "$TESTDIR/second-container.json" "$TESTDIR/sandbox_config.json")
+	crictl start "$second_id"
+	retry 10 1 crictl exec --sync "$ctr_id" grep "Hello log linking" "$ctr_path/$second_id.log"
+
 	# Check linked logs were cleaned up
 	crictl rmp -fa
+	umount "$TESTDIR/log-subpath"
 	[ ! -f "$mounted_log_path" ]
 	[ ! -f "$linked_log_path" ]
 }
@@ -1456,6 +1521,7 @@ function assert_log_linking() {
 	grep -E "Hello log linking" "$linked_log_path"
 
 	crictl exec --sync "$ctr_id" grep -E "Hello log linking" "$ctr_path"/"$ctr_id.log"
+	assert_linked_logs_readonly "$ctr_id" "$ctr_path" "$ctr_path/$ctr_id.log"
 
 	# Check linked logs were cleaned up
 	crictl rmp -fa
