@@ -354,7 +354,7 @@ func handleNewMessage(sockfd int) (uintptr, error) {
 
 func closeStateFds(recvFds []int) {
 	for i := range recvFds {
-		unix.Close(i)
+		unix.Close(recvFds[i])
 	}
 }
 

@@ -20,6 +20,11 @@ type NotifIDValidFunc func(libseccomp.ScmpFd, uint64) error
 // NotifRespondFunc is a test hook for libseccomp.NotifRespond.
 type NotifRespondFunc func(libseccomp.ScmpFd, *libseccomp.ScmpNotifResp) error
 
+// CloseStateFds exposes closeStateFds for testing.
+func CloseStateFds(recvFds []int) {
+	closeStateFds(recvFds)
+}
+
 // RunHandlerForTest runs the seccomp notifier handler with injected libseccomp
 // calls.
 func RunHandlerForTest(

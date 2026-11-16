@@ -151,6 +151,38 @@ var _ = t.Describe("Notifier", func() {
 			Expect((<-msgChan).Syscall()).To(Equal("getpid"))
 		})
 	})
+
+	t.Describe("closeStateFds", func() {
+		It("should close the received fds and leave other fds untouched", func() {
+			// Given a set of received fds (as delivered over SCM_RIGHTS) and an
+			// unrelated control fd that must not be touched.
+			recvFds := []int{}
+			for range 3 {
+				fds := make([]int, 2)
+				Expect(unix.Pipe(fds)).To(Succeed())
+				recvFds = append(recvFds, fds[0], fds[1])
+			}
+
+			controlFds := make([]int, 2)
+			Expect(unix.Pipe(controlFds)).To(Succeed())
+			defer unix.Close(controlFds[0])
+			defer unix.Close(controlFds[1])
+
+			// When
+			seccomp.CloseStateFds(recvFds)
+
+			// Then every received fd is closed, so querying it fails with EBADF.
+			for _, fd := range recvFds {
+				_, err := unix.FcntlInt(uintptr(fd), unix.F_GETFD, 0)
+				Expect(err).To(Equal(unix.EBADF))
+			}
+			// And the unrelated control fds are still open.
+			for _, fd := range controlFds {
+				_, err := unix.FcntlInt(uintptr(fd), unix.F_GETFD, 0)
+				Expect(err).ToNot(HaveOccurred())
+			}
+		})
+	})
 })
 
 func stubNotifReceive(events ...any) seccomp.NotifReceiveFunc {
