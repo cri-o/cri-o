@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sat, 14 Nov 2026 03:38:48 UTC for commit [721b8b4][0]._
+_Generated on Mon, 16 Nov 2026 08:18:13 UTC for commit [f750f98][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/721b8b49f1e22aaf39234d4ffcf4fcc9886765d3
+[0]: https://github.com/cri-o/cri-o/commit/f750f98a218c1bb47727889316a5e418b0dfc56d
 
 ## Outdated Dependencies
 
@@ -209,7 +209,7 @@ _Generated on Sat, 14 Nov 2026 03:38:48 UTC for commit [721b8b4][0]._
 | github.com/beorn7/perks                                                     | v1.0.1                                 |                                        | false  | true             |
 | github.com/blang/semver                                                     | v3.5.1+incompatible                    |                                        | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                 |                                        | true   | true             |
-| github.com/brianvoe/gofakeit/v7                                             | v7.12.1                                | v7.18.3                                | false  | true             |
+| github.com/brianvoe/gofakeit/v7                                             | v7.12.1                                | v7.18.4                                | false  | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                 | v1.6.1                                 | false  | true             |
 | github.com/buildkite/agent/v3                                               | v3.130.0                               | v3.138.3                               | false  | true             |
 | github.com/buildkite/go-pipeline                                            | v0.17.1                                | v0.18.1                                | false  | true             |
@@ -533,7 +533,7 @@ _Generated on Sat, 14 Nov 2026 03:38:48 UTC for commit [721b8b4][0]._
 | github.com/shibumi/go-pathspec                                              | v1.3.0                                 |                                        | false  | true             |
 | github.com/shopspring/decimal                                               | v1.4.0                                 | v1.6.0                                 | false  | true             |
 | github.com/sigstore/cosign/v3                                               | v3.1.4                                 |                                        | false  | true             |
-| github.com/sigstore/fulcio                                                  | v1.8.7                                 | v1.10.0                                | false  | true             |
+| github.com/sigstore/fulcio                                                  | v1.8.7                                 | v1.10.1                                | false  | true             |
 | github.com/sigstore/protobuf-specs                                          | v0.5.2                                 |                                        | false  | true             |
 | github.com/sigstore/rekor                                                   | v1.5.5                                 | v1.6.1                                 | false  | true             |
 | github.com/sigstore/rekor-tiles/v2                                          | v2.4.0                                 | v2.4.2                                 | false  | true             |
