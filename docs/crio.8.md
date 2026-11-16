@@ -89,6 +89,7 @@ crio
 [--minimum-mappable-gid]=[value]
 [--minimum-mappable-uid]=[value]
 [--namespaces-dir]=[value]
+[--never-wipe-images]
 [--no-pivot]
 [--nri-disable-connections]
 [--nri-enable-default-validator]
@@ -361,6 +362,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--minimum-mappable-uid**="": Specify the lowest host UID which can be specified in mappings for a pod that will be run as a UID other than 0. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future. (default: -1)
 
 **--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true. (default: "/var/run")
+
+**--never-wipe-images**: If true, CRI-O will never wipe images, including after an upgrade and when a storage repair fails after an unclean shutdown. Containers are still wiped.
 
 **--no-pivot**: If true, the runtime will not use 'pivot_root', but instead use 'MS_MOVE'.
 

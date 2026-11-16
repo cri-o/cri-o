@@ -217,6 +217,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.InternalRepair, c.InternalRepair),
 		},
 		{
+			templateString: templateStringCrioNeverWipeImages,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.NeverWipeImages, c.NeverWipeImages),
+		},
+		{
 			templateString: templateStringCrioCleanShutdownFile,
 			group:          crioRootConfig,
 			isDefaultValue: simpleEqual(dc.CleanShutdownFile, c.CleanShutdownFile),
@@ -920,6 +925,13 @@ const templateStringCrioInternalWipe = `# InternalWipe is whether CRI-O should w
 const templateStringCrioInternalRepair = `# InternalRepair is whether CRI-O should check if the container and image storage was corrupted after a sudden restart.
 # If it was, CRI-O also attempts to repair the storage.
 {{ $.Comment }}internal_repair = {{ .InternalRepair }}
+
+`
+
+const templateStringCrioNeverWipeImages = `# NeverWipeImages prevents CRI-O from wiping images, including after an upgrade
+# and when a storage repair fails after an unclean shutdown. Containers are still wiped.
+# This is intended for disconnected environments where images cannot be pulled again.
+{{ $.Comment }}never_wipe_images = {{ .NeverWipeImages }}
 
 `
 

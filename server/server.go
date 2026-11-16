@@ -812,6 +812,12 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage
 		}
 	}
 
+	if shouldWipeImages && s.config.NeverWipeImages {
+		log.Infof(ctx, "Skipping image wipe because never_wipe_images is set")
+
+		shouldWipeImages = false
+	}
+
 	// Note: some of these will fail if some aspect of the pod cleanup failed as well,
 	// but this is best-effort anyway, as the Kubelet will eventually cleanup images when
 	// disk usage gets too high.

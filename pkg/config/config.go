@@ -232,6 +232,12 @@ type RootConfig struct {
 
 	// InternalRepair is used to repair the affected images.
 	InternalRepair bool `toml:"internal_repair"`
+
+	// NeverWipeImages prevents CRI-O from wiping images, including after an
+	// upgrade and when a storage repair fails after an unclean shutdown.
+	// Containers are still wiped. This is intended for disconnected
+	// environments where images cannot be pulled again.
+	NeverWipeImages bool `toml:"never_wipe_images"`
 }
 
 // GetStore returns the container storage for a given configuration.

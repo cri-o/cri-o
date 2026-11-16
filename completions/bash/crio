@@ -93,6 +93,7 @@ h
 --minimum-mappable-uid
 --namespaced-auth-dir
 --namespaces-dir
+--never-wipe-images
 --no-pivot
 --nri-disable-connections
 --nri-enable-default-validator
