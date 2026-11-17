@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 17 Nov 2026 13:07:02 UTC for commit [662e0b1][0]._
+_Generated on Tue, 17 Nov 2026 15:58:25 UTC for commit [da1b4bc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/662e0b1a5cb93e70ac89c6c6fe7b0a153fc0f965
+[0]: https://github.com/cri-o/cri-o/commit/da1b4bcf0db1d3def0ea061b6f1cdcdb0eb7bbbf
 
 ## Outdated Dependencies
 
@@ -12,7 +12,6 @@ _Generated on Tue, 17 Nov 2026 13:07:02 UTC for commit [662e0b1][0]._
 | github.com/containerd/containerd/api                   | v1.10.0                            | v1.12.0                            | true   | true             |
 | github.com/containernetworking/plugins                 | v1.9.1                             | v1.10.0                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                        | v1.2.2                             | v1.2.3                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.5.1                             | v0.6.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261117115104-b01032d6248c | true   | true             |
 | go.podman.io/common                                    | v0.68.1                            | v0.70.0                            | true   | true             |
@@ -30,7 +29,7 @@ _Generated on Tue, 17 Nov 2026 13:07:02 UTC for commit [662e0b1][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                        |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.3                               | v0.26.0                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                              | v0.21.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                               | v0.1.507                           | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                               | v0.2.0                             | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                              |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                | v1.15.1                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                | v1.17.1                            | false  | true             |
@@ -206,7 +205,7 @@ _Generated on Tue, 17 Nov 2026 13:07:02 UTC for commit [662e0b1][0]._
 | github.com/beorn7/perks                                                     | v1.0.1                                |                                    | false  | true             |
 | github.com/blang/semver                                                     | v3.5.1+incompatible                   |                                    | false  | true             |
 | github.com/blang/semver/v4                                                  | v4.0.0                                |                                    | true   | true             |
-| github.com/brianvoe/gofakeit/v7                                             | v7.12.1                               | v7.18.7                            | false  | true             |
+| github.com/brianvoe/gofakeit/v7                                             | v7.12.1                               | v7.18.8                            | false  | true             |
 | github.com/buger/jsonparser                                                 | v1.1.1                                | v1.6.1                             | false  | true             |
 | github.com/bwesterb/go-ristretto                                            | v1.2.3                                | v1.2.4                             | false  | true             |
 | github.com/cenkalti/backoff/v4                                              | v4.3.0                                |                                    | false  | true             |
@@ -254,7 +253,7 @@ _Generated on Tue, 17 Nov 2026 13:07:02 UTC for commit [662e0b1][0]._
 | github.com/containernetworking/cni                                          | v1.3.1                                |                                    | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.9.1                                | v1.10.0                            | true   | true             |
 | github.com/containers/conmon                                                | v2.0.20+incompatible                  | v2.2.1+incompatible                | true   | true             |
-| github.com/containers/conmon-rs                                             | v1.2.2                                | v1.2.3                             | true   | true             |
+| github.com/containers/conmon-rs                                             | v1.2.3                                |                                    | true   | true             |
 | github.com/containers/kubensmnt                                             | v1.3.0                                |                                    | true   | true             |
 | github.com/containers/libtrust                                              | v0.0.0-20230121012942-c1716e8a8d01    |                                    | false  | true             |
 | github.com/containers/ocicrypt                                              | v1.3.2                                |                                    | true   | true             |
