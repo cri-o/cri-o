@@ -118,8 +118,15 @@ function assert_linked_logs_readonly() {
 
 	run ! --separate-stderr crictl exec --sync "$ctr_id" touch "$log_dir/forbidden"
 	[[ "$stderr" == *"Read-only file system"* ]]
-	run ! --separate-stderr crictl exec --sync "$ctr_id" sh -c 'echo forbidden >> "$1"' sh "$log_file"
-	[[ "$stderr" == *"Read-only file system"* ]]
+	# Opening without O_TRUNC checks inode permissions before the read-only
+	# mount, so with user namespaces the unmapped file owner yields EACCES.
+	# The O_TRUNC check below still covers the read-only mount in that case.
+	if [[ "$TEST_USERNS" != "1" ]]; then
+		# shellcheck disable=SC2016
+		run ! --separate-stderr crictl exec --sync "$ctr_id" sh -c 'echo forbidden >> "$1"' sh "$log_file"
+		[[ "$stderr" == *"Read-only file system"* ]]
+	fi
+	# shellcheck disable=SC2016
 	run ! --separate-stderr crictl exec --sync "$ctr_id" sh -c ': > "$1"' sh "$log_file"
 	[[ "$stderr" == *"Read-only file system"* ]]
 	run ! --separate-stderr crictl exec --sync "$ctr_id" rm "$log_file"
@@ -1379,6 +1386,8 @@ function assert_linked_logs_readonly() {
 
 	# Model a kubelet subpath bind and a symlink alias, plus an ordinary volume.
 	mkdir "$TESTDIR/log-subpath" "$TESTDIR/writable"
+	# Allow writes independent of the container user namespace mapping.
+	chmod 0777 "$TESTDIR/writable"
 	mount --bind "$pod_empty_dir_volume_path/$ctr_name" "$TESTDIR/log-subpath"
 	ln -s "$pod_empty_dir_volume_path" "$TESTDIR/log-alias"
 
@@ -1446,6 +1455,11 @@ function assert_linked_logs_readonly() {
 	echo "host log update" >> "$linked_log_path"
 	crictl exec --sync "$ctr_id" grep "host log update" "$ctr_path/$ctr_id.log"
 	mkdir "$pod_log_dir/second"
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		# conmon creates the log with mode 0640, which the unmapped container
+		# root cannot read.
+		touch "$pod_log_dir/second/0.log"
+	fi
 	jq '.metadata.name = "second" | .metadata.attempt = 0 | .log_path = "second/0.log"' \
 		"$TESTDIR/container_config.json" > "$TESTDIR/second-container.json"
 	second_id=$(crictl create "$pod_id" "$TESTDIR/second-container.json" "$TESTDIR/sandbox_config.json")
