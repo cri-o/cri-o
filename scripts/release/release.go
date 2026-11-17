@@ -12,7 +12,6 @@ import (
 	"sigs.k8s.io/release-utils/command"
 	"sigs.k8s.io/release-utils/env"
 
-	"github.com/cri-o/cri-o/internal/version"
 	"github.com/cri-o/cri-o/scripts/utils"
 )
 
@@ -46,7 +45,12 @@ func run() error {
 		return fmt.Errorf("unable to open local repo: %w", err)
 	}
 
-	for _, minorVersion := range version.ReleaseMinorVersions {
+	minorVersions, err := utils.GetReleaseMinorVersionsFromVersionFile(utils.VersionFile)
+	if err != nil {
+		return fmt.Errorf("unable to read release minor versions: %w", err)
+	}
+
+	for _, minorVersion := range minorVersions {
 		baseBranchName := utils.BranchPrefix + minorVersion // returns "release-x.y"
 
 		sv, err := utils.GetCurrentVersionFromReleaseBranch(repo, baseBranchName) // returns "x.y.z"
