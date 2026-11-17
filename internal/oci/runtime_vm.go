@@ -680,7 +680,7 @@ func (r *runtimeVM) execContainerCommon(
 		})
 	}
 
-	timeoutDuration := time.Duration(timeout) * time.Second
+	timeoutDuration := timeoutFromSeconds(timeout)
 
 	var timeoutCh <-chan time.Time
 	if timeoutDuration == 0 {
@@ -819,7 +819,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 			return err
 		}
 
-		timeoutDuration := time.Duration(timeout) * time.Second
+		timeoutDuration := timeoutFromSeconds(timeout)
 
 		err := r.waitCtrTerminate(sig, stopCh, timeoutDuration)
 		if err == nil {

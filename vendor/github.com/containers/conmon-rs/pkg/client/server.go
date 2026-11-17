@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -17,23 +18,21 @@ import (
 	"syscall"
 	"time"
 	"unicode/utf8"
-
-	"github.com/sirupsen/logrus"
 )
 
 // serverProcess is a server process with a known PID.
 type serverProcess struct {
 	pid uint32
 	// pidfd refers to the process, nil if pidfds are not supported. Unlike
-	// the PID, it never refers to another process which got the PID once
-	// the server exited. It gets closed once the server is known to be
-	// gone, got replaced by another one or the client got closed, and no
-	// Shutdown or KillContext uses it anymore, see usePidfd.
+	// the PID, it never refers to another process which got the PID once the
+	// server exited. It gets closed once the server is known to be gone, got
+	// replaced by another one or the client got closed, and no Shutdown or
+	// Kill uses it anymore, see usePidfd.
 	pidfd *os.File
 	// done is set once the process is known to be gone.
 	done atomic.Bool
-	// users counts the Shutdown and KillContext calls in progress, guarded
-	// by the pidfdMu of the client.
+	// users counts the Shutdown and Kill calls in progress, guarded by the
+	// pidfdMu of the client.
 	users int
 	// startTime is when the process started, see processStartTime, 0 if
 	// it is unknown. Without a pidfd, it tells the server apart from a
@@ -124,7 +123,7 @@ func (c *ConmonClient) connectRunningServer(ctx context.Context) (bool, error) {
 		// The backlog of the socket is full, the server does not accept
 		// the connections it got.
 		if errors.Is(err, syscall.EAGAIN) {
-			return false, fmt.Errorf("%w: %w", ErrServerNotResponding, err)
+			return false, fmt.Errorf("%w: socket backlog full: %w", ErrServerNotResponding, err)
 		}
 
 		return false, fmt.Errorf("not starting another server: %w", err)
@@ -143,7 +142,7 @@ func (c *ConmonClient) connectRunningServer(ctx context.Context) (bool, error) {
 	probeCtx, cancel := context.WithTimeout(ctx, c.serverTimeouts().probe)
 	defer cancel()
 
-	resp, err := c.Version(probeCtx, &VersionConfig{})
+	resp, err := c.Version(probeCtx)
 	if err == nil {
 		c.setServerPID(resp.ProcessID)
 		c.setFeatures(resp.Features)
@@ -263,14 +262,7 @@ func (c *ConmonClient) startServer(
 	var errFile *os.File
 
 	if serverLogDriver(config.LogDriver, cmd.Env) == LogDriverStdout {
-		release, err := c.setServerOutput(cmd, config)
-		if err != nil {
-			return fmt.Errorf("set server output: %w", err)
-		}
-
-		// The server inherits the files, the copies of the parent are not
-		// needed once it got launched.
-		defer release()
+		setServerOutput(cmd, config)
 	} else if file, fileErr := serverErrorFile(); fileErr != nil {
 		c.logger.WithError(fileErr).
 			Debug("Unable to create the server error file, discarding its errors")
@@ -409,102 +401,11 @@ func errorTail(output string, cut bool) string {
 	return output
 }
 
-// setServerOutput sets the stdout and stderr of the server command. The
-// returned function releases the files of the parent.
-func (c *ConmonClient) setServerOutput(
-	cmd *exec.Cmd,
-	config *ConmonServerConfig,
-) (release func(), err error) {
-	var stdout, stderr io.Writer = os.Stdout, os.Stderr
-
-	if config.Stdout != nil {
-		stdout = config.Stdout
-	}
-
-	if config.Stderr != nil {
-		stderr = config.Stderr
-	}
-
-	stdoutFile, releaseStdout, err := serverOutputFile(c.logger, stdout)
-	if err != nil {
-		return nil, fmt.Errorf("stdout: %w", err)
-	}
-
-	cmd.Stdout = stdoutFile
-
-	// A shared writer gets a single pipe, two copies could write to it at the
-	// same time.
-	if sameWriter(stdout, stderr) {
-		cmd.Stderr = stdoutFile
-
-		return releaseStdout, nil
-	}
-
-	stderrFile, releaseStderr, err := serverOutputFile(c.logger, stderr)
-	if err != nil {
-		releaseStdout()
-
-		return nil, fmt.Errorf("stderr: %w", err)
-	}
-
-	cmd.Stderr = stderrFile
-
-	return func() {
-		releaseStdout()
-		releaseStderr()
-	}, nil
-}
-
-// serverOutputFile returns the file the server writes the output for w into.
-//
-// The command would copy a writer other than an *os.File through a pipe and
-// wait for its end. The daemonized server outlives the command and keeps the
-// pipe open, so the command would never return. Such a writer gets fed by an
-// own pipe instead, whose copy runs as long as any process keeps it open:
-// the server, and the processes it starts which inherit its output and may
-// outlive it. The returned function closes the write end of the parent, so
-// that only those keep the copy going.
-func serverOutputFile(
-	logger logrus.FieldLogger,
-	w io.Writer,
-) (file *os.File, release func(), err error) {
-	if file, ok := w.(*os.File); ok {
-		return file, func() {}, nil
-	}
-
-	reader, writer, err := os.Pipe()
-	if err != nil {
-		return nil, nil, fmt.Errorf("create pipe: %w", err)
-	}
-
-	go func() {
-		defer reader.Close()
-
-		if _, err := io.Copy(w, reader); err != nil {
-			logger.WithError(err).Debug("Unable to copy server output, discarding it")
-
-			// The server must neither block on nor fail to write its output.
-			_, _ = io.Copy(io.Discard, reader) //nolint:errcheck // nothing left to report it to
-		}
-	}()
-
-	return writer, func() {
-		if err := writer.Close(); err != nil {
-			logger.WithError(err).Debug("Unable to close server output pipe")
-		}
-	}, nil
-}
-
-// sameWriter reports whether both writers are the same, like os/exec does
-// it. A writer whose type is not comparable is never the same.
-func sameWriter(a, b io.Writer) (same bool) {
-	defer func() {
-		if recover() != nil {
-			same = false
-		}
-	}()
-
-	return a == b
+// setServerOutput sets the stdout and stderr of the server command, which
+// the server inherits.
+func setServerOutput(cmd *exec.Cmd, config *ConmonServerConfig) {
+	cmd.Stdout = cmp.Or(config.Stdout, os.Stdout)
+	cmd.Stderr = cmp.Or(config.Stderr, os.Stderr)
 }
 
 func pidGivenFile(file string) (uint32, error) {
@@ -518,7 +419,7 @@ func pidGivenFile(file string) (uint32, error) {
 		bitSize = 32
 	)
 
-	pidU64, err := strconv.ParseUint(string(pidBytes), base, bitSize)
+	pidU64, err := strconv.ParseUint(strings.TrimSpace(string(pidBytes)), base, bitSize)
 	if err != nil {
 		return 0, fmt.Errorf("parsing pid: %w", err)
 	}
@@ -530,7 +431,7 @@ func pidGivenFile(file string) (uint32, error) {
 // until the context ends, and returns its answer.
 func (c *ConmonClient) waitUntilServerUp(
 	ctx context.Context,
-) (_ *VersionResponse, retErr error) {
+) (_ *VersionResult, retErr error) {
 	ctx, span := c.startSpan(ctx, "waitUntilServerUp")
 	defer endSpan(span, &retErr)
 
@@ -538,7 +439,7 @@ func (c *ConmonClient) waitUntilServerUp(
 	defer cancel()
 
 	for interval := minWaitInterval; ; interval = nextWaitInterval(interval) {
-		resp, err := c.Version(pollCtx, &VersionConfig{})
+		resp, err := c.Version(pollCtx)
 		if err == nil {
 			return resp, nil
 		}
@@ -610,17 +511,10 @@ func processStat(pid uint32) [][]byte {
 	return bytes.Fields(stat[bytes.LastIndexByte(stat, ')')+1:])
 }
 
-// Shutdown kills the server via SIGINT and waits up to 10 seconds for the
-// server PID to be removed from the system, see ShutdownContext.
-func (c *ConmonClient) Shutdown() error {
-	return c.ShutdownContext(context.Background())
-}
-
-// ShutdownContext kills the server via SIGINT and waits for the server PID
-// to be removed from the system, up to 10 seconds or until the context ends.
-// The server kills its containers before it exits. If it is still running
-// after the 10 seconds, ShutdownContext returns ErrShutdownTimeout,
-// KillContext ends it then.
+// Shutdown kills the server via SIGINT and waits for the server PID to be
+// removed from the system, up to 10 seconds or until the context ends. The
+// server kills its containers before it exits. If it is still running after
+// the 10 seconds, Shutdown returns ErrShutdownTimeout, Kill ends it then.
 //
 // It fails with ErrServerPIDUnknown if the server PID is unknown, without
 // signaling anything or touching the attach sessions and the connection.
@@ -630,7 +524,7 @@ func (c *ConmonClient) Shutdown() error {
 // sessions end once the server exited. If the recorded server exited and
 // another one, for example a restarted one, answers on the socket of the run
 // directory within a few seconds, that one gets stopped.
-func (c *ConmonClient) ShutdownContext(ctx context.Context) (retErr error) {
+func (c *ConmonClient) Shutdown(ctx context.Context) (retErr error) {
 	ctx, span := c.startSpan(ctx, "Shutdown")
 	defer endSpan(span, &retErr)
 
@@ -639,23 +533,17 @@ func (c *ConmonClient) ShutdownContext(ctx context.Context) (retErr error) {
 	})
 }
 
-// Kill kills the server via SIGKILL and waits up to 10 seconds for the
-// server PID to be removed from the system, see KillContext.
-func (c *ConmonClient) Kill() error {
-	return c.KillContext(context.Background())
-}
-
-// KillContext kills the server via SIGKILL and waits for the server PID to
-// be removed from the system, up to 10 seconds or until the context ends.
-// Unlike with ShutdownContext, the server cannot kill its containers, which
-// keep running without a monitor. Use it if ShutdownContext returned
-// ErrShutdownTimeout. It returns ErrShutdownTimeout itself if the server
-// still runs after the 10 seconds, for example because it is stuck in the
-// kernel. Like ShutdownContext, it closes the stdin of the attach sessions
-// and the connection of the client first, stops a server which replaced the
-// recorded one, and fails with ErrServerPIDUnknown without touching anything
-// if the server PID is unknown.
-func (c *ConmonClient) KillContext(ctx context.Context) (retErr error) {
+// Kill kills the server via SIGKILL and waits for the server PID to be
+// removed from the system, up to 10 seconds or until the context ends.
+// Unlike with Shutdown, the server cannot kill its containers, which keep
+// running without a monitor. Use it if Shutdown returned ErrShutdownTimeout.
+// It returns ErrShutdownTimeout itself if the server still runs after the 10
+// seconds, for example because it is stuck in the kernel. Like Shutdown, it
+// closes the stdin of the attach sessions and the connection of the client
+// first, stops a server which replaced the recorded one, and fails with
+// ErrServerPIDUnknown without touching anything if the server PID is
+// unknown.
+func (c *ConmonClient) Kill(ctx context.Context) (retErr error) {
 	ctx, span := c.startSpan(ctx, "Kill")
 	defer endSpan(span, &retErr)
 
@@ -665,10 +553,10 @@ func (c *ConmonClient) KillContext(ctx context.Context) (retErr error) {
 }
 
 // endServer runs end, which signals the server and waits for it to exit, for
-// ShutdownContext and KillContext. It picks up a server which replaced the
-// recorded one first, and fails with ErrServerPIDUnknown behind the action
-// without touching anything if the server PID is unknown. Otherwise it closes
-// the stdin of the attach sessions and the connection before end.
+// Shutdown and Kill. It picks up a server which replaced the recorded one
+// first, and fails with ErrServerPIDUnknown behind the action without
+// touching anything if the server PID is unknown. Otherwise it closes the
+// stdin of the attach sessions and the connection before end.
 func (c *ConmonClient) endServer(
 	ctx context.Context, action string, end func(*serverProcess) error,
 ) error {
@@ -701,12 +589,10 @@ func (c *ConmonClient) endServer(
 //
 // The methods of the client fail with ErrClientClosed afterwards, calls in
 // progress fail as well, attach sessions with ErrClientClosed. A Shutdown or
-// KillContext (or Kill) in progress still finishes. Close is safe to call at
-// any time: on a closed client it does nothing, after Shutdown or KillContext
-// (or Kill) it closes the client for good. Those do not mark the client as
-// closed, its methods connect again to a server which runs on the
-// ServerRunDir later. Close does not close a RemoteFDs which the RemoteFDs
-// method returned, the caller closes it.
+// Kill in progress still finishes. Close is safe to call at any time: on a
+// closed client it does nothing, after Shutdown or Kill it closes the client
+// for good. Those do not mark the client as closed, its methods connect
+// again to a server which runs on the ServerRunDir later.
 func (c *ConmonClient) Close() error {
 	// Set before taking pidfdMu, so that usePidfd fails once Close got the
 	// lock.
@@ -731,10 +617,10 @@ func (c *ConmonClient) Close() error {
 	return c.closeUnusedPidfdLocked(c.server)
 }
 
-// pickUpReplacement records the server which replaced the recorded one,
-// if that one exited and another server answers Version on the socket of
-// the run directory within serverProbeTimeout. Shutdown and KillContext
-// stop the server which runs then, also if no call connected to it yet.
+// pickUpReplacement records the server which replaced the recorded one, if
+// that one exited and another server answers Version on the socket of the
+// run directory within serverProbeTimeout. Shutdown and Kill stop the server
+// which runs then, also if no call connected to it yet.
 func (c *ConmonClient) pickUpReplacement(ctx context.Context) {
 	server := c.currentServer()
 	if server == nil || c.closed.Load() || !c.serverExited(server) {
@@ -760,8 +646,8 @@ func (c *ConmonClient) pickUpReplacement(ctx context.Context) {
 		return
 	}
 
-	// Another Shutdown, KillContext or connection may have recorded a
-	// server in the meantime, which stays.
+	// Another Shutdown, Kill or connection may have recorded a server in the
+	// meantime, which stays.
 	if c.setServerPIDIf(server, resp.ProcessID) {
 		c.logger.Warnf("Server PID %d exited, server PID %d replaced it",
 			server.pid, resp.ProcessID)
@@ -955,11 +841,10 @@ func (s *serverProcess) signal(sig syscall.Signal) error {
 
 // serverExited reports whether the server exited or is a zombie. Without a
 // pidfd, or without usePidfd, which keeps it from getting closed
-// concurrently, the check falls back to the PID. A process which got the
-// PID later counts as an exited server if its start time differs, which
-// cannot be read everywhere, so that an exited server can still look
-// running. Only Shutdown and KillContext, which keep the pidfd open, signal
-// a server based on it.
+// concurrently, the check falls back to the PID. A process which got the PID
+// later counts as an exited server if its start time differs, which cannot
+// be read everywhere, so that an exited server can still look running. Only
+// Shutdown and Kill, which keep the pidfd open, signal a server based on it.
 func (c *ConmonClient) serverExited(server *serverProcess) bool {
 	if server.done.Load() {
 		return true

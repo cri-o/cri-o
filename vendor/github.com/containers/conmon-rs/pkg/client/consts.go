@@ -60,45 +60,17 @@ const (
 	// CgroupManagerCgroupfs specifies to use the cgroup filesystem to create
 	// and manage cgroups.
 	CgroupManagerCgroupfs CgroupManager = CgroupManager(proto.Conmon_CgroupManager_cgroupfs)
-
-	// CgroupManagerPerCommand selects the cgroup manager per command: set
-	// [ConmonServerConfig.CgroupManager] to it to use the CgroupManager of
-	// the configuration of each command, like
-	// [CreateContainerConfig.CgroupManager].
-	CgroupManagerPerCommand CgroupManager = CgroupManager(0xffff)
 )
 
-// String returns the name of the cgroup manager, "systemd", "cgroupfs" or
-// "per command", and CgroupManager(<number>) for an unknown value.
+// String returns the name of the cgroup manager, "systemd" or "cgroupfs", and
+// CgroupManager(<number>) for an unknown value.
 func (m CgroupManager) String() string {
 	switch m {
 	case CgroupManagerSystemd:
 		return "systemd"
 	case CgroupManagerCgroupfs:
 		return "cgroupfs"
-	case CgroupManagerPerCommand:
-		return "per command"
 	default:
 		return "CgroupManager(" + strconv.FormatUint(uint64(m), 10) + ")"
 	}
 }
-
-// Namespace is the enum for all available namespaces.
-type Namespace int
-
-const (
-	// NamespaceIPC is the reference to the IPC namespace.
-	NamespaceIPC Namespace = iota
-
-	// NamespacePID is the reference to the PID namespace.
-	NamespacePID
-
-	// NamespaceNet is the reference to the network namespace.
-	NamespaceNet
-
-	// NamespaceUser is the reference to the user namespace.
-	NamespaceUser
-
-	// NamespaceUTS is the reference to the UTS namespace.
-	NamespaceUTS
-)

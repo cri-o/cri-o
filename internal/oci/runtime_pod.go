@@ -132,7 +132,7 @@ func newConmonServerConfig(
 		cgroupManager = conmonClient.CgroupManagerCgroupfs
 	}
 
-	heaptrack := &conmonClient.Heaptrack{}
+	heaptrack := conmonClient.Heaptrack{}
 	logDriver := conmonClient.LogDriverNone
 
 	for _, env := range handler.MonitorEnv {
@@ -166,7 +166,7 @@ func newConmonServerConfig(
 		ServerRunDir:     c.dir,
 		RuntimeRoot:      runRoot,
 		CgroupManager:    cgroupManager,
-		Tracing: &conmonClient.Tracing{
+		Tracing: conmonClient.Tracing{
 			Tracer:   opentelemetry.Tracer(),
 			Enabled:  r.config.EnableTracing,
 			Endpoint: "http://" + r.config.TracingEndpoint,
@@ -228,7 +228,7 @@ func newCreateContainerConfig(r *Runtime, c *Container) *conmonClient.CreateCont
 		},
 	}
 	// Like the journald log path of conmon, with the container name as
-	// CONTAINER_NAME, which servers without FeatureJournaldFields ignore.
+	// CONTAINER_NAME, which servers before v1.2.1 ignore.
 	if r.config.LogToJournald {
 		logDrivers = append(logDrivers, conmonClient.ContainerLogDriver{
 			Type:          conmonClient.LogDriverTypeJournald,
@@ -269,7 +269,7 @@ func (r *runtimePod) CreateContainer(
 	// then it is the pod container and we move conmonrs
 	// to the right configured cgroup.
 	if c.IsInfra() || c.Spoofed() {
-		v, err := r.client.Version(ctx, &conmonClient.VersionConfig{Verbose: false})
+		v, err := r.client.Version(ctx)
 		if err != nil {
 			return fmt.Errorf(
 				"failed to get version of client before moving server to cgroup: %w",
@@ -374,17 +374,9 @@ func (r *runtimePod) ExecSyncContainer(
 	if c.Spoofed() {
 		return nil, nil
 	}
-	// TODO FIXME
-	if timeout < 0 {
-		return nil, errors.New("timeout cannot be negative")
-	}
 
-	res, err := r.client.ExecSyncContainer(ctx, &conmonClient.ExecSyncConfig{
-		ID:       c.ID(),
-		Command:  cmd,
-		Timeout:  uint64(timeout),
-		Terminal: c.terminal,
-	})
+	// The client rejects a negative timeout.
+	res, err := r.client.ExecSyncContainer(ctx, newExecSyncContainerConfig(c, cmd, timeout))
 	if err != nil {
 		return nil, err
 	}
@@ -392,11 +384,29 @@ func (r *runtimePod) ExecSyncContainer(
 	return execSyncResponse(res)
 }
 
+// newExecSyncContainerConfig returns the conmon-rs configuration to run cmd
+// in the container c. The timeout is the one of the CRI request in seconds,
+// zero for none, while the client takes a duration.
+func newExecSyncContainerConfig(
+	c *Container,
+	cmd []string,
+	timeout int64,
+) *conmonClient.ExecSyncContainerConfig {
+	return &conmonClient.ExecSyncContainerConfig{
+		ID:       c.ID(),
+		Command:  cmd,
+		Timeout:  timeoutFromSeconds(timeout),
+		Terminal: c.terminal,
+	}
+}
+
 // execSyncResponse turns the result of an exec sync into the response of the
 // kubelet like for conmon: a timeout is a failed command, which the probes
 // treat as unhealthy, while a command which did not start or whose exit the
 // server could not tell is an error.
-func execSyncResponse(res *conmonClient.ExecContainerResult) (*types.ExecSyncResponse, error) {
+func execSyncResponse(
+	res *conmonClient.ExecSyncContainerResult,
+) (*types.ExecSyncResponse, error) {
 	if res.TimedOut {
 		return &types.ExecSyncResponse{
 			Stderr:   []byte(conmonconfig.TimedOutMessage),
@@ -409,7 +419,7 @@ func execSyncResponse(res *conmonClient.ExecContainerResult) (*types.ExecSyncRes
 	switch res.ExitCode {
 	case conmonClient.ExecExitCodeNotStarted:
 		execErr = errors.New("exec did not start")
-	case conmonClient.ExecExitCodeTimedOut, -1:
+	case conmonClient.ExecExitCodeTimedOut, conmonClient.ExecExitCodeUnknown:
 		execErr = errors.New("exit status of exec unknown")
 	}
 
@@ -455,8 +465,8 @@ func (r *runtimePod) DeleteContainer(ctx context.Context, c *Container) error {
 // conmonServerStopper stops the conmon-rs server of a pod.
 type conmonServerStopper interface {
 	PID() uint32
-	ShutdownContext(ctx context.Context) error
-	KillContext(ctx context.Context) error
+	Shutdown(ctx context.Context) error
+	Kill(ctx context.Context) error
 	Close() error
 }
 
@@ -492,7 +502,7 @@ func shutdownConmonServer(ctx context.Context, client conmonServerStopper) error
 // stopConmonServer stops the conmon-rs server of the pod and kills it if it
 // does not exit in time.
 func stopConmonServer(ctx context.Context, client conmonServerStopper) error {
-	err := client.ShutdownContext(ctx)
+	err := client.Shutdown(ctx)
 	if err == nil {
 		return nil
 	}
@@ -519,7 +529,7 @@ func stopConmonServer(ctx context.Context, client conmonServerStopper) error {
 	killCtx, cancel := context.WithTimeout(ctx, conmonServerKillTimeout)
 	defer cancel()
 
-	if err := client.KillContext(killCtx); err != nil {
+	if err := client.Kill(killCtx); err != nil {
 		return fmt.Errorf("failed to kill conmon-rs server: %w", err)
 	}
 
@@ -577,36 +587,33 @@ func (r *runtimePod) AttachContainer(
 		}
 	})
 
-	var (
-		stdin          *conmonClient.In
-		stdout, stderr *conmonClient.Out
-	)
-
-	if inputStream != nil {
-		stdin = &conmonClient.In{ReadCloser: io.NopCloser(inputStream)}
-	}
-
-	if outputStream != nil {
-		stdout = &conmonClient.Out{WriteCloser: outputStream}
-	}
-
-	if errorStream != nil {
-		stderr = &conmonClient.Out{WriteCloser: errorStream}
-	}
-
-	return r.client.AttachContainer(ctx, &conmonClient.AttachConfig{
+	return r.client.AttachContainer(ctx, &conmonClient.AttachContainerConfig{
 		ID:                c.ID(),
 		SocketPath:        attachSocketPath,
-		Tty:               tty,
+		Terminal:          tty,
 		StopAfterStdinEOF: stopAfterStdinEOF(c),
 		ContainerStdin:    c.stdin,
 		Resize:            libpodResize,
-		Streams: conmonClient.AttachStreams{
-			Stdin:  stdin,
-			Stdout: stdout,
-			Stderr: stderr,
-		},
+		Streams:           newAttachStreams(inputStream, outputStream, errorStream),
 	})
+}
+
+// newAttachStreams returns the streams of an attach for the conmon-rs client,
+// which closes them once the attach ends: the output streams of the caller
+// get closed, while its input stream is only a reader and stays open. The
+// client takes a nil stream as left out, so a nil reader does not get
+// wrapped into a closer, which would not be nil.
+func newAttachStreams(
+	inputStream io.Reader,
+	outputStream, errorStream io.WriteCloser,
+) conmonClient.AttachStreams {
+	streams := conmonClient.AttachStreams{Stdout: outputStream, Stderr: errorStream}
+
+	if inputStream != nil {
+		streams.Stdin = io.NopCloser(inputStream)
+	}
+
+	return streams
 }
 
 func (r *runtimePod) PortForwardContainer(
@@ -644,17 +651,17 @@ func (r *runtimePod) ServeExecContainer(
 	}
 
 	res, err := r.client.ServeExecContainer(ctx, &conmonClient.ServeExecContainerConfig{
-		ID:      c.ID(),
-		Command: cmd,
-		Tty:     tty,
-		Stdin:   stdin,
-		Stdout:  stdout,
-		Stderr:  stderr,
+		ID:       c.ID(),
+		Command:  cmd,
+		Terminal: tty,
+		Stdin:    stdin,
+		Stdout:   stdout,
+		Stderr:   stderr,
 		// Older servers ignore it.
 		IdleTimeout: r.oci.config.GetStreamIdleTimeout(),
 	})
 	if err != nil {
-		return "", unsupportedError(fmt.Errorf("call ServeExecContainer RPC: %w", err))
+		return "", fmt.Errorf("call ServeExecContainer RPC: %w", err)
 	}
 
 	return res.URL, nil
@@ -670,27 +677,20 @@ type conmonFeatureChecker interface {
 // kubelet. The server keeps running across upgrades of conmon-rs, so it can
 // be older than the binary on disk: before v1.2.0, it only spoke the v5
 // WebSocket protocol for exec and attach.
+//
+// The error of the client for a feature the server lacks, also the one of
+// the requests below, matches errors.ErrUnsupported as well, so that the
+// callers detect it like for the other runtime types.
 func requireStreamingProtocols(client conmonFeatureChecker) error {
 	if !client.SupportsFeature(conmonClient.FeatureStreamingProtocols) {
-		return unsupportedError(fmt.Errorf(
+		return fmt.Errorf(
 			"conmon-rs server does not report the %s feature: %w",
 			conmonClient.FeatureStreamingProtocols,
 			conmonClient.ErrUnsupported,
-		))
+		)
 	}
 
 	return nil
-}
-
-// unsupportedError adds errors.ErrUnsupported to an error of the conmon-rs
-// client which tells that the server does not support a feature, so that the
-// callers detect it like for the other runtime types.
-func unsupportedError(err error) error {
-	if errors.Is(err, conmonClient.ErrUnsupported) {
-		return fmt.Errorf("%w: %w", err, errors.ErrUnsupported)
-	}
-
-	return err
 }
 
 func (r *runtimePod) ServeAttachContainer(
@@ -712,7 +712,7 @@ func (r *runtimePod) ServeAttachContainer(
 		IdleTimeout: r.oci.config.GetStreamIdleTimeout(),
 	})
 	if err != nil {
-		return "", unsupportedError(fmt.Errorf("call ServeAttachContainer RPC: %w", err))
+		return "", fmt.Errorf("call ServeAttachContainer RPC: %w", err)
 	}
 
 	return res.URL, nil
@@ -731,7 +731,7 @@ func (r *runtimePod) ServePortForwardContainer(
 		},
 	)
 	if err != nil {
-		return "", unsupportedError(fmt.Errorf("call ServePortForwardContainer RPC: %w", err))
+		return "", fmt.Errorf("call ServePortForwardContainer RPC: %w", err)
 	}
 
 	return res.URL, nil
