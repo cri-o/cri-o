@@ -394,5 +394,6 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 	// mismatching default runtime or any other intermediate state, and a
 	// failed reload cannot leave the shared configuration half-applied.
 	c.publishRuntimeSnapshot()
+
 	return nil
 }

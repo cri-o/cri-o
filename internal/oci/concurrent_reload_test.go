@@ -21,6 +21,7 @@ var _ = t.Describe("Runtime", func() {
 			// running daemon do during a SIGHUP reload.
 			cfg, err := libconfig.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
+
 			cfg.ContainerAttachSocketDir = t.MustTempDir("crio")
 			cfg.Runtimes = libconfig.Runtimes{
 				"crun": &libconfig.RuntimeHandler{RuntimePath: "/bin/true"},
@@ -33,8 +34,10 @@ var _ = t.Describe("Runtime", func() {
 			newConfig, err := libconfig.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
 
-			const iterations = 100
-			const readers = 4
+			const (
+				iterations = 100
+				readers    = 4
+			)
 
 			var (
 				wg       sync.WaitGroup
@@ -42,6 +45,7 @@ var _ = t.Describe("Runtime", func() {
 				errMu    sync.Mutex
 				firstErr error
 			)
+
 			recordErr := func(err error) {
 				errMu.Lock()
 				if firstErr == nil {
@@ -55,9 +59,7 @@ var _ = t.Describe("Runtime", func() {
 			stop := make(chan struct{})
 
 			// The writer publishes a new runtime table on every iteration.
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				defer close(stop)
 
 				for i := range iterations {
@@ -77,15 +79,12 @@ var _ = t.Describe("Runtime", func() {
 						return
 					}
 				}
-			}()
+			})
 
 			// The readers must never observe a snapshot without a valid
 			// default runtime handler.
 			for range readers {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-
+				wg.Go(func() {
 					for {
 						select {
 						case <-stop:
@@ -105,7 +104,7 @@ var _ = t.Describe("Runtime", func() {
 							return
 						}
 					}
-				}()
+				})
 			}
 
 			wg.Wait()
@@ -115,7 +114,7 @@ var _ = t.Describe("Runtime", func() {
 			errMu.Lock()
 			defer errMu.Unlock()
 
-			Expect(firstErr).To(BeNil())
+			Expect(firstErr).ToNot(HaveOccurred())
 			Expect(errCount.Load()).To(BeNumerically("==", 0))
 			Expect(cfg.RuntimeSnapshot().DefaultRuntime).To(Equal("crun"))
 			Expect(cfg.RuntimeSnapshot().RuntimeHandler("")).ToNot(BeNil())
@@ -127,6 +126,7 @@ var _ = t.Describe("Runtime", func() {
 			// the requested handler before creating the infra container.
 			cfg, err := libconfig.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
+
 			cfg.ContainerAttachSocketDir = t.MustTempDir("crio")
 			cfg.Runtimes = libconfig.Runtimes{
 				"crun":  &libconfig.RuntimeHandler{RuntimePath: "/bin/true"},
@@ -144,6 +144,7 @@ var _ = t.Describe("Runtime", func() {
 			// When a reload removes the handler before creation resolves it.
 			newConfig, err := libconfig.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
+
 			newConfig.Runtimes = libconfig.Runtimes{
 				"crun": &libconfig.RuntimeHandler{RuntimePath: "/bin/true"},
 			}

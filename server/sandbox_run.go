@@ -58,7 +58,9 @@ func (s *Server) privilegedSandbox(req *types.RunPodSandboxRequest) bool {
 // runtime an empty handler resolves to, is returned as well, so that the
 // caller can resolve all further runtime properties from that same
 // configuration instead of looking up a potentially concurrently reloaded one.
-func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, *libconfig.RuntimeSnapshot, error) {
+func (s *Server) runtimeHandler(
+	req *types.RunPodSandboxRequest,
+) (string, *libconfig.RuntimeSnapshot, error) {
 	// Capture the snapshot before looking at the handler: an empty handler
 	// resolves to the default runtime, which has to come from the same
 	// snapshot for every later step of the sandbox creation.

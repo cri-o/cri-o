@@ -60,8 +60,8 @@ func (s *RuntimeSnapshot) RuntimeHandler(name string) *RuntimeHandler {
 // only ever see fully validated runtime configurations.
 func (c *Config) publishRuntimeSnapshot() {
 	c.runtimeSnapshot.Store(&RuntimeSnapshot{
-		Runtimes:       c.RuntimeConfig.Runtimes,
-		DefaultRuntime: c.RuntimeConfig.DefaultRuntime,
+		Runtimes:       c.Runtimes,
+		DefaultRuntime: c.DefaultRuntime,
 	})
 }
 
@@ -86,7 +86,7 @@ func (c *Config) RuntimeSnapshot() *RuntimeSnapshot {
 	}
 
 	return &RuntimeSnapshot{
-		Runtimes:       c.RuntimeConfig.Runtimes,
-		DefaultRuntime: c.RuntimeConfig.DefaultRuntime,
+		Runtimes:       c.Runtimes,
+		DefaultRuntime: c.DefaultRuntime,
 	}
 }

@@ -211,7 +211,10 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 // describe one configuration, like the kernel separation detection during
 // sandbox creation, where separate snapshot loads could observe different
 // configurations during a reload.
-func (r *Runtime) RuntimeTypeInSnapshot(snapshot *config.RuntimeSnapshot, handler string) (string, bool, error) {
+func (r *Runtime) RuntimeTypeInSnapshot(
+	snapshot *config.RuntimeSnapshot,
+	handler string,
+) (runtimeType string, defaultIsKata bool, err error) {
 	// Callers that did not validate an explicit handler do not carry a
 	// snapshot; resolve the current one for them, so that all values of
 	// this call still describe a single configuration.

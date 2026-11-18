@@ -68,7 +68,8 @@ func (s *Server) createContainerPlatform(
 		}
 	}
 
-	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false, snapshot)
+	return s.ContainerServer.Runtime().
+		CreateContainer(ctx, container, cgroupParent, false, snapshot)
 }
 
 // finalizeUserMapping changes the UID, GID and additional GIDs to reflect the new value in the user namespace.
