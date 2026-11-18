@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 18 Nov 2026 16:06:27 UTC for commit [4a1098a][0]._
+_Generated on Wed, 18 Nov 2026 20:09:46 UTC for commit [49b4179][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4a1098ac7449d0296d68ea6b7255c2fc845036b0
+[0]: https://github.com/cri-o/cri-o/commit/49b4179ffae1b16321aa0ee885c7d2789e9d9cf6
 
 ## Outdated Dependencies
 
@@ -13,7 +13,7 @@ _Generated on Wed, 18 Nov 2026 16:06:27 UTC for commit [4a1098a][0]._
 | github.com/containernetworking/plugins                 | v1.9.1                             | v1.10.0                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
 | github.com/cri-o/ocicni                                | v0.5.1                             | v0.6.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261118075523-a8bfba69b823 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261118190703-bc3c617ca926 | true   | true             |
 | go.podman.io/common                                    | v0.68.1                            | v0.70.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.40.0                            | v5.42.1                            | true   | true             |
 | go.podman.io/storage                                   | v1.63.0                            | v1.65.1                            | true   | true             |
@@ -30,7 +30,7 @@ _Generated on Wed, 18 Nov 2026 16:06:27 UTC for commit [4a1098a][0]._
 | capnproto.org/go/capnp/v3                                                   | v3.1.0-alpha.2                        |                                    | false  | true             |
 | cel.dev/expr                                                                | v0.25.3                               | v0.26.0                            | false  | true             |
 | chainguard.dev/go-grpc-kit                                                  | v0.17.17                              | v0.21.0                            | false  | true             |
-| chainguard.dev/sdk                                                          | v0.1.55                               | v0.2.2                             | false  | true             |
+| chainguard.dev/sdk                                                          | v0.1.55                               | v0.2.6                             | false  | true             |
 | cloud.google.com/go                                                         | v0.123.0                              |                                    | false  | true             |
 | cloud.google.com/go/accessapproval                                          | v1.8.8                                | v1.15.1                            | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                    | v1.9.7                                | v1.17.1                            | false  | true             |
@@ -189,8 +189,8 @@ _Generated on Wed, 18 Nov 2026 16:06:27 UTC for commit [4a1098a][0]._
 | github.com/asaskevich/govalidator                                           | v0.0.0-20230301143203-a9d515a09cc2    |                                    | false  | true             |
 | github.com/avast/retry-go/v4                                                | v4.7.0                                |                                    | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                | v1.41.7                               | v1.48.0                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                         | v1.32.17                              | v1.33.19                           | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                    | v1.19.16                              | v1.21.1                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                         | v1.32.17                              | v1.33.20                           | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                    | v1.19.16                              | v1.21.2                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                               | v1.18.23                              | v1.20.9                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                         | v1.4.23                               | v1.5.12                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                          | v2.7.23                               | v2.8.12                            | false  | true             |
@@ -384,7 +384,7 @@ _Generated on Wed, 18 Nov 2026 16:06:27 UTC for commit [4a1098a][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                | v1.1.0                             | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20261118075523-a8bfba69b823 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20261118190703-bc3c617ca926 | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                                |                                    | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.30.0                            | false  | true             |
@@ -612,7 +612,7 @@ _Generated on Wed, 18 Nov 2026 16:06:27 UTC for commit [4a1098a][0]._
 | golang.org/x/oauth2                                                         | v0.37.0                               | v0.38.0                            | false  | true             |
 | golang.org/x/sync                                                           | v0.24.0                               | v0.25.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.49.0                               | v0.50.0                            | true   | true             |
-| golang.org/x/telemetry                                                      | v0.0.0-20261009151841-97e8ea77aa2a    | v0.0.0-20261116191925-e77a43154acb | false  | true             |
+| golang.org/x/telemetry                                                      | v0.0.0-20261009151841-97e8ea77aa2a    | v0.0.0-20261118162831-00acfd773c25 | false  | true             |
 | golang.org/x/term                                                           | v0.47.0                               | v0.48.0                            | false  | true             |
 | golang.org/x/text                                                           | v0.43.0                               | v0.44.0                            | false  | true             |
 | golang.org/x/time                                                           | v0.16.0                               |                                    | false  | true             |
