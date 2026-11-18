@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	imagecopy "go.podman.io/image/v5/copy"
+	"go.podman.io/image/v5/directory"
 	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/storage"
 	"go.podman.io/image/v5/transports/alltransports"
@@ -34,13 +37,54 @@ func isRemoteSource(ref string) bool {
 	return false
 }
 
+// cleanupDirDestination empties a dir: destination so that a retry starts from
+// scratch. The dir transport writes its version marker only on a successful
+// commit and refuses to write into a non-empty directory without it, so a copy
+// which failed halfway through makes every following attempt fail while
+// initializing the destination.
+//
+// Only destinations the copy owns may be cleaned up, see destinationIsForeign.
+func cleanupDirDestination(dest string) error {
+	const dirPrefix = "dir:"
+
+	if !strings.HasPrefix(dest, dirPrefix) {
+		return nil
+	}
+
+	path := strings.TrimPrefix(dest, dirPrefix)
+	if path == "" {
+		return nil
+	}
+
+	return os.RemoveAll(path)
+}
+
+// destinationIsForeign reports whether err means that the copy never got as far
+// as writing the destination, because the directory existed before and is not a
+// containers image directory the copy may overwrite. Such a directory is not
+// ours to remove: it can hold unrelated data, and retrying against it fails the
+// same way anyway.
+func destinationIsForeign(err error) bool {
+	if errors.Is(err, directory.ErrNotContainerImageDir) {
+		return true
+	}
+
+	var unsupportedVersion directory.UnsupportedVersionError
+
+	return errors.As(err, &unsupportedVersion)
+}
+
 // copyImageWithRetry attempts to copy an image with exponential backoff retry.
+// The cleanup callback, if set, gets called after every failed attempt to reset
+// the destination before the next one. The retries stop early when the
+// destination is not the copy's to clean up, or when cleaning it up fails.
 func copyImageWithRetry(
 	ctx context.Context,
 	policyContext *signature.PolicyContext,
 	dest, src types.ImageReference,
 	options *imagecopy.Options,
 	retryAttempts int,
+	cleanup func() error,
 ) error {
 	backoff := wait.Backoff{
 		Duration: 2 * time.Second,
@@ -48,28 +92,68 @@ func copyImageWithRetry(
 		Steps:    retryAttempts,
 	}
 
-	var lastErr error
+	var firstErr, lastErr, cleanupErr error
+
+	attempts := 0
 
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		_, err := imagecopy.Image(ctx, policyContext, dest, src, options)
-		if err != nil {
-			lastErr = err
-			logrus.Warnf("Image copy attempt failed (retrying): %v", err)
+		attempts++
 
-			return false, nil
+		_, copyErr := imagecopy.Image(ctx, policyContext, dest, src, options)
+		if copyErr == nil {
+			return true, nil
 		}
 
-		return true, nil
+		if firstErr == nil {
+			firstErr = copyErr
+		}
+
+		lastErr = copyErr
+
+		if destinationIsForeign(copyErr) {
+			return false, copyErr
+		}
+
+		logrus.Warnf("Image copy attempt %d failed (retrying): %v", attempts, copyErr)
+
+		if cleanup != nil {
+			cleanupErr = cleanup()
+			if cleanupErr != nil {
+				// The next attempt would run against the untouched
+				// destination and fail while initializing it, which hides
+				// the reason the cleanup failed.
+				return false, cleanupErr
+			}
+		}
+
+		return false, nil
 	})
-	if err != nil {
-		if lastErr != nil {
-			return lastErr
-		}
 
+	switch {
+	case err == nil:
+		return nil
+	case cleanupErr != nil:
+		return fmt.Errorf(
+			"copy failed after %d attempts: %w (cleaning up the destination failed: %w)",
+			attempts, lastErr, cleanupErr,
+		)
+	case destinationIsForeign(err):
+		return fmt.Errorf("copy failed after %d attempts: %w", attempts, err)
+	case firstErr == nil:
 		return err
 	}
 
-	return nil
+	// The last error usually only says that the retry could not start,
+	// while the first one carries the reason why the copy actually
+	// failed, so report both to not hide the root cause.
+	if firstErr.Error() == lastErr.Error() {
+		return lastErr
+	}
+
+	return fmt.Errorf(
+		"copy failed after %d attempts: %w (first error: %w)",
+		attempts, lastErr, firstErr,
+	)
 }
 
 func main() {
@@ -252,6 +336,7 @@ func main() {
 						importRef,
 						options,
 						retryAttempts,
+						nil,
 					)
 				} else {
 					_, err = imagecopy.Image(ctx, policyContext, ref, importRef, options)
@@ -291,6 +376,7 @@ func main() {
 					importRef,
 					options,
 					retryAttempts,
+					func() error { return cleanupDirDestination(exportTo) },
 				)
 			} else {
 				_, err = imagecopy.Image(ctx, policyContext, exportRef, importRef, options)
