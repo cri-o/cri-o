@@ -8,6 +8,13 @@ completely formalized.
 The main documentation of the CRI can be found [in the corresponding protobuf
 definition][0], whereas this document follows it on the `service`/`rpc` level.
 
+## `Status`
+
+`Status` reports the configured runtime handlers and their supported features.
+CRI-O sorts `runtime_handlers` by handler name, with the empty-name alias for the
+default runtime first. This keeps unchanged capabilities from triggering kubelet
+Node status updates when the order of configured handlers varies.
+
 ## `ListImages`
 
 `ListImages` lists existing images. Its response consists of an array of
