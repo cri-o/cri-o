@@ -7,7 +7,6 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/containerd/containerd/sys"
 	"github.com/opencontainers/runtime-tools/generate"
 
 	"github.com/cri-o/cri-o/internal/annotations"
@@ -185,7 +184,7 @@ func TestProbeMinOOMScoreAdjRestoreError(t *testing.T) {
 // TestProbeMinOOMScoreAdjOwnProcess probes the minimum of the test process,
 // which gets its current value restored.
 func TestProbeMinOOMScoreAdjOwnProcess(t *testing.T) {
-	read := func() (int, error) { return sys.GetOOMScoreAdj(os.Getpid()) }
+	read := readOwnOOMScoreAdj
 
 	before, err := read()
 	if err != nil {
@@ -197,8 +196,8 @@ func TestProbeMinOOMScoreAdjOwnProcess(t *testing.T) {
 		t.Fatalf("probeMinOOMScoreAdj: %v", err)
 	}
 
-	if lowest < sys.OOMScoreAdjMin || lowest > before {
-		t.Fatalf("minimum %d not between %d and %d", lowest, sys.OOMScoreAdjMin, before)
+	if lowest < oomScoreAdjMin || lowest > before {
+		t.Fatalf("minimum %d not between %d and %d", lowest, oomScoreAdjMin, before)
 	}
 
 	after, err := read()
@@ -213,7 +212,7 @@ func TestProbeMinOOMScoreAdjOwnProcess(t *testing.T) {
 	t.Logf("OOM score adjustment %d, minimum %d", before, lowest)
 
 	// The value below the minimum gets rejected.
-	if lowest > sys.OOMScoreAdjMin {
+	if lowest > oomScoreAdjMin {
 		if err := writeOwnOOMScoreAdj(lowest - 1); err == nil {
 			if err := writeOwnOOMScoreAdj(before); err != nil {
 				t.Logf("restore OOM score adjustment: %v", err)

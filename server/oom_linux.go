@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
-	"github.com/containerd/containerd/sys"
 	"github.com/moby/sys/userns"
 	"github.com/opencontainers/runtime-tools/generate"
 
@@ -34,14 +34,19 @@ import (
 // adjustment of all containers instead, so restrictOOMScoreAdjInUserNS does
 // nothing then.
 
-const ownOOMScoreAdjPath = "/proc/self/oom_score_adj"
+const (
+	ownOOMScoreAdjPath = "/proc/self/oom_score_adj"
+
+	// oomScoreAdjMin is OOM_SCORE_ADJ_MIN of the kernel.
+	oomScoreAdjMin = -1000
+)
 
 // minOOMScoreAdj returns the lowest OOM score adjustment which CRI-O and the
 // processes it starts can set. The minimum only changes if a privileged
 // process sets the OOM score adjustment of CRI-O, so it gets probed once.
 var minOOMScoreAdj = sync.OnceValues(func() (int, error) {
 	return probeMinOOMScoreAdj(
-		func() (int, error) { return sys.GetOOMScoreAdj(os.Getpid()) },
+		readOwnOOMScoreAdj,
 		writeOwnOOMScoreAdj,
 	)
 })
@@ -105,7 +110,7 @@ func probeMinOOMScoreAdj(
 		return 0, fmt.Errorf("read OOM score adjustment: %w", err)
 	}
 
-	low, high := sys.OOMScoreAdjMin, current
+	low, high := oomScoreAdjMin, current
 	if low >= high {
 		return current, nil
 	}
@@ -128,6 +133,16 @@ func probeMinOOMScoreAdj(
 	}
 
 	return high, nil
+}
+
+// readOwnOOMScoreAdj returns the OOM score adjustment of CRI-O.
+func readOwnOOMScoreAdj() (int, error) {
+	data, err := os.ReadFile(ownOOMScoreAdjPath)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.Atoi(strings.TrimSpace(string(data)))
 }
 
 // writeOwnOOMScoreAdj sets the OOM score adjustment of CRI-O. SetOOMScore of

@@ -18,7 +18,7 @@ import (
 )
 
 type fakeTaskService struct {
-	task.TaskService
+	task.TTRPCTaskService
 
 	killErr error
 }
