@@ -2,20 +2,30 @@
 # It verifies that the versions specified here match across all referenced files.
 dependencies:
   - name: go
-    version: 1.27.2
+    version: 1.27.3
     refPaths:
       - path: nix/derivation.nix
         match: buildGo127Module
       - path: go.mod
-        match: go
+        match: "^go "
       - path: scripts/go.mod
-        match: go
-      - path: hack/build-rpms.sh
-        match: go
-      - path: hack/Containerfile.dev
-        match: GOVERSION
+        match: "^go "
       - path: .packit.yaml
         match: "BuildRequires: golang"
+
+  # The toolchain may be newer than the minimum go version above, for example
+  # when nixpkgs does not ship the latest Go patch release yet.
+  - name: go toolchain
+    version: 1.27.4
+    refPaths:
+      - path: go.mod
+        match: "^toolchain "
+      - path: scripts/go.mod
+        match: "^toolchain "
+      - path: hack/build-rpms.sh
+        match: ^GO_VERSION=
+      - path: hack/Containerfile.dev
+        match: ENV GOVERSION=
 
   # For minor releases, follow release.md to update the supported and
   # development versions in the correct order.
@@ -23,127 +33,144 @@ dependencies:
     version: 1.38.0
     refPaths:
       - path: internal/version/version.go
-        match: Version
+        match: ^var Version =
       - path: contrib/test/ci/cri-o.spec
-        match: Version
+        match: "^Version:"
 
   - name: supported versions
     version: '{"1.37", "1.36", "1.35"}'
     refPaths:
       - path: internal/version/version.go
-        match: ReleaseMinorVersions
+        match: ^var ReleaseMinorVersions =
 
   - name: golangci-lint
     version: v2.15.0
     refPaths:
       - path: .github/workflows/verify.yml
-        match: GOLANGCI_LINT_VERSION
+        match: "GOLANGCI_LINT_VERSION:"
       - path: Makefile
-        match: GOLANGCI_LINT_VERSION
+        match: "^GOLANGCI_LINT_VERSION :="
 
   - name: shellcheck
     version: v0.11.0
     refPaths:
       - path: Makefile
-        match: SHELLCHECK_VERSION
+        match: "^SHELLCHECK_VERSION :="
 
   - name: cni-plugins
-    version: v1.9.1
+    version: v1.10.0
     refPaths:
       - path: scripts/versions
-        match: cni-plugins
+        match: '^    \["cni-plugins"\]='
       - path: contrib/test/ci/build/plugins.yml
-        match: version
+        match: "^    version:"
 
   - name: conmon
     version: v2.2.1
     refPaths:
       - path: scripts/versions
-        match: conmon
+        match: '^    \["conmon"\]='
       - path: contrib/test/ci/vars.yml
-        match: conmon_git_version
+        match: "^conmon_git_version:"
 
   - name: cri-tools
     version: v1.37.0
     refPaths:
       - path: contrib/test/ci/vars.yml
-        match: cri_tools_git_version
+        match: "^cri_tools_git_version:"
       - path: scripts/versions
-        match: cri-tools
+        match: '^    \["cri-tools"\]='
 
   - name: crun
-    version: 1.29.1
+    version: "1.31"
     refPaths:
       - path: scripts/versions
-        match: crun
+        match: '^    \["crun"\]='
       - path: contrib/test/ci/vars.yml
-        match: crun_git_version
+        match: "^crun_git_version:"
 
   - name: runc
-    version: v1.5.1
+    version: v1.5.3
     refPaths:
       - path: scripts/versions
-        match: runc
+        match: '^    \["runc"\]='
       - path: contrib/test/ci/vars.yml
-        match: runc_git_version
+        match: "^runc_git_version:"
+
+  # Update the checksums together with runc, see runc.sha256sum in the release.
+  - name: runc checksum amd64
+    version: 50dcc0b257d724fe07f3852c2dda52340223f038227c7572644eec870741223e
+    refPaths:
+      - path: scripts/versions
+        match: '^    \["amd64"\]='
+      - path: contrib/test/ci/build/runc.yml
+        match: "^      amd64:"
+
+  - name: runc checksum arm64
+    version: 07b52aee923cc432c38fe4fb6809a08fc6471994efed650af3635350588a20be
+    refPaths:
+      - path: scripts/versions
+        match: '^    \["arm64"\]='
+      - path: contrib/test/ci/build/runc.yml
+        match: "^      arm64:"
 
   - name: bats
     version: v1.14.0
     refPaths:
       - path: scripts/versions
-        match: bats
+        match: '^    \["bats"\]='
       - path: contrib/test/ci/build/bats.yml
-        match: version
+        match: "^    version:"
 
   - name: zeitgeist
-    version: 0.5.4
+    version: 0.9.0
     refPaths:
       - path: Makefile
-        match: ZEITGEIST_VERSION
+        match: "^ZEITGEIST_VERSION :="
 
   - name: nix
-    version: 2.35.2
+    version: 2.35.6
     refPaths:
       - path: .github/workflows/test.yml
-        match: NIX_VERSION
+        match: "NIX_VERSION:"
       - path: Makefile
-        match: NIX_IMAGE
+        match: ^NIX_IMAGE \?=
 
   - name: release-notes
-    version: 0.21.1
+    version: 0.23.0
     refPaths:
       - path: Makefile
-        match: RELEASE_NOTES_VERSION
+        match: "^RELEASE_NOTES_VERSION :="
 
   - name: shfmt
     version: 3.14.1
     refPaths:
       - path: Makefile
-        match: SHFMT_VERSION
+        match: "^SHFMT_VERSION :="
 
   - name: go-mod-outdated
     version: 0.9.0
     refPaths:
       - path: Makefile
-        match: GO_MOD_OUTDATED_VERSION
+        match: "^GO_MOD_OUTDATED_VERSION :="
 
   - name: govulncheck
-    version: v1.8.0
+    version: v1.10.0
     refPaths:
       - path: hack/govulncheck.sh
-        match: GOVULNCHECK_VERSION
+        match: ^GOVULNCHECK_VERSION=
 
   - name: gosec
     version: 2.30.0
     refPaths:
       - path: Makefile
-        match: GOSEC_VERSION
+        match: "^GOSEC_VERSION :="
 
   - name: mdtoc
     version: v1.4.0
     refPaths:
       - path: Makefile
-        match: MDTOC_VERSION
+        match: "^MDTOC_VERSION :="
 
   - name: pause
     version: 3.10.2

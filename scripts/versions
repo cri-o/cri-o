@@ -1,14 +1,14 @@
 # Software versions to be used.
 declare -A VERSIONS=(
-    ["cni-plugins"]=v1.9.1
+    ["cni-plugins"]=v1.10.0
     ["conmon"]=v2.2.1
     ["cri-tools"]=v1.37.0
-    ["crun"]=1.29.1
-    ["runc"]=v1.5.1
+    ["crun"]=1.31
+    ["runc"]=v1.5.3
     ["bats"]=v1.14.0
 )
 
 declare -A RUNC_CHECKSUMS=(
-    ["amd64"]="177df879d50c913eb205e898d5c1c05a18f574053c0ce5524c471208eaf06f6f"
-    ["arm64"]="ca70e7dbd6616ca782a59b5d3ac86909123fdaa9fa3f89dcf29051c70eee7ce9"
+    ["amd64"]="50dcc0b257d724fe07f3852c2dda52340223f038227c7572644eec870741223e"
+    ["arm64"]="07b52aee923cc432c38fe4fb6809a08fc6471994efed650af3635350588a20be"
 )

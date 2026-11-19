@@ -1,4 +1,6 @@
-go 1.27.2
+go 1.27.3
+
+toolchain go1.27.4
 
 module github.com/cri-o/cri-o
 
@@ -17,7 +19,7 @@ require (
 	github.com/containerd/ttrpc v1.2.10
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.3.1
-	github.com/containernetworking/plugins v1.9.1
+	github.com/containernetworking/plugins v1.10.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v1.2.3
 	github.com/containers/kubensmnt v1.3.0
@@ -171,7 +173,7 @@ require (
 	github.com/knqyf263/go-plugin v0.9.0 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect
-	github.com/mattn/go-shellwords v1.0.13 // indirect
+	github.com/mattn/go-shellwords v1.0.16 // indirect
 	github.com/mattn/go-sqlite3 v1.14.44 // indirect
 	github.com/mdlayher/netlink v1.11.2 // indirect
 	github.com/mdlayher/socket v0.6.1 // indirect

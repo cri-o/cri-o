@@ -195,5 +195,5 @@ kata_skip_annotation_migration_tests:
   - 'test "v1 umask annotation should still work"'
   - 'test "v2 unified-cgroup annotation for specific container with slash separator should work"'
 
-runc_git_version: v1.5.1
-crun_git_version: 1.29.1
+runc_git_version: v1.5.3
+crun_git_version: "1.31"
