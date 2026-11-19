@@ -11,9 +11,8 @@ definition][0], whereas this document follows it on the `service`/`rpc` level.
 ## `Status`
 
 `Status` reports the configured runtime handlers and their supported features.
-CRI-O sorts `runtime_handlers` by handler name, with the empty-name alias for the
-default runtime first. This keeps unchanged capabilities from triggering kubelet
-Node status updates when the order of configured handlers varies.
+CRI-O sorts `runtime_handlers` by name, with the empty-name alias for the
+default runtime first, so the response order is stable across calls.
 
 ## `ListImages`
 
