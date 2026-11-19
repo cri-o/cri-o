@@ -1,6 +1,8 @@
 module github.com/cri-o/cri-o/scripts
 
-go 1.27.2
+go 1.27.3
+
+toolchain go1.27.4
 
 require (
 	github.com/blang/semver/v4 v4.0.0

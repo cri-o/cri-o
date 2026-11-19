@@ -9,7 +9,7 @@ on:
       - release-*
   pull_request:
 env:
-  NIX_VERSION: "2.35.2"
+  NIX_VERSION: "2.35.6"
 permissions:
   contents: read
 concurrency:

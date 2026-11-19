@@ -1,11 +1,13 @@
 GO ?= go
 
 TRIMPATH ?= -trimpath
-GO_ARCH=$(shell $(GO) env GOARCH)
+GO_HOST_ARCH=$(shell $(GO) env GOHOSTARCH)
+# Architecture names used by release assets that follow uname -m.
+UNAME_ARCH=$(subst arm64,aarch64,$(subst amd64,x86_64,$(GO_HOST_ARCH)))
 GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_TEST ?= $(GO) test $(TRIMPATH)
 GO_RUN ?= $(GO) run
-NIX_IMAGE ?= nixos/nix:2.35.2
+NIX_IMAGE ?= nixos/nix:2.35.6
 NIX_FLAKE_FLAGS ?= --extra-experimental-features 'nix-command flakes'
 
 PROJECT := github.com/cri-o/cri-o
@@ -57,14 +59,20 @@ GOSEC := ${BUILD_BIN_PATH}/gosec
 GOSEC_VERSION := 2.30.0
 MDTOC := ${BUILD_BIN_PATH}/mdtoc
 MDTOC_VERSION := v1.4.0
+MDTOC_SHA256_amd64 := 2c13e079505fdc34d814a9822813fc7e2cc5a00d1844683c77b531aa08f6986a
+MDTOC_SHA256_arm64 := a38d52e931c6dca4bdf3cde1686fffb2fec90d80bb688f8dfe5ae105e3dec608
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
-RELEASE_NOTES_VERSION := v0.21.1
+RELEASE_NOTES_VERSION := v0.23.0
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
-ZEITGEIST_VERSION := v0.5.4
+ZEITGEIST_VERSION := v0.9.0
+ZEITGEIST_SHA256_amd64 := e19cd88e04386222b26797b5635017a06fbc30479de8cc24023dc5bcddb707a6
+ZEITGEIST_SHA256_arm64 := 7c4e5f96ac49ed6a05e41f4846b57ac3bc2c0660da2b378c358c4b63bf81b8bc
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHFMT_VERSION := v3.14.1
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
 SHELLCHECK_VERSION := v0.11.0
+SHELLCHECK_SHA256_amd64 := 4da528ddb3a4d1b7b24a59d4e16eb2f5fd960f4bd9a3708a15baddbdf1d5a55b
+SHELLCHECK_SHA256_arm64 := 127f13925eadd52c341bca0ebaf9ab0dbd78c6468f30a8f262a528bf8de47546
 BATS_FILES := $(wildcard test/*.bats)
 
 # pass crio CLI options to generate custom configuration options at build time
@@ -110,6 +118,16 @@ define curl_to
 	chmod +x $(2)
 endef
 
+# Like curl_to, but verifies the download against the SHA256 in $(3). The file
+# is only moved to $(2) after verification, so a failed check never leaves a
+# target that make considers up to date.
+define curl_to_verified
+	curl -sSfL --retry 5 --retry-delay 3 "$(1)" -o $(2).tmp && \
+	echo "$(3)  $(2).tmp" | sha256sum -c --strict - && \
+	chmod +x $(2).tmp && \
+	mv $(2).tmp $(2) || { rm -f $(2).tmp; exit 1; }
+endef
+
 all: binaries crio.conf docs
 
 COLOR:=\\033[36m
@@ -143,27 +161,27 @@ $(GINKGO):
 	hack/go-install.sh $(BUILD_BIN_PATH) ginkgo github.com/onsi/ginkgo/v2/ginkgo@latest
 
 $(RELEASE_NOTES): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/kubernetes/release/releases/download/$(RELEASE_NOTES_VERSION)/release-notes-$(GO_ARCH)-linux,$(RELEASE_NOTES))
+	$(call curl_to,https://github.com/kubernetes/release/releases/download/$(RELEASE_NOTES_VERSION)/release-notes-$(GO_HOST_ARCH)-linux,$(RELEASE_NOTES))
 
 $(SHFMT): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/mvdan/sh/releases/download/$(SHFMT_VERSION)/shfmt_$(SHFMT_VERSION)_linux_amd64,$(SHFMT))
+	$(call curl_to,https://github.com/mvdan/sh/releases/download/$(SHFMT_VERSION)/shfmt_$(SHFMT_VERSION)_linux_$(GO_HOST_ARCH),$(SHFMT))
 
 $(ZEITGEIST): $(BUILD_BIN_PATH)
-	$(call curl_to,https://storage.googleapis.com/k8s-artifacts-sig-release/kubernetes-sigs/zeitgeist/$(ZEITGEIST_VERSION)/zeitgeist-amd64-linux,$(ZEITGEIST))
+	$(call curl_to_verified,https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist-$(GO_HOST_ARCH)-linux,$(ZEITGEIST),$(ZEITGEIST_SHA256_$(GO_HOST_ARCH)))
 
 $(MOCKGEN):
 	hack/go-install.sh $(BUILD_BIN_PATH) mockgen go.uber.org/mock/mockgen@latest
 
 $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/psampaz/go-mod-outdated/releases/download/v$(GO_MOD_OUTDATED_VERSION)/go-mod-outdated_$(GO_MOD_OUTDATED_VERSION)_Linux_x86_64.tar.gz,$(BUILD_BIN_PATH)/gmo.tar.gz)
+	$(call curl_to,https://github.com/psampaz/go-mod-outdated/releases/download/v$(GO_MOD_OUTDATED_VERSION)/go-mod-outdated_$(GO_MOD_OUTDATED_VERSION)_Linux_$(subst aarch64,arm64,$(UNAME_ARCH)).tar.gz,$(BUILD_BIN_PATH)/gmo.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/gmo.tar.gz -C $(BUILD_BIN_PATH)
 
 $(GOSEC): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/gosec.tar.gz)
+	$(call curl_to,https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_linux_$(GO_HOST_ARCH).tar.gz,$(BUILD_BIN_PATH)/gosec.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/gosec.tar.gz -C $(BUILD_BIN_PATH)
 
 $(MDTOC): $(BUILD_BIN_PATH)
-	$(call curl_to,https://storage.googleapis.com/k8s-artifacts-sig-release/kubernetes-sigs/mdtoc/$(MDTOC_VERSION)/mdtoc-amd64-linux,$(MDTOC))
+	$(call curl_to_verified,https://github.com/kubernetes-sigs/mdtoc/releases/download/$(MDTOC_VERSION)/mdtoc-$(GO_HOST_ARCH)-linux,$(MDTOC),$(MDTOC_SHA256_$(GO_HOST_ARCH)))
 
 $(GOLANGCI_LINT):
 	export VERSION=$(GOLANGCI_LINT_VERSION) \
@@ -172,10 +190,11 @@ $(GOLANGCI_LINT):
 	curl -sSfL $$URL/install.sh | sh -s $$VERSION
 
 $(SHELLCHECK): $(BUILD_BIN_PATH)
-	URL=https://github.com/koalaman/shellcheck/releases/download/$(SHELLCHECK_VERSION)/shellcheck-$(SHELLCHECK_VERSION).linux.x86_64.tar.xz \
-	SHA256SUM=4da528ddb3a4d1b7b24a59d4e16eb2f5fd960f4bd9a3708a15baddbdf1d5a55b && \
-	curl -sSfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$(SHELLCHECK_VERSION)/shellcheck && \
-	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
+	URL=https://github.com/koalaman/shellcheck/releases/download/$(SHELLCHECK_VERSION)/shellcheck-$(SHELLCHECK_VERSION).linux.$(UNAME_ARCH).tar.xz && \
+	curl -sSfL $$URL | tar xfJ - -O shellcheck-$(SHELLCHECK_VERSION)/shellcheck > ${SHELLCHECK}.tmp && \
+	echo "$(SHELLCHECK_SHA256_$(GO_HOST_ARCH))  ${SHELLCHECK}.tmp" | sha256sum -c --strict - && \
+	chmod +x ${SHELLCHECK}.tmp && \
+	mv ${SHELLCHECK}.tmp ${SHELLCHECK} || { rm -f ${SHELLCHECK}.tmp; exit 1; }
 
 
 ##@ Build targets:
