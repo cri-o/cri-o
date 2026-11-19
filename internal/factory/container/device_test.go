@@ -1,9 +1,12 @@
 package container_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"sort"
 
 	"github.com/moby/sys/devices"
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +14,8 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
+
+	"github.com/cri-o/cri-o/internal/annotations"
 )
 
 var _ = t.Describe("Container", func() {
@@ -218,6 +223,7 @@ var _ = t.Describe("Container", func() {
 			annotations     map[string]string
 			expectError     bool
 			expectDevices   []rspec.LinuxDevice
+			expectRecorded  []string
 			expectEnv       []string
 		}
 
@@ -308,6 +314,10 @@ containerEdits:
 						Minor: 9,
 					},
 				},
+				expectRecorded: []string{
+					"vendor1.com/device=foo",
+					"vendor2.com/device=bar",
+				},
 				expectEnv: []string{
 					"FOO=injected",
 					"VENDOR1=present",
@@ -393,6 +403,10 @@ containerEdits:
 						Minor: 9,
 					},
 				},
+				expectRecorded: []string{
+					"vendor1.com/device=foo",
+					"vendor2.com/device=bar",
+				},
 				expectEnv: []string{
 					"FOO=injected",
 					"VENDOR1=present",
@@ -438,6 +452,21 @@ containerEdits:
 					Expect(
 						sut.Spec().Config.Linux.Devices,
 					).Should(ContainElements(test.expectDevices))
+
+					if test.expectRecorded != nil {
+						bytes := sut.Spec().Config.Annotations[annotations.CDIDevices]
+						annotated := []string{}
+						err := json.Unmarshal([]byte(bytes), &annotated)
+
+						Expect(err).ToNot(HaveOccurred())
+
+						expected := slices.Clone(test.expectRecorded)
+						sort.Strings(expected)
+
+						Expect(annotated).To(Equal(expected))
+					} else {
+						Expect(sut.Spec().Config.Annotations[annotations.CDIDevices]).To(BeEmpty())
+					}
 				}
 			})
 		}
