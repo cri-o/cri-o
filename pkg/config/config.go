@@ -1250,6 +1250,9 @@ func DefaultConfig() (*Config, error) {
 			TracingSamplingRatePerMillion: 0,
 			EnableTracing:                 false,
 		},
+		StatsConfig: StatsConfig{
+			IncludedPodMetrics: []string{AllMetrics},
+		},
 		NRI: nri.New(),
 	}, nil
 }
