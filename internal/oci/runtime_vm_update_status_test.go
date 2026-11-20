@@ -20,11 +20,27 @@ import (
 type fakeTaskService struct {
 	task.TaskService
 
-	killErr error
+	killErr     error
+	deleteErr   error
+	shutdownErr error
 }
 
 func (f *fakeTaskService) Kill(_ context.Context, _ *task.KillRequest) (*emptypb.Empty, error) {
 	return nil, f.killErr
+}
+
+func (f *fakeTaskService) Delete(
+	_ context.Context,
+	_ *task.DeleteRequest,
+) (*task.DeleteResponse, error) {
+	return nil, f.deleteErr
+}
+
+func (f *fakeTaskService) Shutdown(
+	_ context.Context,
+	_ *task.ShutdownRequest,
+) (*emptypb.Empty, error) {
+	return nil, f.shutdownErr
 }
 
 func newTestContainerWithBundle(bundlePath string) *oci.Container {
