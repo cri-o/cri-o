@@ -8,6 +8,7 @@ import (
 	"go.podman.io/storage/pkg/idtools"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
@@ -16,6 +17,7 @@ func (s *Server) createContainerPlatform(
 	container *oci.Container,
 	cgroupParent string,
 	idMappings *idtools.IDMappings,
+	snapshot *libconfig.RuntimeSnapshot,
 ) error {
-	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false)
+	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false, snapshot)
 }

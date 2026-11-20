@@ -102,9 +102,7 @@ func (s *Server) PullImage(
 
 		// Double-check the runtime handler from the image spec.
 		// Warn if we use the default ImageServer when we should have a runtimePulled one.
-		runtimes, _ := s.config.RuntimeHandlers()
-
-		r, ok := runtimes[img.GetRuntimeHandler()]
+		r, ok := s.config.RuntimeSnapshot().Runtimes[img.GetRuntimeHandler()]
 		if ok && r.RuntimePullImage && (err != nil || sbErr != nil) {
 			log.Debugf(
 				ctx,
