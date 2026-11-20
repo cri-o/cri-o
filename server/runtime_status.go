@@ -1,10 +1,12 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	goruntime "runtime"
+	"slices"
 
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -71,6 +73,11 @@ func (s *Server) Status(
 			resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 		}
 	}
+
+	// Keep unchanged capabilities from triggering kubelet Node status updates.
+	slices.SortFunc(resp.GetRuntimeHandlers(), func(a, b *types.RuntimeHandler) int {
+		return cmp.Compare(a.GetName(), b.GetName())
+	})
 
 	if req.GetVerbose() {
 		info, err := s.createRuntimeInfo()

@@ -54,3 +54,8 @@ func (r *RuntimeHandler) SetConmonrsFeatures(features []string) {
 func (c *RuntimeConfig) SetStreamEnableTLS(enabled bool) {
 	c.streamEnableTLS = enabled
 }
+
+// SetRuntimeSupportsRROMounts sets the kernel-validated recursive read-only mount capability.
+func (r *RuntimeHandler) SetRuntimeSupportsRROMounts(supported bool) {
+	r.features.RecursiveReadOnlyMounts = supported
+}

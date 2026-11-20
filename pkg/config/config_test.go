@@ -3,6 +3,7 @@ package config_test
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -2351,6 +2352,27 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("RuntimeHandlerFeatures", func() {
+		DescribeTable("preserves validated RRO support when loading runtime features",
+			func(supported bool) {
+				handler := &config.RuntimeHandler{}
+				handler.SetRuntimeSupportsRROMounts(supported)
+
+				// Runtime-provided JSON must not override the kernel-validated capability.
+				err := handler.LoadRuntimeFeatures(fmt.Appendf(nil, `{
+					"ociVersionMin": "1.0.0",
+					"ociVersionMax": "1.2.0",
+					"RecursiveReadOnlyMounts": %t,
+					"linux": {"mountExtensions": {"idmap": {"enabled": true}}}
+				}`, !supported))
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(handler.RuntimeSupportsRROMounts()).To(Equal(supported))
+				Expect(handler.RuntimeSupportsIDMap()).To(BeTrue())
+			},
+			Entry("enabled internally", true),
+			Entry("disabled internally", false),
+		)
+
 		It("should fail to load runtime features with nothing to load", func() {
 			// Given
 			handler := &config.RuntimeHandler{}
