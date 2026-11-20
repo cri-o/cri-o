@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -74,6 +75,11 @@ type Container struct {
 	stopping           bool
 	stopDone           bool
 	stopLock           sync.Mutex
+	// postStopCh is closed when the post-stop cleanup is done, and postStopDone
+	// is set then. See RunPostStopCleanup and ReportedStatus.
+	postStopMutex sync.Mutex
+	postStopCh    chan struct{}
+	postStopDone  atomic.Bool
 	// stopTimeoutChan is used to update the stop timeout.
 	// After the container goes into the kill loop, the channel must not be used
 	// because it is not controlled by the timeout anymore.
@@ -269,7 +275,7 @@ func (c *Container) CRIContainer() *types.Container {
 	// collection, but need to if the container changes state.
 	newState := types.ContainerState_CONTAINER_UNKNOWN
 
-	switch c.StateNoLock().Status {
+	switch c.ReportedStatus(c.StateNoLock()) {
 	case ContainerStateCreated:
 		newState = types.ContainerState_CONTAINER_CREATED
 	case ContainerStateRunning, ContainerStatePaused:
@@ -722,6 +728,66 @@ func (c *Container) setFinishedIfUnset() {
 	if c.state.Finished.IsZero() {
 		c.state.Finished = time.Now()
 	}
+}
+
+// RunPostStopCleanup starts cleanup unless it already started, and waits until
+// it is done or ctx ends. The cleanup runs only once and keeps running if ctx
+// ends, so a hanging poststop hook does not block callers past their deadline.
+func (c *Container) RunPostStopCleanup(ctx context.Context, cleanup func()) error {
+	c.postStopMutex.Lock()
+
+	done := c.postStopCh
+	start := done == nil
+
+	if start {
+		done = make(chan struct{})
+		c.postStopCh = done
+	}
+
+	c.postStopMutex.Unlock()
+
+	if start {
+		go func() {
+			defer close(done)
+
+			cleanup()
+			c.SetPostStopDone()
+		}()
+	}
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// AwaitPostStopCleanup waits for a running post-stop cleanup, or marks it as
+// done if none started.
+func (c *Container) AwaitPostStopCleanup(ctx context.Context) error {
+	return c.RunPostStopCleanup(ctx, func() {})
+}
+
+// SetPostStopDone marks the post-stop cleanup as done.
+func (c *Container) SetPostStopDone() {
+	c.postStopDone.Store(true)
+}
+
+// PostStopDone returns whether the post-stop cleanup is done.
+func (c *Container) PostStopDone() bool {
+	return c.postStopDone.Load()
+}
+
+// ReportedStatus returns the status to report to CRI clients. A stopped
+// container is reported as running until its post-stop cleanup, which runs the
+// OCI poststop hooks, is done.
+func (c *Container) ReportedStatus(state *ContainerState) specs.ContainerState {
+	if state.Status == ContainerStateStopped && !c.spoofed && !c.postStopDone.Load() {
+		return ContainerStateRunning
+	}
+
+	return state.Status
 }
 
 // SetAsStopping marks a container as being stopped.

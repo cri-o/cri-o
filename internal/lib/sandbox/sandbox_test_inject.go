@@ -13,3 +13,8 @@ import (
 func (s *Sandbox) SetPortMappings(portMappings []*hostport.PortMapping) {
 	s.portMappings = portMappings
 }
+
+// SetShmPath sets the shared memory path for the Sandbox.
+func (s *Sandbox) SetShmPath(shmPath string) {
+	s.shmPath = shmPath
+}

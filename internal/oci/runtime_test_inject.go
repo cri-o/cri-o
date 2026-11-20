@@ -25,6 +25,12 @@ func (r *Runtime) SetRuntimeImpl(containerID string, impl RuntimeImpl) {
 	r.runtimeImplMapMutex.Lock()
 	defer r.runtimeImplMapMutex.Unlock()
 
+	if impl == nil {
+		delete(r.runtimeImplMap, containerID)
+
+		return
+	}
+
 	r.runtimeImplMap[containerID] = impl
 }
 
@@ -71,6 +77,11 @@ func NewAttachStreams(
 // once an attach client closed its stdin.
 func StopAfterStdinEOF(c *Container) bool {
 	return stopAfterStdinEOF(c)
+}
+
+// NewTestRuntimePod creates a pod runtime without a conmon-rs client.
+func NewTestRuntimePod() RuntimeImpl {
+	return &runtimePod{oci: &runtimeOCI{}}
 }
 
 // ConmonServerStopper stops the conmon-rs server of a pod.
@@ -120,4 +131,9 @@ func RuntimeImplHandler(impl RuntimeImpl) *config.RuntimeHandler {
 	}
 
 	return nil
+}
+
+// SetRuntimeImplForContainer injects a RuntimeImpl for the provided container.
+func (r *Runtime) SetRuntimeImplForContainer(c *Container, impl RuntimeImpl) {
+	r.SetRuntimeImpl(c.ID(), impl)
 }
