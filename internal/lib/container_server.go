@@ -549,6 +549,9 @@ func (c *ContainerServer) LoadSandbox(
 			created,
 			sandboxPath,
 		)
+		if _, err := os.Stat(filepath.Join(sandboxDir, oci.SandboxConfigFile)); err == nil {
+			scontainer.ConfigureSandboxRuntime(sandboxPath)
+		}
 	}
 
 	scontainer.SetSpec(&m)
