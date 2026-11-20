@@ -56,6 +56,11 @@ function run_test() {
 	run_test -test.run TestPodEvents
 }
 
+@test "run NRI PodUpdateEvents test" {
+	start_crio
+	run_test -test.run TestPodUpdateEvents
+}
+
 @test "run NRI ContainerEvents test" {
 	start_crio
 	run_test -test.run TestContainerEvents
