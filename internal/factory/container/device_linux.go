@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
+	"github.com/cri-o/cri-o/internal/annotations"
 	devicecfg "github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/utils"
@@ -271,6 +273,14 @@ func (c *container) SpecInjectCDIDevices() error {
 	if _, err := cdi.InjectDevices(c.Spec().Config, requested...); err != nil {
 		return fmt.Errorf("CDI device injection failed: %w", err)
 	}
+
+	// Record the injected CDI devices.
+	bytes, err := json.Marshal(requested)
+	if err != nil {
+		return fmt.Errorf("failed to marshal requested CDI devices: %w", err)
+	}
+
+	c.spec.AddAnnotation(annotations.CDIDevices, string(bytes))
 
 	// One crucial thing to keep in mind is that CDI device injection
 	// might add OCI Spec environment variables, hooks, and mounts as

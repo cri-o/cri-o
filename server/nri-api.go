@@ -962,6 +962,29 @@ func (c *criContainer) GetRlimits() []*api.POSIXRlimit {
 	return rlimits
 }
 
+func (c *criContainer) GetCDIDevices() []*api.CDIDevice {
+	spec := c.GetSpec()
+
+	bytes, ok := spec.Annotations[annotations.CDIDevices]
+	if !ok {
+		return nil
+	}
+
+	names := []string{}
+	if err := json.Unmarshal([]byte(bytes), &names); err != nil {
+		log.Warnf(context.TODO(), "Failed to unmarshal CDI devices annotation: %v", err)
+
+		return nil
+	}
+
+	var devices []*api.CDIDevice
+	for _, name := range names {
+		devices = append(devices, &api.CDIDevice{Name: name})
+	}
+
+	return devices
+}
+
 func (c *criContainer) GetSpec() *rspec.Spec {
 	if c.spec != nil {
 		return c.spec

@@ -39,6 +39,7 @@ var internalAnnotations = map[string]struct{}{
 	HostNetwork:        {},
 	CNIResult:          {},
 	ContainerManager:   {},
+	CDIDevices:         {},
 
 	InfraRuntimeHandler:  {},
 	RequestedOOMScoreAdj: {},
@@ -167,6 +168,9 @@ const (
 	// ContainerManager is the annotation key for indicating the creator and
 	// manager of the container.
 	ContainerManager = "io.container.manager"
+
+	// CDIDevices is the annotation for injected CDI devices.
+	CDIDevices = "cdi-devices.crio.io"
 )
 
 // ContainerType values.
