@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opencontainers/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	cstorage "go.podman.io/storage"
 	drivers "go.podman.io/storage/drivers"
@@ -209,5 +210,58 @@ func TestUpdateSandboxDiskStatsError(t *testing.T) {
 
 	if result.GetLinux().GetContainers()[0].GetMemory() == nil {
 		t.Error("expected memory stats to be present")
+	}
+}
+
+func TestUpdateSandboxRefreshesContainerStats(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.DefaultConfig()
+	if err != nil {
+		t.Fatalf("DefaultConfig: %v", err)
+	}
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t, "ctr-1", "test-container")
+	impl := &fakeRuntimeImpl{}
+	rt.SetRuntimeImpl("ctr-1", impl)
+
+	sb := newTestSandbox(t, "sb-1")
+	sb.AddContainer(context.Background(), ctr)
+
+	ss := newTestStatsServer(t, rt, cfg)
+	ss.collectionPeriod = time.Minute
+
+	cgroupStats := func(usage uint64, systemNano int64) *stats.CgroupStats {
+		s := &stats.CgroupStats{SystemNano: systemNano}
+		s.CpuStats = cgroups.CpuStats{CpuUsage: cgroups.CpuUsage{TotalUsage: usage}}
+
+		return s
+	}
+
+	// A ContainerStats request fills the cache, then a periodic update
+	// runs 2s later, with 2s of CPU used in between.
+	first := time.Now().UnixNano()
+	latest := first + 2_000_000_000
+
+	impl.cgroupStats = cgroupStats(1_000_000_000, first)
+
+	ss.statsForContainer(ctr, sb)
+
+	impl.cgroupStats = cgroupStats(3_000_000_000, latest)
+
+	ss.updateSandbox(sb)
+
+	cpu := ss.statsForContainer(ctr, sb).GetCpu()
+	if cpu.GetTimestamp() != latest {
+		t.Errorf("expected the latest sample's timestamp %d, got %d", latest, cpu.GetTimestamp())
+	}
+
+	if got := cpu.GetUsageCoreNanoSeconds().GetValue(); got != 3_000_000_000 {
+		t.Errorf("expected the latest sample's usage 3000000000, got %d", got)
+	}
+
+	if got := cpu.GetUsageNanoCores().GetValue(); got != 1_000_000_000 {
+		t.Errorf("expected 1 core between the two samples (1000000000), got %d", got)
 	}
 }
