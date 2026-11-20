@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opencontainers/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	cstorage "go.podman.io/storage"
 	drivers "go.podman.io/storage/drivers"
@@ -209,5 +210,77 @@ func TestUpdateSandboxDiskStatsError(t *testing.T) {
 
 	if result.GetLinux().GetContainers()[0].GetMemory() == nil {
 		t.Error("expected memory stats to be present")
+	}
+}
+
+// TestComputeMemoryStatsCgroupVersion verifies that computeMemoryStats selects
+// the stat keys for the cgroup version it is given, not the host's. VM
+// containers can report a guest cgroup version different from the host, so the
+// version must come from the stats rather than node.CgroupIsV2().
+func TestComputeMemoryStatsCgroupVersion(t *testing.T) {
+	t.Parallel()
+
+	memStats := &cgroups.MemoryStats{
+		Usage: cgroups.MemoryData{Usage: 1000},
+		Stats: map[string]uint64{
+			"anon":                100,
+			"total_rss":           200,
+			"inactive_file":       10,
+			"total_inactive_file": 20,
+			"pgfault":             7,
+			"pgmajfault":          3,
+		},
+	}
+
+	tests := []struct {
+		name            string
+		isCgroupV2      bool
+		wantRSS         uint64
+		wantWorkingSet  uint64
+		wantPageFaults  uint64
+		wantMajorFaults uint64
+	}{
+		{
+			name:            "cgroup v2",
+			isCgroupV2:      true,
+			wantRSS:         100,
+			wantWorkingSet:  990, // usage(1000) - inactive_file(10)
+			wantPageFaults:  7,
+			wantMajorFaults: 3,
+		},
+		{
+			name:            "cgroup v1",
+			isCgroupV2:      false,
+			wantRSS:         200,
+			wantWorkingSet:  980, // usage(1000) - total_inactive_file(20)
+			wantPageFaults:  0,
+			wantMajorFaults: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			workingSet, rss, pageFaults, majorFaults, _ := computeMemoryStats(
+				memStats,
+				tt.isCgroupV2,
+			)
+			if rss != tt.wantRSS {
+				t.Errorf("rss: got %d, want %d", rss, tt.wantRSS)
+			}
+
+			if workingSet != tt.wantWorkingSet {
+				t.Errorf("workingSet: got %d, want %d", workingSet, tt.wantWorkingSet)
+			}
+
+			if pageFaults != tt.wantPageFaults {
+				t.Errorf("pageFaults: got %d, want %d", pageFaults, tt.wantPageFaults)
+			}
+
+			if majorFaults != tt.wantMajorFaults {
+				t.Errorf("majorFaults: got %d, want %d", majorFaults, tt.wantMajorFaults)
+			}
+		})
 	}
 }

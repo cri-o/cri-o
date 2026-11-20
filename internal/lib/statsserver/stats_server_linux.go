@@ -12,7 +12,6 @@ import (
 	"github.com/vishvananda/netlink"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
@@ -57,7 +56,9 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		log.Errorf(ss.ctx, "Error getting sandbox stats %s: %v", sb.ID(), err)
 	} else {
 		sandboxStats.Linux.Cpu = criCPUStats(&cgstats.CpuStats, cgstats.SystemNano)
-		sandboxStats.Linux.Memory = criMemStats(&cgstats.MemoryStats, cgstats.SystemNano)
+		sandboxStats.Linux.Memory = criMemStats(
+			&cgstats.MemoryStats, cgstats.SystemNano, cgstats.IsCgroupV2,
+		)
 		sandboxStats.Linux.Process = criProcessStats(&cgstats.PidsStats, cgstats.SystemNano)
 	}
 
@@ -317,12 +318,13 @@ func (ss *StatsServer) containerMetricsFromContainerStats(
 			if memoryMetrics := generateContainerMemoryMetrics(
 				c,
 				&cgroupStats.MemoryStats,
+				cgroupStats.IsCgroupV2,
 			); memoryMetrics != nil {
 				metrics = append(metrics, memoryMetrics...)
 			}
 		case config.MemoryExtraMetrics:
 			if memoryExtraMetrics := generateContainerMemoryExtraMetrics(
-				c, &cgroupStats.MemoryStats,
+				c, &cgroupStats.MemoryStats, cgroupStats.IsCgroupV2,
 			); memoryExtraMetrics != nil {
 				metrics = append(metrics, memoryExtraMetrics...)
 			}
@@ -429,8 +431,8 @@ func containerCRIStats(
 		Attributes: ctr.CRIAttributes(),
 	}
 	criStats.Cpu = criCPUStats(&cgstats.CpuStats, systemNano)
-	criStats.Memory = criMemStats(&cgstats.MemoryStats, systemNano)
-	criStats.Swap = criSwapStats(&cgstats.MemoryStats, systemNano)
+	criStats.Memory = criMemStats(&cgstats.MemoryStats, systemNano, cgstats.IsCgroupV2)
+	criStats.Swap = criSwapStats(&cgstats.MemoryStats, systemNano, cgstats.IsCgroupV2)
 
 	// Add filesystem stats if available
 	if diskStats != nil {
@@ -447,9 +449,11 @@ func criCPUStats(cpuStats *cgroups.CpuStats, systemNano int64) *types.CpuUsage {
 	}
 }
 
-func criMemStats(memStats *cgroups.MemoryStats, systemNano int64) *types.MemoryUsage {
+func criMemStats(
+	memStats *cgroups.MemoryStats, systemNano int64, isCgroupV2 bool,
+) *types.MemoryUsage {
 	workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes := computeMemoryStats(
-		memStats,
+		memStats, isCgroupV2,
 	)
 
 	return &types.MemoryUsage{
@@ -463,8 +467,10 @@ func criMemStats(memStats *cgroups.MemoryStats, systemNano int64) *types.MemoryU
 	}
 }
 
-func criSwapStats(memStats *cgroups.MemoryStats, systemNano int64) *types.SwapUsage {
-	swapUsage := computeSwapUsage(memStats)
+func criSwapStats(
+	memStats *cgroups.MemoryStats, systemNano int64, isCgroupV2 bool,
+) *types.SwapUsage {
+	swapUsage := computeSwapUsage(memStats, isCgroupV2)
 
 	return &types.SwapUsage{
 		Timestamp:          systemNano,
@@ -501,13 +507,13 @@ func criFilesystemStats(
 // computeMemoryStats computes derived memory statistics from cgroups.MemoryStats.
 // Returns workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes.
 func computeMemoryStats(
-	memStats *cgroups.MemoryStats,
+	memStats *cgroups.MemoryStats, isCgroupV2 bool,
 ) (workingSetBytes, rssBytes, pageFaults, majorPageFaults, availableBytes uint64) {
 	var inactiveFileName string
 
 	usageBytes := memStats.Usage.Usage
 
-	if node.CgroupIsV2() {
+	if isCgroupV2 {
 		// Use anon for rssBytes for cgroup v2 as in cAdvisor
 		rssBytes = memStats.Stats["anon"]
 		inactiveFileName = "inactive_file"
@@ -536,8 +542,8 @@ func computeMemoryStats(
 }
 
 // computeSwapUsage computes the actual swap usage from cgroups.MemoryStats.
-func computeSwapUsage(memStats *cgroups.MemoryStats) uint64 {
-	if node.CgroupIsV2() {
+func computeSwapUsage(memStats *cgroups.MemoryStats, isCgroupV2 bool) uint64 {
+	if isCgroupV2 {
 		// libcontainer adds memory.swap.current to memory.current and reports them as SwapUsage to be compatible with cgroup v1,
 		// because cgroup v1 reports SwapUsage as mem+swap combined.
 		// Here we subtract SwapUsage from memory usage to get the actual swap value.

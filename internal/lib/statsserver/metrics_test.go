@@ -53,8 +53,8 @@ func TestMetricLabelCardinality(t *testing.T) {
 		{"disk", generateContainerDiskMetrics(ctr, &diskStats)},
 		{"diskIO", generateContainerDiskIOMetrics(ctr, &blkioStats)},
 		{"hugetlb", generateContainerHugetlbMetrics(ctr, hugetlbStats)},
-		{"memory", generateContainerMemoryMetrics(ctr, &memStats)},
-		{"memoryExtra", generateContainerMemoryExtraMetrics(ctr, &memStats)},
+		{"memory", generateContainerMemoryMetrics(ctr, &memStats, node.CgroupIsV2())},
+		{"memoryExtra", generateContainerMemoryExtraMetrics(ctr, &memStats, node.CgroupIsV2())},
 		{"network", networkMetrics},
 		{"oom", GenerateContainerOOMMetrics(ctr, 3)},
 		{"process", generateContainerProcessMetrics(ctr, &pidsStats, &processStats)},
@@ -194,7 +194,7 @@ func TestContainerMemoryExtraMetricValues(t *testing.T) {
 	memStats := testMemoryStats()
 
 	values := make(map[string]uint64)
-	for _, m := range generateContainerMemoryExtraMetrics(ctr, &memStats) {
+	for _, m := range generateContainerMemoryExtraMetrics(ctr, &memStats, node.CgroupIsV2()) {
 		values[m.GetName()] = m.GetValue().GetValue()
 	}
 
