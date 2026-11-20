@@ -6,6 +6,8 @@ _cli_bash_autocomplete() {
 complete
 completion
 config
+dedup
+d
 man
 markdown
 md
@@ -74,6 +76,7 @@ h
 --internal-wipe
 --irqbalance-config-file
 --irqbalance-config-restore-file
+--layer-dedup
 --listen
 --log
 --log-dir
