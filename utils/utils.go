@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"strconv"
+	"strings"
 	"time"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -234,6 +235,10 @@ func GeneratePasswd(
 
 	if homedir == "" {
 		homedir = "/tmp"
+	}
+
+	if strings.ContainsAny(homedir, "\n\r:") {
+		return "", errors.New("invalid homedir; newline, carriage return or colon not allowed")
 	}
 
 	pwdContent := fmt.Sprintf(
