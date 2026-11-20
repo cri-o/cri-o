@@ -99,7 +99,7 @@ add map ip crio-hostports hostipports { type ipv4_addr . inet_proto . inet_servi
 add map ip crio-hostports hostports { type inet_proto . inet_service : ipv4_addr . inet_service ; comment "hostports on all local IPs (protocol . hostPort -> podIP . podPort)" ; }
 add rule ip crio-hostports hostports dnat ip addr . port to ip daddr . meta l4proto . th dport map @hostipports
 add rule ip crio-hostports hostports dnat ip addr . port to meta l4proto . th dport map @hostports
-add rule ip crio-hostports masquerading ct status & dnat|snat == dnat ip saddr . ip daddr @hairpins masquerade
+add rule ip crio-hostports masquerading ct status & (dnat|snat) == dnat ip saddr . ip daddr @hairpins masquerade
 add rule ip crio-hostports output fib daddr type local  goto hostports
 add rule ip crio-hostports prerouting fib daddr type local  goto hostports
 `

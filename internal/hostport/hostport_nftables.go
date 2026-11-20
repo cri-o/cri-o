@@ -303,7 +303,7 @@ func ensureHostPortsTable(tx *knftables.Transaction, family knftables.Family) {
 	tx.Add(&knftables.Rule{
 		Chain: "masquerading",
 		Rule: knftables.Concat(
-			"ct", "status", "&", "dnat|snat", "==", "dnat",
+			"ct", "status", "&", "(dnat|snat)", "==", "dnat",
 			ip, "saddr", ".", ip, "daddr", "@", hairpinSet,
 			"masquerade",
 		),
