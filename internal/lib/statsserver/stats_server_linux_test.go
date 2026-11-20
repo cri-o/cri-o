@@ -9,6 +9,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	cstorage "go.podman.io/storage"
 	drivers "go.podman.io/storage/drivers"
+	"go.podman.io/storage/pkg/directory"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -48,19 +49,53 @@ func (f *fakeRuntimeImpl) DiskStats(
 
 type fakeStore struct {
 	cstorage.Store
+
+	driver    drivers.Driver
+	driverErr error
+	container *cstorage.Container
 }
 
 func (f *fakeStore) GraphDriver() (drivers.Driver, error) {
+	if f.driver != nil || f.driverErr != nil {
+		return f.driver, f.driverErr
+	}
+
 	return nil, errors.New("no graph driver in test")
+}
+
+func (f *fakeStore) Container(string) (*cstorage.Container, error) {
+	if f.container != nil {
+		return f.container, nil
+	}
+
+	return nil, errors.New("no container in test")
+}
+
+type fakeGraphDriver struct {
+	drivers.Driver
+
+	usage *directory.DiskUsage
+	err   error
+}
+
+func (f *fakeGraphDriver) ReadWriteDiskUsage(string) (*directory.DiskUsage, error) {
+	return f.usage, f.err
 }
 
 type fakeParentServer struct {
 	runtime *oci.Runtime
 	cfg     *config.Config
+	store   cstorage.Store
 }
 
-func (f *fakeParentServer) Runtime() *oci.Runtime              { return f.runtime }
-func (f *fakeParentServer) Store() cstorage.Store              { return &fakeStore{} }
+func (f *fakeParentServer) Runtime() *oci.Runtime { return f.runtime }
+func (f *fakeParentServer) Store() cstorage.Store {
+	if f.store != nil {
+		return f.store
+	}
+
+	return &fakeStore{}
+}
 func (f *fakeParentServer) ListSandboxes() []*sandbox.Sandbox  { return nil }
 func (f *fakeParentServer) GetSandbox(string) *sandbox.Sandbox { return nil }
 func (f *fakeParentServer) Config() *config.Config             { return f.cfg }
@@ -131,8 +166,19 @@ func newRunningContainer(t *testing.T, id, name string) *oci.Container {
 func newTestStatsServer(t *testing.T, rt *oci.Runtime, cfg *config.Config) *StatsServer {
 	t.Helper()
 
+	return newTestStatsServerWithStore(t, rt, cfg, nil)
+}
+
+func newTestStatsServerWithStore(
+	t *testing.T,
+	rt *oci.Runtime,
+	cfg *config.Config,
+	store cstorage.Store,
+) *StatsServer {
+	t.Helper()
+
 	return &StatsServer{
-		parentServerIface: &fakeParentServer{runtime: rt, cfg: cfg},
+		parentServerIface: &fakeParentServer{runtime: rt, cfg: cfg, store: store},
 		sboxStats:         make(map[string]*types.PodSandboxStats),
 		ctrStats:          make(map[string]*types.ContainerStats),
 		sboxMetrics:       make(map[string]*SandboxMetrics),
@@ -245,7 +291,12 @@ func TestUpdateContainerStatsDoesNotCollectDiskStats(t *testing.T) {
 
 	sb := newTestSandbox(t, "sb-2")
 
-	ss := newTestStatsServer(t, rt, cfg)
+	ss := newTestStatsServerWithStore(t, rt, cfg, &fakeStore{
+		driver: &fakeGraphDriver{
+			usage: &directory.DiskUsage{Size: 4096, InodeCount: 17},
+		},
+		container: &cstorage.Container{ID: "ctr-2", LayerID: "layer-ctr-2"},
+	})
 	result := ss.updateContainerStats(ctr, sb)
 
 	if result == nil {
@@ -259,8 +310,17 @@ func TestUpdateContainerStatsDoesNotCollectDiskStats(t *testing.T) {
 		)
 	}
 
-	if result.GetWritableLayer() == nil {
-		t.Error("expected writable layer stats to be populated")
+	writableLayer := result.GetWritableLayer()
+	if writableLayer == nil {
+		t.Fatal("expected writable layer stats to be populated")
+	}
+
+	if got := writableLayer.GetUsedBytes().GetValue(); got != 4096 {
+		t.Errorf("expected writable layer UsedBytes 4096, got %d", got)
+	}
+
+	if got := writableLayer.GetInodesUsed().GetValue(); got != 17 {
+		t.Errorf("expected writable layer InodesUsed 17, got %d", got)
 	}
 }
 
@@ -289,7 +349,12 @@ func TestUpdateSandboxSkipsDiskStatsWhenDiskMetricsDisabled(t *testing.T) {
 	sb := newTestSandbox(t, "sb-3")
 	sb.AddContainer(context.Background(), ctr)
 
-	ss := newTestStatsServer(t, rt, cfg)
+	ss := newTestStatsServerWithStore(t, rt, cfg, &fakeStore{
+		driver: &fakeGraphDriver{
+			usage: &directory.DiskUsage{Size: 8192, InodeCount: 29},
+		},
+		container: &cstorage.Container{ID: "ctr-3", LayerID: "layer-ctr-3"},
+	})
 	result := ss.updateSandbox(sb)
 
 	if result == nil {
@@ -308,8 +373,17 @@ func TestUpdateSandboxSkipsDiskStatsWhenDiskMetricsDisabled(t *testing.T) {
 		)
 	}
 
-	if containers[0].GetWritableLayer() == nil {
-		t.Error("expected writable layer stats to be populated")
+	writableLayer := containers[0].GetWritableLayer()
+	if writableLayer == nil {
+		t.Fatal("expected writable layer stats to be populated")
+	}
+
+	if got := writableLayer.GetUsedBytes().GetValue(); got != 8192 {
+		t.Errorf("expected writable layer UsedBytes 8192, got %d", got)
+	}
+
+	if got := writableLayer.GetInodesUsed().GetValue(); got != 29 {
+		t.Errorf("expected writable layer InodesUsed 29, got %d", got)
 	}
 }
 
