@@ -151,6 +151,16 @@ var (
 		Help:      "Current working set in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
+	containerMemoryTotalActiveFileBytes = &types.MetricDescriptor{
+		Name:      "container_memory_total_active_file_bytes",
+		Help:      "Current total active file in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryTotalInactiveFileBytes = &types.MetricDescriptor{
+		Name:      "container_memory_total_inactive_file_bytes",
+		Help:      "Current total inactive file in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
 	containerMemoryActiveAnonBytes = &types.MetricDescriptor{
 		Name:      "container_memory_active_anon_bytes",
 		Help:      "Current active anonymous memory in bytes.",

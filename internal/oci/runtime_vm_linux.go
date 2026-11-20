@@ -85,6 +85,7 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *stats.Cg
 
 	memStats := map[string]uint64{
 		"total_inactive_file": m.Memory.TotalInactiveFile,
+		"total_active_file":   m.Memory.TotalActiveFile,
 		"total_rss":           m.Memory.RSS,
 		"mapped_file":         m.Memory.MappedFile,
 		"total_mapped_file":   m.Memory.TotalMappedFile,
@@ -134,6 +135,7 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *stats.Cg
 			HugetlbStats: hugetlbStats,
 		},
 		SystemNano: time.Now().UnixNano(),
+		IsCgroupV2: false,
 	}
 }
 
@@ -151,6 +153,7 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *stats.Cg
 	// For cgroup v2, create the Stats map with the appropriate keys
 	memStats := map[string]uint64{
 		"inactive_file": m.Memory.InactiveFile,
+		"active_file":   m.Memory.ActiveFile,
 		"anon":          m.Memory.Anon,
 		"file_mapped":   m.Memory.FileMapped,
 		"pgfault":       m.Memory.Pgfault,
@@ -193,5 +196,6 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *stats.Cg
 			HugetlbStats: hugetlbStats,
 		},
 		SystemNano: time.Now().UnixNano(),
+		IsCgroupV2: true,
 	}
 }
