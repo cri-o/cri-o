@@ -162,6 +162,12 @@ func TestGetSourceMount(t *testing.T) {
 		{in: "/other/dir", out: "/other/dir"},
 		{in: "/other", out: "/"},
 		{in: "/", out: "/"},
+		// A mount point is only a parent of paths below it, not of siblings
+		// that merely share its name as a prefix.
+		{in: "/other/dir2", out: "/"},
+		{in: "/other/dir-foo/yeah", out: "/"},
+		{in: "/sys/fs/cgroup2/aaa", out: "/sys"},
+		{in: "/sysfoo", out: "/"},
 		{in: "bad/path", err: true},
 		{in: "", err: true},
 	}
@@ -185,5 +191,45 @@ func TestGetSourceMount(t *testing.T) {
 		if out != tc.out {
 			t.Errorf("input: %q, expected %q, got %q", tc.in, tc.out, out)
 		}
+	}
+}
+
+// A path next to a mount, whose name only starts with the name of that mount,
+// lives on the parent mount and has to be checked against the parent.
+func TestEnsureSharedIgnoresSiblingMount(t *testing.T) {
+	// "/" is shared, "/data" is private: /data2/dir is on "/" and is fine.
+	sharedRoot := []*mount.Info{
+		{Mountpoint: "/", Optional: "shared:1"},
+		{Mountpoint: "/data", Optional: ""},
+	}
+
+	if err := ensureShared("/data2/dir", sharedRoot); err != nil {
+		t.Errorf("ensureShared: expected /data2/dir to be accepted, got: %v", err)
+	}
+
+	if err := ensureSharedOrSlave("/data2/dir", sharedRoot); err != nil {
+		t.Errorf("ensureSharedOrSlave: expected /data2/dir to be accepted, got: %v", err)
+	}
+
+	if err := ensureShared("/data/dir", sharedRoot); err == nil {
+		t.Error("ensureShared: expected /data/dir to be rejected")
+	}
+
+	// "/" is private, "/data" is shared: /data2/dir is on "/" and is not fine.
+	privateRoot := []*mount.Info{
+		{Mountpoint: "/", Optional: ""},
+		{Mountpoint: "/data", Optional: "shared:1"},
+	}
+
+	if err := ensureShared("/data2/dir", privateRoot); err == nil {
+		t.Error("ensureShared: expected /data2/dir to be rejected")
+	}
+
+	if err := ensureSharedOrSlave("/data2/dir", privateRoot); err == nil {
+		t.Error("ensureSharedOrSlave: expected /data2/dir to be rejected")
+	}
+
+	if err := ensureShared("/data/dir", privateRoot); err != nil {
+		t.Errorf("ensureShared: expected /data/dir to be accepted, got: %v", err)
 	}
 }
