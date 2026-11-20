@@ -6,6 +6,12 @@ func CgroupIsV2() bool {
 	return false
 }
 
+// CgroupHasNsdelegate returns whether the cgroup v2 hierarchy is mounted with
+// the nsdelegate option.
+func CgroupHasNsdelegate() (bool, error) {
+	return false, nil
+}
+
 // CgroupHasMemorySwap returns whether the memory swap controller is present
 func CgroupHasMemorySwap() bool {
 	return false
