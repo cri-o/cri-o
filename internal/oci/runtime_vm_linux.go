@@ -90,6 +90,13 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *stats.Cg
 		"total_mapped_file":   m.Memory.TotalMappedFile,
 	}
 
+	// cgroup v1 reports swap combined with memory (memsw) and has no swap-only
+	// counter, so recover the swap-only value by subtracting memory usage.
+	var swapOnlyUsage uint64
+	if m.Memory.Swap.Usage > m.Memory.Usage.Usage {
+		swapOnlyUsage = m.Memory.Swap.Usage - m.Memory.Usage.Usage
+	}
+
 	return &stats.CgroupStats{
 		Stats: cgroups.Stats{
 			CpuStats: cgroups.CpuStats{
@@ -118,6 +125,9 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *stats.Cg
 					MaxUsage: m.Memory.Swap.Max,
 					Failcnt:  m.Memory.Swap.Failcnt,
 					Limit:    m.Memory.Swap.Limit,
+				},
+				SwapOnlyUsage: cgroups.MemoryData{
+					Usage: swapOnlyUsage,
 				},
 				KernelUsage: cgroups.MemoryData{
 					Usage: m.Memory.Kernel.Usage,
@@ -178,6 +188,12 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *stats.Cg
 					Limit: m.Memory.UsageLimit,
 				},
 				SwapUsage: cgroups.MemoryData{
+					Usage: m.Memory.SwapUsage,
+					Limit: m.Memory.SwapLimit,
+				},
+				// cgroup v2 reports swap usage without memory, which is what
+				// consumers need, so record it directly as the swap-only value.
+				SwapOnlyUsage: cgroups.MemoryData{
 					Usage: m.Memory.SwapUsage,
 					Limit: m.Memory.SwapLimit,
 				},
