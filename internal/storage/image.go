@@ -1314,9 +1314,9 @@ func CompileRegexpsForPinnedImages(patterns []string) []*regexp.Regexp {
 			keyword := regexp.QuoteMeta(pattern[1 : len(pattern)-1])
 			re = regexp.MustCompile("(?i)" + keyword)
 		case strings.HasSuffix(pattern, "*"):
-			// glob pattern
+			// glob pattern: matches names starting with the given prefix
 			pattern = regexp.QuoteMeta(pattern[:len(pattern)-1]) + ".*"
-			re = regexp.MustCompile("(?i)" + pattern)
+			re = regexp.MustCompile("(?i)^" + pattern)
 		default:
 			// exact pattern
 			re = regexp.MustCompile("(?i)^" + regexp.QuoteMeta(pattern) + "$")
