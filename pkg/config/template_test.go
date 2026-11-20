@@ -59,6 +59,45 @@ var _ = t.Describe("Config", func() {
 			Entry("false", new(false), "stream_websockets = false"),
 			Entry("true", new(true), "stream_websockets = true"),
 		)
+
+		// The runtimes and workloads are tables, so every key written after them
+		// belongs to the last of them instead of [crio.runtime].
+		It("should round-trip the [crio.runtime] options after the runtimes", func() {
+			// Given
+			sut.Timezone = "Europe/Berlin"
+			sut.DisableHostPortMapping = true
+			sut.HostNetworkDisableSELinux = false
+			sut.Runtimes["other"] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+				RuntimeType: config.DefaultRuntimeType,
+				RuntimeRoot: validDirPath,
+			}
+			sut.Workloads = config.Workloads{
+				"workload": &config.WorkloadConfig{
+					ActivationAnnotation: "io.crio/workload",
+					AnnotationPrefix:     "io.crio.workload",
+					Resources:            &config.Resources{CPUSet: "0-1"},
+				},
+			}
+
+			var wr bytes.Buffer
+
+			// When
+			Expect(sut.WriteTemplate(false, &wr)).To(Succeed())
+
+			f := t.MustTempFile("config")
+			Expect(os.WriteFile(f, wr.Bytes(), 0o644)).To(Succeed())
+
+			cfg := defaultConfig()
+			Expect(cfg.UpdateFromFile(context.Background(), f)).To(Succeed())
+
+			// Then
+			Expect(cfg.Timezone).To(Equal("Europe/Berlin"))
+			Expect(cfg.DisableHostPortMapping).To(BeTrue())
+			Expect(cfg.HostNetworkDisableSELinux).To(BeFalse())
+			Expect(cfg.Runtimes).To(HaveKey("other"))
+			Expect(cfg.Workloads).To(HaveKey("workload"))
+		})
 	})
 	t.Describe("RuntimesEqual", func() {
 		It("not equal if different length", func() {
