@@ -375,4 +375,65 @@ cpulimit = 100
 		GinkgoWriter.Printf("cpushares=%d\n", *g.Config.Linux.Resources.CPU.Shares)
 		Expect(*g.Config.Linux.Resources.CPU.Shares).To(Equal(uint64(15)))
 	})
+
+	It("should apply the default cpulimit when the container has no annotation", func() {
+		const (
+			containerName            = "limitbox"
+			workloadTargetAnnotation = "target.workload.openshift.io/management"
+		)
+
+		testCases := []struct {
+			description      string
+			defaults         *config.Resources
+			expectedCPUQuota int64
+		}{
+			{
+				description:      "with the default cpuperiod",
+				defaults:         &config.Resources{CPULimit: 35},
+				expectedCPUQuota: 3500,
+			},
+			{
+				description: "with a configured cpuperiod, overriding the cpuquota",
+				defaults: &config.Resources{
+					CPULimit:  35,
+					CPUQuota:  20000,
+					CPUPeriod: 50000,
+				},
+				expectedCPUQuota: 1750,
+			},
+		}
+
+		for _, tc := range testCases {
+			By(tc.description, func() {
+				// Given
+				workloads := config.Workloads{
+					"management": &config.WorkloadConfig{
+						AnnotationPrefix:     "resources.workload.openshift.io",
+						ActivationAnnotation: workloadTargetAnnotation,
+						Resources:            tc.defaults,
+					},
+				}
+				g := &generate.Generator{
+					Config: &rspec.Spec{
+						Linux: &rspec.Linux{
+							Resources: &rspec.LinuxResources{},
+						},
+					},
+				}
+				defaultQuota := tc.defaults.CPUQuota
+
+				// When
+				err := workloads.MutateSpecGivenAnnotations(containerName, g, map[string]string{
+					workloadTargetAnnotation: "{\"effect\":\"PreferredDuringScheduling\"}",
+				})
+
+				// Then
+				Expect(err).NotTo(HaveOccurred())
+				Expect(g.Config.Linux.Resources.CPU).NotTo(BeNil())
+				Expect(g.Config.Linux.Resources.CPU.Quota).To(Equal(new(tc.expectedCPUQuota)))
+				// The configured defaults are shared by all containers.
+				Expect(tc.defaults.CPUQuota).To(Equal(defaultQuota))
+			})
+		}
+	})
 })
