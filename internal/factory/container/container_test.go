@@ -423,6 +423,29 @@ var _ = t.Describe("Container", func() {
 			Expect(spec.Config.Linux.Resources.Unified["memory.low"]).To(Equal("20000"))
 		})
 
+		It("should keep raw values that are also valid base64", func() {
+			// Given
+			containerName := "foo"
+			config.Labels = map[string]string{
+				kubeletTypes.KubernetesContainerNameLabel: containerName,
+			}
+			annotationKey := fmt.Sprintf("%s/%s", v2.UnifiedCgroup, containerName)
+			annotationsMap := map[string]string{
+				annotationKey: "memory.min=10485760;cpu.weight=1000;memory.high=MTAwMDA=",
+			}
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(Succeed())
+
+			// Then
+			spec := sut.Spec()
+			Expect(spec).To(Not(BeNil()))
+			Expect(spec.Config.Linux.Resources.Unified["memory.min"]).To(Equal("10485760"))
+			Expect(spec.Config.Linux.Resources.Unified["cpu.weight"]).To(Equal("1000"))
+			Expect(spec.Config.Linux.Resources.Unified["memory.high"]).To(Equal("10000"))
+		})
+
 		It("should not add the limits for a different container", func() {
 			// Given
 			containerName := "foo"

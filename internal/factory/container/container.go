@@ -610,16 +610,30 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 			return fmt.Errorf("invalid annotation %q", annotationKey)
 		}
 
-		d, err := b64.StdEncoding.DecodeString(parts[1])
-		// if the value is not specified in base64, then use its raw value.
-		if err == nil {
-			c.spec.Config.Linux.Resources.Unified[parts[0]] = string(d)
-		} else {
-			c.spec.Config.Linux.Resources.Unified[parts[0]] = parts[1]
-		}
+		c.spec.Config.Linux.Resources.Unified[parts[0]] = decodeUnifiedValue(parts[1])
 	}
 
 	return nil
+}
+
+// decodeUnifiedValue returns the base64 decoded value of a cgroup-v2 resource
+// if it is valid base64 which decodes to text, and the raw value otherwise.
+// Plain numbers like 10485760 or 1000 are valid base64 as well, but they
+// decode to binary data which no cgroup file accepts.
+func decodeUnifiedValue(value string) string {
+	decoded, err := b64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return value
+	}
+
+	for _, b := range decoded {
+		isText := b >= ' ' && b <= '~' || b == '\t' || b == '\n' || b == '\r'
+		if !isText {
+			return value
+		}
+	}
+
+	return string(decoded)
 }
 
 // SpecSetProcessArgs sets the process args in the spec,
