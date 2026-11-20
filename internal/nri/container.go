@@ -34,6 +34,7 @@ type Container interface {
 	GetLinuxContainer() LinuxContainer
 	GetUser() *nri.User
 	GetRlimits() []*nri.POSIXRlimit
+	GetImage() *nri.Image
 
 	GetSpec() *specs.Spec
 }
@@ -68,6 +69,7 @@ func containerToNRI(ctr Container, status *ContainerStatus) *nri.Container {
 		Linux:        linuxContainerToNRI(ctr),
 		User:         ctr.GetUser(),
 		Rlimits:      ctr.GetRlimits(),
+		Image:        ctr.GetImage(),
 		Pid:          status.Pid,
 		CreatedAt:    status.CreatedAt,
 		StartedAt:    status.StartedAt,

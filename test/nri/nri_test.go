@@ -288,6 +288,57 @@ func TestAnnotationInjection(stdT *testing.T) {
 	require.Equal(t, annotated.GetAnnotations()[testKey], testValue, "annotation updated")
 }
 
+func TestContainerImage(stdT *testing.T) {
+	skipTestForCondition(stdT,
+		map[string]bool{
+			"no runtime connection": crio == nil,
+		},
+	)
+
+	var (
+		created     *api.Container
+		saveCreated = func(p *plugin, pod *api.PodSandbox, ctr *api.Container) error {
+			created = ctr
+
+			return nil
+		}
+
+		t = &nriTest{
+			plugins: []*plugin{
+				nil,
+			},
+			options: [][]PluginOption{
+				{
+					WithPostCreateHandler(saveCreated),
+				},
+			},
+		}
+	)
+
+	t.Setup(stdT)
+	t.StartPlugins(WaitForPluginSync)
+	pod, ctr := t.runContainer()
+	require.NotNil(
+		t,
+		t.plugins[0].WaitEvent(PostCreateContainerEvent(pod, ctr), eventTimeout),
+		"container post-creation event",
+	)
+	require.NotNil(t, created, "received post-create event")
+
+	status, err := crio.ContainerStatus(ctr)
+	require.NoError(t, err, "container status")
+
+	img := created.GetImage()
+	require.NotNil(t, img, "container image")
+	require.Equal(t, status.GetImage().GetImage(), img.GetName(), "image name")
+	// For a regular (not partial) pull, the storage image ID is the hex part of
+	// the config digest. CRI does not expose the config digest otherwise.
+	require.Equal(t, "sha256:"+status.GetImageId(), img.GetConfigDigest(), "image config digest")
+
+	_, digest, _ := strings.Cut(status.GetImageRef(), "@")
+	require.Equal(t, digest, img.GetDigest(), "image digest")
+}
+
 func TestDeviceInjection(stdT *testing.T) {
 	skipTestForCondition(stdT,
 		map[string]bool{
