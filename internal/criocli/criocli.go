@@ -150,6 +150,10 @@ func mergeRootConfig(config *libconfig.Config, ctx *cli.Context) {
 	if ctx.IsSet("internal-repair") {
 		config.InternalRepair = ctx.Bool("internal-repair")
 	}
+
+	if ctx.IsSet("never-wipe-images") {
+		config.NeverWipeImages = ctx.Bool("never-wipe-images")
+	}
 }
 
 // mergeImageConfig merges ImageConfig-related CLI flags into the config, including pause image,
@@ -1514,6 +1518,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "If true, CRI-O will check if the container and image storage was corrupted after a sudden restart, and attempt to repair the storage if it was.",
 			EnvVars: []string{"CONTAINER_INTERNAL_REPAIR"},
 			Value:   defConf.InternalRepair,
+		},
+		&cli.BoolFlag{
+			Name:    "never-wipe-images",
+			Usage:   "If true, CRI-O will never wipe images, including after an upgrade and when a storage repair fails after an unclean shutdown. Containers are still wiped.",
+			EnvVars: []string{"CONTAINER_NEVER_WIPE_IMAGES"},
+			Value:   defConf.NeverWipeImages,
 		},
 		&cli.BoolFlag{
 			Name:    "oci-artifact-mount-support",

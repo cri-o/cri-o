@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	cstorage "go.podman.io/storage"
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -1010,6 +1011,50 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(container).To(BeNil())
+		})
+	})
+
+	t.Describe("RemoveStorageDirectory", func() {
+		It("should remove only CRI-O containers and keep images if never_wipe_images is set", func() {
+			// Given
+			config.NeverWipeImages = true
+
+			// Any other store call, such as Wipe, Shutdown or DeleteImage,
+			// is unexpected and fails the test.
+			gomock.InOrder(
+				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().Containers().Return([]cstorage.Container{
+					{ID: "crioContainer", ImageID: "image"},
+					{ID: "otherContainer", ImageID: "image"},
+				}, nil),
+				storeMock.EXPECT().Metadata("crioContainer").
+					Return(`{"pod-name":"pod","pod-id":"podID"}`, nil),
+				storeMock.EXPECT().Metadata("otherContainer").Return(`{}`, nil),
+				storeMock.EXPECT().Unmount("crioContainer", true).Return(false, nil),
+				storeMock.EXPECT().DeleteContainer("crioContainer").Return(nil),
+			)
+
+			// When
+			err := lib.RemoveStorageDirectory(config, storeMock, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should fail if the containers cannot be listed and never_wipe_images is set", func() {
+			// Given
+			config.NeverWipeImages = true
+
+			gomock.InOrder(
+				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().Containers().Return(nil, t.TestError),
+			)
+
+			// When
+			err := lib.RemoveStorageDirectory(config, storeMock, false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

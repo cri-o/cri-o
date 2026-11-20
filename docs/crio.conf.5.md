@@ -70,6 +70,14 @@ If set to false, one must run `crio wipe` to wipe the containers and images in t
 InternalRepair is whether CRI-O should check if the container and image storage was corrupted after a sudden restart.
 If it was, CRI-O also attempts to repair the storage.
 
+**never_wipe_images**=false
+If true, CRI-O never wipes images. This covers the image wipe after an upgrade (both `internal_wipe` and `crio wipe`),
+the storage directory wipe of `crio wipe` after an unclean shutdown, and the storage directory wipe when
+`internal_repair` cannot repair the storage. In these cases, CRI-O only removes its containers and keeps the images.
+This is intended for disconnected environments where images cannot be pulled again.
+It does not prevent `internal_repair` from removing individual images that it finds damaged.
+If the storage cannot be repaired, it may remain inconsistent and require manual intervention.
+
 **clean_shutdown_file**="/var/lib/crio/clean.shutdown"
 Location for CRI-O to lay down the clean shutdown file.
 It is used to check whether crio had time to sync before shutting down.

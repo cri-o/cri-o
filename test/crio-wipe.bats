@@ -299,6 +299,50 @@ function start_crio_with_stopped_pod() {
 	test_crio_did_not_wipe_images
 }
 
+@test "never_wipe_images keeps images when remove both" {
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_VERSION_FILE"
+	rm "$CONTAINER_VERSION_FILE_PERSIST"
+	rm -f "/run/crio/crio-wipe-done"
+	CONTAINER_NEVER_WIPE_IMAGES=true run_crio_wipe
+
+	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
+	test_crio_wiped_containers
+	test_crio_did_not_wipe_images
+}
+
+@test "never_wipe_images keeps images when shutdown file not found" {
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
+	rm "$CONTAINER_VERSION_FILE"
+	rm -f "/run/crio/crio-wipe-done"
+
+	CONTAINER_NEVER_WIPE_IMAGES=true run_crio_wipe
+
+	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
+
+	test_crio_wiped_containers
+	test_crio_did_not_wipe_images
+}
+
+@test "internal_wipe with never_wipe_images keeps images when remove both" {
+	start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_VERSION_FILE"
+	rm "$CONTAINER_VERSION_FILE_PERSIST"
+	# simulate a reboot by having a removable namespaces dir
+	cleanup_namespaces_dir
+
+	CONTAINER_INTERNAL_WIPE=true CONTAINER_NEVER_WIPE_IMAGES=true start_crio_no_setup
+	test_crio_wiped_containers
+	test_crio_did_not_wipe_images
+}
+
 @test "internal_wipe eventually cleans network on forced restart of crio if network is slow to come up" {
 	CNI_RESULTS_DIR=/var/lib/cni/results
 
