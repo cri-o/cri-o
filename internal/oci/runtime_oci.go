@@ -1949,8 +1949,8 @@ func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 	return nil
 }
 
-func (r *runtimeOCI) IsContainerAlive(c *Container) bool {
-	return c.Living() == nil
+func (r *runtimeOCI) IsContainerAlive(_ context.Context, c *Container) (bool, error) {
+	return c.Living() == nil, nil
 }
 
 func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
@@ -1969,7 +1969,12 @@ func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
 		return err
 	}
 
-	if r.IsContainerAlive(c) {
+	alive, err := r.IsContainerAlive(ctx, c)
+	if err != nil {
+		return err
+	}
+
+	if alive {
 		metrics.Instance().MetricContainersStoppedMonitorCountInc(c.Name())
 		log.Errorf(
 			ctx,
