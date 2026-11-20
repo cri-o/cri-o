@@ -195,7 +195,16 @@ func resourcesFromAnnotation(
 
 	value, ok := allAnnotations[annotationKey]
 	if !ok {
-		return defaultResources, nil
+		if defaultResources == nil || defaultResources.CPULimit == 0 {
+			return defaultResources, nil
+		}
+
+		// The defaults are shared by all containers of the workload, so
+		// calculate the quota of the default cpulimit on a copy.
+		resources := *defaultResources
+		resources.CPUQuota = milliCPUToQuota(resources.CPULimit, int64(resources.CPUPeriod))
+
+		return &resources, nil
 	}
 
 	var resources *Resources
