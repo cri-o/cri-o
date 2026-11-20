@@ -17,3 +17,37 @@
 
 	grep "1" /proc/sys/fs/may_detach_mounts
 }
+
+# VM runtimes cannot pass host devices to privileged containers.
+@test "vm runtime defaults privileged_without_host_devices to true" {
+	common_sh="${BATS_TEST_DIRNAME:-.}/common.sh"
+
+	# shellcheck disable=SC2016 # expanded in the subshell
+	run env -u PRIVILEGED_WITHOUT_HOST_DEVICES \
+		CRICTL_BINARY="${CRICTL_BINARY:-}" \
+		CONMON_BINARY="${CONMON_BINARY:-}" \
+		RUNTIME_TYPE=vm \
+		bash -c '. "$1"; printf "%s" "$PRIVILEGED_WITHOUT_HOST_DEVICES"' _ "$common_sh"
+	[ "$status" -eq 0 ]
+	[ "$output" = "true" ]
+
+	# An explicit value wins.
+	# shellcheck disable=SC2016 # expanded in the subshell
+	run env PRIVILEGED_WITHOUT_HOST_DEVICES=false \
+		CRICTL_BINARY="${CRICTL_BINARY:-}" \
+		CONMON_BINARY="${CONMON_BINARY:-}" \
+		RUNTIME_TYPE=vm \
+		bash -c '. "$1"; printf "%s" "$PRIVILEGED_WITHOUT_HOST_DEVICES"' _ "$common_sh"
+	[ "$status" -eq 0 ]
+	[ "$output" = "false" ]
+
+	# Non-VM runtimes keep the CRI-O default.
+	# shellcheck disable=SC2016 # expanded in the subshell
+	run env -u PRIVILEGED_WITHOUT_HOST_DEVICES \
+		CRICTL_BINARY="${CRICTL_BINARY:-}" \
+		CONMON_BINARY="${CONMON_BINARY:-}" \
+		RUNTIME_TYPE=oci \
+		bash -c '. "$1"; printf "%s" "$PRIVILEGED_WITHOUT_HOST_DEVICES"' _ "$common_sh"
+	[ "$status" -eq 0 ]
+	[ -z "$output" ]
+}
