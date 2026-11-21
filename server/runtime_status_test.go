@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"google.golang.org/protobuf/proto"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/pkg/config"
@@ -96,28 +97,33 @@ var _ = t.Describe("Status", func() {
 
 			DescribeTable("returns stable capabilities",
 				func(verbose bool) {
-					var expected []*types.RuntimeHandler
-					if expectedNames != nil {
-						expected = make([]*types.RuntimeHandler, 0, len(expectedNames))
-					}
-
-					for _, name := range expectedNames {
-						featureName := name
-						if name == "" {
-							featureName = defaultRuntime
-						}
-
-						expected = append(expected, &types.RuntimeHandler{
-							Name: name, Features: capabilities[featureName],
-						})
-					}
-
 					response, err := sut.Status(
 						context.Background(),
 						&types.StatusRequest{Verbose: verbose},
 					)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(response.GetRuntimeHandlers()).To(Equal(expected))
+
+					handlers := response.GetRuntimeHandlers()
+					if expectedNames == nil {
+						Expect(handlers).To(BeNil())
+					}
+
+					Expect(handlers).To(HaveLen(len(expectedNames)))
+
+					for i, name := range expectedNames {
+						handler := handlers[i]
+						Expect(handler.GetName()).To(Equal(name), "handler at index %d", i)
+
+						featureName := name
+						if name == "" {
+							featureName = defaultRuntime
+						}
+
+						Expect(
+							proto.Equal(handler.GetFeatures(), capabilities[featureName]),
+						).To(BeTrue(),
+							"features for runtime handler %q", name)
+					}
 
 					if verbose {
 						Expect(response.GetInfo()).NotTo(BeEmpty())
