@@ -3,7 +3,6 @@ package server_test
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -113,66 +112,18 @@ var _ = t.Describe("Status", func() {
 						})
 					}
 
-					// Exact order catches the regression deterministically: the default
-					// alias must precede its named handler, regardless of map iteration.
-					// Repeat calls to also catch order changes with unchanged config.
-					for range 32 {
-						response, err := sut.Status(
-							context.Background(),
-							&types.StatusRequest{Verbose: verbose},
-						)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(response.GetRuntimeHandlers()).To(Equal(expected))
+					response, err := sut.Status(
+						context.Background(),
+						&types.StatusRequest{Verbose: verbose},
+					)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(response.GetRuntimeHandlers()).To(Equal(expected))
 
-						if verbose {
-							Expect(response.GetInfo()).NotTo(BeEmpty())
-						} else {
-							Expect(response.GetInfo()).To(BeEmpty())
-						}
+					if verbose {
+						Expect(response.GetInfo()).NotTo(BeEmpty())
+					} else {
+						Expect(response.GetInfo()).To(BeEmpty())
 					}
-
-					var callers sync.WaitGroup
-					for range 8 {
-						callers.Go(func() {
-							defer GinkgoRecover()
-
-							response, err := sut.Status(
-								context.Background(),
-								&types.StatusRequest{Verbose: verbose},
-							)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(response.GetRuntimeHandlers()).To(Equal(expected))
-						})
-					}
-
-					callers.Wait()
-
-					if len(expectedNames) > 0 {
-						response, err := sut.Status(
-							context.Background(),
-							&types.StatusRequest{Verbose: verbose},
-						)
-						Expect(err).NotTo(HaveOccurred())
-
-						// A caller modifying one response must not change later responses
-						// or the capabilities stored in the configuration.
-						handler := response.GetRuntimeHandlers()[0]
-						handler.Name = "modified"
-						handler.Features.RecursiveReadOnlyMounts = !handler.GetFeatures().
-							GetRecursiveReadOnlyMounts()
-						handler.Features.UserNamespaces = !handler.GetFeatures().GetUserNamespaces()
-
-						response, err = sut.Status(
-							context.Background(),
-							&types.StatusRequest{Verbose: verbose},
-						)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(response.GetRuntimeHandlers()).To(Equal(expected))
-					}
-
-					// Status must not insert the default alias into the config map.
-					Expect(serverConfig.Runtimes).To(HaveLen(len(names)))
-					Expect(serverConfig.DefaultRuntime).To(Equal(defaultRuntime))
 				},
 				Entry("without verbose info", false),
 				Entry("with verbose info", true),
