@@ -374,6 +374,14 @@ func (c *Container) FromDisk() error {
 		)
 	}
 
+	// A nonterminal container must not carry an exit state: older versions
+	// cached the placeholder values of a running task, which would be reported
+	// as a successful exit when its shim later dies.
+	if tmpState.Status != ContainerStateStopped {
+		tmpState.ExitCode = nil
+		tmpState.Finished = time.Time{}
+	}
+
 	c.state = tmpState
 
 	return nil

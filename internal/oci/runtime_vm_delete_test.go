@@ -2,7 +2,6 @@ package oci_test
 
 import (
 	"context"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,9 +35,16 @@ var _ = t.Describe("RuntimeVM shim delete args", func() {
 	})
 })
 
-// writeFakeShim writes a runtime binary which stores its arguments in argsFile.
-func writeFakeShim(dir, argsFile string) string {
-	script := "#!/bin/sh\necho \"$@\" > " + shQuote(argsFile) + "\n"
+// writeFakeShim writes a runtime binary which runs the preamble and then stores
+// its arguments in argsFile.
+func writeFakeShim(dir, argsFile string, preamble ...string) string {
+	script := "#!/bin/sh\n"
+	if len(preamble) > 0 {
+		script += strings.Join(preamble, "\n") + "\n"
+	}
+
+	script += "echo \"$@\" > " + shQuote(argsFile) + "\n"
+
 	runtimePath := filepath.Join(dir, "shim")
 	Expect(os.WriteFile(runtimePath, []byte(script), 0o755)).To(Succeed())
 
@@ -98,11 +104,9 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 
 		dir := GinkgoT().TempDir()
 		argsFile := filepath.Join(dir, "args")
-		runtimePath := filepath.Join(dir, "shim")
-		script := "#!/bin/sh\nsleep 0.2\necho \"$@\" > " + shQuote(argsFile) + "\n"
-		Expect(os.WriteFile(runtimePath, []byte(script), 0o755)).To(Succeed())
-
-		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{RuntimePath: runtimePath})
+		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{
+			RuntimePath: writeFakeShim(dir, argsFile, "sleep 0.2"),
+		})
 
 		// The caller deletes the container storage, and with it the bundle the
 		// shim delete command runs from, as soon as this returns.
@@ -120,20 +124,11 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 
 		dir := GinkgoT().TempDir()
 		argsFile := filepath.Join(dir, "args")
-		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{
-			RuntimePath: writeFakeShim(dir, argsFile),
-		})
 
-		server, client := net.Pipe()
-
-		DeferCleanup(func() {
-			_ = server.Close()
-			_ = client.Close()
-		})
-
-		r.AddContainer(c.ID())
-		r.SetTask(&fakeTaskService{shutdownErr: ttrpc.ErrClosed})
-		r.SetClient(ttrpc.NewClient(client))
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{RuntimePath: writeFakeShim(dir, argsFile)},
+			c.ID(), &fakeTaskService{shutdownErr: ttrpc.ErrClosed},
+		)
 
 		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
 		Expect(waitForShimArgs(argsFile)).To(ContainSubstring("-id " + c.ID()))
@@ -146,23 +141,14 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 
 		dir := GinkgoT().TempDir()
 		argsFile := filepath.Join(dir, "args")
-		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{
-			RuntimePath: writeFakeShim(dir, argsFile),
-		})
 
-		server, client := net.Pipe()
-
-		DeferCleanup(func() {
-			_ = server.Close()
-			_ = client.Close()
-		})
-
-		r.AddContainer(c.ID())
-		r.SetTask(&fakeTaskService{shutdownErr: context.DeadlineExceeded})
-		r.SetClient(ttrpc.NewClient(client))
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{RuntimePath: writeFakeShim(dir, argsFile)},
+			c.ID(), &fakeTaskService{shutdownErr: context.DeadlineExceeded},
+		)
 
 		Expect(r.DeleteContainer(context.Background(), c)).To(HaveOccurred())
-		Consistently(argsFile).WithTimeout(100 * time.Millisecond).ShouldNot(BeAnExistingFile())
+		Expect(argsFile).NotTo(BeAnExistingFile())
 	})
 
 	It("should not mark the container as deleting when the deletion fails", func() {
@@ -172,20 +158,11 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 
 		dir := GinkgoT().TempDir()
 		argsFile := filepath.Join(dir, "args")
-		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{
-			RuntimePath: writeFakeShim(dir, argsFile),
-		})
 
-		server, client := net.Pipe()
-
-		DeferCleanup(func() {
-			_ = server.Close()
-			_ = client.Close()
-		})
-
-		r.AddContainer(c.ID())
-		r.SetTask(&fakeTaskService{deleteErr: context.DeadlineExceeded})
-		r.SetClient(ttrpc.NewClient(client))
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{RuntimePath: writeFakeShim(dir, argsFile)},
+			c.ID(), &fakeTaskService{deleteErr: context.DeadlineExceeded},
+		)
 
 		Expect(r.DeleteContainer(context.Background(), c)).To(HaveOccurred())
 		// Otherwise a shim dying later is mistaken for the deletion itself and
@@ -203,15 +180,13 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 		dir := GinkgoT().TempDir()
 		argsFile := filepath.Join(dir, "args")
 		marker := filepath.Join(dir, "attempted")
-		runtimePath := filepath.Join(dir, "shim")
 
-		script := "#!/bin/sh\n" +
-			"if [ ! -f " + shQuote(marker) + " ]; then\n" +
-			"\ttouch " + shQuote(marker) + "\n" +
-			"\texit 1\n" +
-			"fi\n" +
-			"echo \"$@\" > " + shQuote(argsFile) + "\n"
-		Expect(os.WriteFile(runtimePath, []byte(script), 0o755)).To(Succeed())
+		runtimePath := writeFakeShim(dir, argsFile,
+			"if [ ! -f "+shQuote(marker)+" ]; then",
+			"\ttouch "+shQuote(marker),
+			"\texit 1",
+			"fi",
+		)
 
 		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{RuntimePath: runtimePath})
 
@@ -229,38 +204,75 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 
 		dir := GinkgoT().TempDir()
 		argsFile := filepath.Join(dir, "args")
-		marker := filepath.Join(dir, "attempted")
-		runtimePath := filepath.Join(dir, "shim")
+		countFile := filepath.Join(dir, "count")
 
-		script := "#!/bin/sh\n" +
-			"if [ ! -f " + shQuote(marker) + " ]; then\n" +
-			"\ttouch " + shQuote(marker) + "\n" +
-			"\texit 1\n" +
-			"fi\n" +
-			"echo \"$@\" > " + shQuote(argsFile) + "\n"
-		Expect(os.WriteFile(runtimePath, []byte(script), 0o755)).To(Succeed())
+		// The shim delete fails twice, then succeeds.
+		runtimePath := writeFakeShim(dir, argsFile,
+			"count="+shQuote(countFile),
+			"n=0",
+			"if [ -f \"$count\" ]; then n=$(cat \"$count\"); fi",
+			"n=$((n + 1))",
+			"echo \"$n\" > \"$count\"",
+			"if [ \"$n\" -le 2 ]; then",
+			"\texit 1",
+			"fi",
+		)
 
-		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{RuntimePath: runtimePath})
-
-		server, client := net.Pipe()
-
-		DeferCleanup(func() {
-			_ = server.Close()
-			_ = client.Close()
-		})
-
-		r.AddContainer(c.ID())
-		r.SetTask(&fakeTaskService{shutdownErr: ttrpc.ErrClosed})
-		r.SetClient(ttrpc.NewClient(client))
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{RuntimePath: runtimePath},
+			c.ID(), &fakeTaskService{shutdownErr: ttrpc.ErrClosed},
+		)
 
 		// The removal fails, so the bundle the shim delete command runs from is
 		// kept and the caller can retry.
 		Expect(r.DeleteContainer(context.Background(), c)).To(HaveOccurred())
-		Expect(marker).To(BeAnExistingFile())
+		Expect(countFile).To(BeAnExistingFile())
 
-		// The retry finds a stopped container without runtime state.
+		// The retry finds a stopped container without runtime state, and fails
+		// again, so the container is kept for another try.
 		c.State().Status = oci.ContainerStateStopped
+		Expect(r.DeleteContainer(context.Background(), c)).To(HaveOccurred())
+
 		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
 		Expect(argsFile).To(BeAnExistingFile())
+	})
+
+	It("should not run the shim delete when the bundle is gone", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{
+			Status:   oci.ContainerStateStopped,
+			Finished: time.Now(),
+		})
+		Expect(os.RemoveAll(bundleDir)).To(Succeed())
+
+		dir := GinkgoT().TempDir()
+		argsFile := filepath.Join(dir, "args")
+		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{
+			RuntimePath: writeFakeShim(dir, argsFile),
+		})
+
+		// The command runs from the bundle, so retrying cannot clean up either.
+		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
+		Expect(argsFile).NotTo(BeAnExistingFile())
+	})
+
+	It("should not run the shim delete when the runtime state is gone", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{
+			Status:   oci.ContainerStateStopped,
+			Finished: time.Now(),
+		})
+
+		dir := GinkgoT().TempDir()
+		argsFile := filepath.Join(dir, "args")
+		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{
+			RuntimePath: writeFakeShim(dir, argsFile),
+			RuntimeRoot: filepath.Join(dir, "gone"),
+		})
+
+		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
+		Expect(argsFile).NotTo(BeAnExistingFile())
 	})
 })

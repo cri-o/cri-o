@@ -70,8 +70,13 @@ func newTestContainerWithBundle(bundlePath string) *oci.Container {
 	return c
 }
 
-// runtimeWithTaskService returns a runtime backed by the provided task service.
-func runtimeWithTaskService(ctrID string, svc *fakeTaskService) oci.RuntimeVM {
+// runtimeWithTaskService returns a runtime backed by the provided handler and
+// task service.
+func runtimeWithTaskService(
+	handler *crioconfig.RuntimeHandler,
+	ctrID string,
+	svc *fakeTaskService,
+) oci.RuntimeVM {
 	server, conn := net.Pipe()
 
 	DeferCleanup(func() {
@@ -79,7 +84,7 @@ func runtimeWithTaskService(ctrID string, svc *fakeTaskService) oci.RuntimeVM {
 		_ = conn.Close()
 	})
 
-	r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{})
+	r := oci.NewRuntimeVMWithHandler(handler)
 	r.AddContainer(ctrID)
 	r.SetTask(svc)
 	r.SetClient(ttrpc.NewClient(conn))
@@ -179,20 +184,52 @@ var _ = t.Describe("RuntimeVM updateContainerStatus", func() {
 		Expect(*c.State().ExitCode).To(Equal(int32(255)))
 	})
 
-	It("should not cache the exit code of a running task", func() {
+	It("should not cache the exit state of a running task", func() {
 		bundleDir := GinkgoT().TempDir()
 		c := newTestContainerWithBundle(bundleDir)
 		c.SetState(&oci.ContainerState{})
 		c.State().Status = oci.ContainerStateCreated
 
-		r := runtimeWithTaskService(c.ID(), &fakeTaskService{stateResp: &task.StateResponse{
+		svc := &fakeTaskService{stateResp: &task.StateResponse{
 			Status:     tasktypes.Status_RUNNING,
 			ExitStatus: 0,
-		}})
+		}}
+		r := runtimeWithTaskService(&crioconfig.RuntimeHandler{}, c.ID(), svc)
 
 		Expect(r.UpdateContainerStatus(context.Background(), c)).To(Succeed())
 		Expect(string(c.State().Status)).To(Equal(oci.ContainerStateRunning))
 		Expect(c.State().ExitCode).To(BeNil())
+		Expect(c.State().Finished.IsZero()).To(BeTrue())
+
+		// The shim disconnects: the container stops at the time of detection.
+		svc.stateResp = nil
+		svc.stateErr = ttrpc.ErrClosed
+
+		Expect(r.UpdateContainerStatus(context.Background(), c)).To(Succeed())
+		Expect(string(c.State().Status)).To(Equal(oci.ContainerStateStopped))
+		Expect(c.State().ExitCode).ToNot(BeNil())
+		Expect(*c.State().ExitCode).To(Equal(int32(255)))
+		Expect(c.State().Finished).To(BeTemporally("~", time.Now(), time.Minute))
+	})
+
+	It("should keep the exit code reported by the wait when the shim is unreachable", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{})
+		c.State().Status = oci.ContainerStateRunning
+
+		waitExitCode := int32(42)
+		c.State().ExitCode = &waitExitCode
+
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{}, c.ID(),
+			&fakeTaskService{stateErr: ttrpc.ErrClosed},
+		)
+
+		Expect(r.UpdateContainerStatus(context.Background(), c)).To(Succeed())
+		Expect(string(c.State().Status)).To(Equal(oci.ContainerStateStopped))
+		Expect(c.State().ExitCode).ToNot(BeNil())
+		Expect(*c.State().ExitCode).To(Equal(waitExitCode))
 	})
 
 	It("should keep the exit code of a stopped task after the shim disconnects", func() {
@@ -205,7 +242,7 @@ var _ = t.Describe("RuntimeVM updateContainerStatus", func() {
 			Status:     tasktypes.Status_STOPPED,
 			ExitStatus: 0,
 		}}
-		r := runtimeWithTaskService(c.ID(), svc)
+		r := runtimeWithTaskService(&crioconfig.RuntimeHandler{}, c.ID(), svc)
 
 		Expect(r.UpdateContainerStatus(context.Background(), c)).To(Succeed())
 		Expect(string(c.State().Status)).To(Equal(oci.ContainerStateStopped))

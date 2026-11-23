@@ -53,14 +53,18 @@ type RuntimeVM struct {
 	*runtimeVM
 }
 
-func NewRuntimeVM() RuntimeVM {
+func newTestRuntimeVM(handler *config.RuntimeHandler) RuntimeVM {
 	return RuntimeVM{
 		runtimeVM: &runtimeVM{
 			ctx:     context.Background(),
-			handler: &config.RuntimeHandler{},
+			handler: handler,
 			ctrs:    make(map[string]containerInfo),
 		},
 	}
+}
+
+func NewRuntimeVM() RuntimeVM {
+	return newTestRuntimeVM(&config.RuntimeHandler{})
 }
 
 func (r RuntimeVM) UpdateContainerStatus(ctx context.Context, c *Container) error {
@@ -80,24 +84,15 @@ func (r RuntimeVM) HasTask() bool {
 }
 
 func NewRuntimeVMWithTask(t task.TaskService) RuntimeVM {
-	return RuntimeVM{
-		runtimeVM: &runtimeVM{
-			task: t,
-			ctx:  context.Background(),
-			ctrs: make(map[string]containerInfo),
-		},
-	}
+	r := newTestRuntimeVM(nil)
+	r.task = t
+
+	return r
 }
 
 // NewRuntimeVMWithHandler creates a RuntimeVM for the given runtime handler.
 func NewRuntimeVMWithHandler(handler *config.RuntimeHandler) RuntimeVM {
-	return RuntimeVM{
-		runtimeVM: &runtimeVM{
-			ctx:     context.Background(),
-			handler: handler,
-			ctrs:    make(map[string]containerInfo),
-		},
-	}
+	return newTestRuntimeVM(handler)
 }
 
 func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal) error {
