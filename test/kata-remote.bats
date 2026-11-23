@@ -8,6 +8,19 @@ function setup() {
 }
 
 function teardown() {
+	# If a kata-remote test failed and left a podvm running, dump its CDH
+	# journal before cleanup destroys the VM (follows the PR #10306 pattern
+	# of capturing guest-side diagnostics into /tmp/artifacts/).
+	if [[ -n "${KATA_REMOTE_POD_ID:-}" ]]; then
+		dump_podvm_journal "$KATA_REMOTE_POD_ID"
+		# Honor TEST_KEEP_ON_FAILURE like cleanup_test below: preserve the
+		# failed pod and its VM for inspection.
+		if [[ -z "$TEST_KEEP_ON_FAILURE" || "${BATS_TEST_COMPLETED:-}" = "1" ]]; then
+			crictl stopp "$KATA_REMOTE_POD_ID" 2> /dev/null || true
+			crictl rmp "$KATA_REMOTE_POD_ID" 2> /dev/null || true
+			wait_caa_vm_deleted "$KATA_REMOTE_POD_ID" || true
+		fi
+	fi
 	cleanup_test
 }
 
@@ -73,11 +86,88 @@ function wait_caa_vm_deleted() {
 	return 1
 }
 
+function dump_podvm_journal() {
+	# Only active when the CI runs against a debug podvm image
+	# (debug_podvm=true in vars.yml sets DEBUG_PODVM in the test
+	# environment); requires qemu-guest-agent inside the guest.
+	if [[ "${DEBUG_PODVM:-false}" != "true" ]]; then
+		return 0
+	fi
+
+	local pod_id=$1
+	local vm_name="podvm-podsandbox1-${pod_id:0:8}"
+
+	# Hot-plug a QEMU guest-agent channel. CAA's domain XML has neither a
+	# virtio-serial controller nor a channel, and libvirt hooks cannot
+	# modify the domain XML at guest start, so attach both devices live.
+	# Attaching twice (or to a gone domain) errors out and is ignored.
+	local devxml
+	devxml=$(mktemp)
+	cat > "$devxml" << 'EOF'
+<controller type='virtio-serial' index='0'/>
+EOF
+	sudo virsh attach-device "$vm_name" "$devxml" --live > /dev/null 2>&1 || true
+	cat > "$devxml" << 'EOF'
+<channel type='unix'>
+  <target type='virtio' name='org.qemu.guest_agent.0'/>
+</channel>
+EOF
+	sudo virsh attach-device "$vm_name" "$devxml" --live > /dev/null 2>&1 || true
+	rm -f "$devxml"
+
+	# Wait for guest agent to become responsive
+	for _ in $(seq 1 10); do
+		if sudo virsh qemu-agent-command "$vm_name" '{"execute":"guest-ping"}' > /dev/null 2>&1; then
+			break
+		fi
+		sleep 1
+	done
+
+	# Execute journalctl inside the guest
+	local exec_result pid status out_data
+	exec_result=$(sudo virsh qemu-agent-command "$vm_name" \
+		'{"execute":"guest-exec","arguments":{"path":"/usr/bin/journalctl","arg":["-u","confidential-data-hub","--no-pager"],"capture-output":true}}' 2>&1) || {
+		echo "warning: guest-exec failed: $exec_result" >&2
+		return 0
+	}
+	pid=$(echo "$exec_result" | jq -r '.return.pid')
+
+	# Poll for completion
+	for _ in $(seq 1 30); do
+		status=$(sudo virsh qemu-agent-command "$vm_name" \
+			"{\"execute\":\"guest-exec-status\",\"arguments\":{\"pid\":$pid}}" 2>&1) || break
+		if echo "$status" | jq -e '.return.exited' > /dev/null 2>&1; then
+			mkdir -p /tmp/artifacts
+			local logfile="/tmp/artifacts/podvm-cdh-journal-${pod_id:0:8}.log"
+			out_data=$(echo "$status" | jq -r '.return."out-data" // empty')
+			if [[ -n "$out_data" ]]; then
+				echo "$out_data" | base64 -d > "$logfile"
+			fi
+			local err_data
+			err_data=$(echo "$status" | jq -r '.return."err-data" // empty')
+			if [[ -n "$err_data" ]]; then
+				echo "$err_data" | base64 -d >> "$logfile"
+			fi
+			if [[ -s "$logfile" ]]; then
+				echo "CDH journal saved to $logfile"
+			fi
+			return 0
+		fi
+		sleep 1
+	done
+
+	echo "warning: timed out waiting for guest-exec result" >&2
+	return 0
+}
+
 function cleanup() {
 	local ctr_id=$1
 	local pod_id=$2
 	local kata=${3:-true}
 
+	if [[ "$kata" == "true" ]]; then
+		dump_podvm_journal "$pod_id"
+	fi
 	crictl stop "$ctr_id"
 	crictl rm "$ctr_id"
 	crictl stopp "$pod_id"
@@ -120,6 +210,7 @@ function cleanup() {
 	# hypervisor needs to boot a peer pod VM via the CAA.
 	local runtimeclass=kata-remote
 	pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime="$runtimeclass" "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$pod_id"
 	[[ -n "$pod_id" ]]
 
 	# Verify pod is ready
@@ -149,6 +240,7 @@ function cleanup() {
 	retry 10 1 crictl exec "$ctr_id" echo ok
 
 	cleanup "$ctr_id" "$pod_id"
+	KATA_REMOTE_POD_ID=""
 
 	# Verify pod is gone
 	run ! crictl inspectp "$pod_id"
@@ -172,6 +264,7 @@ function cleanup() {
 
 	# Create a pod using the kata-remote runtime (which has runtime_pull_image=true).
 	pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime="$runtimeclass" "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$pod_id"
 	[[ -n "$pod_id" ]]
 
 	# Create container with image pull
@@ -200,6 +293,7 @@ function cleanup() {
 
 	# Verify via the CRI-O log that we actually restored the previously pulled image.
 	wait_for_log "runtimePulledImageService: restored 1"
+	KATA_REMOTE_POD_ID=""
 }
 
 @test "runtime_pull_image: pull without sandbox context uses main store" {
@@ -247,6 +341,7 @@ function cleanup() {
 
 	local pod_id
 	pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime=kata-remote "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$pod_id"
 	[[ -n "$pod_id" ]]
 
 	# Pull happens inside the VM; the manifest is stored in the per-sandbox artifact store.
@@ -261,6 +356,7 @@ function cleanup() {
 
 	crictl start "$ctr_id"
 	cleanup "$ctr_id" "$pod_id"
+	KATA_REMOTE_POD_ID=""
 }
 
 @test "runtime_pull_image: crictl image status is empty for runtime-pulled image" {
@@ -280,6 +376,7 @@ function cleanup() {
 
 	local pod_id
 	pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime=kata-remote "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$pod_id"
 	[[ -n "$pod_id" ]]
 
 	local ctr_id
@@ -299,6 +396,7 @@ function cleanup() {
 
 	crictl start "$ctr_id"
 	cleanup "$ctr_id" "$pod_id"
+	KATA_REMOTE_POD_ID=""
 }
 
 @test "runtime_pull_image: sandbox removal evicts the per-sandbox image service cache" {
@@ -319,6 +417,7 @@ function cleanup() {
 	# Pull the image into pod A's per-sandbox artifact store.
 	local pod_a
 	pod_a=$(CRICTL_TIMEOUT=5m crictl runp --runtime=kata-remote "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$pod_a"
 	[[ -n "$pod_a" ]]
 
 	local ctr_id
@@ -338,6 +437,7 @@ function cleanup() {
 	# Pod B is a fresh sandbox with its own empty artifact store.
 	local pod_b
 	pod_b=$(CRICTL_TIMEOUT=5m crictl runp --runtime=kata-remote "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$pod_b"
 	[[ -n "$pod_b" ]]
 
 	# Without --with-pull the image is not available for pod B.
@@ -346,6 +446,7 @@ function cleanup() {
 	crictl stopp "$pod_b"
 	crictl rmp "$pod_b"
 	wait_caa_vm_deleted "$pod_b"
+	KATA_REMOTE_POD_ID=""
 }
 
 @test "runtime_pull_image: same image stored in artifact store for kata and containers/storage for default" {
@@ -368,6 +469,7 @@ function cleanup() {
 	# no layers land in the host containers/storage.
 	local kata_pod_id
 	kata_pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime=kata-remote "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$kata_pod_id"
 	[[ -n "$kata_pod_id" ]]
 
 	local kata_ctr_id
@@ -410,6 +512,7 @@ function cleanup() {
 
 	cleanup "$kata_ctr_id" "$kata_pod_id"
 	cleanup "$default_ctr_id" "$default_pod_id" false
+	KATA_REMOTE_POD_ID=""
 }
 
 @test "runtime_pull_image: runtimePulledImageService pulls own manifest even when image is already in containers/storage" {
@@ -440,6 +543,7 @@ function cleanup() {
 	# artifact store rather than silently reusing the containers/storage copy.
 	local kata_pod_id
 	kata_pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime=kata-remote "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$kata_pod_id"
 	[[ -n "$kata_pod_id" ]]
 
 	ctr_id=$(crictl create --with-pull "$kata_pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
@@ -456,6 +560,7 @@ function cleanup() {
 
 	crictl start "$ctr_id"
 	cleanup "$ctr_id" "$kata_pod_id"
+	KATA_REMOTE_POD_ID=""
 }
 
 @test "runtime_pull_image: pulling the same image twice is idempotent" {
@@ -475,6 +580,7 @@ function cleanup() {
 
 	local pod_id
 	pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime=kata-remote "$TESTDATA"/sandbox_config.json)
+	KATA_REMOTE_POD_ID="$pod_id"
 	[[ -n "$pod_id" ]]
 
 	# First pull.
@@ -494,4 +600,5 @@ function cleanup() {
 
 	crictl start "$ctr2_id"
 	cleanup "$ctr2_id" "$pod_id"
+	KATA_REMOTE_POD_ID=""
 }
