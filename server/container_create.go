@@ -609,6 +609,21 @@ func (s *Server) CreateContainer(
 		},
 	)
 
+	// NRI plugins already saw this container in CreateContainer, so they
+	// must also see it go away if the creation fails from here on. Added
+	// after the storage cleanup so it runs first and an error there does
+	// not skip it.
+	resourceCleaner.Add(
+		ctx,
+		"createCtr: undoing NRI creation of container "+ctr.ID(),
+		func() error {
+			// The request may be over when a timed out creation is cleaned up.
+			s.nri.undoCreateContainer(context.WithoutCancel(ctx), nil, sb, newContainer)
+
+			return nil
+		},
+	)
+
 	s.addContainer(ctx, newContainer)
 	resourceCleaner.Add(ctx, "createCtr: removing container "+newContainer.ID(), func() error {
 		s.removeContainer(ctx, newContainer)
@@ -1179,7 +1194,7 @@ func (s *Server) createSandboxContainer(
 
 	defer func() {
 		if retErr != nil {
-			s.nri.undoCreateContainer(ctx, specgen, sb, ociContainer)
+			s.nri.undoCreateContainer(ctx, specgen.Config, sb, ociContainer)
 		}
 	}()
 

@@ -153,6 +153,70 @@ func TestContainerEvents(stdT *testing.T) {
 	t.removePod(pod)
 }
 
+func TestFailedContainerCreationEvents(stdT *testing.T) {
+	skipTestForCondition(stdT,
+		map[string]bool{
+			"no runtime connection": crio == nil,
+		},
+	)
+
+	var (
+		timeout       = eventTimeout
+		ctrIDs        = make(chan string, 1)
+		missingSource = filepath.Join(stdT.TempDir(), "missing")
+		// A bind mount from a missing source makes the runtime fail to
+		// create the container, after the NRI CreateContainer event.
+		injectBadMount = func(p *plugin, pod *api.PodSandbox, ctr *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
+			ctrIDs <- ctr.GetId()
+
+			adjust := &api.ContainerAdjustment{}
+			adjust.AddMount(
+				&api.Mount{
+					Destination: "/missing",
+					Source:      missingSource,
+					Type:        "bind",
+					Options:     []string{"bind"},
+				},
+			)
+
+			return adjust, nil, nil
+		}
+
+		t = &nriTest{
+			plugins: []*plugin{nil},
+			options: [][]PluginOption{
+				{WithCreateHandler(injectBadMount)},
+			},
+		}
+	)
+
+	t.Setup(stdT)
+	t.StartPlugins(WaitForPluginSync)
+	p := t.plugins[0]
+
+	pod := t.createPod()
+
+	_, err := crio.CreateContainer(pod, ids.GenCtrName(), ids.GenUID())
+	require.Error(t, err, "create container with a bad mount")
+
+	var ctr string
+	select {
+	case ctr = <-ctrIDs:
+	case <-time.After(timeout):
+		require.FailNow(t, "no NRI CreateContainer event")
+	}
+
+	require.NotNil(t, p.WaitEvent(StopContainerEvent(pod, ctr), timeout), "container stop event")
+	require.NotNil(
+		t,
+		p.WaitEvent(RemoveContainerEvent(pod, ctr), timeout),
+		"container removal event",
+	)
+
+	t.stopPod(pod)
+	t.removePod(pod)
+}
+
 func TestMountInjection(stdT *testing.T) {
 	skipTestForCondition(stdT,
 		map[string]bool{
