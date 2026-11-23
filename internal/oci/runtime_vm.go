@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -62,9 +63,13 @@ type runtimeVM struct {
 	task       task.TaskService
 	handler    *config.RuntimeHandler
 
-	ctrs         map[string]containerInfo
-	shimCleanups map[string]*shimCleanupAttempt
-	deletingID   string
+	ctrs map[string]containerInfo
+
+	// This runtime serves a single container, so only one shim cleanup can be
+	// in flight and only this container can be deleted.
+	shimCleanup *shimCleanupAttempt
+	shimDead    bool
+	deleting    bool
 }
 
 // shimCleanupAttempt tracks a cleanup after a dead shim, so that concurrent
@@ -346,25 +351,12 @@ func (r *runtimeVM) startRuntimeDaemon(ctx context.Context, c *Container) error 
 	defer log.Debugf(ctx, "RuntimeVM.startRuntimeDaemon() end")
 
 	// Prepare the command to run
-	args := []string{"-id", c.ID()}
-
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		args = append(args, "-debug")
-	}
-
-	args = append(args, "start")
+	args := shimArgs(c.ID(), "start", logrus.IsLevelEnabled(logrus.DebugLevel))
 
 	r.ctx = namespaces.WithNamespace(r.ctx, namespaces.Default)
 
 	// Prepare the command to exec
-	cmd, err := client.Command(
-		r.ctx,
-		&client.CommandConfig{
-			Runtime: r.handler.RuntimePath,
-			Path:    c.BundlePath(),
-			Args:    args,
-		},
-	)
+	cmd, err := r.newShimCommand(r.ctx, c, args)
 	if err != nil {
 		return err
 	}
@@ -456,16 +448,16 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 		// written or is seen here. Otherwise the marker outlives the container,
 		// because handleExit ignores it when the container is already gone.
 		c.opLock.Lock()
+		if shimGone && r.isDeleting() {
+			// The connection was closed by deletion, not by the shim.
+			c.opLock.Unlock()
+
+			return
+		}
+
 		if shimGone {
-			if r.isDeleting(c.ID()) {
-				// The connection was closed by deletion, not by the shim.
-				c.opLock.Unlock()
-
-				return
-			}
-
 			// Nothing else will record the exit of a container whose shim died.
-			markContainerStopped(c)
+			r.markStoppedByDeadShim(c)
 		} else {
 			// Keep the exit code the wait reported: the shim can be gone before
 			// the status is refreshed below.
@@ -482,9 +474,7 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 		if shimGone {
 			// Release what the dead shim left behind. Nothing retries it from
 			// here, so a failure is only logged.
-			if cleanupErr := r.cleanupAfterDeadShim(ctx, c); cleanupErr != nil {
-				log.Warnf(ctx, "Clean up after dead shim for container %s: %v", c.ID(), cleanupErr)
-			}
+			r.cleanupDeadShim(ctx, c)
 
 			return
 		}
@@ -966,13 +956,17 @@ func (r *runtimeVM) deleteContainer(ctx context.Context, c *Container, force boo
 
 	if !ok {
 		if c.state.Status == ContainerStateStopped {
-			// Already stopped and unknown to this runtime: either the shim died
-			// or a previous deletion removed the runtime state, so run its delete
-			// command. Keep the container if the cleanup fails, so that the
-			// removal can be retried.
-			r.closeForDeletion(c.ID())
+			// Already stopped and unknown to this runtime: either a previous
+			// deletion removed the runtime state, or the container comes from a
+			// restored state. The shim may still be running in the latter case,
+			// and deleting through it can block, so leave it to its own cleanup.
+			// If the shim was already observed dead, nothing else will release
+			// what it left behind.
+			if r.isShimDead() {
+				r.cleanupDeadShim(ctx, c)
+			}
 
-			return r.cleanupDeadShim(ctx, c, force)
+			return nil
 		}
 
 		if !force {
@@ -986,21 +980,17 @@ func (r *runtimeVM) deleteContainer(ctx context.Context, c *Container, force boo
 		}
 	}
 
-	shimGone := r.task == nil || r.client == nil
+	shimDead := r.isShimDead()
 
-	if r.task != nil {
+	// There is nothing to delete through a dead shim.
+	if !shimDead && r.task != nil {
 		if err := r.remove(c.ID(), ""); err != nil && !force {
 			return err
 		}
 
 		_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
-		if err != nil {
-			if errors.Is(err, ttrpc.ErrClosed) {
-				// The shim died before it could be shut down.
-				shimGone = true
-			} else if !force {
-				return err
-			}
+		if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
+			return err
 		}
 	}
 
@@ -1009,39 +999,32 @@ func (r *runtimeVM) deleteContainer(ctx context.Context, c *Container, force boo
 	r.Unlock()
 
 	// The connection is closed on purpose from here on.
-	r.closeForDeletion(c.ID())
+	r.closeForDeletion()
 
-	if shimGone {
-		// Run synchronously: the caller deletes the container storage, and with
-		// it the bundle the shim delete command runs from, as soon as this
-		// returns. Report a failure, so that the container and its bundle are
-		// kept and the removal can be retried.
-		return r.cleanupDeadShim(ctx, c, force)
+	if shimDead {
+		// Release what the dead shim left behind. The wait or the status update
+		// may have tried already, so this is a retry.
+		r.cleanupDeadShim(ctx, c)
 	}
 
 	return nil
 }
 
-// cleanupDeadShim runs the shim's delete command and logs a failure. Unless the
-// cleanup is forced, the error is reported so that the removal can be retried.
-func (r *runtimeVM) cleanupDeadShim(ctx context.Context, c *Container, force bool) error {
+// cleanupDeadShim runs the shim's delete command and logs a failure. The
+// removal must not fail because of it: the command fails when the shim cleaned
+// up before it died, and a container which cannot be removed would stay forever.
+func (r *runtimeVM) cleanupDeadShim(ctx context.Context, c *Container) {
 	if err := r.cleanupAfterDeadShim(ctx, c); err != nil {
 		log.Warnf(ctx, "Clean up after dead shim for container %s: %v", c.ID(), err)
-
-		if !force {
-			return fmt.Errorf("clean up after dead shim: %w", err)
-		}
 	}
-
-	return nil
 }
 
 // closeForDeletion records that the connection is closed on purpose, then
 // releases it. The task reference is kept, so operations racing with deletion
 // get a closed-connection error instead of dereferencing a nil task.
-func (r *runtimeVM) closeForDeletion(ctrID string) {
+func (r *runtimeVM) closeForDeletion() {
 	r.Lock()
-	r.deletingID = ctrID
+	r.deleting = true
 	cl := r.client
 	r.client = nil
 	r.Unlock()
@@ -1052,25 +1035,64 @@ func (r *runtimeVM) closeForDeletion(ctrID string) {
 }
 
 // isDeleting reports whether the container is being deleted.
-func (r *runtimeVM) isDeleting(ctrID string) bool {
+func (r *runtimeVM) isDeleting() bool {
 	r.Lock()
 	defer r.Unlock()
 
-	return r.deletingID == ctrID
+	return r.deleting
+}
+
+// markStoppedByDeadShim records the exit of a container whose shim died, so
+// that deleting it releases what the shim left behind.
+func (r *runtimeVM) markStoppedByDeadShim(c *Container) {
+	markContainerStopped(c)
+	r.markShimDead()
+}
+
+// markShimDead records that the container's shim was observed gone.
+func (r *runtimeVM) markShimDead() {
+	r.Lock()
+	defer r.Unlock()
+
+	r.shimDead = true
+}
+
+// isShimDead reports whether the container's shim was observed gone.
+func (r *runtimeVM) isShimDead() bool {
+	r.Lock()
+	defer r.Unlock()
+
+	return r.shimDead
 }
 
 // shimDeleteTimeout bounds the shim binary's delete command.
 const shimDeleteTimeout = 30 * time.Second
 
-// shimDeleteArgs returns the arguments of the shim binary's delete command.
+// shimArgs returns the arguments of a shim binary command.
 // client.Command prepends the namespace, address and publish binary.
-func shimDeleteArgs(id, bundlePath string, debug bool) []string {
-	args := []string{"-id", id, "-bundle", bundlePath}
+func shimArgs(id, action string, debug bool, extra ...string) []string {
+	args := []string{"-id", id}
+	args = append(args, extra...)
+
 	if debug {
 		args = append(args, "-debug")
 	}
 
-	return append(args, "delete")
+	return append(args, action)
+}
+
+// newShimCommand returns the command which runs the shim binary from the
+// container's bundle.
+func (r *runtimeVM) newShimCommand(
+	ctx context.Context,
+	c *Container,
+	args []string,
+) (*exec.Cmd, error) {
+	return client.Command(ctx, &client.CommandConfig{
+		Runtime: r.handler.RuntimePath,
+		Path:    c.BundlePath(),
+		Args:    args,
+	})
 }
 
 // cleanupAfterDeadShim runs the shim binary's delete command to release what a
@@ -1078,19 +1100,17 @@ func shimDeleteArgs(id, bundlePath string, debug bool) []string {
 // failed attempt is retried by the next caller.
 func (r *runtimeVM) cleanupAfterDeadShim(ctx context.Context, c *Container) error {
 	r.Lock()
-	if r.shimCleanups == nil {
-		r.shimCleanups = make(map[string]*shimCleanupAttempt)
-	}
-
-	if attempt, ok := r.shimCleanups[c.ID()]; ok {
+	if r.shimCleanup != nil {
+		attempt := r.shimCleanup
 		r.Unlock()
+
 		<-attempt.done
 
 		return attempt.err
 	}
 
 	attempt := &shimCleanupAttempt{done: make(chan struct{})}
-	r.shimCleanups[c.ID()] = attempt
+	r.shimCleanup = attempt
 	r.Unlock()
 
 	err := r.runShimDelete(ctx, c)
@@ -1100,7 +1120,7 @@ func (r *runtimeVM) cleanupAfterDeadShim(ctx context.Context, c *Container) erro
 	attempt.err = err
 	if err != nil {
 		// Let the next caller retry.
-		delete(r.shimCleanups, c.ID())
+		r.shimCleanup = nil
 	}
 	r.Unlock()
 
@@ -1144,13 +1164,10 @@ func (r *runtimeVM) runShimDelete(ctx context.Context, c *Container) error {
 	)
 	defer cancel()
 
-	debug := logrus.IsLevelEnabled(logrus.DebugLevel)
-
-	cmd, err := client.Command(ctx, &client.CommandConfig{
-		Runtime: r.handler.RuntimePath,
-		Path:    c.BundlePath(),
-		Args:    shimDeleteArgs(c.ID(), c.BundlePath(), debug),
-	})
+	cmd, err := r.newShimCommand(ctx, c, shimArgs(
+		c.ID(), "delete", logrus.IsLevelEnabled(logrus.DebugLevel),
+		"-bundle", c.BundlePath(),
+	))
 	if err != nil {
 		return fmt.Errorf("build the shim delete command: %w", err)
 	}
@@ -1224,7 +1241,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 			if errors.Is(err, os.ErrNotExist) {
 				log.Warnf(ctx,
 					"Shim address file missing for %s, marking container stopped", c.ID())
-				markContainerStopped(c)
+				r.markStoppedByDeadShim(c)
 
 				return nil
 			}
@@ -1242,7 +1259,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 				"Failed to reconnect to shim for %s, marking container stopped: %v",
 				c.ID(), err)
 
-			markContainerStopped(c)
+			r.markStoppedByDeadShim(c)
 
 			return nil
 		}
@@ -1263,7 +1280,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 
 		// The shim is gone, so the container cannot be running anymore.
 		log.Warnf(ctx, "Shim for container %s is unreachable, marking it stopped", c.ID())
-		markContainerStopped(c)
+		r.markStoppedByDeadShim(c)
 
 		return nil
 	}

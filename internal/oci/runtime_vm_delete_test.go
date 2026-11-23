@@ -71,7 +71,9 @@ func waitForShimArgs(argsFile string) string {
 }
 
 var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
-	It("should run the shim delete for a stopped container without runtime state", func() {
+	It("should not run the shim delete for a stopped container without runtime state", func() {
+		// A restored container may still have a running shim, and deleting
+		// through it can block, so the removal must not spawn a shim delete.
 		bundleDir := GinkgoT().TempDir()
 		c := newTestContainerWithBundle(bundleDir)
 		c.SetState(&oci.ContainerState{
@@ -86,15 +88,13 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 		})
 
 		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
-
-		args := waitForShimArgs(argsFile)
-		Expect(args).To(ContainSubstring("-namespace default"))
-		Expect(args).To(ContainSubstring("-id " + c.ID()))
-		Expect(args).To(ContainSubstring("-bundle " + bundleDir))
-		Expect(args).To(ContainSubstring("delete"))
+		Expect(argsFile).NotTo(BeAnExistingFile())
 	})
 
-	It("should finish the shim delete before returning", func() {
+	It("should clean up a restored container whose shim is already dead", func() {
+		// A failed reconnection while restoring marks the container stopped and
+		// the shim dead. No wait goroutine watches a restored container, so the
+		// removal is the last chance to release what the dead shim left behind.
 		bundleDir := GinkgoT().TempDir()
 		c := newTestContainerWithBundle(bundleDir)
 		c.SetState(&oci.ContainerState{
@@ -105,8 +105,26 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 		dir := GinkgoT().TempDir()
 		argsFile := filepath.Join(dir, "args")
 		r := oci.NewRuntimeVMWithHandler(&crioconfig.RuntimeHandler{
-			RuntimePath: writeFakeShim(dir, argsFile, "sleep 0.2"),
+			RuntimePath: writeFakeShim(dir, argsFile),
 		})
+		r.MarkShimDead()
+
+		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
+		Expect(waitForShimArgs(argsFile)).To(ContainSubstring("-id " + c.ID()))
+	})
+
+	It("should finish the shim delete before returning", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{Status: oci.ContainerStateRunning})
+
+		dir := GinkgoT().TempDir()
+		argsFile := filepath.Join(dir, "args")
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{RuntimePath: writeFakeShim(dir, argsFile, "sleep 0.2")},
+			c.ID(), &fakeTaskService{},
+		)
+		r.MarkShimDead()
 
 		// The caller deletes the container storage, and with it the bundle the
 		// shim delete command runs from, as soon as this returns.
@@ -117,7 +135,10 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 		Expect(string(args)).To(ContainSubstring("-bundle " + bundleDir))
 	})
 
-	It("should clean up when the shim is gone during shutdown", func() {
+	It("should not run the shim delete when the shim closes during shutdown", func() {
+		// A connection which closes while shutting down is expected, for example
+		// when the sandbox the shim served is already stopped. The shim cleaned up
+		// after itself, so its delete command would fail and must not run.
 		bundleDir := GinkgoT().TempDir()
 		c := newTestContainerWithBundle(bundleDir)
 		c.SetState(&oci.ContainerState{Status: oci.ContainerStateRunning})
@@ -129,6 +150,24 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 			&crioconfig.RuntimeHandler{RuntimePath: writeFakeShim(dir, argsFile)},
 			c.ID(), &fakeTaskService{shutdownErr: ttrpc.ErrClosed},
 		)
+
+		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
+		Expect(argsFile).NotTo(BeAnExistingFile())
+	})
+
+	It("should clean up when the shim was observed dead", func() {
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{Status: oci.ContainerStateRunning})
+
+		dir := GinkgoT().TempDir()
+		argsFile := filepath.Join(dir, "args")
+
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{RuntimePath: writeFakeShim(dir, argsFile)},
+			c.ID(), &fakeTaskService{shutdownErr: ttrpc.ErrClosed},
+		)
+		r.MarkShimDead()
 
 		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
 		Expect(waitForShimArgs(argsFile)).To(ContainSubstring("-id " + c.ID()))
@@ -167,7 +206,7 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 		Expect(r.DeleteContainer(context.Background(), c)).To(HaveOccurred())
 		// Otherwise a shim dying later is mistaken for the deletion itself and
 		// its cleanup is skipped.
-		Expect(r.IsDeleting(c.ID())).To(BeFalse())
+		Expect(r.IsDeleting()).To(BeFalse())
 	})
 
 	It("should retry a failed shim delete on the next attempt", func() {
@@ -197,44 +236,27 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 		Expect(argsFile).To(BeAnExistingFile())
 	})
 
-	It("should keep the container for a retry when the shim delete fails", func() {
+	It("should remove the container even when the shim delete fails", func() {
 		bundleDir := GinkgoT().TempDir()
 		c := newTestContainerWithBundle(bundleDir)
 		c.SetState(&oci.ContainerState{Status: oci.ContainerStateRunning})
 
 		dir := GinkgoT().TempDir()
 		argsFile := filepath.Join(dir, "args")
-		countFile := filepath.Join(dir, "count")
+		marker := filepath.Join(dir, "attempted")
 
-		// The shim delete fails twice, then succeeds.
-		runtimePath := writeFakeShim(dir, argsFile,
-			"count="+shQuote(countFile),
-			"n=0",
-			"if [ -f \"$count\" ]; then n=$(cat \"$count\"); fi",
-			"n=$((n + 1))",
-			"echo \"$n\" > \"$count\"",
-			"if [ \"$n\" -le 2 ]; then",
-			"\texit 1",
-			"fi",
-		)
+		// The shim cleanup fails, for example because the shim cleaned up before
+		// it died. Keeping the container would make every retry fail again.
+		runtimePath := writeFakeShim(dir, argsFile, "touch "+shQuote(marker), "exit 1")
 
 		r := runtimeWithTaskService(
 			&crioconfig.RuntimeHandler{RuntimePath: runtimePath},
 			c.ID(), &fakeTaskService{shutdownErr: ttrpc.ErrClosed},
 		)
-
-		// The removal fails, so the bundle the shim delete command runs from is
-		// kept and the caller can retry.
-		Expect(r.DeleteContainer(context.Background(), c)).To(HaveOccurred())
-		Expect(countFile).To(BeAnExistingFile())
-
-		// The retry finds a stopped container without runtime state, and fails
-		// again, so the container is kept for another try.
-		c.State().Status = oci.ContainerStateStopped
-		Expect(r.DeleteContainer(context.Background(), c)).To(HaveOccurred())
+		r.MarkShimDead()
 
 		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
-		Expect(argsFile).To(BeAnExistingFile())
+		Expect(marker).To(BeAnExistingFile())
 	})
 
 	It("should not run the shim delete when the bundle is gone", func() {
@@ -253,6 +275,29 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 		})
 
 		// The command runs from the bundle, so retrying cannot clean up either.
+		Expect(r.CleanupAfterDeadShim(context.Background(), c)).To(Succeed())
+		Expect(argsFile).NotTo(BeAnExistingFile())
+	})
+
+	It("should remove a container whose bundle is gone", func() {
+		// The runtime root exists, so without the bundle check the shim delete
+		// could not start and the removal would fail on every retry.
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{Status: oci.ContainerStateRunning})
+
+		dir := GinkgoT().TempDir()
+		argsFile := filepath.Join(dir, "args")
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{
+				RuntimePath: writeFakeShim(dir, argsFile),
+				RuntimeRoot: dir,
+			},
+			c.ID(), &fakeTaskService{shutdownErr: ttrpc.ErrClosed},
+		)
+		r.MarkShimDead()
+		Expect(os.RemoveAll(bundleDir)).To(Succeed())
+
 		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
 		Expect(argsFile).NotTo(BeAnExistingFile())
 	})
@@ -272,7 +317,7 @@ var _ = t.Describe("RuntimeVM DeleteContainer shim cleanup", func() {
 			RuntimeRoot: filepath.Join(dir, "gone"),
 		})
 
-		Expect(r.DeleteContainer(context.Background(), c)).To(Succeed())
+		Expect(r.CleanupAfterDeadShim(context.Background(), c)).To(Succeed())
 		Expect(argsFile).NotTo(BeAnExistingFile())
 	})
 })

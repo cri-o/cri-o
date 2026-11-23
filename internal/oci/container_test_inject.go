@@ -101,7 +101,7 @@ func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal) error {
 
 // ShimDeleteArgs returns the arguments of the shim binary's delete command.
 func ShimDeleteArgs(id, bundlePath string, debug bool) []string {
-	return shimDeleteArgs(id, bundlePath, debug)
+	return shimArgs(id, "delete", debug, "-bundle", bundlePath)
 }
 
 // CleanupAfterDeadShim runs the shim's delete command synchronously.
@@ -127,6 +127,11 @@ func (r RuntimeVM) AddContainer(ctrID string) {
 }
 
 // IsDeleting reports whether the runtime is deleting the container.
-func (r RuntimeVM) IsDeleting(ctrID string) bool {
-	return r.isDeleting(ctrID)
+func (r RuntimeVM) IsDeleting() bool {
+	return r.isDeleting()
+}
+
+// MarkShimDead records that the container's shim was observed gone.
+func (r RuntimeVM) MarkShimDead() {
+	r.markShimDead()
 }

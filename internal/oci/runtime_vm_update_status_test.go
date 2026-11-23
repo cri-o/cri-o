@@ -212,6 +212,28 @@ var _ = t.Describe("RuntimeVM updateContainerStatus", func() {
 		Expect(c.State().Finished).To(BeTemporally("~", time.Now(), time.Minute))
 	})
 
+	It("should replace a stale finish time when the shim dies", func() {
+		// An unset exit time reported by a running task is cached as the Unix
+		// epoch by older versions, which IsZero does not recognize. A container
+		// dying with that timestamp must not report finished_at = 0.
+		bundleDir := GinkgoT().TempDir()
+		c := newTestContainerWithBundle(bundleDir)
+		c.SetState(&oci.ContainerState{})
+		c.State().Status = oci.ContainerStateRunning
+		c.State().Finished = time.Unix(0, 0)
+
+		r := runtimeWithTaskService(
+			&crioconfig.RuntimeHandler{}, c.ID(),
+			&fakeTaskService{stateErr: ttrpc.ErrClosed},
+		)
+
+		Expect(r.UpdateContainerStatus(context.Background(), c)).To(Succeed())
+		Expect(string(c.State().Status)).To(Equal(oci.ContainerStateStopped))
+		Expect(c.State().ExitCode).ToNot(BeNil())
+		Expect(*c.State().ExitCode).To(Equal(int32(255)))
+		Expect(c.State().Finished).To(BeTemporally("~", time.Now(), time.Minute))
+	})
+
 	It("should keep the exit code reported by the wait when the shim is unreachable", func() {
 		bundleDir := GinkgoT().TempDir()
 		c := newTestContainerWithBundle(bundleDir)
