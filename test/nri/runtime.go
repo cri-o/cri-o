@@ -524,7 +524,14 @@ func (r *runtime) StartContainer(container string) error {
 }
 
 func (r *runtime) StopContainer(container string) error {
+	return r.StopContainerWithTimeout(container, 0)
+}
+
+func (r *runtime) StopContainerWithTimeout(container string, timeout int64) error {
+	r.Lock()
 	id, ok := r.containers[container]
+	r.Unlock()
+
 	if !ok {
 		id = container
 	}
@@ -534,6 +541,7 @@ func (r *runtime) StopContainer(container string) error {
 
 	_, err := r.runtime.StopContainer(ctx, &cri.StopContainerRequest{
 		ContainerId: id,
+		Timeout:     timeout,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to stop container %s: %w", container, err)

@@ -509,6 +509,53 @@ func testXxxsetAdjustmentUpdate(
 	require.Equal(t, expectedUpdateResult, string(stdout), "test output")
 }
 
+func TestUpdateOfStoppingContainer(stdT *testing.T) {
+	skipTestForCondition(stdT,
+		map[string]bool{
+			"no runtime connection": crio == nil,
+		},
+	)
+
+	var (
+		ctr0    string
+		stopErr = make(chan error, 1)
+		handler = func(p *plugin, pod *api.PodSandbox, ctr *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
+			if ctr0 == "" {
+				ctr0 = ctr.GetId()
+
+				return nil, nil, nil
+			}
+
+			// The shell runs as PID 1 and ignores SIGTERM, so the container
+			// stays in the middle of stopping until it is killed after 2s.
+			go func() { stopErr <- crio.StopContainerWithTimeout(ctr0, 2) }()
+
+			time.Sleep(time.Second)
+
+			update := &api.ContainerUpdate{}
+			update.SetContainerId(ctr0)
+			update.SetLinuxCPUShares(512)
+
+			return nil, []*api.ContainerUpdate{update}, nil
+		}
+
+		t = &nriTest{
+			plugins: []*plugin{nil},
+			options: [][]PluginOption{
+				{WithCreateHandler(handler)},
+			},
+		}
+	)
+
+	t.Setup(stdT)
+	t.StartPlugins(WaitForPluginSync)
+
+	t.runContainer()
+	// Creation must not fail because the update hit a container that got stopped.
+	t.runContainer()
+	require.NoError(t, <-stopErr, "stop first container")
+}
+
 // skipTestForCondition skips the test if any of the conditions are true.
 func skipTestForCondition(t *testing.T, skipChecks ...map[string]bool) {
 	_, err := os.Stat(strings.TrimPrefix(*nriSocket, "unix://"))
