@@ -2620,6 +2620,12 @@ func (r *RuntimeHandler) RuntimeSupportsRROMounts() bool {
 	return r.features.RecursiveReadOnlyMounts
 }
 
+// RuntimeSupportsCgroupNamespace returns whether this runtime advertises
+// the cgroup namespace in the output of the "features" command.
+func (r *RuntimeHandler) RuntimeSupportsCgroupNamespace() bool {
+	return r.features.Linux != nil && slices.Contains(r.features.Linux.Namespaces, "cgroup")
+}
+
 // RuntimeSupportsMountFlag returns whether this runtime supports the specified mount option.
 func (r *RuntimeHandler) RuntimeSupportsMountFlag(flag string) bool {
 	return slices.Contains(r.features.MountOptions, flag)

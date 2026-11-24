@@ -72,6 +72,37 @@ var _ = t.Describe("RunPodSandbox", func() {
 			Expect(response).To(BeNil())
 		})
 
+		It("should fail when cgroup namespace options are set", func() {
+			for _, mode := range []types.NamespaceMode{
+				types.NamespaceMode_POD,
+				types.NamespaceMode_CONTAINER,
+				types.NamespaceMode_NODE,
+				types.NamespaceMode_TARGET,
+			} {
+				// Given
+				// When
+				response, err := sut.RunPodSandbox(context.Background(),
+					&types.RunPodSandboxRequest{Config: &types.PodSandboxConfig{
+						Metadata: &types.PodSandboxMetadata{
+							Name:      "name",
+							Namespace: "default",
+							Uid:       "uid",
+						},
+						Linux: &types.LinuxPodSandboxConfig{
+							SecurityContext: &types.LinuxSandboxSecurityContext{
+								NamespaceOptions: &types.NamespaceOption{
+									CgroupnsOptions: &types.CgroupNamespace{Mode: mode},
+								},
+							},
+						},
+					}})
+
+				// Then
+				Expect(err).To(MatchError(ContainSubstring("must not be set for sandbox")))
+				Expect(response).To(BeNil())
+			}
+		})
+
 		It("should fail when metadata is nil", func() {
 			// Given
 			// When

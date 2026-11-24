@@ -2430,6 +2430,48 @@ var _ = t.Describe("Config", func() {
 			Expect(ok).To(BeTrue())
 		})
 
+		It("should succeed to load OCI runtime features with support for cgroup namespace", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			err := handler.LoadRuntimeFeatures(
+				[]byte(`
+					{
+					  "ociVersionMin": "1.0.0",
+					  "ociVersionMax": "1.2.0",
+					  "linux": {
+					    "namespaces": ["cgroup", "ipc", "mount", "network", "pid", "user", "uts"]
+					  }
+					}
+				`),
+			)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(handler.RuntimeSupportsCgroupNamespace()).To(BeTrue())
+		})
+
+		It("should not report cgroup namespace support when not advertised", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			err := handler.LoadRuntimeFeatures(
+				[]byte(`
+					{
+					  "ociVersionMin": "1.0.0",
+					  "ociVersionMax": "1.2.0",
+					  "linux": {
+					    "namespaces": ["ipc", "mount", "network", "pid", "user", "uts"]
+					  }
+					}
+				`),
+			)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(handler.RuntimeSupportsCgroupNamespace()).To(BeFalse())
+		})
+
 		It("should succeed to load OCI runtime features with support for ID-mapping", func() {
 			// Given
 			handler := &config.RuntimeHandler{}

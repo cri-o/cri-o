@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	v1 "k8s.io/api/core/v1"
@@ -75,6 +76,15 @@ func (s *Server) RunPodSandbox(
 		req.GetConfig().GetLinux().GetSecurityContext().GetApparmor(),
 	); err != nil {
 		return nil, err
+	}
+
+	// CgroupnsOptions can be set only for containers (KEP-5714).
+	namespaceOpts := req.GetConfig().GetLinux().GetSecurityContext().GetNamespaceOptions()
+	if cgroupnsOpts := namespaceOpts.GetCgroupnsOptions(); cgroupnsOpts != nil {
+		return nil, fmt.Errorf(
+			"cgroup namespace options must not be set for sandbox, got %v",
+			cgroupnsOpts,
+		)
 	}
 
 	// platform dependent call

@@ -836,7 +836,7 @@ func (s *Server) createSandboxContainer(
 	}
 
 	defer func() {
-		if err != nil {
+		if retErr != nil {
 			cleanupFunc()
 		}
 	}()
@@ -976,7 +976,7 @@ func (s *Server) createSandboxContainer(
 	hostNet := securityContext.GetNamespaceOptions().GetNetwork() == types.NamespaceMode_NODE
 	addSysfsMounts(ctr, containerConfig, hostNet, usernsEnabled)
 
-	if err := s.setupCgroupNamespace(ctr, specgen); err != nil {
+	if err := s.setupCgroupNamespace(ctr, specgen, cgroup2RW, usernsEnabled); err != nil {
 		return nil, err
 	}
 
@@ -2148,16 +2148,110 @@ func (s *Server) setupLinuxResources(
 	return nil
 }
 
-func (s *Server) setupCgroupNamespace(ctr container.Container, specgen *generate.Generator) error {
-	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
-	if !ctr.Privileged() && node.CgroupIsV2() {
-		if err := specgen.AddOrReplaceLinuxNamespace(
-			string(rspec.CgroupNamespace),
-			"",
-		); err != nil {
-			return err
+// setupCgroupNamespace configures the cgroup namespace of the container.
+// cgroup2RW denotes whether the cgroup2-mount-hierarchy-rw annotation is
+// effective for the container.
+// usernsEnabled denotes whether the container runs in the user namespace of
+// the sandbox.
+func (s *Server) setupCgroupNamespace(
+	ctr container.Container,
+	specgen *generate.Generator,
+	cgroup2RW, usernsEnabled bool,
+) error {
+	// On cgroup v2, the cgroup filesystem is mounted writable when requested
+	// via annotation, or for systemd containers (see setupSystemdMounts).
+	cgroupWritable := cgroup2RW || (node.CgroupIsV2() && ctr.WillRunSystemd())
+
+	securityContext := ctr.Config().GetLinux().GetSecurityContext()
+	nsOpts := securityContext.GetNamespaceOptions()
+	cgroupnsOpts := nsOpts.GetCgroupnsOptions()
+
+	// Note that the zero value of NamespaceMode is POD, while a nil UsernsOptions means NODE.
+	userns := usernsEnabled ||
+		(nsOpts.GetUsernsOptions() != nil && nsOpts.GetUsernsOptions().GetMode() == types.NamespaceMode_POD)
+
+	mode, err := resolveCgroupnsMode(cgroupnsOpts, ctr.Privileged(), node.CgroupIsV2(), userns)
+	if err != nil {
+		return err
+	}
+
+	switch mode {
+	case types.NamespaceMode_CONTAINER:
+		return specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), "")
+	case types.NamespaceMode_NODE:
+		// A writable cgroup filesystem in the node cgroupns would expose the
+		// node's entire cgroup hierarchy as writable to the container.
+		if !ctr.Privileged() {
+			if err := validateNodeCgroupnsMount(securityContext, cgroupWritable); err != nil {
+				return err
+			}
+		}
+
+		// When CgroupnsOptions is nil, the spec is kept as is for compatibility.
+		if cgroupnsOpts != nil {
+			return specgen.RemoveLinuxNamespace(string(rspec.CgroupNamespace))
 		}
 	}
 
 	return nil
+}
+
+// validateNodeCgroupnsMount rejects a writable cgroup filesystem for a
+// non-privileged container in the node cgroup namespace.
+// cgroupWritable denotes whether CRI-O itself mounts the cgroup filesystem
+// writable (annotation or systemd mode).
+func validateNodeCgroupnsMount(
+	securityContext *types.LinuxContainerSecurityContext,
+	cgroupWritable bool,
+) error {
+	// Required by the CRI contract, even before CgroupMountMode is implemented.
+	if securityContext.GetCgroupMountMode() == types.CgroupMountMode_CGROUP_MOUNT_MODE_READ_WRITE {
+		return errors.New(
+			"cgroup mount mode READ_WRITE cannot be used with cgroup namespace mode NODE for a non-privileged container",
+		)
+	}
+
+	if cgroupWritable {
+		return errors.New(
+			"writable cgroup filesystem cannot be used with cgroup namespace mode NODE for a non-privileged container",
+		)
+	}
+
+	return nil
+}
+
+// resolveCgroupnsMode returns the cgroup namespace mode for a container.
+//
+// When cgroupnsOpts is nil, a cgroup namespace is used only for non-privileged
+// containers on cgroup v2 hosts, for compatibility.
+//
+// When cgroupnsOpts is specified, its mode is used as is (KEP-5714).
+// Only CONTAINER and NODE are supported.
+// NODE cannot be used with user namespaces, consistently with kube-apiserver,
+// which rejects `hostCgroupNamespace: true` when `hostUsers` is false.
+// https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/5714-cgroupns/README.md
+func resolveCgroupnsMode(
+	cgroupnsOpts *types.CgroupNamespace,
+	privileged, cgroupV2, userns bool,
+) (types.NamespaceMode, error) {
+	if cgroupnsOpts == nil {
+		if cgroupV2 && !privileged {
+			return types.NamespaceMode_CONTAINER, nil
+		}
+
+		return types.NamespaceMode_NODE, nil
+	}
+
+	switch mode := cgroupnsOpts.GetMode(); mode {
+	case types.NamespaceMode_CONTAINER:
+		return mode, nil
+	case types.NamespaceMode_NODE:
+		if userns {
+			return 0, errors.New("cgroup namespace mode NODE cannot be used with user namespaces")
+		}
+
+		return mode, nil
+	default:
+		return 0, fmt.Errorf("unsupported cgroup namespace mode: %s", mode)
+	}
 }

@@ -50,24 +50,26 @@ func (s *Server) Status(
 
 	runtimes, defaultRuntime := s.config.RuntimeHandlers()
 	for name, runtime := range runtimes {
-		makeRuntimeHandler := func(name string, rro, userns bool) *types.RuntimeHandler {
+		makeRuntimeHandler := func(name string, rro, userns, cgroupns bool) *types.RuntimeHandler {
 			return &types.RuntimeHandler{
 				Name: name,
 				Features: &types.RuntimeHandlerFeatures{
 					RecursiveReadOnlyMounts: rro,
 					UserNamespaces:          userns,
+					CgroupNamespaces:        cgroupns,
 				},
 			}
 		}
 
 		rro := runtime.RuntimeSupportsRROMounts()
 		userns := runtime.RuntimeSupportsIDMap()
-		h := makeRuntimeHandler(name, rro, userns)
+		cgroupns := runtime.RuntimeSupportsCgroupNamespace()
+		h := makeRuntimeHandler(name, rro, userns, cgroupns)
 		resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 
 		// if it is the default runtime, also add it with an empty name
 		if name == defaultRuntime {
-			h := makeRuntimeHandler("", rro, userns)
+			h := makeRuntimeHandler("", rro, userns, cgroupns)
 			resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
 		}
 	}
