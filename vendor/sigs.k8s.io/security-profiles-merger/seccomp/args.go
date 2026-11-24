@@ -18,6 +18,7 @@ package seccomp
 
 import (
 	"cmp"
+	"iter"
 	"math"
 	"slices"
 	"strconv"
@@ -60,13 +61,9 @@ func sortedArgs(args []specs.LinuxSeccompArg) []specs.LinuxSeccompArg {
 		cloned[idx] = canonicalArg(arg)
 	}
 
-	sortArgs(cloned)
+	slices.SortFunc(cloned, compareArg)
 
 	return cloned
-}
-
-func sortArgs(args []specs.LinuxSeccompArg) {
-	slices.SortFunc(args, compareArg)
 }
 
 // compareArg orders two conditions by index, value, valueTwo and operator.
@@ -79,24 +76,10 @@ func compareArg(left, right specs.LinuxSeccompArg) int {
 	)
 }
 
-// argsKey returns a canonical string for a set of argument filters so that
-// filters differing only in order or in an ignored valueTwo compare equal.
-// Empty args yield "".
-func argsKey(args []specs.LinuxSeccompArg) string {
-	return sortedArgsKey(sortedArgs(args))
-}
-
 // argKeyBytes sizes the key builder for a typical condition, which runs to
-// about eighteen bytes ("0:SCMP_CMP_EQ:0:0;"). It is a hint, not a bound: a
-// longer one costs a regrowth, which is what this saves on the hot path.
-//
-// Sizing it generously would not be free. Builder.String hands out a string
-// backed by the whole buffer without copying it, so every byte reserved
-// here stays live for as long as the key does, and these keys sit in maps
-// for the length of a merge. Measured over the artifact-sized benchmarks, a
-// hint of 24 allocates fewer bytes than no hint at all while removing the
-// same 30% of allocations; a hint of 64 removes those allocations but ends
-// up costing more bytes than not growing.
+// about eighteen bytes ("0:SCMP_CMP_EQ:0:0;"). It is a hint, not a bound. It
+// stays small because Builder.String keeps the whole buffer alive for as
+// long as the key, and the keys sit in maps for the length of a merge.
 const argKeyBytes = 24
 
 // sortedArgsKey formats args that are already sorted and canonical, as
@@ -110,35 +93,63 @@ func sortedArgsKey(args []specs.LinuxSeccompArg) string {
 	var builder strings.Builder
 
 	builder.Grow(len(args) * argKeyBytes)
-
-	for _, arg := range args {
-		builder.WriteString(strconv.FormatUint(uint64(arg.Index), 10))
-		builder.WriteByte(':')
-		builder.WriteString(string(arg.Op))
-		builder.WriteByte(':')
-		builder.WriteString(strconv.FormatUint(arg.Value, 10))
-		builder.WriteByte(':')
-		builder.WriteString(strconv.FormatUint(arg.ValueTwo, 10))
-		builder.WriteByte(';')
-	}
+	writeArgsKey(&builder, args)
 
 	return builder.String()
 }
 
-func groupArgsByIndex(
-	args []specs.LinuxSeccompArg,
-) map[uint][]specs.LinuxSeccompArg {
-	grouped := make(map[uint][]specs.LinuxSeccompArg)
+// decimalBase is the base keys spell numbers in.
+const decimalBase = 10
+
+// writeArgsKey writes the key sortedArgsKey returns to builder. The numbers
+// are formatted into a buffer on the stack rather than into a string each.
+//
+// The operator is escaped (see writeEscaped): Diff validates nothing, so
+// an operator may hold any byte, and spelled bare, one holding the
+// separators would spell two conditions, as "SCMP_CMP_EQ:1:0;1:SCMP_CMP_EQ"
+// against 2 spells a0 == 1 && a1 == 2, which made two different rules one.
+// Escaped, every key reads back as one list of conditions, while a known
+// operator, which holds no separator, is written as it is, so the keys of
+// valid conditions, which also order the clauses of a result, are the same
+// as unescaped.
+func writeArgsKey(builder *strings.Builder, args []specs.LinuxSeccompArg) {
+	var digits [20]byte
 
 	for _, arg := range args {
-		grouped[arg.Index] = append(grouped[arg.Index], arg)
+		builder.Write(strconv.AppendUint(digits[:0], uint64(arg.Index), decimalBase))
+		builder.WriteByte(':')
+		writeEscaped(builder, string(arg.Op), argKeySpecials)
+		builder.WriteByte(':')
+		builder.Write(strconv.AppendUint(digits[:0], arg.Value, decimalBase))
+		builder.WriteByte(':')
+		builder.Write(strconv.AppendUint(digits[:0], arg.ValueTwo, decimalBase))
+		builder.WriteByte(';')
+	}
+}
+
+// argKeySpecials are the bytes writeArgsKey escapes in an operator: its
+// separators and the escape itself.
+const argKeySpecials = `\:;`
+
+// writeEscaped writes text with a backslash before every byte of specials,
+// which holds the backslash itself, so that a key holding it reads back
+// the same way whatever bytes it holds: the text ends at the first special
+// byte without a backslash before it. Text without a special byte, which is
+// every known operator and action, is written as it is.
+func writeEscaped(builder *strings.Builder, text, specials string) {
+	if !strings.ContainsAny(text, specials) {
+		builder.WriteString(text)
+
+		return
 	}
 
-	for idx := range grouped {
-		sortArgs(grouped[idx])
-	}
+	for idx := range len(text) {
+		if strings.IndexByte(specials, text[idx]) >= 0 {
+			builder.WriteByte('\\')
+		}
 
-	return grouped
+		builder.WriteByte(text[idx])
+	}
 }
 
 // conjoinArgs returns a single filter matching exactly the calls matched by
@@ -148,39 +159,49 @@ func groupArgsByIndex(
 // both say: the same condition, or one of two where the one implies the
 // other (see condImplies), which is then the conjunction of the two. The
 // second return value is false when no such filter exists.
+//
+// The conditions on one index are a run in sorted input, and the runs are
+// merged in index order (see indexRuns) into a result that is sorted too.
+// Clause args are always sorted; an input that is not, which would split a
+// run and compare half of it, is sorted into a copy first, so the result
+// never depends on the order a caller passes.
 func conjoinArgs(
 	left, right []specs.LinuxSeccompArg,
 ) ([]specs.LinuxSeccompArg, bool) {
-	leftByIndex := groupArgsByIndex(left)
-	rightByIndex := groupArgsByIndex(right)
-
+	left, right = sortedForRuns(left), sortedForRuns(right)
 	result := make([]specs.LinuxSeccompArg, 0, len(left)+len(right))
 
-	for idx, leftGroup := range leftByIndex {
-		rightGroup, shared := rightByIndex[idx]
-		if !shared {
-			result = append(result, leftGroup...)
+	for leftRun, rightRun := range indexRuns(left, right) {
+		switch {
+		case len(rightRun) == 0:
+			result = append(result, leftRun...)
+		case len(leftRun) == 0:
+			result = append(result, rightRun...)
+		default:
+			stronger, ok := strongerGroup(leftRun, rightRun)
+			if !ok {
+				return nil, false
+			}
 
-			continue
-		}
-
-		stronger, ok := strongerGroup(leftGroup, rightGroup)
-		if !ok {
-			return nil, false
-		}
-
-		result = append(result, stronger...)
-	}
-
-	for idx, rightGroup := range rightByIndex {
-		if _, ok := leftByIndex[idx]; !ok {
-			result = append(result, rightGroup...)
+			result = append(result, stronger...)
 		}
 	}
-
-	sortArgs(result)
 
 	return result, true
+}
+
+// sortedForRuns returns args as they are when they are sorted, which costs
+// one pass, and a sorted copy otherwise. Unlike byIndex it orders the
+// conditions within an index too, which strongerGroup compares as lists.
+func sortedForRuns(args []specs.LinuxSeccompArg) []specs.LinuxSeccompArg {
+	if slices.IsSortedFunc(args, compareArg) {
+		return args
+	}
+
+	sorted := slices.Clone(args)
+	slices.SortFunc(sorted, compareArg)
+
+	return sorted
 }
 
 // strongerGroup returns the conditions of one argument index that match
@@ -208,16 +229,80 @@ func strongerGroup(left, right []specs.LinuxSeccompArg) ([]specs.LinuxSeccompArg
 // puts on the same argument. A filter whose conditions all appear in the
 // other covers it, as does one whose conditions say less: "a0 != 40" covers
 // "a0 == 2". It is conservative: false means wide may still cover narrow.
+//
+// The filters of a clause are sorted by argument index (see loadedArgs), so
+// the two are walked side by side and only conditions on one index are
+// compared, which keeps a bare list whose clauses carry thousands of
+// conditions linear rather than quadratic. A filter in another order is
+// sorted first.
 func argsCover(wide, narrow []specs.LinuxSeccompArg) bool {
-	for _, loose := range wide {
-		if !slices.ContainsFunc(narrow, func(strict specs.LinuxSeccompArg) bool {
-			return strict.Index == loose.Index && condImplies(strict, loose)
-		}) {
-			return false
+	for wideRun, narrowRun := range indexRuns(byIndex(wide), byIndex(narrow)) {
+		for _, loose := range wideRun {
+			if !slices.ContainsFunc(narrowRun, func(strict specs.LinuxSeccompArg) bool {
+				return condImplies(strict, loose)
+			}) {
+				return false
+			}
 		}
 	}
 
 	return true
+}
+
+// byIndex returns the conditions sorted by argument index: as they are,
+// which is how a clause holds them (see loadedArgs), or else a sorted copy.
+func byIndex(args []specs.LinuxSeccompArg) []specs.LinuxSeccompArg {
+	compare := func(left, right specs.LinuxSeccompArg) int {
+		return cmp.Compare(left.Index, right.Index)
+	}
+
+	if slices.IsSortedFunc(args, compare) {
+		return args
+	}
+
+	sorted := slices.Clone(args)
+	slices.SortStableFunc(sorted, compare)
+
+	return sorted
+}
+
+// indexRuns walks two filters sorted by argument index side by side and
+// yields, for every index either one tests, the conditions each puts on it,
+// one of which is empty where only the other tests the index.
+func indexRuns(
+	left, right []specs.LinuxSeccompArg,
+) iter.Seq2[[]specs.LinuxSeccompArg, []specs.LinuxSeccompArg] {
+	return func(yield func(left, right []specs.LinuxSeccompArg) bool) {
+		for len(left) > 0 || len(right) > 0 {
+			var index uint
+
+			switch {
+			case len(left) == 0:
+				index = right[0].Index
+			case len(right) == 0:
+				index = left[0].Index
+			default:
+				index = min(left[0].Index, right[0].Index)
+			}
+
+			leftRun, rightRun := runOf(left, index), runOf(right, index)
+			left, right = left[len(leftRun):], right[len(rightRun):]
+
+			if !yield(leftRun, rightRun) {
+				return
+			}
+		}
+	}
+}
+
+// runOf returns the conditions at the start of args that test index.
+func runOf(args []specs.LinuxSeccompArg, index uint) []specs.LinuxSeccompArg {
+	end := 0
+	for end < len(args) && args[end].Index == index {
+		end++
+	}
+
+	return args[:end]
 }
 
 // condImplies reports whether every value the condition strong matches is
@@ -253,11 +338,18 @@ func condImplies(strong, weak specs.LinuxSeccompArg) bool {
 
 // rangeImplies is condImplies for a condition that matches a range of
 // values, if any: it implies a range holding its own, and that the argument
-// is not a value outside it.
+// is not a value outside it. A range of one value, "a0 < 1" or "a0 <= 0",
+// is that value spelled another way, and implies what "a0 == 0" implies:
+// read apart, a filter seen to cover "a0 == 0" but not "a0 < 1" made a merge
+// of three inputs depend on their order.
 func rangeImplies(strong, weak specs.LinuxSeccompArg) bool {
 	low, high, ok := condInterval(strong)
 	if !ok {
 		return false
+	}
+
+	if low == high {
+		return condHolds(weak, low)
 	}
 
 	if weak.Op == specs.OpNotEqual {
@@ -288,11 +380,14 @@ func maskImplies(strong, weak specs.LinuxSeccompArg) bool {
 }
 
 // argsDisjoint reports whether two filters provably never match the same
-// call. It is conservative: false means the filters may overlap.
+// call. It is conservative: false means the filters may overlap. It walks
+// the filters side by side, as argsCover does.
 func argsDisjoint(left, right []specs.LinuxSeccompArg) bool {
-	for _, leftArg := range left {
-		for _, rightArg := range right {
-			if leftArg.Index == rightArg.Index && condsDisjoint(leftArg, rightArg) {
+	for leftRun, rightRun := range indexRuns(byIndex(left), byIndex(right)) {
+		for _, leftArg := range leftRun {
+			if slices.ContainsFunc(rightRun, func(rightArg specs.LinuxSeccompArg) bool {
+				return condsDisjoint(leftArg, rightArg)
+			}) {
 				return true
 			}
 		}

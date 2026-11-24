@@ -164,7 +164,7 @@ Path to the seccomp.json profile which is used as the default seccomp profile fo
 Enable a seccomp profile for privileged containers from the local path.
 
 **seccomp_baseline_profile**=""
-Path to the seccomp profile that seccomp profiles pulled as OCI artifacts (the OCI profile type of KEP-6061) are intersected with in place of the runtime default profile. A Localhost base profile selected in the pod spec takes its place instead. Runtime handlers with a seccomp profile of their own intersect it with that profile. If not specified, then the default seccomp profile of the runtime handler is used, restated where the merge cannot read its rules exactly: clone with a namespace flag and AF_VSOCK sockets fail with the default errno instead of EPERM, and audit netlink sockets are allowed. The profile is validated when the configuration is loaded. This option supports live configuration reload.
+Path to the seccomp profile that seccomp profiles pulled as OCI artifacts (the OCI profile type of KEP-6061) are intersected with in place of the runtime default profile. A Localhost base profile selected in the pod spec takes its place instead. Runtime handlers with a seccomp profile of their own intersect it with that profile. If not specified, then the default seccomp profile of the runtime handler is used. The merge cannot read the internal default's clone rules and the socket rules it shares with the seccomp.json of containers-common exactly, so they are restated in any profile that holds them: clone with a namespace flag and AF_VSOCK sockets fail with the default errno instead of EPERM, and audit netlink sockets are allowed. The profile is validated when the configuration is loaded: an unknown or repeated member fails, as does any rule the merge would not keep exactly. This option supports live configuration reload.
 
 **apparmor_profile**=""
 Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default".
@@ -556,7 +556,7 @@ If "enforcing", an image pull will fail if a short name is used, but the results
 If "disabled", the first result will be chosen.
 
 **security_profile_max_size**=1048576
-The maximum size in bytes of a security profile pulled as an OCI artifact (KEP-6061), at most 64 MiB. Larger profiles are rejected. Pulled profiles are kept in the "security-profiles" directory of the storage root until the kubelet removes them; to remove all of them, stop CRI-O and remove that directory.
+The maximum size in bytes of a security profile pulled as an OCI artifact (KEP-6061), at most 64 MiB. Larger profiles are rejected. Pulled profiles are kept in the "security-profiles" directory of the storage root until the kubelet removes them; to remove all of them, stop CRI-O and remove that directory. Stored profiles are validated again when CRI-O starts, and one that no longer passes is dropped, such as a seccomp argument condition without an explicit "index" (add "index": 0): creating a container with it fails, and pulling it again fails with SecurityProfileInvalid.
 
 ## CRIO.NETWORK TABLE
 

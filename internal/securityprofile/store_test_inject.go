@@ -35,3 +35,8 @@ func (s *Store) SetBeforeRecordHook(hook func()) {
 func (s *Store) SetBeforeCommitHook(hook func()) {
 	s.cache.beforeCommit = hook
 }
+
+// FormatDiff bounds a difference for the warning, as reportConstrained does.
+func FormatDiff(text string) (formatted string, complete bool) {
+	return formatDiff(text)
+}

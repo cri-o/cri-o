@@ -17,132 +17,178 @@ limitations under the License.
 package seccomp
 
 import (
-	"fmt"
-	"strings"
-
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"sigs.k8s.io/security-profiles-merger/internal/merge"
 )
 
-// FormatProfile returns a human-readable representation of a seccomp profile.
+// FormatProfile returns the profile as a single line that is safe to log: a
+// value holding a control character, an invisible rune or the punctuation
+// the format is built from is quoted, and the line is cut at 64 KiB, ending
+// in "... (output truncated)".
 func FormatProfile(profile *specs.LinuxSeccomp) string {
 	if profile == nil {
 		return "Profile{<nil>}"
 	}
 
-	var parts []string
+	var out merge.Builder
 
-	parts = append(parts, "default:"+merge.SafeText(string(profile.DefaultAction)))
+	out.WriteString("Profile{default:")
+	out.WriteText(string(profile.DefaultAction))
 
 	if profile.DefaultErrnoRet != nil {
-		parts = append(parts, fmt.Sprintf("defaultErrno:%d", *profile.DefaultErrnoRet))
+		out.WriteString(" defaultErrno:")
+		out.WriteUint(uint64(*profile.DefaultErrnoRet))
 	}
 
 	if len(profile.Architectures) > 0 {
-		archs := make([]string, len(profile.Architectures))
-		for idx, arch := range profile.Architectures {
-			archs[idx] = merge.SafeText(string(arch))
-		}
-
-		parts = append(parts, "arch:"+strings.Join(archs, ","))
+		out.WriteString(" arch:")
+		merge.WriteTexts(&out, profile.Architectures, ",")
 	}
 
 	if profile.Flags != nil {
-		parts = append(parts, formatFlags(profile.Flags))
+		out.WriteString(" ")
+		writeFlags(&out, profile.Flags)
 	}
 
 	if profile.ListenerPath != "" {
-		parts = append(parts, "listener:"+merge.SafeText(profile.ListenerPath))
+		out.WriteString(" listener:")
+		out.WriteText(profile.ListenerPath)
+	}
 
-		if profile.ListenerMetadata != "" {
-			parts = append(
-				parts, "listenerMeta:"+merge.SafeText(profile.ListenerMetadata),
-			)
+	// Printed without a listenerPath too: Diff reports it, ValidateArtifact
+	// rejects it and Intersect refuses a later input setting it, so two
+	// profiles differing only there must not print alike.
+	if profile.ListenerMetadata != "" {
+		out.WriteString(" listenerMeta:")
+		out.WriteText(profile.ListenerMetadata)
+	}
+
+	for idx := range profile.Syscalls {
+		if out.Full() {
+			break
 		}
+
+		out.WriteString(" ")
+		writeSyscall(&out, &profile.Syscalls[idx])
 	}
 
-	for _, sc := range profile.Syscalls {
-		parts = append(parts, formatSyscall(sc))
-	}
+	out.WriteString("}")
 
-	return fmt.Sprintf("Profile{%s}", strings.Join(parts, " "))
+	return out.String()
 }
 
-// formatFlags renders a flag list that is set. An empty one reads "none"
+// writeFlags renders a flag list that is set. An empty one reads "none"
 // rather than nothing: it turns off the flags a runtime sets for a profile
 // without a list, so it is not the same profile.
-func formatFlags(flags []specs.LinuxSeccompFlag) string {
+func writeFlags(out *merge.Builder, flags []specs.LinuxSeccompFlag) {
 	if len(flags) == 0 {
-		return "flags:none"
+		out.WriteString("flags:none")
+
+		return
 	}
 
-	parts := make([]string, len(flags))
-	for idx, flag := range flags {
-		parts[idx] = merge.SafeText(string(flag))
-	}
-
-	return "flags:" + strings.Join(parts, ",")
+	out.WriteString("flags:")
+	merge.WriteTexts(out, flags, ",")
 }
 
-// String returns a human-readable representation of the syscall entry.
+// String returns a human-readable representation of the syscall entry,
+// quoted and bounded as FormatProfile is.
 func (e SyscallEntry) String() string {
-	action := merge.SafeText(string(e.Action))
-	if e.ErrnoRet != nil {
-		action = fmt.Sprintf("%s(errno:%d)", action, *e.ErrnoRet)
-	}
-
-	if len(e.Args) == 0 {
-		return merge.SafeText(e.Name) + "->" + action
-	}
-
-	return fmt.Sprintf("%s(%s)->%s", merge.SafeText(e.Name), formatArgs(e.Args), action)
+	return merge.Render(e.writeTo)
 }
 
-// String returns a human-readable representation of the syscall detail.
+// writeTo renders the entry: its name, the arguments it applies to and its
+// result.
+func (e SyscallEntry) writeTo(out *merge.Builder) {
+	out.WriteText(e.Name)
+	writeResult(out, e.Args, e.Action, e.ErrnoRet)
+}
+
+// String returns a human-readable representation of the syscall detail,
+// quoted and bounded as FormatProfile is.
 func (d SyscallDetail) String() string {
-	action := merge.SafeText(string(d.Action))
-	if d.ErrnoRet != nil {
-		action = fmt.Sprintf("%s(errno:%d)", action, *d.ErrnoRet)
-	}
-
-	if len(d.Args) == 0 {
-		return action
-	}
-
-	return fmt.Sprintf("(%s)->%s", formatArgs(d.Args), action)
+	return merge.Render(d.writeTo)
 }
 
-func formatArgs(args []specs.LinuxSeccompArg) string {
-	parts := make([]string, len(args))
+// writeTo renders the detail: its result, after the arguments it applies
+// to if it has any.
+func (d SyscallDetail) writeTo(out *merge.Builder) {
+	if len(d.Args) == 0 {
+		writeAction(out, d.Action, d.ErrnoRet)
 
-	for idx, arg := range args {
+		return
+	}
+
+	writeResult(out, d.Args, d.Action, d.ErrnoRet)
+}
+
+// writeResult renders what follows the names of an entry: its arguments in
+// parentheses, if it has any, and then "->" and its action.
+func writeResult(
+	out *merge.Builder, args []specs.LinuxSeccompArg,
+	action specs.LinuxSeccompAction, errnoRet *uint,
+) {
+	if len(args) > 0 {
+		out.WriteString("(")
+		writeArgs(out, args)
+		out.WriteString(")")
+	}
+
+	out.WriteString("->")
+	writeAction(out, action, errnoRet)
+}
+
+// writeAction renders an action, followed by its errno value if it has one.
+func writeAction(out *merge.Builder, action specs.LinuxSeccompAction, errnoRet *uint) {
+	out.WriteText(string(action))
+
+	if errnoRet != nil {
+		out.WriteString("(errno:")
+		out.WriteUint(uint64(*errnoRet))
+		out.WriteString(")")
+	}
+}
+
+func writeArgs(out *merge.Builder, args []specs.LinuxSeccompArg) {
+	for idx := range args {
+		if out.Full() {
+			return
+		}
+
+		arg := &args[idx]
+
+		if idx > 0 {
+			out.WriteString(",")
+		}
+
+		out.WriteString("[")
+		out.WriteUint(uint64(arg.Index))
+		out.WriteString("]")
+		out.WriteText(string(arg.Op))
+		out.WriteString(":")
+		out.WriteUint(arg.Value)
+
 		if arg.Op == specs.OpMaskedEqual {
-			parts[idx] = fmt.Sprintf(
-				"[%d]%s:%d:%d",
-				arg.Index, merge.SafeText(string(arg.Op)), arg.Value, arg.ValueTwo,
-			)
-		} else {
-			parts[idx] = fmt.Sprintf(
-				"[%d]%s:%d", arg.Index, merge.SafeText(string(arg.Op)), arg.Value,
-			)
+			out.WriteString(":")
+			out.WriteUint(arg.ValueTwo)
 		}
 	}
-
-	return strings.Join(parts, ",")
 }
 
-func formatSyscall(syscall specs.LinuxSyscall) string {
-	names := strings.Join(merge.SafeTexts(syscall.Names), ",")
-	action := merge.SafeText(string(syscall.Action))
-
-	if syscall.ErrnoRet != nil {
-		action = fmt.Sprintf("%s(errno:%d)", action, *syscall.ErrnoRet)
+// FormatSyscall returns one syscall entry of a profile as FormatProfile
+// writes it, quoted and bounded as FormatProfile is: its names, the
+// arguments it applies to and its result, as in "read,write->SCMP_ACT_ALLOW".
+// A nil entry reads "<nil>".
+func FormatSyscall(syscall *specs.LinuxSyscall) string {
+	if syscall == nil {
+		return "<nil>"
 	}
 
-	if len(syscall.Args) == 0 {
-		return names + "->" + action
-	}
+	return merge.Render(func(out *merge.Builder) { writeSyscall(out, syscall) })
+}
 
-	return fmt.Sprintf("%s(%s)->%s", names, formatArgs(syscall.Args), action)
+func writeSyscall(out *merge.Builder, syscall *specs.LinuxSyscall) {
+	merge.WriteTexts(out, syscall.Names, ",")
+	writeResult(out, syscall.Args, syscall.Action, syscall.ErrnoRet)
 }

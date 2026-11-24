@@ -24,13 +24,9 @@ import (
 )
 
 // NativeArchitecture returns the seccomp architecture of the running
-// program, derived from runtime.GOARCH. The second result is false when
-// GOARCH has no seccomp architecture constant.
-//
-// Runtimes always include the native architecture in a filter, whether or
-// not the profile lists it, so Intersect and Union need no help to account
-// for it. This is for callers that want to spell it out, for example when
-// reporting which architectures a merged profile covers.
+// program, derived from runtime.GOARCH, and false when GOARCH has none. The
+// merges account for it without help; it is for callers that want to spell
+// it out.
 func NativeArchitecture() (specs.Arch, bool) {
 	arch, ok := nativeArchitectures[runtime.GOARCH]
 
@@ -38,8 +34,6 @@ func NativeArchitecture() (specs.Arch, bool) {
 }
 
 // nativeArchitectures maps runtime.GOARCH values to seccomp architectures.
-//
-//nolint:gochecknoglobals // immutable lookup table
 var nativeArchitectures = map[string]specs.Arch{
 	"386":      specs.ArchX86,
 	"amd64":    specs.ArchX86_64,
@@ -64,8 +58,6 @@ var nativeArchitectures = map[string]specs.Arch{
 // x32 and the MIPS n32 ABIs count as 32-bit here, as libseccomp compiles
 // them that way. Checked against libseccomp 2.6.1 with every architecture
 // it knows.
-//
-//nolint:gochecknoglobals // immutable lookup table
 var narrowArchitectures = map[specs.Arch]bool{
 	specs.ArchX86:         true,
 	specs.ArchX32:         true,
@@ -86,8 +78,6 @@ var narrowArchitectures = map[specs.Arch]bool{
 // a rule for a socket or SysV IPC syscall a second time, on the multiplexer
 // socketcall(2) or ipc(2) (see multiplexedSyscalls). Checked against
 // libseccomp 2.6.1 with every architecture it knows.
-//
-//nolint:gochecknoglobals // immutable lookup table
 var multiplexingArchitectures = map[specs.Arch]bool{
 	specs.ArchX86:     true,
 	specs.ArchMIPS:    true,
@@ -102,6 +92,59 @@ var multiplexingArchitectures = map[specs.Arch]bool{
 	specs.ArchSHEB:    true,
 }
 
+// byteOrder is the byte order of an architecture. The zero value is none,
+// for an architecture this package does not know.
+type byteOrder int
+
+const (
+	littleEndian byteOrder = iota + 1
+	bigEndian
+)
+
+// String names the byte order.
+func (order byteOrder) String() string {
+	switch order {
+	case littleEndian:
+		return "little-endian"
+	case bigEndian:
+		return "big-endian"
+	default:
+		return "unknown byte order"
+	}
+}
+
+// byteOrders gives the byte order of every architecture this package knows,
+// each stated, so that one missing from it is caught rather than taken for
+// either. libseccomp keeps one byte order per filter and refuses an
+// architecture of the other one with EDOM, so a runtime fails to load a
+// profile listing an architecture whose byte order differs from the native
+// architecture's.
+var byteOrders = map[specs.Arch]byteOrder{
+	specs.ArchX86:         littleEndian,
+	specs.ArchX86_64:      littleEndian,
+	specs.ArchX32:         littleEndian,
+	specs.ArchARM:         littleEndian,
+	specs.ArchAARCH64:     littleEndian,
+	specs.ArchMIPS:        bigEndian,
+	specs.ArchMIPS64:      bigEndian,
+	specs.ArchMIPS64N32:   bigEndian,
+	specs.ArchMIPSEL:      littleEndian,
+	specs.ArchMIPSEL64:    littleEndian,
+	specs.ArchMIPSEL64N32: littleEndian,
+	specs.ArchPPC:         bigEndian,
+	specs.ArchPPC64:       bigEndian,
+	specs.ArchPPC64LE:     littleEndian,
+	specs.ArchS390:        bigEndian,
+	specs.ArchS390X:       bigEndian,
+	specs.ArchPARISC:      bigEndian,
+	specs.ArchPARISC64:    bigEndian,
+	specs.ArchRISCV64:     littleEndian,
+	specs.ArchLOONGARCH64: littleEndian,
+	specs.ArchM68K:        bigEndian,
+	specs.ArchSH:          littleEndian,
+	specs.ArchSHEB:        bigEndian,
+}
+
 // runningArchitecture returns the native architecture of the running
 // program, or the empty Arch where it has none.
 func runningArchitecture() specs.Arch {
@@ -112,10 +155,24 @@ func runningArchitecture() specs.Arch {
 
 // coversAny reports whether a filter loaded from a profile listing archs
 // covers an architecture of the given set: one it lists, or native, which
-// runtimes always add. The merge and ValidateArtifact run where the runtime
-// loading their result runs, so they pass the native architecture of the
-// running program.
+// runtimes always add (see mayBeNative). The merge and ValidateArtifact run
+// where the runtime loading their result runs, so they pass the native
+// architecture of the running program.
 func coversAny(archs []specs.Arch, set map[specs.Arch]bool, native specs.Arch) bool {
-	return set[native] ||
+	return mayBeNative(set, native) ||
 		slices.ContainsFunc(archs, func(arch specs.Arch) bool { return set[arch] })
+}
+
+// mayBeNative reports whether the architecture a runtime adds to the filter
+// may be one of the set: native itself, or, where native is empty and so
+// not known, any architecture this package knows (see possibleNatives).
+// Those include 32-bit and multiplexing ones, so a result settled for an
+// unknown native architecture is settled for both, which keeps it safe on
+// whichever node loads it.
+func mayBeNative(set map[specs.Arch]bool, native specs.Arch) bool {
+	if native == "" {
+		return slices.ContainsFunc(possibleNatives, func(arch specs.Arch) bool { return set[arch] })
+	}
+
+	return set[native]
 }
