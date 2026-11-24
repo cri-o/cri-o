@@ -29,20 +29,13 @@ func (s *Server) ExecSync(
 		)
 	}
 
-	// Ask the runtime instead of looking at the init pid CRI-O cached when the
-	// container was created. A VM runtime uses the VM's pid as the container
-	// pid, and that pid changes when the VM is restored from a checkpoint, so
-	// the cached one refuses execs for containers which are running fine.
-	if err := ensureContainerExecAllowed(
-		ctx, s.Runtime(), c,
-	); err != nil {
-		return nil, err
-	}
-
 	cmd := req.GetCmd()
 	if cmd == nil {
 		return nil, errors.New("exec command cannot be empty")
 	}
 
-	return s.ContainerServer.Runtime().ExecSyncContainer(ctx, c, cmd, req.GetTimeout())
+	response, err := s.ContainerServer.Runtime().
+		ExecSyncContainer(ctx, c, cmd, req.GetTimeout())
+
+	return response, execStatus(err)
 }

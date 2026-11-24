@@ -232,10 +232,6 @@ var setupSUT = func() {
 	sut.SetStorageImageServer(imageServerMock)
 	sut.SetStorageRuntimeServer(runtimeServerMock)
 
-	// beforeEach creates the stream service before this server exists, so
-	// rebind it to the fresh one. It also needs the context which the server
-	// assigns when starting the stream server, otherwise it cannot call into
-	// the runtime.
 	testStreamService.SetRuntimeServer(sut)
 	testStreamService.SetContext(context.Background())
 }

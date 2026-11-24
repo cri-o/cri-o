@@ -78,6 +78,9 @@ const (
 const (
 	execError   = -1
 	execTimeout = -2
+
+	// vmLivenessTimeout bounds the shim liveness check before an exec.
+	vmLivenessTimeout = 10 * time.Second
 )
 
 // newRuntimeVM creates a new runtimeVM instance.
@@ -587,6 +590,15 @@ func (r *runtimeVM) execContainerCommon(
 ) (exitCode int32, retErr error) {
 	log.Debugf(ctx, "RuntimeVM.execContainerCommon() start")
 	defer log.Debugf(ctx, "RuntimeVM.execContainerCommon() end")
+
+	alive, err := r.IsContainerAlive(ctx, c)
+	if err != nil {
+		return execError, &ErrContainerStateUnknown{Err: err}
+	}
+
+	if !alive {
+		return execError, fmt.Errorf("%w: %s", ErrContainerNotRunning, c.ID())
+	}
 
 	// Cancel the context before returning to ensure goroutines are stopped.
 	ctx, cancel := context.WithCancel(r.ctx)
@@ -1359,8 +1371,6 @@ func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal sysca
 		Signal: uint32(signal),
 		All:    false,
 	}); err != nil {
-		// A dead shim is not an error for a stop signal: the container is gone.
-		// The liveness check gets the error and reports the container as stopped.
 		if errors.Is(err, ttrpc.ErrClosed) {
 			if signal != 0 {
 				return nil
@@ -1369,8 +1379,6 @@ func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal sysca
 			return err
 		}
 
-		// FromGRPC loses context errors and gRPC timeout/cancellation codes.
-		// Preserve them so exec probes can distinguish a timeout from a missing task.
 		code := grpcstatus.Code(err)
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) ||
 			code == codes.DeadlineExceeded || code == codes.Canceled {
@@ -1462,19 +1470,18 @@ func EncodeKataVirtualVolumeToBase64(
 }
 
 func (r *runtimeVM) IsContainerAlive(ctx context.Context, c *Container) (bool, error) {
-	// The shim connection is established when the container status is refreshed,
-	// which can be the first thing that happens after a CRI-O restart. Without it
-	// there is nothing to ask, and kill would panic.
 	if r.task == nil {
 		return false, fmt.Errorf("shim for container %s is not connected", c.ID())
 	}
 
-	err := r.kill(ctx, c.ID(), "", 0)
+	aliveCtx, cancel := context.WithTimeout(ctx, vmLivenessTimeout)
+	defer cancel()
+
+	err := r.kill(aliveCtx, c.ID(), "", 0)
 	if err == nil {
 		return true, nil
 	}
 
-	// The shim answered, and the container is not running.
 	if errors.Is(err, errdefs.ErrNotFound) || errors.Is(err, ttrpc.ErrClosed) {
 		return false, nil
 	}

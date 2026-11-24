@@ -53,8 +53,6 @@ var _ = t.Describe("ContainerExec", func() {
 			handler.StreamWebsockets = new(true)
 			handler.SetConmonrsFeatures([]string{conmonClient.FeatureStreamingProtocols})
 
-			// The server's background monitor may probe the container while
-			// this test installs its runtime implementation.
 			ociRuntimeMock.EXPECT().
 				ProbeMonitor(gomock.Any(), testContainer).
 				Return(nil).
@@ -175,14 +173,11 @@ var _ = t.Describe("ContainerExec", func() {
 		It("should succeed when container is running", func() {
 			// Given
 			addContainerAndSandbox()
-			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+			testContainer.SetState(&oci.ContainerState{
+				State:   specs.State{Status: oci.ContainerStateRunning},
+				InitPid: 4194305,
 			})
 
-			// The runtime decides whether the container can take a process.
-			ociRuntimeMock.EXPECT().
-				IsContainerAlive(gomock.Any(), testContainer).
-				Return(true, nil)
 			ociRuntimeMock.EXPECT().
 				ProbeMonitor(gomock.Any(), testContainer).
 				Return(nil).
@@ -231,15 +226,14 @@ var _ = t.Describe("ContainerExec", func() {
 			// Given
 			addContainerAndSandbox()
 
-			// The server's background monitor may probe the container while
-			// this test installs its runtime implementation.
 			ociRuntimeMock.EXPECT().
 				ProbeMonitor(gomock.Any(), testContainer).
 				Return(nil).
 				AnyTimes()
 			ociRuntimeMock.EXPECT().
-				IsContainerAlive(gomock.Any(), testContainer).
-				Return(false, nil)
+				ExecContainer(gomock.Any(), testContainer, []string{"/bin/sh"},
+					gomock.Any(), gomock.Any(), gomock.Any(), false, gomock.Any()).
+				Return(fmt.Errorf("%w: stopped", oci.ErrContainerNotRunning))
 			sut.Runtime().SetRuntimeImpl(testContainer.ID(), ociRuntimeMock)
 
 			// When
@@ -257,44 +251,6 @@ var _ = t.Describe("ContainerExec", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("container is not created or running"))
-		})
-
-		It("should not consult the cached init pid", func() {
-			// Given
-			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
-				State:   specs.State{Status: oci.ContainerStateRunning},
-				InitPid: 4194305, // Not running, like the pid a VM runtime leaves behind after a restore
-			})
-
-			// The cached pid must not decide the outcome: the runtime does.
-			ociRuntimeMock.EXPECT().
-				IsContainerAlive(gomock.Any(), testContainer).
-				Return(true, nil)
-			ociRuntimeMock.EXPECT().
-				ProbeMonitor(gomock.Any(), testContainer).
-				Return(nil).
-				AnyTimes()
-			ociRuntimeMock.EXPECT().
-				ExecContainer(gomock.Any(), testContainer, []string{"/bin/sh"},
-					gomock.Any(), gomock.Any(), gomock.Any(), false, gomock.Any()).
-				Return(nil)
-			sut.Runtime().SetRuntimeImpl(testContainer.ID(), ociRuntimeMock)
-
-			// When
-			err := testStreamService.Exec(
-				context.Background(),
-				testContainer.ID(),
-				[]string{"/bin/sh"},
-				nil,
-				nil,
-				nil,
-				false,
-				make(chan remotecommand.TerminalSize),
-			)
-
-			// Then - The runtime is the authority, not the cached pid
-			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

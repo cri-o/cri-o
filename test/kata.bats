@@ -120,17 +120,12 @@ function teardown() {
 
 	stop_crio_no_clean ""
 
-	# The pid CRI-O cached when the container was created is the pid of the VM,
-	# and that pid does not survive the VM being restored. Point the cached pid
-	# at a process that is gone to get the same situation.
 	jq '.initPid = 4194305' \
 		"$TESTDIR/crio/overlay-containers/$ctr_id/userdata/state.json" > "$TESTDIR/state.json"
 	cp "$TESTDIR/state.json" "$TESTDIR/crio/overlay-containers/$ctr_id/userdata/state.json"
 
 	start_crio_no_setup
 
-	# Exec must work using the runtime restored at startup, before an inspect
-	# can refresh its status. The stale cached pid must not decide this.
 	crictl exec "$ctr_id" echo after
 	crictl exec --sync "$ctr_id" echo after
 

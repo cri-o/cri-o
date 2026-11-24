@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,35 +15,35 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
-// execLivenessTimeout bounds the liveness check made before an exec, so a
-// container runtime which does not answer cannot hold the request open.
-const execLivenessTimeout = 10 * time.Second
-
-// ensureContainerExecAllowed asks the runtime whether the container can take a
-// new process before serving an exec.
-func ensureContainerExecAllowed(ctx context.Context, rt *oci.Runtime, c *oci.Container) error {
-	aliveCtx, cancel := context.WithTimeout(ctx, execLivenessTimeout)
-	defer cancel()
-
-	alive, err := rt.IsContainerAlive(aliveCtx, c)
-	if err != nil {
-		code := codes.Unavailable
-
-		switch {
-		case errors.Is(err, context.DeadlineExceeded) || status.Code(err) == codes.DeadlineExceeded:
-			code = codes.DeadlineExceeded
-		case errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled:
-			code = codes.Canceled
-		}
-
-		return status.Errorf(code, "unable to determine whether container is running: %v", err)
+// execStatus translates an exec error into the CRI status the kubelet expects.
+func execStatus(err error) error {
+	if err == nil {
+		return nil
 	}
 
-	if !alive {
+	if errors.Is(err, oci.ErrContainerNotRunning) {
 		return status.Errorf(codes.NotFound, "container is not created or running")
 	}
 
-	return nil
+	var stateUnknown *oci.ErrContainerStateUnknown
+	if !errors.As(err, &stateUnknown) {
+		return err
+	}
+
+	code := codes.Unavailable
+
+	switch {
+	case errors.Is(stateUnknown, context.DeadlineExceeded) ||
+		status.Code(stateUnknown) == codes.DeadlineExceeded:
+		code = codes.DeadlineExceeded
+	case errors.Is(stateUnknown, context.Canceled) ||
+		status.Code(stateUnknown) == codes.Canceled:
+		code = codes.Canceled
+	}
+
+	return status.Errorf(
+		code, "unable to determine whether container is running: %v", stateUnknown.Err,
+	)
 }
 
 // Exec prepares a streaming endpoint to execute a command in the container.
@@ -100,16 +99,8 @@ func (s *StreamService) Exec(
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	// Ask the runtime instead of looking at the init pid CRI-O cached when the
-	// container was created. A VM runtime uses the VM's pid as the container
-	// pid, and that pid changes when the VM is restored from a checkpoint, so
-	// the cached one refuses execs for containers which are running fine.
-	if err := ensureContainerExecAllowed(
-		ctx, s.runtimeServer.Runtime(), c,
-	); err != nil {
-		return err
-	}
-
-	return s.runtimeServer.ContainerServer.Runtime().
-		ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
+	return execStatus(
+		s.runtimeServer.ContainerServer.Runtime().
+			ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan),
+	)
 }

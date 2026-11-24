@@ -16,8 +16,7 @@ func (s *StreamService) SetRuntimeServer(server *Server) {
 	s.runtimeServer = server
 }
 
-// SetContext sets the context of the StreamService, which the server assigns
-// when it starts the stream server.
+// SetContext sets the context of the StreamService.
 func (s *StreamService) SetContext(ctx context.Context) {
 	s.ctx = ctx
 }

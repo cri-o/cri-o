@@ -377,8 +377,7 @@ func (r *Runtime) sandboxRuntimeImpl(c *Container) RuntimeImpl {
 	return r.runtimeImplMap[c.Sandbox()]
 }
 
-// lookupRuntimeImpl looks up a container without recreating its runtime during
-// teardown. Creation and restoration establish the implementation before exec.
+// lookupRuntimeImpl returns the runtime implementation of the container without creating one.
 func (r *Runtime) lookupRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
@@ -400,14 +399,9 @@ func (r *Runtime) lookupRuntimeImpl(c *Container) (RuntimeImpl, error) {
 // with errors.ErrUnsupported then, like a runtime which does not serve the
 // request, and CRI-O's streaming server handles it.
 func (r *Runtime) streamingRuntimeImpl(c *Container) (RuntimeImpl, error) {
-	r.runtimeImplMapMutex.RLock()
-	impl, ok := r.runtimeImplMap[c.ID()]
-	r.runtimeImplMapMutex.RUnlock()
-
-	if !ok {
-		return nil, fmt.Errorf(
-			"no runtime implementation for container %s: %w", c.ID(), errors.ErrUnsupported,
-		)
+	impl, err := r.lookupRuntimeImpl(c)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", err, errors.ErrUnsupported)
 	}
 
 	return impl, nil

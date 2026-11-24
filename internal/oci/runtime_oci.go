@@ -502,6 +502,10 @@ func (r *runtimeOCI) ExecContainer(
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
+	if err := checkContainerLiving(c); err != nil {
+		return err
+	}
+
 	if c.Spoofed() {
 		return nil
 	}
@@ -616,6 +620,10 @@ func (r *runtimeOCI) ExecSyncContainer(
 ) (*types.ExecSyncResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
+	if err := checkContainerLiving(c); err != nil {
+		return nil, err
+	}
 
 	if c.Spoofed() {
 		return nil, nil
