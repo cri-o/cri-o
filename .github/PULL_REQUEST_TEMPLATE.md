@@ -1,5 +1,9 @@
 <!--  Thanks for sending a pull request!
 
+If your change addresses a potential security vulnerability, follow the reporting
+and disclosure process in SECURITY.md before opening a public pull request.
+https://github.com/cri-o/cri-o/blob/main/SECURITY.md
+
 Please be aware that we're following the Kubernetes guidelines of contributing
 to this project. This means that we have to use this mandatory template for all
 of our pull requests.
