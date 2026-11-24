@@ -107,8 +107,12 @@ function cleanup() {
 	# Remove the container image from local storage so we can verify
 	# that runtime_pull_image=true pulls it inside the peer pod VM,
 	# not into the host's local storage.
-	local test_image="quay.io/crio/fedora-crio-ci:latest"
-	crictl rmi "$test_image"
+	# Use a small image for the guest pull: the peer pod VM unpacks
+	# runtime-pulled images into its /run tmpfs, which is sized at 20% of
+	# the VM's memory (kata's default 2 GiB gives ~400 MB) — the standard
+	# fedora-crio-ci test image (~420 MB unpacked) exhausts it.
+	local test_image="quay.io/crio/alpine:3.9"
+	crictl rmi "$test_image" || true
 	output=$(crictl images)
 	[[ "$output" != *"$test_image"* ]]
 
@@ -123,7 +127,7 @@ function cleanup() {
 	[[ "$output" == "SANDBOX_READY" ]]
 
 	# Create container with image pull
-	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 	[[ -n "$ctr_id" ]]
 
 	# Verify image is still NOT in local storage — it was pulled inside the VM
@@ -164,14 +168,14 @@ function cleanup() {
 	wait_for_log "kata-remote"
 
 	local runtimeclass=kata-remote
-	local test_image="quay.io/crio/fedora-crio-ci:latest"
+	local test_image="quay.io/crio/alpine:3.9"
 
 	# Create a pod using the kata-remote runtime (which has runtime_pull_image=true).
 	pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime="$runtimeclass" "$TESTDATA"/sandbox_config.json)
 	[[ -n "$pod_id" ]]
 
 	# Create container with image pull
-	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 	[[ -n "$ctr_id" ]]
 
 	# Start container and stop it
@@ -192,7 +196,7 @@ function cleanup() {
 	# After restart, attempt to create a container WITHOUT --with-pull.
 	# The image information should be loaded from the artifact store, and the
 	# container creation should succeed.
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 
 	# Verify via the CRI-O log that we actually restored the previously pulled image.
 	wait_for_log "runtimePulledImageService: restored 1"
@@ -211,6 +215,8 @@ function cleanup() {
 	check_images
 	wait_for_log "kata-remote"
 
+	# This test only exercises the host-side store, so keep the standard
+	# test image.
 	local test_image="quay.io/crio/fedora-crio-ci:latest"
 	# Ensure a clean slate in the main store.
 	crictl rmi "$test_image" || true
@@ -235,7 +241,7 @@ function cleanup() {
 	check_images
 	wait_for_log "kata-remote"
 
-	local test_image="quay.io/crio/fedora-crio-ci:latest"
+	local test_image="quay.io/crio/alpine:3.9"
 	# Remove from main store so it can only be found if routing is wrong.
 	crictl rmi "$test_image" || true
 
@@ -245,7 +251,7 @@ function cleanup() {
 
 	# Pull happens inside the VM; the manifest is stored in the per-sandbox artifact store.
 	local ctr_id
-	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 	[[ -n "$ctr_id" ]]
 
 	# ListImages uses the default (local) store only.
@@ -269,7 +275,7 @@ function cleanup() {
 	check_images
 	wait_for_log "kata-remote"
 
-	local test_image="quay.io/crio/fedora-crio-ci:latest"
+	local test_image="quay.io/crio/alpine:3.9"
 	crictl rmi "$test_image" || true
 
 	local pod_id
@@ -277,7 +283,7 @@ function cleanup() {
 	[[ -n "$pod_id" ]]
 
 	local ctr_id
-	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 	[[ -n "$ctr_id" ]]
 
 	# Extract the image ID that CRI-O assigned to the runtime-pulled image.
@@ -307,7 +313,7 @@ function cleanup() {
 	check_images
 	wait_for_log "kata-remote"
 
-	local test_image="quay.io/crio/fedora-crio-ci:latest"
+	local test_image="quay.io/crio/alpine:3.9"
 	crictl rmi "$test_image" || true
 
 	# Pull the image into pod A's per-sandbox artifact store.
@@ -316,7 +322,7 @@ function cleanup() {
 	[[ -n "$pod_a" ]]
 
 	local ctr_id
-	ctr_id=$(crictl create --with-pull "$pod_a" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create --with-pull "$pod_a" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 	[[ -n "$ctr_id" ]]
 
 	crictl start "$ctr_id"
@@ -335,7 +341,7 @@ function cleanup() {
 	[[ -n "$pod_b" ]]
 
 	# Without --with-pull the image is not available for pod B.
-	run ! crictl create "$pod_b" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json
+	run ! crictl create "$pod_b" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json
 
 	crictl stopp "$pod_b"
 	crictl rmp "$pod_b"
@@ -354,7 +360,7 @@ function cleanup() {
 	start_crio_no_setup
 	wait_for_log "kata-remote"
 
-	local test_image="quay.io/crio/fedora-crio-ci:latest"
+	local test_image="quay.io/crio/alpine:3.9"
 	crictl rmi "$test_image" || true
 
 	# Create the kata pod (runtime_pull_image=true) and pull the image.
@@ -365,7 +371,7 @@ function cleanup() {
 	[[ -n "$kata_pod_id" ]]
 
 	local kata_ctr_id
-	kata_ctr_id=$(crictl create --with-pull "$kata_pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	kata_ctr_id=$(crictl create --with-pull "$kata_pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 	[[ -n "$kata_ctr_id" ]]
 	crictl start "$kata_ctr_id"
 
@@ -395,7 +401,7 @@ function cleanup() {
 	[[ -n "$default_pod_id" ]]
 
 	local default_ctr_id
-	default_ctr_id=$(crictl create --with-pull "$default_pod_id" "$TESTDATA"/container_sleep.json "$default_sandbox_config")
+	default_ctr_id=$(crictl create --with-pull "$default_pod_id" "$TESTDATA"/container_sleep_alpine.json "$default_sandbox_config")
 	[[ -n "$default_ctr_id" ]]
 
 	# The image must now appear in the host-side image list: it was pulled
@@ -417,7 +423,7 @@ function cleanup() {
 	start_crio_no_setup
 	wait_for_log "kata-remote"
 
-	local test_image="quay.io/crio/fedora-crio-ci:latest"
+	local test_image="quay.io/crio/alpine:3.9"
 
 	# Pull the image into the host containers/storage directly.
 	crictl pull "$test_image"
@@ -436,7 +442,7 @@ function cleanup() {
 	kata_pod_id=$(CRICTL_TIMEOUT=5m crictl runp --runtime=kata-remote "$TESTDATA"/sandbox_config.json)
 	[[ -n "$kata_pod_id" ]]
 
-	ctr_id=$(crictl create --with-pull "$kata_pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create --with-pull "$kata_pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 
 	# A second "Pulled image:" entry must appear after the first pull,
 	# confirming the runtimePulledImageService performed an independent pull.
@@ -464,7 +470,7 @@ function cleanup() {
 	check_images
 	wait_for_log "kata-remote"
 
-	local test_image="quay.io/crio/fedora-crio-ci:latest"
+	local test_image="quay.io/crio/alpine:3.9"
 	crictl rmi "$test_image" || true
 
 	local pod_id
@@ -473,7 +479,7 @@ function cleanup() {
 
 	# First pull.
 	local ctr1_id
-	ctr1_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr1_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 	[[ -n "$ctr1_id" ]]
 
 	crictl start "$ctr1_id"
@@ -483,7 +489,7 @@ function cleanup() {
 	# Second pull of the same image for the same sandbox — must succeed and
 	# leave the artifact store in a valid state.
 	local ctr2_id
-	ctr2_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	ctr2_id=$(crictl create --with-pull "$pod_id" "$TESTDATA"/container_sleep_alpine.json "$TESTDATA"/sandbox_config.json)
 	[[ -n "$ctr2_id" ]]
 
 	crictl start "$ctr2_id"
