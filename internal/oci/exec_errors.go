@@ -1,6 +1,7 @@
 package oci
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -23,10 +24,17 @@ func (e *ErrContainerStateUnknown) Unwrap() error {
 	return e.Err
 }
 
-// checkContainerLiving returns ErrContainerNotRunning when the init process is gone.
-func checkContainerLiving(c *Container) error {
-	if err := c.Living(); err != nil {
-		return fmt.Errorf("%w: %w", ErrContainerNotRunning, err)
+// checkContainerAlive asks the runtime whether the container can take a new
+// process. A runtime which cannot tell reports ErrContainerStateUnknown, a
+// container which is gone reports ErrContainerNotRunning.
+func checkContainerAlive(ctx context.Context, rt RuntimeImpl, c *Container) error {
+	alive, err := rt.IsContainerAlive(ctx, c)
+	if err != nil {
+		return &ErrContainerStateUnknown{Err: err}
+	}
+
+	if !alive {
+		return fmt.Errorf("%w: %s", ErrContainerNotRunning, c.ID())
 	}
 
 	return nil

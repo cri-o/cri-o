@@ -138,6 +138,29 @@ function teardown() {
 	crictl rmp "$pod_id"
 }
 
+@test "exec into a stopped vm runtime container is refused" {
+	if [[ $RUNTIME_TYPE != vm ]]; then
+		skip "only applicable to vm runtime type"
+	fi
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl stop "$ctr_id"
+
+	# The shim reports the container stopped, which has to be answered as a
+	# container which is not running, not as an unknown state.
+	run crictl exec --sync "$ctr_id" echo stopped
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"container is not created or running"* ]]
+
+	crictl rm "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+}
+
 @test "crio restore with vm runtime and dead shim already stopped" {
 	if [[ $RUNTIME_TYPE != vm ]]; then
 		skip "only applicable to vm runtime type"

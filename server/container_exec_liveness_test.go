@@ -110,15 +110,15 @@ var _ = t.Describe("Container exec eligibility", func() {
 				Expect(status.Code(err)).To(Equal(codes.Unknown))
 			})
 
-			It("should not create a runtime for a container whose pod is gone", func() {
+			It("should answer NotFound for a container whose runtime is gone", func() {
 				serverConfig.Runtimes[serverConfig.DefaultRuntime].RuntimeType = config.RuntimeTypePod
 
 				Expect(sut.Runtime().HasRuntimeImpl(testContainer.ID())).To(BeFalse())
 				Expect(sut.Runtime().HasRuntimeImpl(testContainer.Sandbox())).To(BeFalse())
 
 				err := exec()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("no runtime implementation"))
+				Expect(status.Code(err)).To(Equal(codes.NotFound))
+				Expect(err.Error()).To(ContainSubstring("container is not created or running"))
 				Expect(sut.Runtime().HasRuntimeImpl(testContainer.ID())).To(BeFalse())
 				Expect(sut.Runtime().HasRuntimeImpl(testContainer.Sandbox())).To(BeFalse())
 			})

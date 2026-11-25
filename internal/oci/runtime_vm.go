@@ -34,8 +34,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	"google.golang.org/grpc/codes"
-	grpcstatus "google.golang.org/grpc/status"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
@@ -591,13 +589,8 @@ func (r *runtimeVM) execContainerCommon(
 	log.Debugf(ctx, "RuntimeVM.execContainerCommon() start")
 	defer log.Debugf(ctx, "RuntimeVM.execContainerCommon() end")
 
-	alive, err := r.IsContainerAlive(ctx, c)
-	if err != nil {
-		return execError, &ErrContainerStateUnknown{Err: err}
-	}
-
-	if !alive {
-		return execError, fmt.Errorf("%w: %s", ErrContainerNotRunning, c.ID())
+	if err := checkContainerAlive(ctx, r, c); err != nil {
+		return execError, err
 	}
 
 	// Cancel the context before returning to ensure goroutines are stopped.
@@ -985,6 +978,24 @@ func markContainerStopped(c *Container) {
 	c.state.Status = ContainerStateStopped
 }
 
+// containerStateFromTaskStatus maps the status the shim reports to the state
+// CRI-O tracks for the container. The second return value is false for the
+// statuses CRI-O does not map.
+func containerStateFromTaskStatus(status tasktypes.Status) (rspec.ContainerState, bool) {
+	switch status {
+	case tasktypes.Status_CREATED:
+		return ContainerStateCreated, true
+	case tasktypes.Status_RUNNING:
+		return ContainerStateRunning, true
+	case tasktypes.Status_STOPPED:
+		return ContainerStateStopped, true
+	case tasktypes.Status_PAUSED:
+		return ContainerStatePaused, true
+	}
+
+	return "", false
+}
+
 // updateContainerStatus is a UpdateContainerStatus helper, which actually does the container's
 // status refresh.
 // It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
@@ -1056,15 +1067,8 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 
 	status := c.state.Status
 
-	switch response.GetStatus() {
-	case tasktypes.Status_CREATED:
-		status = ContainerStateCreated
-	case tasktypes.Status_RUNNING:
-		status = ContainerStateRunning
-	case tasktypes.Status_STOPPED:
-		status = ContainerStateStopped
-	case tasktypes.Status_PAUSED:
-		status = ContainerStatePaused
+	if state, ok := containerStateFromTaskStatus(response.GetStatus()); ok {
+		status = state
 	}
 
 	c.state.Status = status
@@ -1371,18 +1375,9 @@ func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal sysca
 		Signal: uint32(signal),
 		All:    false,
 	}); err != nil {
+		// A dead shim means the container is gone, which is not an error.
 		if errors.Is(err, ttrpc.ErrClosed) {
-			if signal != 0 {
-				return nil
-			}
-
-			return err
-		}
-
-		code := grpcstatus.Code(err)
-		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) ||
-			code == codes.DeadlineExceeded || code == codes.Canceled {
-			return err
+			return nil
 		}
 
 		return errdefs.FromGRPC(err)
@@ -1469,7 +1464,14 @@ func EncodeKataVirtualVolumeToBase64(
 	return option, nil
 }
 
+// IsContainerAlive asks the shim for the status of the container. It uses
+// State rather than Kill with signal 0: kata signals the whole container on a
+// Kill with an empty exec ID, freezing the cgroup and thawing it again, which
+// would resume a paused container and stop the workload on every check.
 func (r *runtimeVM) IsContainerAlive(ctx context.Context, c *Container) (bool, error) {
+	// The shim connection is established when the container status is refreshed,
+	// which can be the first thing that happens after a CRI-O restart. Without it
+	// there is nothing to ask.
 	if r.task == nil {
 		return false, fmt.Errorf("shim for container %s is not connected", c.ID())
 	}
@@ -1477,16 +1479,22 @@ func (r *runtimeVM) IsContainerAlive(ctx context.Context, c *Container) (bool, e
 	aliveCtx, cancel := context.WithTimeout(ctx, vmLivenessTimeout)
 	defer cancel()
 
-	err := r.kill(aliveCtx, c.ID(), "", 0)
-	if err == nil {
-		return true, nil
+	response, err := r.task.State(aliveCtx, &task.StateRequest{ID: c.ID()})
+	if err != nil {
+		// The container is gone: the shim connection is closed or the shim
+		// does not have the container anymore.
+		if errors.Is(err, ttrpc.ErrClosed) || errdefs.IsNotFound(errdefs.FromGRPC(err)) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("check whether container %s is alive: %w", c.ID(), err)
 	}
 
-	if errors.Is(err, errdefs.ErrNotFound) || errors.Is(err, ttrpc.ErrClosed) {
-		return false, nil
-	}
+	state, known := containerStateFromTaskStatus(response.GetStatus())
 
-	return false, fmt.Errorf("check whether container %s is alive: %w", c.ID(), err)
+	// A created container can already take a process, like the init pid check
+	// it replaces allowed, so only a stopped container is not alive.
+	return known && state != ContainerStateStopped, nil
 }
 
 func (r *runtimeVM) ProbeMonitor(ctx context.Context, c *Container) error {

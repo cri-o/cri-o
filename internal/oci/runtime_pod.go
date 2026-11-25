@@ -371,7 +371,7 @@ func (r *runtimePod) ExecSyncContainer(
 	cmd []string,
 	timeout int64,
 ) (*types.ExecSyncResponse, error) {
-	if err := checkContainerLiving(c); err != nil {
+	if err := checkContainerAlive(ctx, r, c); err != nil {
 		return nil, err
 	}
 
