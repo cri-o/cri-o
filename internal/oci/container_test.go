@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path"
 	"strconv"
 	"time"
@@ -504,6 +505,93 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+	t.Describe("InitProcessAlive", func() {
+		It("should be false if pid uninitialized", func() {
+			// Given
+			sut.SetState(&oci.ContainerState{})
+
+			// When / Then
+			Expect(sut.InitProcessAlive()).To(BeFalse())
+		})
+
+		It("should be true if the init process is running but state.Pid was never set", func() {
+			// Given a container whose init process is alive, but whose state.Pid
+			// was never populated - the runtime's state output was never read, so
+			// CRI-O has no record of the pid even though the process is running.
+			cmd := exec.Command("sleep", "300")
+			Expect(cmd.Start()).To(Succeed())
+
+			defer func() {
+				//nolint:errcheck // best-effort cleanup in test teardown
+				cmd.Process.Kill()
+				// make sure the entry in the process table is cleaned up
+				//nolint:errcheck // best-effort cleanup in test teardown
+				cmd.Wait()
+			}()
+
+			state := &oci.ContainerState{}
+			Expect(state.SetInitPid(cmd.Process.Pid)).To(Succeed())
+			state.Pid = 0
+			sut.SetState(state)
+
+			// When / Then: Living infers the container stopped purely from the
+			// zeroed state.Pid, which is what strands the process and its scope.
+			Expect(sut.Living()).To(HaveOccurred())
+			Expect(sut.InitProcessAlive()).To(BeTrue())
+		})
+
+		It("should be false if the init process is not running", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Pid = neverRunningPid
+			// SetInitPid will fail because the pid is not running
+			Expect(state.SetInitPid(state.Pid)).NotTo(Succeed())
+			sut.SetState(state)
+
+			// When / Then
+			Expect(sut.InitProcessAlive()).To(BeFalse())
+		})
+	})
+
+	t.Describe("KillInitProcess", func() {
+		It("should succeed if the init process is already gone", func() {
+			// Given
+			sut.SetState(&oci.ContainerState{})
+
+			// When / Then
+			Expect(sut.KillInitProcess(context.Background())).To(Succeed())
+		})
+
+		It("should kill an init process that outlived the runtime's record of it", func() {
+			// Given a real process standing in for a container init process that
+			// the runtime has already forgotten about.
+			cmd := exec.Command("sleep", "300")
+			Expect(cmd.Start()).To(Succeed())
+
+			defer func() {
+				//nolint:errcheck // best-effort cleanup in test teardown
+				cmd.Process.Kill()
+				// make sure the entry in the process table is cleaned up
+				//nolint:errcheck // best-effort cleanup in test teardown
+				cmd.Wait()
+			}()
+
+			state := &oci.ContainerState{}
+			Expect(state.SetInitPid(cmd.Process.Pid)).To(Succeed())
+			state.Pid = 0
+			sut.SetState(state)
+			Expect(sut.InitProcessAlive()).To(BeTrue())
+
+			// When
+			Expect(sut.KillInitProcess(context.Background())).To(Succeed())
+
+			// Then. No reaping first: InitProcessAlive already treats a zombie as
+			// gone, and waiting here would block until the process exited on its
+			// own, masking a kill that never happened.
+			Expect(sut.InitProcessAlive()).To(BeFalse())
+		})
+	})
+
 	t.Describe("ProcessState", func() {
 		It("should be false if pid uninitialized", func() {
 			// Given
