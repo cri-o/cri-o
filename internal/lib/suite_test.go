@@ -205,12 +205,18 @@ func beforeEach() {
 		panic(err)
 	}
 
-	myContainer, err = oci.NewContainer(containerID, "", "", "",
+	myContainer = newTestContainer("")
+}
+
+func newTestContainer(dir string) *oci.Container {
+	container, err := oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", nil, nil, "",
 		&types.ContainerMetadata{}, sandboxID, false,
-		false, false, "", "", time.Now(), "")
+		false, false, "", dir, time.Now(), "")
 	Expect(err).ToNot(HaveOccurred())
+
+	return container
 }
 
 func mockDirs(manifest []byte) {
