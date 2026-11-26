@@ -143,12 +143,13 @@ default OCI runtime, crun.
 
 #### CRI conformance, integration, and Kata
 
-| Context                      | Type        | OS     | Notes                         |
-| ---------------------------- | ----------- | ------ | ----------------------------- |
-| `ci-fedora-critest`          | critest     | Fedora |                               |
-| `ci-rhel-critest`            | critest     | RHEL   |                               |
-| `ci-fedora-integration`      | integration | Fedora |                               |
-| `ci-fedora-integration-kata` | integration | Fedora | Kata runtime, subset of tests |
+| Context                         | Type        | OS     | Notes                              |
+| ------------------------------- | ----------- | ------ | ---------------------------------- |
+| `ci-fedora-critest`             | critest     | Fedora |                                    |
+| `ci-rhel-critest`               | critest     | RHEL   |                                    |
+| `ci-fedora-integration`         | integration | Fedora |                                    |
+| `ci-fedora-integration-kata`    | integration | Fedora | Kata Rust runtime, subset of tests |
+| `ci-fedora-integration-kata-go` | integration | Fedora | Kata Go runtime, subset of tests   |
 
 #### Performance and scale
 
