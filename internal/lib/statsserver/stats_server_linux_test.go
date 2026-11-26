@@ -9,6 +9,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	cstorage "go.podman.io/storage"
 	drivers "go.podman.io/storage/drivers"
+	"go.podman.io/storage/pkg/directory"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -25,6 +26,7 @@ type fakeRuntimeImpl struct {
 	cgroupStatsErr error
 	diskStats      *stats.DiskStats
 	diskStatsErr   error
+	diskStatsCalls int
 }
 
 func (f *fakeRuntimeImpl) CgroupStats(
@@ -40,24 +42,60 @@ func (f *fakeRuntimeImpl) DiskStats(
 	_ *oci.Container,
 	_ string,
 ) (*stats.DiskStats, error) {
+	f.diskStatsCalls++
+
 	return f.diskStats, f.diskStatsErr
 }
 
 type fakeStore struct {
 	cstorage.Store
+
+	driver    drivers.Driver
+	driverErr error
+	container *cstorage.Container
 }
 
 func (f *fakeStore) GraphDriver() (drivers.Driver, error) {
+	if f.driver != nil || f.driverErr != nil {
+		return f.driver, f.driverErr
+	}
+
 	return nil, errors.New("no graph driver in test")
+}
+
+func (f *fakeStore) Container(string) (*cstorage.Container, error) {
+	if f.container != nil {
+		return f.container, nil
+	}
+
+	return nil, errors.New("no container in test")
+}
+
+type fakeGraphDriver struct {
+	drivers.Driver
+
+	usage *directory.DiskUsage
+	err   error
+}
+
+func (f *fakeGraphDriver) ReadWriteDiskUsage(string) (*directory.DiskUsage, error) {
+	return f.usage, f.err
 }
 
 type fakeParentServer struct {
 	runtime *oci.Runtime
 	cfg     *config.Config
+	store   cstorage.Store
 }
 
-func (f *fakeParentServer) Runtime() *oci.Runtime              { return f.runtime }
-func (f *fakeParentServer) Store() cstorage.Store              { return &fakeStore{} }
+func (f *fakeParentServer) Runtime() *oci.Runtime { return f.runtime }
+func (f *fakeParentServer) Store() cstorage.Store {
+	if f.store != nil {
+		return f.store
+	}
+
+	return &fakeStore{}
+}
 func (f *fakeParentServer) ListSandboxes() []*sandbox.Sandbox  { return nil }
 func (f *fakeParentServer) GetSandbox(string) *sandbox.Sandbox { return nil }
 func (f *fakeParentServer) Config() *config.Config             { return f.cfg }
@@ -128,8 +166,19 @@ func newRunningContainer(t *testing.T, id, name string) *oci.Container {
 func newTestStatsServer(t *testing.T, rt *oci.Runtime, cfg *config.Config) *StatsServer {
 	t.Helper()
 
+	return newTestStatsServerWithStore(t, rt, cfg, nil)
+}
+
+func newTestStatsServerWithStore(
+	t *testing.T,
+	rt *oci.Runtime,
+	cfg *config.Config,
+	store cstorage.Store,
+) *StatsServer {
+	t.Helper()
+
 	return &StatsServer{
-		parentServerIface: &fakeParentServer{runtime: rt, cfg: cfg},
+		parentServerIface: &fakeParentServer{runtime: rt, cfg: cfg, store: store},
 		sboxStats:         make(map[string]*types.PodSandboxStats),
 		ctrStats:          make(map[string]*types.ContainerStats),
 		sboxMetrics:       make(map[string]*SandboxMetrics),
@@ -170,12 +219,19 @@ func TestUpdateSandboxContainerStatsError(t *testing.T) {
 	}
 }
 
+//nolint:staticcheck // testing deprecated field
 func TestUpdateSandboxDiskStatsError(t *testing.T) {
 	t.Parallel()
 
 	cfg, err := config.DefaultConfig()
 	if err != nil {
 		t.Fatalf("DefaultConfig: %v", err)
+	}
+
+	cfg.IncludedPodMetrics = []string{config.DiskMetrics}
+
+	if err := cfg.StatsConfig.Validate(); err != nil {
+		t.Fatalf("Validate: %v", err)
 	}
 
 	rt := oci.NewTestRuntime()
@@ -209,5 +265,182 @@ func TestUpdateSandboxDiskStatsError(t *testing.T) {
 
 	if result.GetLinux().GetContainers()[0].GetMemory() == nil {
 		t.Error("expected memory stats to be present")
+	}
+}
+
+// TestUpdateContainerStatsDoesNotCollectDiskStats verifies that the container
+// CRI stats path does not invoke DiskStats: populateWritableLayer always
+// overwrites the writable layer with the graph driver numbers, so collecting
+// disk stats there is wasted work.
+func TestUpdateContainerStatsDoesNotCollectDiskStats(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.DefaultConfig()
+	if err != nil {
+		t.Fatalf("DefaultConfig: %v", err)
+	}
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t, "ctr-2", "disk-stats-container")
+
+	fake := &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
+		diskStats:   &stats.DiskStats{},
+	}
+	rt.SetRuntimeImpl("ctr-2", fake)
+
+	sb := newTestSandbox(t, "sb-2")
+
+	ss := newTestStatsServerWithStore(t, rt, cfg, &fakeStore{
+		driver: &fakeGraphDriver{
+			usage: &directory.DiskUsage{Size: 4096, InodeCount: 17},
+		},
+		container: &cstorage.Container{ID: "ctr-2", LayerID: "layer-ctr-2"},
+	})
+	result := ss.updateContainerStats(ctr, sb)
+
+	if result == nil {
+		t.Fatal("updateContainerStats returned nil")
+	}
+
+	if fake.diskStatsCalls != 0 {
+		t.Errorf(
+			"expected no disk stats collection on the CRI stats path, got %d calls",
+			fake.diskStatsCalls,
+		)
+	}
+
+	writableLayer := result.GetWritableLayer()
+	if writableLayer == nil {
+		t.Fatal("expected writable layer stats to be populated")
+	}
+
+	if got := writableLayer.GetUsedBytes().GetValue(); got != 4096 {
+		t.Errorf("expected writable layer UsedBytes 4096, got %d", got)
+	}
+
+	if got := writableLayer.GetInodesUsed().GetValue(); got != 17 {
+		t.Errorf("expected writable layer InodesUsed 17, got %d", got)
+	}
+}
+
+// TestUpdateSandboxSkipsDiskStatsWhenDiskMetricsDisabled verifies that
+// updateSandbox does not collect disk stats when the disk pod metric is not
+// enabled: nothing consumes them, and collecting them walks the whole
+// container rootfs. The CRI writable layer is still populated separately by
+// populateWritableLayer.
+func TestUpdateSandboxSkipsDiskStatsWhenDiskMetricsDisabled(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.DefaultConfig()
+	if err != nil {
+		t.Fatalf("DefaultConfig: %v", err)
+	}
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t, "ctr-3", "sandbox-disk-stats-container")
+
+	fake := &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
+		diskStats:   &stats.DiskStats{},
+	}
+	rt.SetRuntimeImpl("ctr-3", fake)
+
+	sb := newTestSandbox(t, "sb-3")
+	sb.AddContainer(context.Background(), ctr)
+
+	ss := newTestStatsServerWithStore(t, rt, cfg, &fakeStore{
+		driver: &fakeGraphDriver{
+			usage: &directory.DiskUsage{Size: 8192, InodeCount: 29},
+		},
+		container: &cstorage.Container{ID: "ctr-3", LayerID: "layer-ctr-3"},
+	})
+	result := ss.updateSandbox(sb)
+
+	if result == nil {
+		t.Fatal("updateSandbox returned nil")
+	}
+
+	containers := result.GetLinux().GetContainers()
+	if len(containers) != 1 {
+		t.Fatalf("expected 1 container stats, got %d", len(containers))
+	}
+
+	if fake.diskStatsCalls != 0 {
+		t.Errorf(
+			"expected no disk stats collection when disk metrics are disabled, got %d calls",
+			fake.diskStatsCalls,
+		)
+	}
+
+	writableLayer := containers[0].GetWritableLayer()
+	if writableLayer == nil {
+		t.Fatal("expected writable layer stats to be populated")
+	}
+
+	if got := writableLayer.GetUsedBytes().GetValue(); got != 8192 {
+		t.Errorf("expected writable layer UsedBytes 8192, got %d", got)
+	}
+
+	if got := writableLayer.GetInodesUsed().GetValue(); got != 29 {
+		t.Errorf("expected writable layer InodesUsed 29, got %d", got)
+	}
+}
+
+// TestUpdateSandboxCollectsDiskStatsWhenDiskMetricsEnabled verifies that the
+// disk metrics collector still gets disk stats when the disk pod metric is
+// enabled.
+//
+//nolint:staticcheck // testing deprecated field
+func TestUpdateSandboxCollectsDiskStatsWhenDiskMetricsEnabled(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.DefaultConfig()
+	if err != nil {
+		t.Fatalf("DefaultConfig: %v", err)
+	}
+
+	cfg.IncludedPodMetrics = []string{config.DiskMetrics}
+
+	if err := cfg.StatsConfig.Validate(); err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+
+	rt := oci.NewTestRuntime()
+	ctr := newRunningContainer(t, "ctr-4", "disk-metrics-container")
+
+	fake := &fakeRuntimeImpl{
+		cgroupStats: &stats.CgroupStats{SystemNano: time.Now().UnixNano()},
+		diskStats:   &stats.DiskStats{},
+	}
+	rt.SetRuntimeImpl("ctr-4", fake)
+
+	sb := newTestSandbox(t, "sb-4")
+	sb.AddContainer(context.Background(), ctr)
+
+	ss := newTestStatsServer(t, rt, cfg)
+	if result := ss.updateSandbox(sb); result == nil {
+		t.Fatal("updateSandbox returned nil")
+	}
+
+	if fake.diskStatsCalls != 1 {
+		t.Fatalf(
+			"expected disk stats collected once for enabled disk metrics, got %d calls",
+			fake.diskStatsCalls,
+		)
+	}
+
+	var foundFsMetric bool
+
+	for _, cm := range ss.sboxMetrics["sb-4"].GetMetric().GetContainerMetrics() {
+		for _, m := range cm.GetMetrics() {
+			if m.GetName() == "container_fs_usage_bytes" {
+				foundFsMetric = true
+			}
+		}
+	}
+
+	if !foundFsMetric {
+		t.Error("expected container_fs_usage_bytes metric to be generated")
 	}
 }
