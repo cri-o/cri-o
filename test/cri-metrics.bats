@@ -168,6 +168,34 @@ EOF
 	# or cgroup memory.stat:mapped_file (cgroup v1)
 
 	# TODO: find a suitable command/script to use to increase the mapped file count in the cgroup
+
+	# assert the cgroup v2 reclaim metrics are emitted. Their values depend on
+	# reclaim activity and cgroup v1 has no equivalent accounting, so only assert
+	# the metrics are present rather than checking a specific value.
+	metrics=$(crictl metricsp)
+	for metric in \
+		container_memory_file_dirty_bytes \
+		container_memory_file_writeback_bytes \
+		container_memory_pgscan_total \
+		container_memory_pgsteal_total \
+		container_memory_workingset_refault_anon_total \
+		container_memory_workingset_refault_file_total; do
+		echo "$metrics" | jq -e ".podMetrics[0].containerMetrics[0].metrics[] | select(.name == \"$metric\")"
+	done
+
+	# assert the reclaim metrics read zero on cgroup v1, which does not account for them
+	if ! is_cgroup_v2; then
+		for metric in \
+			container_memory_file_dirty_bytes \
+			container_memory_file_writeback_bytes \
+			container_memory_pgscan_total \
+			container_memory_pgsteal_total \
+			container_memory_workingset_refault_anon_total \
+			container_memory_workingset_refault_file_total; do
+			value=$(echo "$metrics" | jq ".podMetrics[0].containerMetrics[0].metrics[] | select(.name == \"$metric\") | .value.value | tonumber")
+			[[ $value == "0" ]]
+		done
+	fi
 }
 
 @test "container memoryExtra metrics" {
