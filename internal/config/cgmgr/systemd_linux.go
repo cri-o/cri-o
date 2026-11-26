@@ -220,19 +220,7 @@ func (m *SystemdManager) MoveConmonToCgroup(
 			})
 		}
 
-		if resources.CPU.Quota != nil {
-			props = append(props, systemdDbus.Property{
-				Name:  "CPUQuota",
-				Value: dbus.MakeVariant(resources.CPU.Quota),
-			})
-		}
-
-		if resources.CPU.Period != nil {
-			props = append(props, systemdDbus.Property{
-				Name:  "CPUQuotaPeriodSec",
-				Value: dbus.MakeVariant(resources.CPU.Period),
-			})
-		}
+		props = append(props, cpuQuotaProperties(resources.CPU)...)
 	}
 
 	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
@@ -247,6 +235,44 @@ func (m *SystemdManager) MoveConmonToCgroup(
 	}
 	// return empty string as path because cgroup cleanup is done by systemd
 	return "", nil
+}
+
+const (
+	// defaultCPUQuotaPeriod is the CFS period in microseconds of a cgroup that
+	// has none set.
+	defaultCPUQuotaPeriod = 100000
+	microsecondsPerSecond = 1000000
+)
+
+// cpuQuotaProperties converts the CFS quota and period of the resources into
+// properties of a transient systemd unit.
+//
+// systemd only knows CPUQuotaPerSecUSec and CPUQuotaPeriodUSec on its D-Bus API.
+// CPUQuota and CPUQuotaPeriodSec are settings of unit files, which systemctl
+// translates before it calls systemd, and StartTransientUnit rejects them.
+func cpuQuotaProperties(cpu *rspec.LinuxCPU) []systemdDbus.Property {
+	var props []systemdDbus.Property
+
+	period := uint64(defaultCPUQuotaPeriod)
+
+	if cpu.Period != nil && *cpu.Period != 0 {
+		period = *cpu.Period
+
+		props = append(props, systemdDbus.Property{
+			Name:  "CPUQuotaPeriodUSec",
+			Value: dbus.MakeVariant(period),
+		})
+	}
+
+	if cpu.Quota != nil && *cpu.Quota > 0 {
+		// The quota is the CPU time per period, systemd takes it per second.
+		props = append(props, systemdDbus.Property{
+			Name:  "CPUQuotaPerSecUSec",
+			Value: dbus.MakeVariant(uint64(*cpu.Quota) * microsecondsPerSecond / period),
+		})
+	}
+
+	return props
 }
 
 // SandboxCgroupPath takes the sandbox parent, sandbox ID, and container minimum memory.

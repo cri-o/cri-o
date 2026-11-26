@@ -162,6 +162,7 @@ func (w Workloads) MutateSpecGivenAnnotations(
 		ctrName,
 		sboxAnnotations,
 		workload.Resources,
+		specCPUPeriod(specgen),
 	)
 	if err != nil {
 		return err
@@ -170,6 +171,20 @@ func (w Workloads) MutateSpecGivenAnnotations(
 	resources.MutateSpec(specgen)
 
 	return nil
+}
+
+// specCPUPeriod returns the CPU period that is already set in the spec, for
+// example by the kubelet, or 0 if there is none.
+func specCPUPeriod(specgen *generate.Generator) uint64 {
+	linux := specgen.Config.Linux
+	if linux == nil ||
+		linux.Resources == nil ||
+		linux.Resources.CPU == nil ||
+		linux.Resources.CPU.Period == nil {
+		return 0
+	}
+
+	return *linux.Resources.CPU.Period
 }
 
 func (w Workloads) workloadGivenActivationAnnotation(
@@ -190,12 +205,22 @@ func resourcesFromAnnotation(
 	prefix, ctrName string,
 	allAnnotations map[string]string,
 	defaultResources *Resources,
+	specPeriod uint64,
 ) (*Resources, error) {
 	annotationKey := prefix + "/" + ctrName
 
 	value, ok := allAnnotations[annotationKey]
 	if !ok {
-		return defaultResources, nil
+		if defaultResources == nil || defaultResources.CPULimit == 0 {
+			return defaultResources, nil
+		}
+
+		// The defaults are shared by all containers of the workload, so
+		// calculate the quota of the default cpulimit on a copy.
+		resources := *defaultResources
+		resources.applyCPULimit(specPeriod)
+
+		return &resources, nil
 	}
 
 	var resources *Resources
@@ -231,12 +256,25 @@ func resourcesFromAnnotation(
 		resources.CPULimit = defaultResources.CPULimit
 	}
 
-	// If a CPU Limit in Milli is supplied via the annotation, calculate quota with the given CPU period.
-	if resources.CPULimit != 0 {
-		resources.CPUQuota = milliCPUToQuota(resources.CPULimit, int64(resources.CPUPeriod))
-	}
+	resources.applyCPULimit(specPeriod)
 
 	return resources, nil
+}
+
+// applyCPULimit sets the CPU quota for the cpulimit, if there is one. Without
+// a cpuperiod, the container keeps the period that is already in the spec, so
+// the quota is calculated with that period to stay at the same cpulimit.
+func (r *Resources) applyCPULimit(specPeriod uint64) {
+	if r.CPULimit == 0 {
+		return
+	}
+
+	period := r.CPUPeriod
+	if period == 0 {
+		period = specPeriod
+	}
+
+	r.CPUQuota = milliCPUToQuota(r.CPULimit, int64(period))
 }
 
 // milliCPUToQuota converts milliCPU to CFS quota and period values.

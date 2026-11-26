@@ -40,6 +40,28 @@ cpuset = "$cpuset"
 EOF
 }
 
+function create_workload_with_cpulimit() {
+	local cpulimit="$1"
+	cat << EOF > "$CRIO_CONFIG_DIR/01-workload.conf"
+[crio.runtime.workloads.management]
+activation_annotation = "$activation"
+annotation_prefix = "$prefix"
+[crio.runtime.workloads.management.resources]
+cpulimit = $cpulimit
+EOF
+}
+
+function check_cpu_quota() {
+	local ctr_id="$1"
+	local cpuquota="$2"
+	local cpuperiod="$3"
+
+	config=$(runtime state "$ctr_id" | jq -r .bundle)/config.json
+
+	[[ $(jq .linux.resources.cpu.quota < "$config") == "$cpuquota" ]]
+	[[ $(jq .linux.resources.cpu.period < "$config") == "$cpuperiod" ]]
+}
+
 function check_cpu_fields() {
 	local ctr_id="$1"
 	local cpushares="$2"
@@ -110,6 +132,41 @@ function check_conmon_fields() {
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
 
 	check_cpu_fields "$ctr_id" "$shares" "$set"
+}
+
+@test "test workload gets the default cpulimit as a quota of the container period" {
+	create_workload_with_cpulimit "35"
+
+	start_crio
+
+	jq --arg act "$activation" ' .annotations[$act] = "true"' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	# The kubelet can set another period than the default 100ms.
+	# 35 millicores of a period of 50ms are a quota of 1750us.
+	jq --arg act "$activation" ' .annotations[$act] = "true"
+		|   .linux.resources.cpu_period = 50000' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+
+	check_cpu_quota "$ctr_id" "1750" "50000"
+
+	# conmon is not yet moved to its own cgroup by conmonrs.
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		return
+	fi
+
+	# conmon gets no period from the CRI, so its 35 millicores are a quota of
+	# 3500us of the default 100ms period.
+	if [[ "$CONTAINER_CGROUP_MANAGER" == "systemd" ]]; then
+		[[ "$(systemctl show -p CPUQuotaPerSecUSec crio-conmon-"$ctr_id".scope)" == "CPUQuotaPerSecUSec=35ms" ]]
+	elif is_cgroup_v2; then
+		[[ "$(cat /sys/fs/cgroup/pod_123-456/crio-conmon-"$ctr_id"/cpu.max)" == "3500 100000" ]]
+	else
+		[[ "$(cat /sys/fs/cgroup/cpu/pod_123-456/crio-conmon-"$ctr_id"/cpu.cfs_quota_us)" == "3500" ]]
+		[[ "$(cat /sys/fs/cgroup/cpu/pod_123-456/crio-conmon-"$ctr_id"/cpu.cfs_period_us)" == "100000" ]]
+	fi
 }
 
 @test "test workload can override defaults" {
