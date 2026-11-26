@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	task "github.com/containerd/containerd/api/runtime/task/v2"
+	"github.com/containerd/ttrpc"
 
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -52,14 +53,18 @@ type RuntimeVM struct {
 	*runtimeVM
 }
 
-func NewRuntimeVM() RuntimeVM {
+func newTestRuntimeVM(handler *config.RuntimeHandler) RuntimeVM {
 	return RuntimeVM{
 		runtimeVM: &runtimeVM{
 			ctx:     context.Background(),
-			handler: &config.RuntimeHandler{},
+			handler: handler,
 			ctrs:    make(map[string]containerInfo),
 		},
 	}
+}
+
+func NewRuntimeVM() RuntimeVM {
+	return newTestRuntimeVM(&config.RuntimeHandler{})
 }
 
 func (r RuntimeVM) UpdateContainerStatus(ctx context.Context, c *Container) error {
@@ -79,15 +84,54 @@ func (r RuntimeVM) HasTask() bool {
 }
 
 func NewRuntimeVMWithTask(t task.TaskService) RuntimeVM {
-	return RuntimeVM{
-		runtimeVM: &runtimeVM{
-			task: t,
-			ctx:  context.Background(),
-			ctrs: make(map[string]containerInfo),
-		},
-	}
+	r := newTestRuntimeVM(nil)
+	r.task = t
+
+	return r
+}
+
+// NewRuntimeVMWithHandler creates a RuntimeVM for the given runtime handler.
+func NewRuntimeVMWithHandler(handler *config.RuntimeHandler) RuntimeVM {
+	return newTestRuntimeVM(handler)
 }
 
 func (r RuntimeVM) Kill(ctrID, execID string, signal syscall.Signal) error {
 	return r.kill(ctrID, execID, signal)
+}
+
+// ShimDeleteArgs returns the arguments of the shim binary's delete command.
+func ShimDeleteArgs(id, bundlePath string, debug bool) []string {
+	return shimArgs(id, "delete", debug, "-bundle", bundlePath)
+}
+
+// CleanupAfterDeadShim runs the shim's delete command synchronously.
+func (r RuntimeVM) CleanupAfterDeadShim(ctx context.Context, c *Container) error {
+	return r.cleanupAfterDeadShim(ctx, c)
+}
+
+// SetTask sets the task service of the runtime.
+func (r RuntimeVM) SetTask(t task.TaskService) {
+	r.task = t
+}
+
+// SetClient sets the ttrpc client of the runtime.
+func (r RuntimeVM) SetClient(cl *ttrpc.Client) {
+	r.client = cl
+}
+
+// AddContainer registers a container in the runtime without any container IO.
+func (r RuntimeVM) AddContainer(ctrID string) {
+	r.Lock()
+	r.ctrs[ctrID] = containerInfo{}
+	r.Unlock()
+}
+
+// IsDeleting reports whether the runtime is deleting the container.
+func (r RuntimeVM) IsDeleting() bool {
+	return r.isDeleting()
+}
+
+// MarkShimDead records that the container's shim was observed gone.
+func (r RuntimeVM) MarkShimDead() {
+	r.markShimDead()
 }

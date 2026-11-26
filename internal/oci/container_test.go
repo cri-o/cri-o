@@ -408,6 +408,20 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 		})
+		It("should drop the exit state of a nonterminal container", func() {
+			// Given
+			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
+			{"status":"running","finished":"1970-01-01T00:00:00Z","exitCode":0}`),
+				0o644)).To(Succeed())
+
+			// When
+			Expect(sut.FromDisk()).To(Succeed())
+
+			// Then
+			sutState := sut.State()
+			Expect(sutState.ExitCode).To(BeNil())
+			Expect(sutState.Finished.IsZero()).To(BeTrue())
+		})
 		It("should succeed when pid set but initialPid not set", func() {
 			// Given
 			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
