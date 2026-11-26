@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -502,6 +503,15 @@ func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) er
 
 	resources := u.GetLinux().GetResources().ToOCI()
 	if err = a.cri.ContainerServer.Runtime().UpdateContainer(ctx, ctr, resources); err != nil {
+		// The cached state can be stale if the container exited or got stopped
+		// while this request was in flight. Don't fail if its process is gone.
+		if _, perr := ctr.Pid(); errors.Is(perr, oci.ErrNotFound) {
+			log.Infof(ctx, "Skipping update of exited CRI container %q: %v",
+				u.GetContainerId(), err)
+
+			return nil
+		}
+
 		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.GetContainerId(), err)
 
 		if u.GetIgnoreFailure() {

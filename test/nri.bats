@@ -106,3 +106,8 @@ function run_test() {
 	start_crio
 	run_test -test.run TestMemsetAdjustmentUpdate
 }
+
+@test "run NRI UpdateOfStoppingContainer test" {
+	start_crio
+	run_test -test.run TestUpdateOfStoppingContainer
+}
