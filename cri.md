@@ -8,6 +8,12 @@ completely formalized.
 The main documentation of the CRI can be found [in the corresponding protobuf
 definition][0], whereas this document follows it on the `service`/`rpc` level.
 
+## `Status`
+
+`Status` reports the configured runtime handlers and their supported features.
+CRI-O sorts `runtime_handlers` by name, with the empty-name alias for the
+default runtime first, so the response order is stable across calls.
+
 ## `ListImages`
 
 `ListImages` lists existing images. Its response consists of an array of
