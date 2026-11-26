@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 26 Nov 2026 08:25:51 UTC for commit [b02592d][0]._
+_Generated on Thu, 26 Nov 2026 14:38:42 UTC for commit [fcf43ab][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b02592d72036f164e08908a52967229dcd6a0e24
+[0]: https://github.com/cri-o/cri-o/commit/fcf43ab1799a165154759c8fd99dab4a619b8502
 
 ## Outdated Dependencies
 
@@ -11,14 +11,13 @@ _Generated on Thu, 26 Nov 2026 08:25:51 UTC for commit [b02592d][0]._
 | github.com/checkpoint-restore/checkpointctl            | v1.6.0                             | v1.7.0                             | true   | true             |
 | github.com/containerd/containerd/api                   | v1.10.0                            | v1.12.0                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261126043905-8a4e0eceafc6 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261126113751-7f8c00e5670d | true   | true             |
 | github.com/moby/sys/user                               | v0.5.0                             | v0.5.1                             | true   | true             |
 | github.com/opencontainers/cgroups                      | v0.1.1                             | v0.1.2                             | true   | true             |
 | go.podman.io/common                                    | v0.68.1                            | v0.70.0                            | true   | true             |
 | go.podman.io/image/v5                                  | v5.40.0                            | v5.42.1                            | true   | true             |
 | go.podman.io/storage                                   | v1.63.0                            | v1.65.1                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20260626114624-be93311217bd | v0.0.0-20261023123148-ca04ba58ecab | true   | true             |
-| sigs.k8s.io/security-profiles-merger                   | v0.7.1                             | v0.8.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -381,7 +380,7 @@ _Generated on Thu, 26 Nov 2026 08:25:51 UTC for commit [b02592d][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                | v1.1.0                             | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20261126043905-8a4e0eceafc6 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20261126113751-7f8c00e5670d | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                                |                                    | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.30.0                            | false  | true             |
@@ -652,7 +651,7 @@ _Generated on Thu, 26 Nov 2026 08:25:51 UTC for commit [b02592d][0]._
 | sigs.k8s.io/knftables                                                       | v0.0.22                               |                                    | true   | true             |
 | sigs.k8s.io/randfill                                                        | v1.0.0                                |                                    | false  | true             |
 | sigs.k8s.io/release-utils                                                   | v0.12.5                               |                                    | true   | true             |
-| sigs.k8s.io/security-profiles-merger                                        | v0.7.1                                | v0.8.0                             | true   | true             |
+| sigs.k8s.io/security-profiles-merger                                        | v0.8.0                                |                                    | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                        | v4.2.3                                | v4.7.0                             | false  | true             |
 | sigs.k8s.io/structured-merge-diff/v6                                        | v6.3.0                                | v6.4.2                             | false  | true             |
 | sigs.k8s.io/structured-merge-diff/v7                                        | v7.0.1                                |                                    | false  | true             |
