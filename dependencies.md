@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 26 Nov 2026 14:38:42 UTC for commit [fcf43ab][0]._
+_Generated on Thu, 26 Nov 2026 18:01:32 UTC for commit [f0cd49b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fcf43ab1799a165154759c8fd99dab4a619b8502
+[0]: https://github.com/cri-o/cri-o/commit/f0cd49b3c8b2a3170af04382c610848efcbbe41f
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Thu, 26 Nov 2026 14:38:42 UTC for commit [fcf43ab][0]._
 | github.com/checkpoint-restore/checkpointctl            | v1.6.0                             | v1.7.0                             | true   | true             |
 | github.com/containerd/containerd/api                   | v1.10.0                            | v1.12.0                            | true   | true             |
 | github.com/containers/conmon                           | v2.0.20+incompatible               | v2.2.1+incompatible                | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261126113751-7f8c00e5670d | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20250828155603-754f07cff239 | v0.0.0-20261126171514-033880f3e494 | true   | true             |
 | github.com/moby/sys/user                               | v0.5.0                             | v0.5.1                             | true   | true             |
 | github.com/opencontainers/cgroups                      | v0.1.1                             | v0.1.2                             | true   | true             |
 | go.podman.io/common                                    | v0.68.1                            | v0.70.0                            | true   | true             |
@@ -380,7 +380,7 @@ _Generated on Thu, 26 Nov 2026 14:38:42 UTC for commit [fcf43ab][0]._
 | github.com/jpillora/backoff                                                 | v1.0.0                                | v1.1.0                             | false  | true             |
 | github.com/json-iterator/go                                                 | v1.1.12                               |                                    | true   | true             |
 | github.com/julienschmidt/httprouter                                         | v1.3.0                                |                                    | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20261126113751-7f8c00e5670d | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20250828155603-754f07cff239    | v0.0.0-20261126171514-033880f3e494 | true   | true             |
 | github.com/kelseyhightower/envconfig                                        | v1.4.0                                |                                    | false  | true             |
 | github.com/keybase/go-keychain                                              | v0.0.1                                |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                 | v1.5.0                                | v1.30.0                            | false  | true             |
