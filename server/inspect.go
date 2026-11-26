@@ -144,6 +144,7 @@ const (
 	InspectUnpauseEndpoint    = "/unpause"
 	InspectGoRoutinesEndpoint = "/debug/goroutines"
 	InspectHeapEndpoint       = "/debug/heap"
+	InspectDedupEndpoint      = "/dedup"
 )
 
 // GetExtendInterfaceMux returns the mux used to serve extend interface requests.
@@ -365,6 +366,74 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 
 			return
+		}
+	}))
+
+	mux.Get(InspectDedupEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if s.manualDedupRequest == nil {
+			http.Error(
+				w,
+				`layer dedup worker is not running; set layer_dedup to "manual" or "after_pull" `+
+					`in crio.conf.d and restart CRI-O`,
+				http.StatusServiceUnavailable,
+			)
+
+			return
+		}
+
+		respCh := make(chan dedupPassResult, 1)
+
+		select {
+		case s.manualDedupRequest <- respCh:
+		case <-req.Context().Done():
+			http.Error(
+				w,
+				"request cancelled before dedup pass could start",
+				http.StatusRequestTimeout,
+			)
+
+			return
+		}
+
+		var result dedupPassResult
+
+		select {
+		case result = <-respCh:
+		case <-req.Context().Done():
+			// The pass itself still runs to completion in the background
+			// (it's not cancellable mid-scan); only this HTTP response gives up.
+			http.Error(
+				w,
+				"request cancelled while dedup pass was running",
+				http.StatusRequestTimeout,
+			)
+
+			return
+		}
+
+		dr := types.DedupResult{
+			DurationSeconds: result.Duration.Seconds(),
+			SavedMB:         result.SavedMB,
+		}
+		if result.Err != nil {
+			dr.Error = result.Err.Error()
+		}
+
+		js, err := json.Marshal(dr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if result.Err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
+		if _, err := w.Write(js); err != nil {
+			logrus.Errorf("Unable to write response JSON: %v", err)
 		}
 	}))
 

@@ -25,6 +25,7 @@ type CrioClient interface {
 	ConfigInfo(context.Context) (string, error)
 	GoRoutinesInfo(context.Context) (string, error)
 	HeapInfo(context.Context) ([]byte, error)
+	TriggerDedup(context.Context) (types.DedupResult, error)
 }
 
 type crioClientImpl struct {
@@ -63,9 +64,18 @@ func New(crioSocketPath string) (CrioClient, error) {
 }
 
 func (c *crioClientImpl) doGetRequest(ctx context.Context, path string) ([]byte, error) {
+	body, _, err := c.doGetRequestWithStatus(ctx, path)
+
+	return body, err
+}
+
+func (c *crioClientImpl) doGetRequestWithStatus(
+	ctx context.Context,
+	path string,
+) (body []byte, statusCode int, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, http.NoBody)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	// For local communications over a unix socket, it doesn't matter what
 	// the host is. We just need a valid and meaningful host name.
@@ -75,17 +85,17 @@ func (c *crioClientImpl) doGetRequest(ctx context.Context, path string) ([]byte,
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("do get request: %w", err)
+		return nil, 0, fmt.Errorf("do get request: %w", err)
 	}
 
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("read body: %w", err)
+		return nil, resp.StatusCode, fmt.Errorf("read body: %w", err)
 	}
 
-	return body, nil
+	return body, resp.StatusCode, nil
 }
 
 // DaemonInfo return cri-o daemon info from the cri-o
@@ -140,6 +150,37 @@ func (c *crioClientImpl) GoRoutinesInfo(ctx context.Context) (string, error) {
 	}
 
 	return string(body), nil
+}
+
+// TriggerDedup requests an on-demand, store-wide layer deduplication pass
+// from the running daemon and blocks until it completes. The daemon must
+// have layer_dedup set to "manual" or "after_pull" for this to succeed.
+// Passes can take a long time on nodes with a large amount of layer content
+// already on disk; callers should set a long or no deadline on ctx.
+func (c *crioClientImpl) TriggerDedup(ctx context.Context) (types.DedupResult, error) {
+	result := types.DedupResult{}
+
+	body, status, err := c.doGetRequestWithStatus(ctx, server.InspectDedupEndpoint)
+	if err != nil {
+		return result, err
+	}
+
+	// Non-JSON, non-200 responses (e.g. 503 when the worker isn't running,
+	// or if a request was rejected before a result was ever produced) are
+	// plain text, not a DedupResult body.
+	if status == http.StatusServiceUnavailable || status == http.StatusRequestTimeout {
+		return result, fmt.Errorf("%s", string(body))
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return result, fmt.Errorf("unmarshal dedup result: %w", err)
+	}
+
+	if result.Error != "" {
+		return result, fmt.Errorf("dedup pass failed: %s", result.Error)
+	}
+
+	return result, nil
 }
 
 // HeapInfo writes a heap dump.
