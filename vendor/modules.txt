@@ -543,9 +543,6 @@ github.com/manifoldco/promptui/screenbuf
 # github.com/mattn/go-runewidth v0.0.23
 ## explicit; go 1.20
 github.com/mattn/go-runewidth
-# github.com/mattn/go-shellwords v1.0.16
-## explicit; go 1.13
-github.com/mattn/go-shellwords
 # github.com/mattn/go-sqlite3 v1.14.44
 ## explicit; go 1.21
 github.com/mattn/go-sqlite3
@@ -817,8 +814,8 @@ github.com/tetratelabs/wazero/internal/wasm/binary
 github.com/tetratelabs/wazero/internal/wasmdebug
 github.com/tetratelabs/wazero/internal/wasmruntime
 github.com/tetratelabs/wazero/sys
-# github.com/ulikunitz/xz v0.5.15
-## explicit; go 1.12
+# github.com/ulikunitz/xz v0.5.16
+## explicit; go 1.20
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
@@ -1042,7 +1039,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.63.0
+# go.podman.io/storage v1.64.2
 ## explicit; go 1.25.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1054,11 +1051,15 @@ go.podman.io/storage/drivers/quota
 go.podman.io/storage/drivers/register
 go.podman.io/storage/drivers/vfs
 go.podman.io/storage/drivers/zfs
+go.podman.io/storage/internal/createpath
 go.podman.io/storage/internal/dedup
 go.podman.io/storage/internal/driver
 go.podman.io/storage/internal/rawfilelock
+go.podman.io/storage/internal/rootlookupcache
 go.podman.io/storage/internal/staging_lockfile
+go.podman.io/storage/internal/stat
 go.podman.io/storage/internal/tempdir
+go.podman.io/storage/internal/xattrs
 go.podman.io/storage/pkg/archive
 go.podman.io/storage/pkg/chrootarchive
 go.podman.io/storage/pkg/chunked
