@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	cstorage "go.podman.io/storage"
 
 	"github.com/cri-o/cri-o/internal/lib"
-	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
 )
 
@@ -66,11 +64,19 @@ func crioWipe(c *cli.Context) error {
 	// Note: this is only needed if the node rebooted.
 	// If there wasn't time to sync, we should clear the storage directory
 	if shouldWipeContainers && lib.ShutdownWasUnclean(config) {
-		logrus.Infof(
-			"File %s not found. Wiping storage directory %s because of suspected unclean shutdown",
-			config.CleanShutdownFile,
-			store.GraphRoot(),
-		)
+		if config.NeverWipeImages {
+			logrus.Infof(
+				"File %s not found. Removing containers but keeping images in %s because never_wipe_images is set",
+				config.CleanShutdownFile,
+				store.GraphRoot(),
+			)
+		} else {
+			logrus.Infof(
+				"File %s not found. Wiping storage directory %s because of suspected unclean shutdown",
+				config.CleanShutdownFile,
+				store.GraphRoot(),
+			)
+		}
 
 		wipeMarkerFile := "/run/crio/crio-wipe-done"
 		if _, err := os.Stat(wipeMarkerFile); err == nil {
@@ -117,22 +123,23 @@ func crioWipe(c *cli.Context) error {
 		return nil
 	}
 
-	cstore := ContainerStore{store}
-	if err := cstore.wipeCrio(shouldWipeImages); err != nil {
+	if shouldWipeImages && config.NeverWipeImages {
+		logrus.Infof("Skipping image wipe because never_wipe_images is set")
+
+		shouldWipeImages = false
+	}
+
+	return wipeCrio(store, shouldWipeImages)
+}
+
+func wipeCrio(store cstorage.Store, shouldWipeImages bool) error {
+	crioContainers, crioImages, err := lib.CrioContainersAndImages(store)
+	if errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 
-	return nil
-}
-
-type ContainerStore struct {
-	store cstorage.Store
-}
-
-func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
-	crioContainers, crioImages, err := c.getCrioContainersAndImages()
 	if err != nil {
-		return err
+		logrus.Errorf("Could not read containers and sandboxes: %v", err)
 	}
 
 	if len(crioContainers) != 0 {
@@ -140,7 +147,7 @@ func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 	}
 
 	for _, id := range crioContainers {
-		c.deleteContainer(id)
+		lib.DeleteContainer(store, id)
 	}
 
 	if shouldWipeImages {
@@ -149,69 +156,9 @@ func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 		}
 
 		for _, id := range crioImages {
-			c.deleteImage(id)
+			lib.DeleteImage(store, id)
 		}
 	}
 
 	return nil
-}
-
-func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages []string, _ error) {
-	containers, err := c.store.Containers()
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return crioContainers, crioImages, err
-		}
-
-		logrus.Errorf("Could not read containers and sandboxes: %v", err)
-	}
-
-	for i := range containers {
-		id := containers[i].ID
-
-		metadataString, err := c.store.Metadata(id)
-		if err != nil {
-			continue
-		}
-
-		metadata := storage.RuntimeContainerMetadata{}
-		if err := json.Unmarshal([]byte(metadataString), &metadata); err != nil {
-			continue
-		}
-
-		if !storage.IsCrioContainer(&metadata) {
-			continue
-		}
-
-		crioContainers = append(crioContainers, id)
-		crioImages = append(crioImages, containers[i].ImageID)
-	}
-
-	return crioContainers, crioImages, nil
-}
-
-func (c ContainerStore) deleteContainer(id string) {
-	if mounted, err := c.store.Unmount(id, true); err != nil || mounted {
-		logrus.Errorf("Unable to unmount container %s: %v", id, err)
-
-		return
-	}
-
-	if err := c.store.DeleteContainer(id); err != nil {
-		logrus.Errorf("Unable to delete container %s: %v", id, err)
-
-		return
-	}
-
-	logrus.Infof("Deleted container %s", id)
-}
-
-func (c ContainerStore) deleteImage(id string) {
-	if _, err := c.store.DeleteImage(id, true); err != nil {
-		logrus.Errorf("Unable to delete image %s: %v", id, err)
-
-		return
-	}
-
-	logrus.Infof("Deleted image %s", id)
 }

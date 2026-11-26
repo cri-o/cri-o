@@ -220,12 +220,28 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		}
 
 		if wipeStorage {
-			log.Warnf(ctx, "Wiping storage directory %s because of unclean shutdown", graphRoot)
+			if config.NeverWipeImages {
+				log.Warnf(
+					ctx,
+					"Unable to repair storage directory %s after unclean shutdown, keeping images because never_wipe_images is set",
+					graphRoot,
+				)
+			} else {
+				log.Warnf(ctx, "Wiping storage directory %s because of unclean shutdown", graphRoot)
+			}
+
 			// This will fail if there are any containers currently running.
 			if err := RemoveStorageDirectory(config, store, false); err != nil {
 				return nil, err
 			}
 		}
+	}
+
+	if config.NeverWipeImages {
+		log.Warnf(
+			ctx,
+			"Option never_wipe_images is set: images are kept even if the storage cannot be repaired, which may require manual intervention",
+		)
 	}
 
 	storageImageServiceMgr, err := storage.GetImageServiceManager(ctx, store, nil, config)
@@ -1204,7 +1220,99 @@ func ShutdownWasUnclean(config *libconfig.Config) bool {
 	return true
 }
 
+// CrioContainersAndImages returns the IDs of the containers created by CRI-O
+// and the IDs of the images they use. Containers created by other tools
+// sharing the storage, such as Podman, are skipped.
+func CrioContainersAndImages(store cstorage.Store) (crioContainers, crioImages []string, _ error) {
+	containers, err := store.Containers()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for i := range containers {
+		id := containers[i].ID
+
+		metadataString, err := store.Metadata(id)
+		if err != nil {
+			continue
+		}
+
+		metadata := storage.RuntimeContainerMetadata{}
+		if err := json.Unmarshal([]byte(metadataString), &metadata); err != nil {
+			continue
+		}
+
+		if !storage.IsCrioContainer(&metadata) {
+			continue
+		}
+
+		crioContainers = append(crioContainers, id)
+		crioImages = append(crioImages, containers[i].ImageID)
+	}
+
+	return crioContainers, crioImages, nil
+}
+
+// DeleteContainer unmounts and deletes a container from the store.
+// Failures are logged and do not abort the caller.
+func DeleteContainer(store cstorage.Store, id string) {
+	if mounted, err := store.Unmount(id, true); err != nil || mounted {
+		logrus.Errorf("Unable to unmount container %s: %v", id, err)
+
+		return
+	}
+
+	if err := store.DeleteContainer(id); err != nil {
+		logrus.Errorf("Unable to delete container %s: %v", id, err)
+
+		return
+	}
+
+	logrus.Infof("Deleted container %s", id)
+}
+
+// DeleteImage deletes an image from the store.
+// Failures are logged and do not abort the caller.
+func DeleteImage(store cstorage.Store, id string) {
+	if _, err := store.DeleteImage(id, true); err != nil {
+		logrus.Errorf("Unable to delete image %s: %v", id, err)
+
+		return
+	}
+
+	logrus.Infof("Deleted image %s", id)
+}
+
+// removeCrioContainers deletes all CRI-O containers but keeps the images.
+func removeCrioContainers(store cstorage.Store) error {
+	containers, _, err := CrioContainersAndImages(store)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+
+		return err
+	}
+
+	for _, id := range containers {
+		DeleteContainer(store, id)
+	}
+
+	return nil
+}
+
+// RemoveStorageDirectory wipes the whole storage directory. If
+// never_wipe_images is set, only the CRI-O containers are removed.
 func RemoveStorageDirectory(config *libconfig.Config, store cstorage.Store, force bool) error {
+	if config.NeverWipeImages {
+		logrus.Infof(
+			"Removing CRI-O containers only and keeping images in %s because never_wipe_images is set",
+			store.GraphRoot(),
+		)
+
+		return removeCrioContainers(store)
+	}
+
 	// If we do not do this, we may leak other resources that are not directly
 	// in the graphroot. Erroring here should not be fatal though, it's a best
 	// effort cleanup.

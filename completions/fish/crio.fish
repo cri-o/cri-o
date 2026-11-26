@@ -118,6 +118,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l min-injected-gomaxprocs -r
 complete -c crio -n '__fish_crio_no_subcommand' -f -l minimum-mappable-gid -r -d 'Specify the lowest host GID which can be specified in mappings for a pod that will be run as a UID other than 0. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l minimum-mappable-uid -r -d 'Specify the lowest host UID which can be specified in mappings for a pod that will be run as a UID other than 0. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l namespaces-dir -r -d 'The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l never-wipe-images -d 'If true, CRI-O will never wipe images, including after an upgrade and when a storage repair fails after an unclean shutdown. Containers are still wiped.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l no-pivot -d 'If true, the runtime will not use \'pivot_root\', but instead use \'MS_MOVE\'.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-disable-connections -d 'Disable connections from externally started NRI plugins.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-enable-default-validator -d 'Enable the default NRI validator plugin.'
