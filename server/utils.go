@@ -136,8 +136,12 @@ func getSourceMount(source string, mountinfos []*mount.Info) (path, optional str
 	var res *mount.Info
 
 	for _, mi := range mountinfos {
-		// check if mi can be a parent of source
-		if strings.HasPrefix(source, mi.Mountpoint) {
+		// check if mi can be a parent of source: a plain string prefix is not
+		// enough, because /data is not a parent of /data2. The source is
+		// already clean, so mi is a parent if it is "/", or if the rest of
+		// the source after it is empty or starts with "/".
+		rest, ok := strings.CutPrefix(source, mi.Mountpoint)
+		if ok && (rest == "" || mi.Mountpoint == "/" || strings.HasPrefix(rest, "/")) {
 			// look for a longest one
 			if res == nil || len(mi.Mountpoint) > len(res.Mountpoint) {
 				res = mi
