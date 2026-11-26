@@ -16,44 +16,34 @@ limitations under the License.
 
 // Package merge holds what the three profile packages and the command share
 // beyond the public spm package: the generic merge primitives (Fold and the
-// slice helpers), the bounds on error reports (JoinLimited, BoundedError,
-// QuoteBounded) and the quoting of profile values for output (SafeText,
-// SafeName).
+// slice helpers), the bounds on error reports (Collector, BoundedError,
+// QuoteBounded), the quoting of profile values for output (Builder.WriteText,
+// SafeName) and the bounded output of the formatters (Builder).
 package merge
 
 import (
 	"cmp"
-	"path"
 	"slices"
-	"strings"
 
 	"sigs.k8s.io/security-profiles-merger/spm"
 )
 
-// Fold merges a slice of profiles using pairwise reduction. A single profile
-// is cloned; two or more are merged left to right. Profiles must be non-nil:
-// callers validate them, reporting ErrNilProfile with the index, before
-// folding.
-func Fold[T any](
-	profiles []*T,
-	clone func(*T) *T,
-	mergeFn func(*T, *T) (*T, error),
-) (*T, error) {
+// Fold merges a slice of profiles left to right with mergeFn, stopping at
+// the first error it returns. A single profile is returned as it is, so a
+// caller that must not hand back its input copies it. An empty slice
+// reports spm.ErrNoProfiles. Profiles must be non-nil: callers validate
+// them, reporting ErrNilProfile with the index, before folding.
+func Fold[T any](profiles []*T, mergeFn func(*T, *T) (*T, error)) (*T, error) {
 	if len(profiles) == 0 {
 		return nil, spm.ErrNoProfiles
 	}
 
-	if len(profiles) == 1 {
-		return clone(profiles[0]), nil
-	}
+	result := profiles[0]
 
-	result, err := mergeFn(profiles[0], profiles[1])
-	if err != nil {
-		return nil, err
-	}
+	for _, profile := range profiles[1:] {
+		var err error
 
-	for idx := 2; idx < len(profiles); idx++ {
-		result, err = mergeFn(result, profiles[idx])
+		result, err = mergeFn(result, profile)
 		if err != nil {
 			return nil, err
 		}
@@ -62,34 +52,63 @@ func Fold[T any](
 	return result, nil
 }
 
-// FormatSliceDiff formats a SliceDiff as a prefixed diff string, listing the
-// removed items with a "-" and then the added items with a "+", as in
-// "caps:-CHOWN,+KILL". An item holding bytes that are not safe to print is
-// quoted (see SafeText): a diff is computed over profiles nothing validated,
-// and its rendering is what a runtime logs.
-func FormatSliceDiff[T ~string](prefix string, diff spm.SliceDiff[T]) string {
-	items := make([]string, 0, len(diff.Removed)+len(diff.Added))
-
-	for _, r := range diff.Removed {
-		items = append(items, "-"+SafeText(string(r)))
+// RequireNonNil reports the first nil profile as an *spm.InputError naming
+// its position and wrapping spm.ErrNilProfile, or returns nil when there is
+// none. It is the check every Diff runs on its two inputs, so that a nil
+// one is reported as the merges report it.
+func RequireNonNil[T any](profiles ...*T) error {
+	for idx, profile := range profiles {
+		if profile == nil {
+			return &spm.InputError{Index: idx, Err: spm.ErrNilProfile}
+		}
 	}
 
-	for _, a := range diff.Added {
-		items = append(items, "+"+SafeText(string(a)))
-	}
-
-	return prefix + ":" + strings.Join(items, ",")
+	return nil
 }
 
-// DiffSlice compares two slices as sets and returns, in this order, the
-// elements only right has (added) and the elements only left has (removed).
-// Duplicates within a slice are ignored. Results are sorted, which is why T
-// must be ordered. Returns nil, nil when the sets are equal.
-func DiffSlice[T cmp.Ordered](left, right []T) ([]T, []T) {
-	if len(left) == 0 && len(right) == 0 {
-		return nil, nil
+// SortedKeyDiff compares the keys of two maps and returns, in this order and
+// each sorted, the keys only right has (added), those only left has
+// (removed) and those both have. A list without keys is nil.
+func SortedKeyDiff[K cmp.Ordered, V any](left, right map[K]V) ([]K, []K, []K) {
+	var added, removed, both []K
+
+	for key := range left {
+		if _, ok := right[key]; ok {
+			both = append(both, key)
+		} else {
+			removed = append(removed, key)
+		}
 	}
 
+	for key := range right {
+		if _, ok := left[key]; !ok {
+			added = append(added, key)
+		}
+	}
+
+	slices.Sort(added)
+	slices.Sort(removed)
+	slices.Sort(both)
+
+	return added, removed, both
+}
+
+// NilIfEmpty returns nil for an empty slice and the slice itself otherwise,
+// so that a result left without items spells its list as absent.
+func NilIfEmpty[T any](items []T) []T {
+	if len(items) == 0 {
+		return nil
+	}
+
+	return items
+}
+
+// NewSliceDiff compares two slices as sets and returns the elements only
+// right has (added) and those only left has (removed), each sorted, which
+// is why T must be ordered. Duplicates within a slice are ignored. It
+// returns nil when the sets are equal, which is how every diff of this
+// module reports an unchanged list.
+func NewSliceDiff[T cmp.Ordered](left, right []T) *spm.SliceDiff[T] {
 	leftSet := make(map[T]struct{}, len(left))
 	for _, item := range left {
 		leftSet[item] = struct{}{}
@@ -100,28 +119,27 @@ func DiffSlice[T cmp.Ordered](left, right []T) ([]T, []T) {
 		rightSet[item] = struct{}{}
 	}
 
-	var added, removed []T
-
-	for item := range leftSet {
-		if _, ok := rightSet[item]; !ok {
-			removed = append(removed, item)
-		}
+	added, removed, _ := SortedKeyDiff(leftSet, rightSet)
+	if len(added) == 0 && len(removed) == 0 {
+		return nil
 	}
 
-	for item := range rightSet {
-		if _, ok := leftSet[item]; !ok {
-			added = append(added, item)
-		}
+	return &spm.SliceDiff[T]{Added: added, Removed: removed}
+}
+
+// NewValueDiff returns the two values as a ValueDiff, or nil when they are
+// equal, which is how every diff of this module reports an unchanged value.
+func NewValueDiff[T comparable](left, right T) *spm.ValueDiff[T] {
+	if left == right {
+		return nil
 	}
 
-	slices.Sort(added)
-	slices.Sort(removed)
-
-	return added, removed
+	return &spm.ValueDiff[T]{Left: left, Right: right}
 }
 
 // IntersectSlice returns the elements present in both left and right, each
-// once, in the order left holds them.
+// once, in the order left holds them, or nil when there are none, whether
+// a side is empty or the two are disjoint.
 func IntersectSlice[T comparable](left, right []T) []T {
 	if len(left) == 0 || len(right) == 0 {
 		return nil
@@ -146,7 +164,7 @@ func IntersectSlice[T comparable](left, right []T) []T {
 		}
 	}
 
-	return result
+	return NilIfEmpty(result)
 }
 
 // UnionSlice returns the elements of left and then of right, each once.
@@ -181,13 +199,6 @@ func UnionSlice[T comparable](left, right []T) []T {
 // smallUnion is the combined length up to which UnionSlice scans instead of
 // hashing.
 const smallUnion = 16
-
-// IsAbsPath reports whether a profile path starts at the root. Profile paths
-// are Linux paths whatever the host is, so this uses slash semantics rather
-// than the host's path separator.
-func IsAbsPath(profilePath string) bool {
-	return path.IsAbs(profilePath)
-}
 
 // ClonePtr returns a shallow copy of the pointed-to value, or nil if ptr is nil.
 func ClonePtr[T any](ptr *T) *T {

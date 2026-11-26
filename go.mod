@@ -90,7 +90,7 @@ require (
 	k8s.io/utils v0.0.0-20260626114624-be93311217bd
 	sigs.k8s.io/knftables v0.0.22
 	sigs.k8s.io/release-utils v0.12.5
-	sigs.k8s.io/security-profiles-merger v0.7.1
+	sigs.k8s.io/security-profiles-merger v0.8.0
 	sigs.k8s.io/yaml v1.6.0
 	tags.cncf.io/container-device-interface v1.1.2
 )

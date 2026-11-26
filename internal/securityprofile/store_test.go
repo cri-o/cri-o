@@ -1735,3 +1735,57 @@ var _ = t.Describe("Store", func() {
 		})
 	})
 })
+
+var _ = t.Describe("FormatDiff", func() {
+	It("should keep a short difference", func() {
+		// Given
+		// When
+		formatted, complete := securityprofile.FormatDiff("Diff{default:a->b}")
+
+		// Then
+		Expect(formatted).To(Equal("Diff{default:a->b}"))
+		Expect(complete).To(BeTrue())
+	})
+
+	It("should cut a long difference and count the bytes it leaves out", func() {
+		// Given
+		text := strings.Repeat("a", 3000)
+
+		// When
+		formatted, complete := securityprofile.FormatDiff(text)
+
+		// Then
+		Expect(formatted).To(Equal(
+			strings.Repeat("a", 2048) + "... (952 more bytes, see the debug log)",
+		))
+		Expect(complete).To(BeTrue())
+	})
+
+	It("should not cut a rune in half", func() {
+		// Given
+		text := strings.Repeat("a", 2047) + "ä" + strings.Repeat("a", 100)
+
+		// When
+		formatted, complete := securityprofile.FormatDiff(text)
+
+		// Then
+		Expect(formatted).To(Equal(
+			strings.Repeat("a", 2047) + "... (102 more bytes, see the debug log)",
+		))
+		Expect(complete).To(BeTrue())
+	})
+
+	It("should not count bytes in a difference the merger truncated", func() {
+		// Given
+		text := strings.Repeat("a", 64<<10-22) + "... (output truncated)"
+
+		// When
+		formatted, complete := securityprofile.FormatDiff(text)
+
+		// Then
+		Expect(formatted).To(Equal(
+			strings.Repeat("a", 2048) + "... (truncated, see the debug log for an excerpt)",
+		))
+		Expect(complete).To(BeFalse())
+	})
+})

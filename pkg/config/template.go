@@ -1136,11 +1136,14 @@ const templateStringCrioRuntimeSeccompBaselineProfile = `# Path to the seccomp p
 # runtime default profile. A Localhost base profile selected in the pod spec
 # takes its place instead. Runtime handlers with a seccomp profile of their
 # own intersect it with that profile. If not specified or set to "", then the
-# default seccomp profile of the runtime handler is used, restated where the
-# merge cannot read its rules exactly: clone with a namespace flag and
-# AF_VSOCK sockets fail with the default errno instead of EPERM, and audit
-# netlink sockets are allowed.
-# The profile is validated when the configuration is loaded.
+# default seccomp profile of the runtime handler is used. The merge cannot read
+# the internal default's clone rules and the socket rules it shares with the
+# seccomp.json of containers-common exactly, so they are restated in any
+# profile that holds them: clone with a namespace flag and AF_VSOCK sockets
+# fail with the default errno instead of EPERM, and audit netlink sockets are
+# allowed.
+# The profile is validated when the configuration is loaded: an unknown or
+# repeated member fails, as does any rule the merge would not keep exactly.
 # This option supports live configuration reload.
 {{ $.Comment }}seccomp_baseline_profile = "{{ .SeccompBaselineProfile }}"
 
@@ -1767,7 +1770,10 @@ const templateStringCrioImageSecurityProfileMaxSize = `# The maximum size in byt
 # (KEP-6061), at most 64 MiB. Larger profiles are rejected. Pulled profiles are
 # kept in the "security-profiles" directory of the storage root until the
 # kubelet removes them; to remove all of them, stop CRI-O and remove that
-# directory.
+# directory. Stored profiles are validated again when CRI-O starts, and one
+# that no longer passes is dropped, such as a seccomp argument condition
+# without an explicit "index" (add "index": 0): creating a container with it
+# fails, and pulling it again fails with SecurityProfileInvalid.
 {{ $.Comment }}security_profile_max_size = {{ .SecurityProfileMaxSize }}
 
 `

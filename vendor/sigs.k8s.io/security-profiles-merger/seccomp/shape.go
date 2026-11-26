@@ -87,9 +87,9 @@ func (s *indexSet) intersects(other *indexSet) bool {
 // Every index counts, including one beyond maxSyscallArgIndex, which no
 // runtime loads at all: runc indexes a fixed array of six argument counters
 // with it and panics, and libseccomp rejects index 6 with -EINVAL. Validate
-// rejects such an index, so only Diff and the bare syscall-list functions,
-// which validate nothing and load nothing, reach one here, and reading the
-// entry as alternatives costs them nothing.
+// rejects such an index, so only Diff, which validates nothing and loads
+// nothing, reaches one here, and reading the entry as alternatives costs it
+// nothing.
 // It runs in linear time, since entries come from untrusted input.
 func hasRepeatedIndex(args []specs.LinuxSeccompArg) bool {
 	var seen indexSet
@@ -206,23 +206,32 @@ func isRangeOp(op specs.LinuxSeccompOperator) bool {
 // clauseKey formats everything that distinguishes two clauses: the result
 // and the argument filter.
 func clauseKey(current clause) string {
-	return resultKey(current.action, current.errnoRet, sortedArgsKey(current.args))
+	return resultKey(current.action, current.errnoRet, current.args)
 }
 
-// resultKey formats an action, its errno and the key of an argument filter,
-// which is what tells two rules of one syscall apart.
-func resultKey(action specs.LinuxSeccompAction, errnoRet *uint, args string) string {
+// resultKey formats an action, its errno and the key of an argument filter
+// that is already sorted and canonical (see sortedArgsKey), which is what
+// tells two rules of one syscall apart. It builds the whole key in one
+// buffer.
+func resultKey(
+	action specs.LinuxSeccompAction, errnoRet *uint, args []specs.LinuxSeccompArg,
+) string {
 	var builder strings.Builder
 
-	builder.WriteString(string(action))
+	builder.Grow(len(action) + len(args)*argKeyBytes + len("||"))
+	// Escaped, as the operators are (see writeArgsKey): Diff validates
+	// nothing, so an action may hold the separator.
+	writeEscaped(&builder, string(action), `\|`)
 	builder.WriteByte('|')
 
 	if errnoRet != nil {
-		builder.WriteString(strconv.FormatUint(uint64(*errnoRet), 10))
+		var digits [20]byte
+
+		builder.Write(strconv.AppendUint(digits[:0], uint64(*errnoRet), decimalBase))
 	}
 
 	builder.WriteByte('|')
-	builder.WriteString(args)
+	writeArgsKey(&builder, args)
 
 	return builder.String()
 }

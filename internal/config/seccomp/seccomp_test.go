@@ -11,8 +11,10 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	spmseccomp "sigs.k8s.io/security-profiles-merger/seccomp"
 
 	"github.com/cri-o/cri-o/internal/config/seccomp"
+	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
 // The actual test suite.
@@ -49,6 +51,19 @@ var _ = t.Describe("Config", func() {
 		return file
 	}
 
+	// Profiles with what rendering a profile would dereference, and the
+	// error refusing each.
+	nullEntries := map[string]struct{ content, expected string }{
+		"a null entry": {
+			`{"defaultAction": "SCMP_ACT_ERRNO", "syscalls": [null]}`,
+			"syscalls[0]: null entry",
+		},
+		"a null condition": {
+			`{"defaultAction": "SCMP_ACT_ERRNO", "syscalls": [{"names": ["read"], "action": "SCMP_ACT_ALLOW", "args": [null]}]}`,
+			"syscalls[0].args[0]: null condition",
+		},
+	}
+
 	writeBaselineFile := func() string {
 		file := t.MustTempFile("baseline")
 		Expect(os.WriteFile(file, []byte(`{
@@ -81,6 +96,70 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		It("should load a profile with an unknown member", func() {
+			if sut.IsDisabled() {
+				Skip("tests need enabled seccomp")
+			}
+
+			// Given
+			file := t.MustTempFile("profile")
+			Expect(os.WriteFile(file, []byte(`{
+				"defaultAction": "SCMP_ACT_ERRNO",
+				"syscalls": [{"names": ["read"], "action": "SCMP_ACT_ALLOW", "comments": "x"}]
+			}`), 0o644)).To(Succeed())
+
+			// When
+			err := sut.LoadProfile(file)
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sut.Profile().Syscalls).To(HaveLen(1))
+		})
+
+		It("should load a profile with a repeated member, the last one winning", func() {
+			if sut.IsDisabled() {
+				Skip("tests need enabled seccomp")
+			}
+
+			// Given
+			file := t.MustTempFile("profile")
+			Expect(os.WriteFile(file, []byte(`{
+				"defaultAction": "SCMP_ACT_ERRNO",
+				"syscalls": [{"names": ["read"], "action": "SCMP_ACT_ALLOW",
+					"args": [{"index": 0, "value": 1, "op": "SCMP_CMP_EQ"}], "args": []}]
+			}`), 0o644)).To(Succeed())
+
+			// When
+			err := sut.LoadProfile(file)
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sut.Profile().Syscalls).To(HaveLen(1))
+			Expect(sut.Profile().Syscalls[0].Args).To(BeEmpty())
+		})
+
+		for name, tc := range nullEntries {
+			It("should refuse a profile with "+name+" and keep the loaded one", func() {
+				if sut.IsDisabled() {
+					Skip("tests need enabled seccomp")
+				}
+
+				// Given
+				file := t.MustTempFile("profile")
+				Expect(os.WriteFile(file, []byte(tc.content), 0o644)).To(Succeed())
+
+				// When: the baseline renders the profile that is kept.
+				err := sut.LoadProfile(file)
+				baselineErr := sut.LoadBaselineProfile("", false)
+
+				// Then
+				Expect(err).To(MatchError(ContainSubstring(tc.expected)))
+				Expect(err).To(MatchError(ContainSubstring(file)))
+				Expect(sut.Profile()).To(Equal(seccomp.DefaultProfile()))
+				Expect(baselineErr).NotTo(HaveOccurred())
+			})
+		}
 
 		if sut != nil && !sut.IsDisabled() {
 			It("should not fail with non-existing profile", func() {
@@ -141,7 +220,12 @@ var _ = t.Describe("Config", func() {
 			"invalid JSON":   `{`,
 			"no filter":      `{}`,
 			"unknown action": `{"defaultAction": "SCMP_ACT_ERRNO", "syscalls": [{"names": ["read"], "action": "SCMP_ACT_WRONG"}]}`,
+			"unknown action in a covered rule": `{"defaultAction": "SCMP_ACT_ERRNO", "syscalls": [` +
+				`{"names": ["read"], "action": "SCMP_ACT_ALLOW"}, ` +
+				`{"names": ["read"], "action": "SCMP_ACT_WRONG", "args": [{"index": 0, "value": 1, "op": "SCMP_CMP_EQ"}]}]}`,
 			"no listener":    `{"defaultAction": "SCMP_ACT_NOTIFY"}`,
+			"unknown member": `{"defaultAction": "SCMP_ACT_ERRNO", "syscalls": [{"names": ["read"], "action": "SCMP_ACT_ALLOW", "arg": []}]}`,
+			"trailing data":  `{"defaultAction": "SCMP_ACT_ERRNO"} {}`,
 		} {
 			It("should fail with "+name, func() {
 				// Given
@@ -152,7 +236,54 @@ var _ = t.Describe("Config", func() {
 				err := sut.LoadBaselineProfile(file, false)
 
 				// Then
-				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(ContainSubstring(file)))
+				Expect(sut.BaselineProfile()).To(Equal(sut.Profile()))
+			})
+		}
+
+		for name, tc := range map[string]struct{ content, expected string }{
+			"a repeated member": {
+				`{"defaultAction": "SCMP_ACT_ERRNO", "syscalls": [{"names": ["read"], "action": "SCMP_ACT_ALLOW",
+					"args": [{"index": 0, "value": 1, "op": "SCMP_CMP_EQ"}], "args": []}]}`,
+				"syscalls[0].args: repeated member",
+			},
+			"a member repeated in another case": {
+				`{"defaultAction": "SCMP_ACT_ERRNO", "syscalls": [{"names": ["read"], "action": "SCMP_ACT_ALLOW",
+					"args": [{"index": 0, "value": 1, "op": "SCMP_CMP_EQ"}], "Args": []}]}`,
+				"syscalls[0].Args: repeated member",
+			},
+			"a repeated top-level member": {
+				`{"defaultAction": "SCMP_ACT_ALLOW", "defaultAction": "SCMP_ACT_ERRNO"}`,
+				"defaultAction: repeated member",
+			},
+		} {
+			It("should fail with "+name, func() {
+				// Given
+				file := t.MustTempFile("baseline")
+				Expect(os.WriteFile(file, []byte(tc.content), 0o644)).To(Succeed())
+
+				// When
+				err := sut.LoadBaselineProfile(file, false)
+
+				// Then
+				Expect(err).To(MatchError(ContainSubstring(tc.expected)))
+				Expect(err).To(MatchError(ContainSubstring(file)))
+				Expect(sut.BaselineProfile()).To(Equal(sut.Profile()))
+			})
+		}
+
+		for name, tc := range nullEntries {
+			It("should fail with "+name, func() {
+				// Given
+				file := t.MustTempFile("baseline")
+				Expect(os.WriteFile(file, []byte(tc.content), 0o644)).To(Succeed())
+
+				// When
+				err := sut.LoadBaselineProfile(file, false)
+
+				// Then
+				Expect(err).To(MatchError(ContainSubstring(tc.expected)))
+				Expect(err).To(MatchError(ContainSubstring(file)))
 				Expect(sut.BaselineProfile()).To(Equal(sut.Profile()))
 			})
 		}
@@ -164,6 +295,47 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail with rules the merge does not read exactly", func() {
+			// Given
+			file := t.MustTempFile("baseline")
+			Expect(os.WriteFile(file, []byte(`{
+				"defaultAction": "SCMP_ACT_ERRNO",
+				"syscalls": [
+					{"names": ["personality"], "action": "SCMP_ACT_ALLOW", "args": [{"index": 0, "value": 8, "op": "SCMP_CMP_LE"}]},
+					{"names": ["personality"], "action": "SCMP_ACT_ERRNO", "errnoRet": 22, "args": [{"index": 0, "value": 4, "op": "SCMP_CMP_EQ"}]}
+				]
+			}`), 0o644)).To(Succeed())
+
+			// When
+			err := sut.LoadBaselineProfile(file, false)
+
+			// Then
+			Expect(err).To(MatchError(spmseccomp.ErrInexactBaseline))
+			Expect(err.Error()).To(ContainSubstring(file))
+			Expect(err.Error()).To(ContainSubstring("personality"))
+			Expect(sut.BaselineProfile()).To(Equal(sut.Profile()))
+		})
+
+		It("should mark OCI profiles unsupported for an inexact loaded profile", func() {
+			// Given
+			file := t.MustTempFile("profile")
+			Expect(os.WriteFile(file, []byte(`{
+				"defaultAction": "SCMP_ACT_ERRNO",
+				"syscalls": [
+					{"names": ["personality"], "action": "SCMP_ACT_ALLOW", "args": [{"index": 0, "value": 8, "op": "SCMP_CMP_LE"}]},
+					{"names": ["personality"], "action": "SCMP_ACT_ERRNO", "errnoRet": 22, "args": [{"index": 0, "value": 4, "op": "SCMP_CMP_EQ"}]}
+				]
+			}`), 0o644)).To(Succeed())
+			Expect(sut.LoadProfile(file)).To(Succeed())
+
+			// When
+			err := sut.LoadBaselineProfile("", false)
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sut.OCIProfilesSupported()).To(BeFalse())
 		})
 	})
 
@@ -215,6 +387,40 @@ var _ = t.Describe("Config", func() {
 			Expect(ref).To(Equal(types.SecurityProfile_RuntimeDefault.String()))
 		})
 
+		It("should run unconfined with an empty runtime default and the notifier", func() {
+			// Given
+			generator, err := generate.New("linux")
+			Expect(err).ToNot(HaveOccurred())
+
+			file := t.MustTempFile("profile")
+			Expect(os.WriteFile(file, []byte(`{}`), 0o644)).To(Succeed())
+			Expect(sut.LoadProfile(file)).To(Succeed())
+
+			field := &types.SecurityProfile{
+				ProfileType: types.SecurityProfile_RuntimeDefault,
+			}
+
+			// When
+			notifier, _, err := sut.Setup(
+				context.Background(),
+				nil,
+				make(chan seccomp.Notification),
+				"ctr",
+				"",
+				map[string]string{v2.SeccompNotifierAction: "stop"},
+				nil,
+				&generator,
+				field,
+				"",
+				nil,
+			)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(notifier).To(BeNil())
+			Expect(generator.Config.Linux.Seccomp).To(BeNil())
+		})
+
 		It("should succeed with localhost profile from field", func() {
 			// Given
 			generator, err := generate.New("linux")
@@ -245,6 +451,40 @@ var _ = t.Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ref).To(Equal(file))
 		})
+
+		for name, tc := range nullEntries {
+			It("should fail with a localhost profile with "+name, func() {
+				// Given
+				generator, err := generate.New("linux")
+				Expect(err).ToNot(HaveOccurred())
+
+				file := t.MustTempFile("profile")
+				Expect(os.WriteFile(file, []byte(tc.content), 0o644)).To(Succeed())
+
+				field := &types.SecurityProfile{
+					ProfileType:  types.SecurityProfile_Localhost,
+					LocalhostRef: file,
+				}
+
+				// When
+				_, _, err = sut.Setup(
+					context.Background(),
+					nil,
+					nil,
+					"",
+					"",
+					nil,
+					nil,
+					&generator,
+					field,
+					"",
+					nil,
+				)
+
+				// Then
+				Expect(err).To(MatchError(ContainSubstring(tc.expected)))
+			})
+		}
 
 		t.Describe("OCI profile", func() {
 			var (
@@ -502,6 +742,56 @@ var _ = t.Describe("Config", func() {
 				// Then
 				Expect(err).ToNot(HaveOccurred())
 				Expect(profiles.base).To(BeNil())
+				Expect(profiles.fromPodSpec).To(BeTrue())
+			})
+
+			for name, tc := range nullEntries {
+				It("should fail with a localhost base profile with "+name, func() {
+					// Given
+					file := t.MustTempFile("base")
+					Expect(os.WriteFile(file, []byte(tc.content), 0o644)).To(Succeed())
+
+					field := &types.SecurityProfile{
+						ProfileType: types.SecurityProfile_OCI,
+						OciRef:      ref,
+						BaseProfile: &types.SecurityProfileBase{
+							Type:         types.SecurityProfileBase_Localhost,
+							LocalhostRef: file,
+						},
+					}
+
+					// When
+					_, err := setup(field, profiles)
+
+					// Then
+					Expect(err).To(MatchError(ContainSubstring(tc.expected)))
+					Expect(profiles.ref).To(BeEmpty())
+				})
+			}
+
+			It("should use a localhost base profile with an unknown member", func() {
+				// Given
+				file := t.MustTempFile("base")
+				Expect(os.WriteFile(file, []byte(`{
+					"defaultAction": "SCMP_ACT_ALLOW",
+					"syscalls": [{"names": ["mkdir"], "action": "SCMP_ACT_ERRNO", "comments": "x"}]
+				}`), 0o644)).To(Succeed())
+
+				field := &types.SecurityProfile{
+					ProfileType: types.SecurityProfile_OCI,
+					OciRef:      ref,
+					BaseProfile: &types.SecurityProfileBase{
+						Type:         types.SecurityProfileBase_Localhost,
+						LocalhostRef: file,
+					},
+				}
+
+				// When
+				_, err := setup(field, profiles)
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
+				Expect(profiles.base.Syscalls).To(HaveLen(1))
 				Expect(profiles.fromPodSpec).To(BeTrue())
 			})
 

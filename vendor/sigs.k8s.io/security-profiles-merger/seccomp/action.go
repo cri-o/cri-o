@@ -48,40 +48,14 @@ const (
 
 const levelUnknown = -1
 
-// MoreRestrictive returns the more restrictive of two seccomp actions.
-// An unknown action is ranked as the most restrictive there is and reported
-// as SCMP_ACT_KILL_PROCESS, so that a caller writing the result into a
-// profile writes an action a runtime loads rather than the unknown one back,
-// and one no less restrictive than the rank it was given.
-func MoreRestrictive(first, second specs.LinuxSeccompAction) specs.LinuxSeccompAction {
-	return knownAction(moreRestrictive(first, second))
-}
-
-// LessRestrictive returns the less restrictive of two seccomp actions.
-// An unknown action is ranked and reported as MoreRestrictive reports it.
-func LessRestrictive(first, second specs.LinuxSeccompAction) specs.LinuxSeccompAction {
-	return knownAction(lessRestrictive(first, second))
-}
-
-// knownAction replaces an action this package does not know with
-// SCMP_ACT_KILL_PROCESS, the action of the rank the ranking gives it: an
-// unknown action sorts above every known one, so standing in for it with
-// anything less restrictive would report less than was asked for.
-func knownAction(action specs.LinuxSeccompAction) specs.LinuxSeccompAction {
-	if restrictiveness(action) == levelUnknown {
-		return specs.ActKillProcess
-	}
-
-	return action
-}
-
-// moreRestrictive and lessRestrictive rank two actions without rewriting
+// moreRestrictive and lessRestrictive return the more and the less
+// restrictive of two seccomp actions in the action order, ranking an
+// unknown action as the most restrictive there is, without rewriting
 // either. The merge picks between two clauses by asking which action wins
 // and then keeping that clause whole (see pickClause), so it needs the
 // action it passed in back, unknown or not: a profile the merge reads
-// unvalidated, as IntersectSyscalls does, keeps the action it carries rather
-// than having it turn into SCMP_ACT_KILL on one side of the comparison and
-// not the other.
+// unvalidated keeps the action it carries rather than having it turn into
+// SCMP_ACT_KILL on one side of the comparison and not the other.
 func moreRestrictive(first, second specs.LinuxSeccompAction) specs.LinuxSeccompAction {
 	if restrictiveness(first) <= restrictiveness(second) {
 		return first

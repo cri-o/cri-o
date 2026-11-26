@@ -117,6 +117,18 @@ func (c *Config) injectNotifier(
 		return nil, nil
 	}
 
+	// A profile without a filter runs the container unconfined, so there is
+	// nothing to notify about.
+	if profile == nil {
+		log.Infof(
+			ctx,
+			"Skipping the seccomp notifier of container %s, which runs without a seccomp filter",
+			containerID,
+		)
+
+		return nil, nil
+	}
+
 	log.Infof(ctx, "Injecting seccomp notifier into seccomp profile of container %s", containerID)
 
 	isActionToOverride := func(action specs.LinuxSeccompAction) bool {

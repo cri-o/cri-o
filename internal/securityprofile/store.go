@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/opencontainers/go-digest"
 	ispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -685,7 +687,10 @@ func reportConstrained(
 
 	metrics.Instance().MetricSecurityProfileMergesConstrainedInc()
 
-	fields := map[string]any{"profile": ref, baseField: formatDiff(diff)}
+	text := diff.String()
+	formatted, complete := formatDiff(text)
+
+	fields := map[string]any{"profile": ref, baseField: formatted}
 	if name != "" {
 		fields["name"] = name
 	}
@@ -695,12 +700,12 @@ func reportConstrained(
 	)
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		log.Debugf(
-			ctx,
-			"Complete difference of the merged seccomp profile %s: %s",
-			ref,
-			seccomp.FormatDiff(diff),
-		)
+		label := "Complete difference"
+		if !complete {
+			label = "Excerpt of the difference"
+		}
+
+		log.Debugf(ctx, "%s of the merged seccomp profile %s: %s", label, ref, text)
 	}
 }
 
@@ -708,15 +713,27 @@ func reportConstrained(
 // that allows by default lists every syscall the base profile denies.
 const maxDiffLength = 2048
 
-func formatDiff(diff *seccomp.ProfileDiff) string {
-	text := seccomp.FormatDiff(diff)
+// truncationMarker ends a difference that security-profiles-merger cut at
+// its own bound of 64 KiB, as seccomp.FormatProfile documents.
+const truncationMarker = "... (output truncated)"
+
+// formatDiff bounds a difference for the warning, cutting it on a rune
+// boundary, and reports whether the difference is complete, which it is not
+// once security-profiles-merger cut it.
+func formatDiff(text string) (formatted string, complete bool) {
+	complete = !strings.HasSuffix(text, truncationMarker)
 	if len(text) <= maxDiffLength {
-		return text
+		return text, complete
 	}
 
-	return fmt.Sprintf(
-		"%s... (%d more bytes, see the debug log)",
-		text[:maxDiffLength],
-		len(text)-maxDiffLength,
-	)
+	end := maxDiffLength
+	for end > 0 && !utf8.RuneStart(text[end]) {
+		end--
+	}
+
+	if !complete {
+		return text[:end] + "... (truncated, see the debug log for an excerpt)", false
+	}
+
+	return fmt.Sprintf("%s... (%d more bytes, see the debug log)", text[:end], len(text)-end), true
 }

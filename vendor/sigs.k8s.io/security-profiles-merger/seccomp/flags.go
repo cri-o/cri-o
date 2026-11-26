@@ -71,6 +71,8 @@ func polarityOf(flag specs.LinuxSeccompFlag) flagPolarity {
 // need every profile; the other two combinations need any profile. A
 // listener flag belongs to the listener, so it follows the profile the
 // listener comes from and is dropped when that profile does not set it.
+// Where both profiles set a listener it is the same one, since the merges
+// refuse different ones (see checkListeners), and it comes from the left.
 func keepFlag(polarity flagPolarity, inLeft, inRight, intersect, listenerFromLeft bool) bool {
 	if polarity == flagListener {
 		if listenerFromLeft {
@@ -143,21 +145,38 @@ func specAllowLeftToRuntime(left, right []specs.LinuxSeccompFlag, intersect bool
 	return !off(left) && !off(right)
 }
 
-// flagsForListener drops SECCOMP_FILTER_FLAG_TSYNC from the flags of a
-// result that has a listener. The kernel refuses the flag next to the one
-// that creates the listener, and crun passes both, so such a result would
-// not load there however loadable the inputs were, of which one may set the
-// flag and another the listener. Dropping it loosens nothing (see
-// flagTsync), and a list it was alone in stays set but empty.
+// flagsForListener drops the flags a result cannot load with its listener.
+//
+// SECCOMP_FILTER_FLAG_TSYNC goes from a result that has a listener. The
+// kernel refuses the flag next to the one that creates the listener, and
+// crun passes both, so such a result would not load there however loadable
+// the inputs were, of which one may set the flag and another the listener.
+// Dropping it loosens nothing (see flagTsync).
+//
+// SECCOMP_FILTER_FLAG_WAIT_KILLABLE_RECV goes from a result in which no
+// entry notifies. runc creates the listener only for a filter with a notify
+// rule but passes the flag whenever the list names it, and the kernel
+// refuses the flag without the listener. An input may set the flag without
+// notifying, and even where the input the listener came from notified, the
+// merge can leave none of its notify rules in the result, for example where
+// another input denies the syscall by default. The flag only changes how a
+// notification is received, so without one it changes nothing.
+//
+// A list a dropped flag was alone in stays set but empty.
 func flagsForListener(
-	flags []specs.LinuxSeccompFlag, listenerPath string,
+	flags []specs.LinuxSeccompFlag, listenerPath string, notifies bool,
 ) []specs.LinuxSeccompFlag {
-	if listenerPath == "" {
-		return flags
-	}
-
 	return slices.DeleteFunc(flags, func(flag specs.LinuxSeccompFlag) bool {
-		return flag == flagTsync
+		return (flag == flagTsync && listenerPath != "") ||
+			(flag == specs.LinuxSeccompFlagWaitKillableRecv && !notifies)
+	})
+}
+
+// notifiesAny reports whether an entry applies SCMP_ACT_NOTIFY, which is
+// what makes runc create a listener for the filter.
+func notifiesAny(syscalls []specs.LinuxSyscall) bool {
+	return slices.ContainsFunc(syscalls, func(entry specs.LinuxSyscall) bool {
+		return entry.Action == specs.ActNotify
 	})
 }
 

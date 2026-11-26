@@ -23,44 +23,51 @@ import (
 	"sigs.k8s.io/security-profiles-merger/spm"
 )
 
-// ErrDuplicateKey, ErrUnknownField, ErrMisspelledField, ErrInvalidUTF8 and
-// ErrUnexpectedData are returned by UnmarshalStrict for a document
-// encoding/json would decode without a word: one repeating a member, holding
-// a member no field reads, holding a member that names a field only ignoring
-// case, holding a byte the decoder replaces, or followed by more data. See
-// the spm package for each.
+// ErrDuplicateKey, ErrUnknownField, ErrMisspelledField, ErrMissingField,
+// ErrInvalidUTF8, ErrUnexpectedData and ErrNotAnObject are the spm
+// sentinels UnmarshalStrict returns, as its documentation lists.
 var (
 	ErrDuplicateKey    = spm.ErrDuplicateKey
 	ErrUnknownField    = spm.ErrUnknownField
 	ErrMisspelledField = spm.ErrMisspelledField
+	ErrMissingField    = spm.ErrMissingField
 	ErrInvalidUTF8     = spm.ErrInvalidUTF8
 	ErrUnexpectedData  = spm.ErrUnexpectedData
+	ErrNotAnObject     = spm.ErrNotAnObject
 )
 
-// UnmarshalStrict decodes a seccomp profile and rejects what encoding/json accepts
-// silently: members the profile type has no field for, members that name a
-// field only ignoring case, members repeated within one object, bytes that
-// are not valid UTF-8, data behind the profile, and a document that is not
-// a JSON object, such as null. Its error messages are bounded in length,
-// however long the literals the document quotes.
+// UnmarshalStrict decodes a seccomp profile and rejects what encoding/json
+// accepts silently: a member no field reads ([ErrUnknownField]) or that
+// names a field only ignoring case ([ErrMisspelledField]), a member repeated
+// within one object ([ErrDuplicateKey]), bytes that are not valid UTF-8
+// ([ErrInvalidUTF8]), data behind the profile ([ErrUnexpectedData]), a
+// syscall entry without its names or action and an argument condition
+// without its index or op, or with a null one, and a null entry or
+// condition ([ErrMissingField]), and a document that is not a JSON object,
+// such as null ([ErrNotAnObject]). A condition may leave out value and
+// valueTwo, which default to 0. Error messages are bounded in length.
 //
-// Each loses something a reader of an untrusted profile must not lose. A
-// misspelled or unknown member drops the rule it was meant to carry. A
-// repeated member is read as its last occurrence here and as its first
-// elsewhere, so a scanner and the runtime can read one document as two
-// profiles. A byte that is not valid UTF-8 is replaced with U+FFFD, so
-// names that differ only there decode alike and merge into one rule. Use
-// this instead of json.Unmarshal for an artifact, and validate the result
-// with ValidateArtifact afterwards.
-//
-// The document is decoded into a fresh profile, which replaces the one
-// given only when decoding succeeds: a member the document omits is zero in
-// the result, whatever the given profile held, and an error leaves it as it
-// was.
+// The document is decoded into a fresh profile, which replaces the one given
+// only on success: a member the document omits is zero in the result, and an
+// error leaves the profile as it was. Use it instead of json.Unmarshal for
+// an artifact, bound the size of the document first, as the Limits section
+// of
+// https://github.com/kubernetes-sigs/security-profiles-merger/blob/main/docs/integration.md#limits
+// says, and validate the result with ValidateArtifact, or use DecodeArtifact
+// for both.
 func UnmarshalStrict(data []byte, profile *specs.LinuxSeccomp) error {
 	if profile == nil {
 		return ErrNilProfile
 	}
 
 	return strictjson.Unmarshal(data, profile)
+}
+
+// DecodeArtifact decodes an artifact with UnmarshalStrict and checks it with
+// ValidateArtifact. It returns the profile only when both pass, and the
+// error of the first that fails otherwise. Bound the size of data first. It
+// depends on the native architecture as ValidateArtifact does
+// ([Options.DecodeArtifact]).
+func DecodeArtifact(data []byte) (*specs.LinuxSeccomp, error) {
+	return ForHost().DecodeArtifact(data)
 }
