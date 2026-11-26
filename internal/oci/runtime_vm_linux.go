@@ -134,6 +134,7 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *stats.Cg
 			HugetlbStats: hugetlbStats,
 		},
 		SystemNano: time.Now().UnixNano(),
+		IsCgroupV2: false,
 	}
 }
 
@@ -193,5 +194,6 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *stats.Cg
 			HugetlbStats: hugetlbStats,
 		},
 		SystemNano: time.Now().UnixNano(),
+		IsCgroupV2: true,
 	}
 }
