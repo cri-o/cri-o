@@ -746,6 +746,15 @@ var _ = t.Describe("Image", func() {
 			Expect(regexps[2].MatchString("docker.io/test/image")).To(BeTrue())
 		})
 
+		It("should only match glob patterns at the start of the name", func() {
+			regexps := storage.CompileRegexpsForPinnedImages([]string{"quay.io/*"})
+			Expect(regexps).To(HaveLen(1))
+			Expect(regexps[0].MatchString("quay.io/test/image:latest")).To(BeTrue())
+			Expect(regexps[0].MatchString("QUAY.IO/test/image:latest")).To(BeTrue())
+			Expect(regexps[0].MatchString("mirror.local/proxy/quay.io/test/image")).To(BeFalse())
+			Expect(regexps[0].MatchString("notquay.io/test/image:latest")).To(BeFalse())
+		})
+
 		It("should panic for invalid pattern", func() {
 			patterns := []string{"*"}
 
