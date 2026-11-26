@@ -61,6 +61,11 @@ function run_test() {
 	run_test -test.run TestContainerEvents
 }
 
+@test "run NRI FailedContainerCreationEvents test" {
+	start_crio
+	run_test -test.run TestFailedContainerCreationEvents
+}
+
 @test "run NRI MountInjection test" {
 	if [ "$KUBERNETES_PROVIDER" = "local" ]; then
 		skip "skip host bind-mount test (ci/prow)"

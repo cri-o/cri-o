@@ -386,9 +386,11 @@ func (a *nriAPI) removeContainer(
 	return a.nri.RemoveContainer(ctx, pod, ctr)
 }
 
+// undoCreateContainer tells NRI plugins that a container they saw in
+// CreateContainer will not be created. A nil spec means the spec of criCtr.
 func (a *nriAPI) undoCreateContainer(
 	ctx context.Context,
-	specgen *generate.Generator,
+	spec *rspec.Spec,
 	criPod *sandbox.Sandbox,
 	criCtr *oci.Container,
 ) {
@@ -400,7 +402,7 @@ func (a *nriAPI) undoCreateContainer(
 	ctr := &criContainer{
 		api:  a,
 		ctr:  criCtr,
-		spec: specgen.Config,
+		spec: spec,
 	}
 
 	if err := a.nri.StopContainer(ctx, pod, ctr); err != nil {
