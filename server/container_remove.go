@@ -60,6 +60,18 @@ func (s *Server) RemoveContainer(
 	return &types.RemoveContainerResponse{}, nil
 }
 
+// containerExited returns whether the container is stopped, or has an exit file
+// which the exit monitor did not handle yet.
+func (s *Server) containerExited(c *oci.Container) bool {
+	if c.State().Status == oci.ContainerStateStopped {
+		return true
+	}
+
+	_, err := os.Stat(filepath.Join(s.config.ContainerExitsDir, c.ID()))
+
+	return err == nil
+}
+
 func (s *Server) removeContainerInPod(
 	ctx context.Context,
 	sb *sandbox.Sandbox,
@@ -68,9 +80,34 @@ func (s *Server) removeContainerInPod(
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	if !sb.Stopped() {
+	switch {
+	case !sb.Stopped() || !s.containerExited(c):
+		// Stopping runs the post-stop cleanup, also for a container which still
+		// runs in a stopped sandbox, e.g. after its infra container exited.
 		if err := s.stopContainer(ctx, c, stopTimeoutFromContext(ctx)); err != nil {
-			return fmt.Errorf("failed to stop container for removal %w", err)
+			// Do not remove the container while its cleanup may still run.
+			if !sb.Stopped() || ctx.Err() != nil {
+				return fmt.Errorf("failed to stop container for removal %w", err)
+			}
+
+			// The sandbox is stopped, so remove the container anyway, as before.
+			log.Warnf(ctx, "Failed to stop container %s for removal: %v", c.ID(), err)
+
+			if err := c.AwaitPostStopCleanup(ctx); err != nil {
+				return fmt.Errorf("failed to wait for post-stop cleanup %w", err)
+			}
+		}
+	case !c.PostStopDone():
+		// The sandbox may be stopped before the post-stop cleanup of this
+		// container ran. Run it here, or wait for it if it is already running.
+		hooks := s.hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
+		if err := s.postStopCleanup(ctx, c, sb, hooks); err != nil {
+			return fmt.Errorf("failed to wait for post-stop cleanup %w", err)
+		}
+	default:
+		// A cleanup must not run after the container is removed.
+		if err := c.AwaitPostStopCleanup(ctx); err != nil {
+			return fmt.Errorf("failed to wait for post-stop cleanup %w", err)
 		}
 	}
 

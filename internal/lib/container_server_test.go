@@ -632,6 +632,24 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("should report a container loaded as stopped as exited", func() {
+			// Given
+			createDummyState()
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
+			mockDirs(testManifest)
+
+			// When
+			err := sut.LoadContainer(context.Background(), "id")
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			ctr := sut.GetContainer(context.Background(), "id")
+			Expect(ctr).NotTo(BeNil())
+			Expect(ctr.State().Status).To(BeEquivalentTo(oci.ContainerStateStopped))
+			Expect(ctr.CRIContainer().GetState()).To(Equal(types.ContainerState_CONTAINER_EXITED))
+		})
+
 		It("should fail with failing FromContainerDirectory", func() {
 			// Given
 			gomock.InOrder(

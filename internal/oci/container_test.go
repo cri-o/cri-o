@@ -390,6 +390,59 @@ var _ = t.Describe("Container", func() {
 		Expect(containerResources.GetLinux().GetHugepageLimits()).To(BeEmpty())
 	})
 
+	t.Describe("ReportedStatus", func() {
+		It(
+			"should report a stopped container as running until post-stop cleanup completed",
+			func() {
+				// Given
+				state := &oci.ContainerState{}
+				state.Status = oci.ContainerStateStopped
+				sut.SetState(state)
+
+				// When
+				status := sut.ReportedStatus(state)
+
+				// Then
+				Expect(status).To(Equal(specs.ContainerState(oci.ContainerStateRunning)))
+				Expect(
+					sut.CRIContainer().GetState(),
+				).To(Equal(types.ContainerState_CONTAINER_RUNNING))
+
+				// When
+				sut.SetPostStopDone()
+
+				// Then
+				Expect(
+					sut.ReportedStatus(state),
+				).To(Equal(specs.ContainerState(oci.ContainerStateStopped)))
+				Expect(
+					sut.CRIContainer().GetState(),
+				).To(Equal(types.ContainerState_CONTAINER_EXITED))
+			},
+		)
+
+		It("should stop waiting for the post-stop cleanup when the context ends", func() {
+			// Given
+			release := make(chan struct{})
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			// When
+			err := sut.RunPostStopCleanup(ctx, func() { <-release })
+
+			// Then - the caller returns, the cleanup keeps running
+			Expect(err).To(MatchError(context.Canceled))
+			Expect(sut.PostStopDone()).To(BeFalse())
+
+			// When
+			close(release)
+
+			// Then - a later caller waits for the same cleanup
+			Expect(sut.AwaitPostStopCleanup(context.Background())).To(Succeed())
+			Expect(sut.PostStopDone()).To(BeTrue())
+		})
+	})
+
 	t.Describe("FromDisk", func() {
 		BeforeEach(func() {
 			Expect(os.MkdirAll(sut.Dir(), 0o755)).To(Succeed())
