@@ -34,7 +34,19 @@ import (
 	v2 "github.com/cri-o/cri-o/pkg/annotations/v2"
 )
 
-const defaultStopSignalInt = 15
+const (
+	defaultStopSignalInt = 15
+
+	// How often KillInitProcess polls for the signalled init process to go away.
+	// Mirrors stopProcessWatchSleep, which polls for the same thing.
+	killInitProcessWatchSleep = 100 * time.Millisecond
+
+	// Backstop on how long KillInitProcess waits. The caller's context deadline
+	// is the real bound; this only caps callers that pass a context without one.
+	// A process still alive this long after SIGKILL is wedged in uninterruptible
+	// sleep, so waiting longer does not change the outcome.
+	killInitProcessTimeout = 30 * time.Second
+)
 
 var (
 	ErrContainerStopped = errors.New("container is already stopped")
@@ -683,6 +695,71 @@ func (c *Container) pid() (int, string, error) { //nolint:gocritic // Ignore unn
 	}
 
 	return c.state.InitPid, state, nil
+}
+
+// InitProcessAlive reports whether the container's init process is still running
+// and is still the process the runtime started for this container.
+//
+// Unlike Living, this does not consult state.Pid. That field is only populated
+// by decoding the runtime's state output, so it stays zero until the first status
+// update succeeds - for a create interrupted before that point, the init process
+// is still very much alive, and treating it as gone leaks the process along with
+// its transient systemd scope.
+//
+// Like Living, this must not be used for runtimeVM, where InitPid is the virtual
+// machine's PID rather than the container's own and does not stop with it.
+func (c *Container) InitProcessAlive() bool {
+	if c.state == nil || c.state.InitPid <= 0 {
+		return false
+	}
+
+	if err := unix.Kill(c.state.InitPid, 0); err != nil {
+		return false
+	}
+
+	state, err := c.verifyPid()
+	if err != nil {
+		return false
+	}
+
+	return state != "X" && state != "Z"
+}
+
+// KillInitProcess sends SIGKILL to the container's init process if it is still
+// alive, and waits for it to disappear so callers can rely on the kill having
+// taken effect before they discard their own record of the container.
+//
+// This must not be called for runtimeVM containers: InitPid is the virtual
+// machine's PID there, shared with the sibling containers of the sandbox, so
+// signalling it would stop workloads this container does not own.
+func (c *Container) KillInitProcess(ctx context.Context) error {
+	if !c.InitProcessAlive() {
+		return nil
+	}
+
+	pid := c.state.InitPid
+
+	if err := unix.Kill(pid, unix.SIGKILL); err != nil && !errors.Is(err, unix.ESRCH) {
+		return fmt.Errorf("kill init process %d of container %s: %w", pid, c.ID(), err)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, killInitProcessTimeout)
+	defer cancel()
+
+	for {
+		if !c.InitProcessAlive() {
+			return nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf(
+				"init process %d of container %s still alive after SIGKILL: %w",
+				pid, c.ID(), ctx.Err(),
+			)
+		case <-time.After(killInitProcessWatchSleep):
+		}
+	}
 }
 
 // verifyPid checks that the start time for the process on the node is the same

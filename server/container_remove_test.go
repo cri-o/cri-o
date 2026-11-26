@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"context"
+	"os/exec"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -68,6 +69,53 @@ var _ = t.Describe("ContainerRemove", func() {
 			Expect(err).ToNot(HaveOccurred())
 			// The deleted event must not look it up again.
 			Expect(sut.Runtime().HasRuntimeImpl(testContainer.ID())).To(BeFalse())
+		})
+
+		It("should not drop its records while the init process is still alive", func() {
+			// Given a container whose init process is running, but whose state.Pid
+			// was never populated because the runtime's state output was never read
+			// successfully. Stopping and deleting both report success without
+			// touching the process, so without the liveness gate in
+			// removeContainerInPod this removal would erase every record of a
+			// container that is still running, leaving nothing able to reap it.
+			addContainerAndSandbox()
+
+			cmd := exec.Command("sleep", "300")
+			Expect(cmd.Start()).To(Succeed())
+
+			defer func() {
+				//nolint:errcheck // best-effort cleanup in test teardown
+				cmd.Process.Kill()
+				// make sure the entry in the process table is cleaned up
+				//nolint:errcheck // best-effort cleanup in test teardown
+				cmd.Wait()
+			}()
+
+			state := &oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateStopped},
+			}
+			Expect(state.SetInitPid(cmd.Process.Pid)).To(Succeed())
+			state.Pid = 0
+			testContainer.SetState(state)
+			Expect(testContainer.InitProcessAlive()).To(BeTrue())
+
+			runtimeServerMock.EXPECT().DeleteContainer(gomock.Any(), gomock.Any()).
+				Return(nil).AnyTimes()
+			testSandbox.SetStopped(context.Background(), false)
+
+			// When
+			_, err := sut.RemoveContainer(context.Background(),
+				&types.RemoveContainerRequest{
+					ContainerId: testContainer.ID(),
+				})
+
+			// Then the init process must not have outlived the removal. Do not
+			// reap it first: a SIGKILLed process lingers as a zombie until the
+			// deferred Wait above collects it, and InitProcessAlive already
+			// treats a zombie as gone. Waiting here would instead block until
+			// the process exited on its own and mask a missing kill entirely.
+			Expect(err).ToNot(HaveOccurred())
+			Expect(testContainer.InitProcessAlive()).To(BeFalse())
 		})
 
 		It("should succeed if container is not found", func() {

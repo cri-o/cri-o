@@ -16,6 +16,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 // RemoveContainer removes the container. If the container is running, the container
@@ -86,6 +87,36 @@ func (s *Server) removeContainerInPod(
 			sb.ID(),
 			err,
 		)
+	}
+
+	// Stopping and deleting can both report success while the init process is
+	// still running, because both infer the container's liveness from runtime
+	// state that may never have been written. Discarding our own record of the
+	// container past this point strands that process and its transient systemd
+	// scope with nothing left to reconcile them against, so make sure it is gone.
+	//
+	// VM runtimes are excluded: there state.InitPid is the virtual machine's
+	// PID, which the sandbox's other containers share and which outlives any
+	// single one of them, so signalling it would tear down unrelated workloads.
+	runtimeType, err := s.ContainerServer.Runtime().RuntimeType(c.RuntimeHandler())
+	if err != nil {
+		// Leave the process alone rather than signal a PID whose ownership we
+		// could not establish.
+		log.Warnf(
+			ctx,
+			"Unable to determine runtime type of container %s, not checking for a leftover init process: %v",
+			c.ID(),
+			err,
+		)
+	} else if runtimeType != libconfig.RuntimeTypeVM {
+		if err := c.KillInitProcess(ctx); err != nil {
+			return fmt.Errorf(
+				"failed to kill leftover init process for container %s in pod sandbox %s: %w",
+				c.Name(),
+				sb.ID(),
+				err,
+			)
+		}
 	}
 
 	if err := os.Remove(
