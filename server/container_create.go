@@ -285,6 +285,9 @@ func setupContainerUser(
 
 	if homedir == "" {
 		homedir = specgen.Config.Process.Cwd
+		if strings.ContainsAny(homedir, "\n\r") {
+			return errors.New("invalid cwd as homedir; newline not allowed")
+		}
 	}
 
 	if imageConfig != nil {
@@ -296,6 +299,14 @@ func setupContainerUser(
 		imageUser,
 		sc.GetRunAsUser(),
 	)
+
+	username, group, _ := strings.Cut(containerUser, ":")
+	if strings.ContainsAny(containerUser, "\n\r") || strings.Contains(group, ":") {
+		return errors.New(
+			"invalid user specification; newline, carriage return or multiple colons not allowed",
+		)
+	}
+
 	log.Debugf(ctx, "Container user: %q", containerUser)
 
 	// Add uid, gid and groups from user
@@ -325,7 +336,7 @@ func setupContainerUser(
 
 	if genPasswd {
 		// verify uid exists in containers /etc/passwd, else generate a passwd with the user entry
-		passwdPath, err := utils.GeneratePasswd(containerUser, uid, gid, homedir, rootfs, ctrRunDir)
+		passwdPath, err := utils.GeneratePasswd(username, uid, gid, homedir, rootfs, ctrRunDir)
 		if err != nil {
 			return err
 		}
