@@ -559,21 +559,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			),
 		},
 		{
-			templateString: templateStringCrioRuntimeRuntimesRuntimeHandler,
-			group:          crioRuntimeConfig,
-			isDefaultValue: RuntimesEqual(dc.Runtimes, c.Runtimes),
-		},
-		{
-			templateString: templateStringCrioCheckpointRestoreContainerLevelEnabled,
-			group:          crioCheckpointRestoreConfig,
-			isDefaultValue: simpleEqual(dc.ContainerLevelEnabled, c.ContainerLevelEnabled),
-		},
-		{
-			templateString: templateStringCrioRuntimeWorkloads,
-			group:          crioRuntimeConfig,
-			isDefaultValue: WorkloadsEqual(dc.Workloads, c.Workloads),
-		},
-		{
 			templateString: templateStringCrioRuntimeHostNetworkDisableSELinux,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.HostNetworkDisableSELinux, c.HostNetworkDisableSELinux),
@@ -587,6 +572,23 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringCrioRuntimeTimezone,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.Timezone, c.Timezone),
+		},
+		// The runtimes and the workloads are TOML tables, which end the keys of
+		// [crio.runtime]. Every option of this group has to be listed before them.
+		{
+			templateString: templateStringCrioRuntimeRuntimesRuntimeHandler,
+			group:          crioRuntimeConfig,
+			isDefaultValue: RuntimesEqual(dc.Runtimes, c.Runtimes),
+		},
+		{
+			templateString: templateStringCrioCheckpointRestoreContainerLevelEnabled,
+			group:          crioCheckpointRestoreConfig,
+			isDefaultValue: simpleEqual(dc.ContainerLevelEnabled, c.ContainerLevelEnabled),
+		},
+		{
+			templateString: templateStringCrioRuntimeWorkloads,
+			group:          crioRuntimeConfig,
+			isDefaultValue: WorkloadsEqual(dc.Workloads, c.Workloads),
 		},
 		{
 			templateString: templateStringCrioImageDefaultTransport,

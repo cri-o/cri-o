@@ -118,6 +118,30 @@ EOF
 	"$CRIO_BINARY_PATH" -c "$TESTDIR"/workload.conf -d "" config
 }
 
+@test "config output should keep the runtime options when loaded again" {
+	# given
+	unset CONTAINER_RUNTIMES
+	unset CONTAINER_DEFAULT_RUNTIME
+	cat << EOF > "$TESTDIR"/runtime-options.conf
+[crio.runtime]
+timezone = "Asia/Singapore"
+disable_hostport_mapping = true
+hostnetwork_disable_selinux = false
+[crio.runtime.runtimes.other]
+runtime_path = "/usr/bin/crun"
+EOF
+	"$CRIO_BINARY_PATH" -c "$TESTDIR"/runtime-options.conf -d "" config > "$TESTDIR"/generated.conf
+
+	# when
+	RES=$("$CRIO_BINARY_PATH" -c "$TESTDIR"/generated.conf -d "" config 2>&1)
+
+	# then
+	[[ "$RES" == *"timezone = \"Asia/Singapore\""* ]]
+	[[ "$RES" == *"disable_hostport_mapping = true"* ]]
+	[[ "$RES" == *"hostnetwork_disable_selinux = false"* ]]
+	[[ "$RES" == *"crio.runtime.runtimes.other"* ]]
+}
+
 @test "config dir should fail with invalid disable_hostport_mapping option" {
 	# given
 	printf '[crio.runtime]\ndisable_hostport_mapping = false\n' > "$CRIO_CONFIG"
