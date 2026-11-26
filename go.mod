@@ -71,7 +71,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.47.0
 	go.podman.io/common v0.68.1
 	go.podman.io/image/v5 v5.40.0
-	go.podman.io/storage v1.63.0
+	go.podman.io/storage v1.64.2
 	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.63.0
 	golang.org/x/sync v0.25.0
@@ -173,7 +173,6 @@ require (
 	github.com/knqyf263/go-plugin v0.9.0 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect
-	github.com/mattn/go-shellwords v1.0.16 // indirect
 	github.com/mattn/go-sqlite3 v1.14.44 // indirect
 	github.com/mdlayher/netlink v1.11.2 // indirect
 	github.com/mdlayher/socket v0.6.1 // indirect
@@ -205,7 +204,7 @@ require (
 	github.com/sylabs/sif/v2 v2.24.0 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
 	github.com/tetratelabs/wazero v1.11.0 // indirect
-	github.com/ulikunitz/xz v0.5.15 // indirect
+	github.com/ulikunitz/xz v0.5.16 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.4.0 // indirect
 	github.com/vbatts/tar-split v0.12.3 // indirect
 	github.com/vbauerster/mpb/v8 v8.12.0 // indirect

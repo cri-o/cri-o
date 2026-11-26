@@ -119,7 +119,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 		})
 	})
 	t.Describe("ContainerCheckpoint", func() {
-		It("should fail with export", func() {
+		It("should export a checkpoint", func() {
 			// Given
 			// Overwrite container config to add external bind mounts
 			tmpFile, err := os.CreateTemp("", "restore-test-file")
@@ -149,6 +149,8 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			Expect(os.WriteFile("config.json", []byte(containerConfig), 0o644)).To(Succeed())
+
+			myContainer = newTestContainer(t.MustTempDir("checkpoint"))
 
 			addContainerAndSandbox()
 
@@ -211,7 +213,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// Then
-			Expect(err.Error()).To(Equal(`failed to unmount container containerID: error`))
+			Expect(err).To(MatchError(`failed to unmount container containerID: error`))
 		})
 	})
 })
