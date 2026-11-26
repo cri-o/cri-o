@@ -589,8 +589,13 @@ func (r *runtimeVM) execContainerCommon(
 	log.Debugf(ctx, "RuntimeVM.execContainerCommon() start")
 	defer log.Debugf(ctx, "RuntimeVM.execContainerCommon() end")
 
-	if err := checkContainerAlive(ctx, r, c); err != nil {
-		return execError, err
+	alive, err := r.IsContainerAlive(ctx, c)
+	if err != nil {
+		return execError, &ErrContainerStateUnknown{Err: err}
+	}
+
+	if !alive {
+		return execError, fmt.Errorf("%w: %s", ErrContainerNotRunning, c.ID())
 	}
 
 	// Cancel the context before returning to ensure goroutines are stopped.
