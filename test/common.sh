@@ -46,7 +46,13 @@ fi
 CONTAINER_DEFAULT_RUNTIME=${CONTAINER_DEFAULT_RUNTIME:-crun}
 RUNTIME_BINARY_PATH=$(command -v "$CONTAINER_DEFAULT_RUNTIME")
 RUNTIME_TYPE=${RUNTIME_TYPE:-oci}
-PRIVILEGED_WITHOUT_HOST_DEVICES=${PRIVILEGED_WITHOUT_HOST_DEVICES:-}
+# VM runtimes cannot pass host devices to privileged containers; default the
+# handler option accordingly, keeping an explicit value.
+if [[ "$RUNTIME_TYPE" == "vm" ]]; then
+    PRIVILEGED_WITHOUT_HOST_DEVICES=${PRIVILEGED_WITHOUT_HOST_DEVICES:-true}
+else
+    PRIVILEGED_WITHOUT_HOST_DEVICES=${PRIVILEGED_WITHOUT_HOST_DEVICES:-}
+fi
 RUNTIME_CONFIG_PATH=${RUNTIME_CONFIG_PATH:-""}
 # Path of the apparmor_parser binary.
 APPARMOR_PARSER_BINARY=${APPARMOR_PARSER_BINARY:-/sbin/apparmor_parser}
