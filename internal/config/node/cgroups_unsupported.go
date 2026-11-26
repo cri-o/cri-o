@@ -20,3 +20,7 @@ func CgroupHasHugetlb() bool {
 func CgroupHasPid() bool {
 	return false
 }
+
+func CgroupMountOptions() ([]string, error) {
+	return nil, nil
+}
