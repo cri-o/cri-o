@@ -57,6 +57,9 @@ type Container struct {
 	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 	someNameOfTheImage *references.RegistryImageReference
 	imageID            *storage.StorageImageID // nil for infra containers.
+	// Digest of the image config blob. Empty for infra containers, schema1
+	// images and containers created by a CRI-O version that did not record it.
+	imageConfigDigest  string
 	mountPoint         string
 	seccompProfilePath string
 	conmonCgroupfsPath string
@@ -549,6 +552,18 @@ func (c *Container) MountPoint() string {
 // SetIDMappings sets the ID/GID mappings used for the container.
 func (c *Container) SetIDMappings(mappings *idtools.IDMappings) {
 	c.idMappings = mappings
+}
+
+// SetImageConfigDigest sets the digest of the image config blob. It is not
+// always the same as the image ID (e.g. for images partially pulled by TOC).
+func (c *Container) SetImageConfigDigest(digest string) {
+	c.imageConfigDigest = digest
+}
+
+// ImageConfigDigest returns the digest of the image config blob, or "" if it
+// is not known.
+func (c *Container) ImageConfigDigest() string {
+	return c.imageConfigDigest
 }
 
 // IDMappings returns the ID/GID mappings used for the container.

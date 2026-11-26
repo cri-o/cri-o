@@ -1142,6 +1142,8 @@ func (s *Server) createSandboxContainer(
 
 	ociContainer.SetIDMappings(containerIDMappings)
 
+	ociContainer.SetImageConfigDigest(imgInfo.imgResult.ConfigDigest.String())
+
 	if err := s.setupContainerIDMappings(
 		sb,
 		specgen,

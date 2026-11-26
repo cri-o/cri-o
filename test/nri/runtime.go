@@ -523,6 +523,25 @@ func (r *runtime) StartContainer(container string) error {
 	return nil
 }
 
+func (r *runtime) ContainerStatus(container string) (*cri.ContainerStatus, error) {
+	id, ok := r.containers[container]
+	if !ok {
+		return nil, fmt.Errorf("can't get status of container %s: unknown", container)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+
+	reply, err := r.runtime.ContainerStatus(ctx, &cri.ContainerStatusRequest{
+		ContainerId: id,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get status of container %s: %w", container, err)
+	}
+
+	return reply.GetStatus(), nil
+}
+
 func (r *runtime) StopContainer(container string) error {
 	id, ok := r.containers[container]
 	if !ok {

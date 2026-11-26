@@ -108,6 +108,8 @@ var _ = t.Describe("Container", func() {
 			imageResult := storage.ImageResult{
 				ID:                  imageID,
 				SomeNameOfThisImage: &someNameOfThisImage,
+				// Differs from the image ID, as for images partially pulled by TOC.
+				ConfigDigest: "sha256:2a5ba4e9b4fd2e9e1a2f1e0a8f2c3d4b5a697887766554433221100998877665",
 			}
 			mountPoint := "test"
 			configStopSignal := "test"
@@ -189,6 +191,9 @@ var _ = t.Describe("Container", func() {
 			Expect(
 				sut.Spec().Config.Annotations[annotations.ImageRef],
 			).To(Equal(imageResult.ID.IDStringForOutOfProcessConsumptionOnly()))
+			Expect(
+				sut.Spec().Config.Annotations[annotations.ImageConfigDigest],
+			).To(Equal(imageResult.ConfigDigest.String()))
 			Expect(sut.Spec().Config.Annotations[annotations.Name]).To(Equal(sut.Name()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerID]).To(Equal(sut.ID()))
 			Expect(sut.Spec().Config.Annotations[annotations.SandboxID]).To(Equal(sb.ID()))

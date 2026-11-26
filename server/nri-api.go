@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/containerd/nri/pkg/api"
 	nrigen "github.com/containerd/nri/pkg/runtime-tools/generate"
@@ -940,6 +941,33 @@ func (c *criContainer) GetUser() *api.User {
 		Uid:            spec.Process.User.UID,
 		Gid:            spec.Process.User.GID,
 		AdditionalGids: slices.Clone(spec.Process.User.AdditionalGids),
+	}
+}
+
+func (c *criContainer) GetImage() *api.Image {
+	if c.ctr == nil {
+		return nil
+	}
+
+	// Same as CRI ContainerStatus: empty if the image has no stored name.
+	name := ""
+	if someName := c.ctr.SomeNameOfTheImage(); someName != nil {
+		name = someName.StringForOutOfProcessConsumptionOnly()
+	}
+
+	// ImageRef is a repo digest (name@digest) if one is known, else the image ID.
+	_, digest, _ := strings.Cut(c.ctr.CRIContainer().GetImageRef(), "@")
+
+	configDigest := c.ctr.ImageConfigDigest()
+
+	if name == "" && digest == "" && configDigest == "" {
+		return nil
+	}
+
+	return &api.Image{
+		Name:         name,
+		Digest:       digest,
+		ConfigDigest: configDigest,
 	}
 }
 
