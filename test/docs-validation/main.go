@@ -243,7 +243,7 @@ func stringInSlice(a string, list []string) bool {
 
 func allEntries(c *config.Config) []entry {
 	entries := &[]entry{}
-	recursiveEntries(reflect.ValueOf(*c), entries, map[any]bool{})
+	recursiveEntries(reflect.ValueOf(c).Elem(), entries, map[any]bool{})
 
 	return *entries
 }
