@@ -44,7 +44,7 @@ require (
 	github.com/moby/sys/capability v0.5.0
 	github.com/moby/sys/devices v0.1.1
 	github.com/moby/sys/mountinfo v0.7.3
-	github.com/moby/sys/user v0.5.0
+	github.com/moby/sys/user v0.5.1
 	github.com/moby/sys/userns v0.2.1
 	github.com/modelpack/model-spec v0.0.7
 	github.com/onsi/ginkgo/v2 v2.34.0
