@@ -53,8 +53,6 @@ var _ = t.Describe("ContainerExec", func() {
 			handler.StreamWebsockets = new(true)
 			handler.SetConmonrsFeatures([]string{conmonClient.FeatureStreamingProtocols})
 
-			// The server's background monitor may probe the container while
-			// this test installs its runtime implementation.
 			ociRuntimeMock.EXPECT().
 				ProbeMonitor(gomock.Any(), testContainer).
 				Return(nil).
@@ -176,11 +174,19 @@ var _ = t.Describe("ContainerExec", func() {
 			// Given
 			addContainerAndSandbox()
 			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
+				State:   specs.State{Status: oci.ContainerStateRunning},
+				InitPid: 4194305,
 			})
-			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
+
+			ociRuntimeMock.EXPECT().
+				ProbeMonitor(gomock.Any(), testContainer).
+				Return(nil).
+				AnyTimes()
+			ociRuntimeMock.EXPECT().
+				ExecContainer(gomock.Any(), testContainer, []string{"/bin/sh"},
+					gomock.Any(), gomock.Any(), gomock.Any(), false, gomock.Any()).
+				Return(nil)
+			sut.Runtime().SetRuntimeImpl(testContainer.ID(), ociRuntimeMock)
 
 			// When
 			err := testStreamService.Exec(
@@ -195,11 +201,7 @@ var _ = t.Describe("ContainerExec", func() {
 			)
 
 			// Then - Should succeed because container is running
-			Expect(
-				err,
-			).To(HaveOccurred())
-			// Will fail trying to actually exec but won't fail the Living() check
-			Expect(err.Error()).NotTo(ContainSubstring("container is not created or running"))
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should allow exec to be attempted during graceful termination", func() {
@@ -220,12 +222,19 @@ var _ = t.Describe("ContainerExec", func() {
 			Expect(pid).To(Equal(12345))
 		})
 
-		It("should fail when container process is not alive", func() {
+		It("should fail when the runtime reports the container not alive", func() {
 			// Given
 			addContainerAndSandbox()
-			testContainer.SetState(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateStopped},
-			})
+
+			ociRuntimeMock.EXPECT().
+				ProbeMonitor(gomock.Any(), testContainer).
+				Return(nil).
+				AnyTimes()
+			ociRuntimeMock.EXPECT().
+				ExecContainer(gomock.Any(), testContainer, []string{"/bin/sh"},
+					gomock.Any(), gomock.Any(), gomock.Any(), false, gomock.Any()).
+				Return(fmt.Errorf("%w: stopped", oci.ErrContainerNotRunning))
+			sut.Runtime().SetRuntimeImpl(testContainer.ID(), ociRuntimeMock)
 
 			// When
 			err := testStreamService.Exec(
@@ -239,7 +248,7 @@ var _ = t.Describe("ContainerExec", func() {
 				make(chan remotecommand.TerminalSize),
 			)
 
-			// Then - Should fail the Living() check
+			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("container is not created or running"))
 		})

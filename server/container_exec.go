@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -11,7 +12,39 @@ import (
 	"k8s.io/cri-streaming/pkg/streaming/remotecommand"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/oci"
 )
+
+// execStatus translates an exec error into the CRI status the kubelet expects.
+func execStatus(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if errors.Is(err, oci.ErrContainerNotRunning) {
+		return status.Errorf(codes.NotFound, "container is not created or running")
+	}
+
+	var stateUnknown *oci.ErrContainerStateUnknown
+	if !errors.As(err, &stateUnknown) {
+		return err
+	}
+
+	code := codes.Unavailable
+
+	switch {
+	case errors.Is(stateUnknown, context.DeadlineExceeded) ||
+		status.Code(stateUnknown) == codes.DeadlineExceeded:
+		code = codes.DeadlineExceeded
+	case errors.Is(stateUnknown, context.Canceled) ||
+		status.Code(stateUnknown) == codes.Canceled:
+		code = codes.Canceled
+	}
+
+	return status.Errorf(
+		code, "unable to determine whether container is running: %v", stateUnknown.Err,
+	)
+}
 
 // Exec prepares a streaming endpoint to execute a command in the container.
 func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecResponse, error) {
@@ -66,10 +99,8 @@ func (s *StreamService) Exec(
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	if err := c.Living(); err != nil {
-		return status.Errorf(codes.NotFound, "container is not created or running: %v", err)
-	}
-
-	return s.runtimeServer.ContainerServer.Runtime().
-		ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
+	return execStatus(
+		s.runtimeServer.ContainerServer.Runtime().
+			ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan),
+	)
 }

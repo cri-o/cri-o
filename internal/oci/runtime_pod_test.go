@@ -660,16 +660,20 @@ done
 			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
 		})
 
-		It("should fail the requests for the server of a pod which is gone", func() {
+		It("should report a container which is not running when its pod is gone", func() {
 			// Given
 			c := newPodTestContainer(false, false, false)
 
 			// When
-			_, execErr := sut.ExecSyncContainer(context.Background(), c, []string{"true"}, 0)
+			execErr := sut.ExecContainer(
+				context.Background(), c, []string{"true"}, nil, nil, nil, false, nil,
+			)
+			_, execSyncErr := sut.ExecSyncContainer(context.Background(), c, []string{"true"}, 0)
 			reopenErr := sut.ReopenContainerLog(context.Background(), c)
 
 			// Then
-			Expect(execErr).To(MatchError(ContainSubstring("of container id is gone")))
+			Expect(execErr).To(MatchError(ContainSubstring("container is not running")))
+			Expect(execSyncErr).To(MatchError(ContainSubstring("container is not running")))
 			Expect(reopenErr).To(MatchError(ContainSubstring("of container id is gone")))
 			Expect(sut.HasRuntimeImpl(c.ID())).To(BeFalse())
 			Expect(runtimeCalls).ToNot(BeAnExistingFile())

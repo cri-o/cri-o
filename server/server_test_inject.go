@@ -16,6 +16,11 @@ func (s *StreamService) SetRuntimeServer(server *Server) {
 	s.runtimeServer = server
 }
 
+// SetContext sets the context of the StreamService.
+func (s *StreamService) SetContext(ctx context.Context) {
+	s.ctx = ctx
+}
+
 // MonitorStreamingURL returns the URL of the container monitor for a
 // streaming request, or an empty one if CRI-O's streaming server serves it.
 func MonitorStreamingURL(

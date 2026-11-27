@@ -371,6 +371,15 @@ func (r *runtimePod) ExecSyncContainer(
 	cmd []string,
 	timeout int64,
 ) (*types.ExecSyncResponse, error) {
+	alive, err := r.IsContainerAlive(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	if !alive {
+		return nil, ErrContainerNotRunning
+	}
+
 	if c.Spoofed() {
 		return nil, nil
 	}
@@ -632,8 +641,8 @@ func (r *runtimePod) ReopenContainerLog(ctx context.Context, c *Container) error
 	})
 }
 
-func (r *runtimePod) IsContainerAlive(c *Container) bool {
-	return c.Living() == nil
+func (r *runtimePod) IsContainerAlive(_ context.Context, c *Container) (bool, error) {
+	return c.Living() == nil, nil
 }
 
 func (r *runtimePod) ProbeMonitor(ctx context.Context, c *Container) error {

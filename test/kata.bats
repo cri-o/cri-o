@@ -104,6 +104,63 @@ function teardown() {
 	crictl rmp "$pod_id"
 }
 
+@test "exec into a vm runtime container after a crio restart" {
+	if [[ $RUNTIME_TYPE != vm ]]; then
+		skip "only applicable to vm runtime type"
+	fi
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+
+	crictl exec "$ctr_id" echo before
+	crictl exec --sync "$ctr_id" echo before
+
+	stop_crio_no_clean ""
+
+	jq '.initPid = 4194305' \
+		"$TESTDIR/crio/overlay-containers/$ctr_id/userdata/state.json" > "$TESTDIR/state.json"
+	cp "$TESTDIR/state.json" "$TESTDIR/crio/overlay-containers/$ctr_id/userdata/state.json"
+
+	start_crio_no_setup
+
+	crictl exec "$ctr_id" echo after
+	crictl exec --sync "$ctr_id" echo after
+
+	output=$(crictl inspect -o table "$ctr_id")
+	[[ "${output}" == *"CONTAINER_RUNNING"* ]]
+
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+}
+
+@test "exec into a stopped vm runtime container is refused" {
+	if [[ $RUNTIME_TYPE != vm ]]; then
+		skip "only applicable to vm runtime type"
+	fi
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl stop "$ctr_id"
+
+	# The shim reports the container stopped, which has to be answered as a
+	# container which is not running, not as an unknown state.
+	run crictl exec --sync "$ctr_id" echo stopped
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"container is not created or running"* ]]
+
+	crictl rm "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+}
+
 @test "crio restore with vm runtime and dead shim already stopped" {
 	if [[ $RUNTIME_TYPE != vm ]]; then
 		skip "only applicable to vm runtime type"
@@ -129,6 +186,12 @@ function teardown() {
 	# already stopped container should remain exited
 	output=$(crictl inspect -o table "$ctr_id")
 	[[ "${output}" == *"CONTAINER_EXITED"* ]]
+
+	# CRI-O recorded the container as stopped, so exec must be answered as
+	# not running rather than as an unknown state.
+	run crictl exec --sync "$ctr_id" echo stopped
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"container is not created or running"* ]]
 
 	crictl rm "$ctr_id"
 	crictl stopp "$pod_id"

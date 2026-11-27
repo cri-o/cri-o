@@ -76,6 +76,9 @@ const (
 const (
 	execError   = -1
 	execTimeout = -2
+
+	// vmLivenessTimeout bounds the shim liveness check before an exec.
+	vmLivenessTimeout = 10 * time.Second
 )
 
 // newRuntimeVM creates a new runtimeVM instance.
@@ -586,6 +589,15 @@ func (r *runtimeVM) execContainerCommon(
 	log.Debugf(ctx, "RuntimeVM.execContainerCommon() start")
 	defer log.Debugf(ctx, "RuntimeVM.execContainerCommon() end")
 
+	alive, err := r.IsContainerAlive(ctx, c)
+	if err != nil {
+		return execError, &ErrContainerStateUnknown{Err: err}
+	}
+
+	if !alive {
+		return execError, fmt.Errorf("%w: %s", ErrContainerNotRunning, c.ID())
+	}
+
 	// Cancel the context before returning to ensure goroutines are stopped.
 	ctx, cancel := context.WithCancel(r.ctx)
 	defer cancel()
@@ -705,14 +717,14 @@ func (r *runtimeVM) execContainerCommon(
 	select {
 	case err = <-execCh:
 		if err != nil {
-			if killErr := r.kill(c.ID(), execID, syscall.SIGKILL); killErr != nil {
+			if killErr := r.kill(ctx, c.ID(), execID, syscall.SIGKILL); killErr != nil {
 				return execError, killErr
 			}
 
 			return execError, err
 		}
 	case <-timeoutCh:
-		if killErr := r.kill(c.ID(), execID, syscall.SIGKILL); killErr != nil {
+		if killErr := r.kill(ctx, c.ID(), execID, syscall.SIGKILL); killErr != nil {
 			return execError, killErr
 		}
 
@@ -815,7 +827,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	if timeout > 0 {
 		sig = c.StopSignal()
 		// Send a stopping signal to the container
-		if err := r.kill(c.ID(), "", sig); err != nil {
+		if err := r.kill(ctx, c.ID(), "", sig); err != nil {
 			return err
 		}
 
@@ -834,7 +846,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 
 	sig = syscall.SIGKILL
 	// Send a SIGKILL signal to the container
-	if err := r.kill(c.ID(), "", sig); err != nil {
+	if err := r.kill(ctx, c.ID(), "", sig); err != nil {
 		return err
 	}
 
@@ -971,6 +983,24 @@ func markContainerStopped(c *Container) {
 	c.state.Status = ContainerStateStopped
 }
 
+// containerStateFromTaskStatus maps the status the shim reports to the state
+// CRI-O tracks for the container. The second return value is false for the
+// statuses CRI-O does not map.
+func containerStateFromTaskStatus(status tasktypes.Status) (rspec.ContainerState, bool) {
+	switch status {
+	case tasktypes.Status_CREATED:
+		return ContainerStateCreated, true
+	case tasktypes.Status_RUNNING:
+		return ContainerStateRunning, true
+	case tasktypes.Status_STOPPED:
+		return ContainerStateStopped, true
+	case tasktypes.Status_PAUSED:
+		return ContainerStatePaused, true
+	}
+
+	return "", false
+}
+
 // updateContainerStatus is a UpdateContainerStatus helper, which actually does the container's
 // status refresh.
 // It does **not** Lock the container, thus it's the caller responsibility to do so, when needed.
@@ -1042,15 +1072,8 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 
 	status := c.state.Status
 
-	switch response.GetStatus() {
-	case tasktypes.Status_CREATED:
-		status = ContainerStateCreated
-	case tasktypes.Status_RUNNING:
-		status = ContainerStateRunning
-	case tasktypes.Status_STOPPED:
-		status = ContainerStateStopped
-	case tasktypes.Status_PAUSED:
-		status = ContainerStatePaused
+	if state, ok := containerStateFromTaskStatus(response.GetStatus()); ok {
+		status = state
 	}
 
 	c.state.Status = status
@@ -1350,13 +1373,18 @@ func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
 	return int32(resp.GetExitStatus()), nil
 }
 
-func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
-	if _, err := r.task.Kill(r.ctx, &task.KillRequest{
+func (r *runtimeVM) kill(ctx context.Context, ctrID, execID string, signal syscall.Signal) error {
+	if _, err := r.task.Kill(ctx, &task.KillRequest{
 		ID:     ctrID,
 		ExecID: execID,
 		Signal: uint32(signal),
 		All:    false,
-	}); err != nil && (signal == 0 || !errors.Is(err, ttrpc.ErrClosed)) {
+	}); err != nil {
+		// A dead shim means the container is gone, which is not an error.
+		if errors.Is(err, ttrpc.ErrClosed) {
+			return nil
+		}
+
 		return errdefs.FromGRPC(err)
 	}
 
@@ -1441,8 +1469,42 @@ func EncodeKataVirtualVolumeToBase64(
 	return option, nil
 }
 
-func (r *runtimeVM) IsContainerAlive(c *Container) bool {
-	return r.kill(c.ID(), "", 0) == nil
+// IsContainerAlive asks the shim for the status of the container. It uses
+// State rather than Kill with signal 0: kata signals the whole container on a
+// Kill with an empty exec ID, freezing the cgroup and thawing it again, which
+// would resume a paused container and stop the workload on every check.
+func (r *runtimeVM) IsContainerAlive(ctx context.Context, c *Container) (bool, error) {
+	// The shim connection is established when the container status is refreshed,
+	// which can be the first thing that happens after a CRI-O restart. Without it
+	// there is nothing to ask, but a container CRI-O already recorded as stopped
+	// is not alive.
+	if r.task == nil {
+		if c.State().Status == ContainerStateStopped {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("shim for container %s is not connected", c.ID())
+	}
+
+	aliveCtx, cancel := context.WithTimeout(ctx, vmLivenessTimeout)
+	defer cancel()
+
+	response, err := r.task.State(aliveCtx, &task.StateRequest{ID: c.ID()})
+	if err != nil {
+		// The container is gone: the shim connection is closed or the shim
+		// does not have the container anymore.
+		if errors.Is(err, ttrpc.ErrClosed) || errdefs.IsNotFound(errdefs.FromGRPC(err)) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("check whether container %s is alive: %w", c.ID(), err)
+	}
+
+	state, known := containerStateFromTaskStatus(response.GetStatus())
+
+	// A created container can already take a process, like the init pid check
+	// it replaces allowed, so only a stopped container is not alive.
+	return known && state != ContainerStateStopped, nil
 }
 
 func (r *runtimeVM) ProbeMonitor(ctx context.Context, c *Container) error {

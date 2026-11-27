@@ -80,7 +80,7 @@ type RuntimeImpl interface {
 	ReopenContainerLog(context.Context, *Container) error
 	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
 	RestoreContainer(context.Context, *Container, string, string) error
-	IsContainerAlive(*Container) bool
+	IsContainerAlive(context.Context, *Container) (bool, error)
 	// ProbeMonitor is used to check the liveness of the container monitor process.
 	ProbeMonitor(context.Context, *Container) error
 	ServeExecContainer(
@@ -298,7 +298,7 @@ func (r *Runtime) RuntimeStreamPortForward(runtimeHandler string) (bool, error) 
 // newRuntimeImpl creates the runtime implementation of the container. For the
 // pod runtime type, a container other than the infra container uses
 // sandboxImpl, the implementation of its sandbox. Callers read it with the
-// lock held, see sandboxRuntimeImpl. Without one, the container gets a
+// lock held, see lookupRuntimeImpl. Without one, the container gets a
 // runtimePodGone, which must not be stored in runtimeImplMap.
 func (r *Runtime) newRuntimeImpl(c *Container, sandboxImpl RuntimeImpl) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
@@ -337,11 +337,7 @@ func (r *Runtime) newRuntimeImpl(c *Container, sandboxImpl RuntimeImpl) (Runtime
 
 // RuntimeImpl returns the runtime implementation for a given container.
 func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
-	r.runtimeImplMapMutex.RLock()
-	impl, ok := r.runtimeImplMap[c.ID()]
-	r.runtimeImplMapMutex.RUnlock()
-
-	if ok {
+	if impl, ok := r.lookupRuntimeImpl(c.ID()); ok {
 		return impl, nil
 	}
 
@@ -366,15 +362,29 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	return impl, nil
 }
 
-// sandboxRuntimeImpl returns the runtime implementation of the sandbox of the
-// container, if it has one, for newRuntimeImpl. The map gets written
+// lookupRuntimeImpl returns the runtime implementation of the container or
+// sandbox with the given ID without creating one. The map gets written
 // concurrently, so it must not be read without the lock. It must not be
 // called with runtimeImplMapMutex held.
-func (r *Runtime) sandboxRuntimeImpl(c *Container) RuntimeImpl {
+func (r *Runtime) lookupRuntimeImpl(id string) (RuntimeImpl, bool) {
 	r.runtimeImplMapMutex.RLock()
 	defer r.runtimeImplMapMutex.RUnlock()
 
-	return r.runtimeImplMap[c.Sandbox()]
+	impl, ok := r.runtimeImplMap[id]
+
+	return impl, ok
+}
+
+// execRuntimeImpl returns the runtime implementation of the container for an
+// exec. When there is none the container was removed while the CRI still had
+// it, so it is not running anymore.
+func (r *Runtime) execRuntimeImpl(c *Container) (RuntimeImpl, error) {
+	impl, ok := r.lookupRuntimeImpl(c.ID())
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrContainerNotRunning, c.ID())
+	}
+
+	return impl, nil
 }
 
 // streamingRuntimeImpl returns the runtime implementation of the container
@@ -386,10 +396,7 @@ func (r *Runtime) sandboxRuntimeImpl(c *Container) RuntimeImpl {
 // with errors.ErrUnsupported then, like a runtime which does not serve the
 // request, and CRI-O's streaming server handles it.
 func (r *Runtime) streamingRuntimeImpl(c *Container) (RuntimeImpl, error) {
-	r.runtimeImplMapMutex.RLock()
-	impl, ok := r.runtimeImplMap[c.ID()]
-	r.runtimeImplMapMutex.RUnlock()
-
+	impl, ok := r.lookupRuntimeImpl(c.ID())
 	if !ok {
 		return nil, fmt.Errorf(
 			"no runtime implementation for container %s: %w", c.ID(), errors.ErrUnsupported,
@@ -409,7 +416,7 @@ func (r *Runtime) CreateContainer(
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	sandboxImpl := r.sandboxRuntimeImpl(c)
+	sandboxImpl, _ := r.lookupRuntimeImpl(c.Sandbox())
 
 	// Instantiate a new runtime implementation for this new container
 	impl, err := r.newRuntimeImpl(c, sandboxImpl)
@@ -442,7 +449,7 @@ func (r *Runtime) addRuntimeImpl(
 	defer r.runtimeImplMapMutex.Unlock()
 
 	// The container shares the implementation of its pod, which got removed
-	// after sandboxRuntimeImpl read it, so its client may be closed.
+	// after lookupRuntimeImpl read it, so its client may be closed.
 	if sandboxImpl != nil && impl == sandboxImpl && r.runtimeImplMap[c.Sandbox()] != sandboxImpl {
 		return nil, errPodGone(c)
 	}
@@ -495,7 +502,7 @@ func (r *Runtime) ExecContainer(
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	impl, err := r.RuntimeImpl(c)
+	impl, err := r.execRuntimeImpl(c)
 	if err != nil {
 		return err
 	}
@@ -513,7 +520,7 @@ func (r *Runtime) ExecSyncContainer(
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	impl, err := r.RuntimeImpl(c)
+	impl, err := r.execRuntimeImpl(c)
 	if err != nil {
 		return nil, err
 	}
@@ -556,12 +563,11 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	r.runtimeImplMapMutex.RLock()
-	impl, ok := r.runtimeImplMap[c.ID()]
-	r.runtimeImplMapMutex.RUnlock()
+	impl, ok := r.lookupRuntimeImpl(c.ID())
 
 	if !ok {
-		if impl, err = r.newRuntimeImpl(c, r.sandboxRuntimeImpl(c)); err != nil {
+		sandboxImpl, _ := r.lookupRuntimeImpl(c.Sandbox())
+		if impl, err = r.newRuntimeImpl(c, sandboxImpl); err != nil {
 			return err
 		}
 	} else {
@@ -758,13 +764,13 @@ func (r *Runtime) RestoreContainer(
 	return impl.RestoreContainer(ctx, c, cgroupParent, mountLabel)
 }
 
-func (r *Runtime) IsContainerAlive(c *Container) (bool, error) {
-	impl, err := r.RuntimeImpl(c)
-	if err != nil {
-		return false, err
+func (r *Runtime) IsContainerAlive(ctx context.Context, c *Container) (bool, error) {
+	impl, ok := r.lookupRuntimeImpl(c.ID())
+	if !ok {
+		return false, fmt.Errorf("no runtime implementation for container %s", c.ID())
 	}
 
-	return impl.IsContainerAlive(c), nil
+	return impl.IsContainerAlive(ctx, c)
 }
 
 func (r *Runtime) ProbeMonitor(ctx context.Context, c *Container) error {

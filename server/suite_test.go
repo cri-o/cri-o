@@ -231,6 +231,9 @@ var setupSUT = func() {
 	// Inject the mock
 	sut.SetStorageImageServer(imageServerMock)
 	sut.SetStorageRuntimeServer(runtimeServerMock)
+
+	testStreamService.SetRuntimeServer(sut)
+	testStreamService.SetContext(context.Background())
 }
 
 func mockNewServer() {

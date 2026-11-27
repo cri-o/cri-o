@@ -29,14 +29,13 @@ func (s *Server) ExecSync(
 		)
 	}
 
-	if err := c.Living(); err != nil {
-		return nil, status.Errorf(codes.NotFound, "container is not created or running: %v", err)
-	}
-
 	cmd := req.GetCmd()
 	if cmd == nil {
 		return nil, errors.New("exec command cannot be empty")
 	}
 
-	return s.ContainerServer.Runtime().ExecSyncContainer(ctx, c, cmd, req.GetTimeout())
+	response, err := s.ContainerServer.Runtime().
+		ExecSyncContainer(ctx, c, cmd, req.GetTimeout())
+
+	return response, execStatus(err)
 }
