@@ -225,6 +225,19 @@ var _ = t.Describe("RuntimeVM kill", func() {
 })
 
 var _ = t.Describe("RuntimeVM IsContainerAlive", func() {
+	It("should report a stopped container as not alive without asking the shim", func() {
+		r := oci.NewRuntimeVM()
+		c := newTestContainerWithBundle(GinkgoT().TempDir())
+		c.SetState(&oci.ContainerState{})
+		c.State().Status = oci.ContainerStateStopped
+
+		Expect(r.HasTask()).To(BeFalse())
+
+		alive, err := r.IsContainerAlive(context.Background(), c)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(alive).To(BeFalse())
+	})
+
 	It("should ask the shim for the state with a bounded context", func() {
 		taskService := &fakeTaskService{
 			stateResp: &task.StateResponse{Status: tasktypes.Status_RUNNING},
@@ -316,6 +329,18 @@ var _ = t.Describe("RuntimeVM exec eligibility", func() {
 	It("should reject a container the shim no longer has on exec sync", func() {
 		r := oci.NewRuntimeVMWithTask(&fakeTaskService{stateErr: ttrpc.ErrClosed})
 		c := newTestContainerWithBundle(GinkgoT().TempDir())
+
+		_, err := r.ExecSyncContainer(context.Background(), c, []string{"true"}, 0)
+		Expect(errors.Is(err, oci.ErrContainerNotRunning)).To(BeTrue())
+	})
+
+	It("should reject a stopped container without a shim as not running", func() {
+		r := oci.NewRuntimeVM()
+		c := newTestContainerWithBundle(GinkgoT().TempDir())
+		c.SetState(&oci.ContainerState{})
+		c.State().Status = oci.ContainerStateStopped
+
+		Expect(r.HasTask()).To(BeFalse())
 
 		_, err := r.ExecSyncContainer(context.Background(), c, []string{"true"}, 0)
 		Expect(errors.Is(err, oci.ErrContainerNotRunning)).To(BeTrue())

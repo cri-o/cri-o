@@ -1476,8 +1476,13 @@ func EncodeKataVirtualVolumeToBase64(
 func (r *runtimeVM) IsContainerAlive(ctx context.Context, c *Container) (bool, error) {
 	// The shim connection is established when the container status is refreshed,
 	// which can be the first thing that happens after a CRI-O restart. Without it
-	// there is nothing to ask.
+	// there is nothing to ask, but a container CRI-O already recorded as stopped
+	// is not alive.
 	if r.task == nil {
+		if c.State().Status == ContainerStateStopped {
+			return false, nil
+		}
+
 		return false, fmt.Errorf("shim for container %s is not connected", c.ID())
 	}
 

@@ -187,6 +187,12 @@ function teardown() {
 	output=$(crictl inspect -o table "$ctr_id")
 	[[ "${output}" == *"CONTAINER_EXITED"* ]]
 
+	# CRI-O recorded the container as stopped, so exec must be answered as
+	# not running rather than as an unknown state.
+	run crictl exec --sync "$ctr_id" echo stopped
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"container is not created or running"* ]]
+
 	crictl rm "$ctr_id"
 	crictl stopp "$pod_id"
 	crictl rmp "$pod_id"
